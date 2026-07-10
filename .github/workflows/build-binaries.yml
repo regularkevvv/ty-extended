@@ -27,7 +27,8 @@ permissions:
   contents: read
 
 env:
-  PACKAGE_NAME: ty
+  PACKAGE_NAME: ty-extended
+  PACKAGE_FILE_STEM: ty_extended
   MODULE_NAME: ty
   PYTHON_VERSION: "3.13"
   CARGO_INCREMENTAL: 0
@@ -57,7 +58,7 @@ jobs:
           args: --out dist
       - name: "Test sdist"
         run: |
-          pip install dist/"${PACKAGE_NAME}"-*.tar.gz --force-reinstall
+          pip install dist/"${PACKAGE_FILE_STEM}"-*.tar.gz --force-reinstall
           "${MODULE_NAME}" version
           "${MODULE_NAME}" --help
           python -m "${MODULE_NAME}" --help
@@ -140,7 +141,7 @@ jobs:
           RUSTFLAGS: "-C linker=rust-lld -C linker-flavor=ld64.lld -C link-arg=--icf=safe"
       - name: "Test wheel - aarch64"
         run: |
-          pip install dist/"${PACKAGE_NAME}"-*.whl --force-reinstall
+          pip install dist/"${PACKAGE_FILE_STEM}"-*.whl --force-reinstall
           ty --help
           python -m ty --help
       - name: "Upload wheels"
@@ -202,7 +203,7 @@ jobs:
         if: ${{ !startsWith(matrix.platform.target, 'aarch64') }}
         shell: bash
         run: |
-          python -m pip install dist/"${PACKAGE_NAME}"-*.whl --force-reinstall
+          python -m pip install dist/"${PACKAGE_FILE_STEM}"-*.whl --force-reinstall
           "${MODULE_NAME}" version
           "${MODULE_NAME}" --help
           python -m "${MODULE_NAME}" --help
@@ -254,7 +255,7 @@ jobs:
       - name: "Test wheel"
         if: ${{ startsWith(matrix.target, 'x86_64') }}
         run: |
-          pip install dist/"${PACKAGE_NAME}"-*.whl --force-reinstall
+          pip install dist/"${PACKAGE_FILE_STEM}"-*.whl --force-reinstall
           "${MODULE_NAME}" version
           "${MODULE_NAME}" --help
           python -m "${MODULE_NAME}" --help

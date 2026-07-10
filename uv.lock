@@ -647,8 +647,8 @@ wheels = [
 ]
 
 [[package]]
-name = "ty"
-version = "0.0.58"
+name = "ty-extended"
+version = "0.58.0"
 source = { editable = "." }
 
 [package.dev-dependencies]

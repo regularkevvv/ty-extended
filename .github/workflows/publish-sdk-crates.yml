@@ -1,0 +1,49 @@
+# Publish ty semantic extension SDK crates to crates.io.
+#
+# Assumed to run as a subworkflow of .github/workflows/release.yml; specifically, as a publish job
+# within `cargo-dist`.
+name: "Publish ty extension SDK crates"
+
+on:
+  workflow_call:
+    inputs:
+      plan:
+        required: true
+        type: string
+
+jobs:
+  crates-publish-sdk:
+    name: Upload ty extension SDK crates to crates.io
+    runs-on: ubuntu-latest
+    environment:
+      name: release
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: actions/checkout@0c366fd6a839edf440554fa01a7085ccba70ac98 # v6.0.2
+        with:
+          persist-credentials: false
+          submodules: recursive
+      - name: Check ruff-extended submodule fork
+        run: |
+          url="$(git config --file .gitmodules --get submodule.ruff.url)"
+          case "$url" in
+            "https://github.com/regularkevvv/ruff-extended"|"https://github.com/regularkevvv/ruff-extended.git"|"git@github.com:regularkevvv/ruff-extended.git")
+              ;;
+            *)
+              echo "Expected ruff submodule to point at ruff-extended; got: $url"
+              exit 1
+              ;;
+          esac
+          git submodule status --recursive ruff
+      - uses: rust-lang/crates-io-auth-action@c6f97d42243bad5fab37ca0427f495c86d5b1a18 # v1.0.5
+        id: auth
+      - name: Publish SDK crates
+        run: >
+          python3 ruff/scripts/publish-crates.py
+          --package ty_plugin_protocol
+          --package ty_plugin_sdk
+          --no-verify
+        env:
+          CARGO_REGISTRY_TOKEN: ${{ steps.auth.outputs.token }}

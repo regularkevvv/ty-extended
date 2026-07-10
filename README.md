@@ -1,10 +1,8 @@
-# ty
+# ty-extended
 
-[![ty](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/ty/main/assets/badge/v0.json)](https://github.com/astral-sh/ty)
-[![PyPI](https://img.shields.io/pypi/v/ty.svg)](https://pypi.python.org/pypi/ty)
-[![Discord](https://img.shields.io/badge/Discord-%235865F2.svg?logo=discord&logoColor=white)](https://discord.com/invite/astral-sh)
+[![PyPI](https://img.shields.io/pypi/v/ty-extended.svg)](https://pypi.org/project/ty-extended/)
 
-An extremely fast Python type checker and language server, written in Rust.
+A fork of ty with semantic extension support for framework-aware type checking.
 
 <br />
 
@@ -18,10 +16,11 @@ An extremely fast Python type checker and language server, written in Rust.
 
 <br />
 
-ty is backed by [Astral](https://astral.sh), the creators of
-[uv](https://github.com/astral-sh/uv) and [Ruff](https://github.com/astral-sh/ruff).
+ty-extended builds on [Astral's ty](https://github.com/astral-sh/ty) and keeps the command-line
+executable named `ty`. The fork adds a semantic extension protocol, a Rust SDK for extension
+authors, and live WASM extension execution.
 
-ty is currently in [beta](#version-policy).
+ty-extended tracks ty's beta checker and language server while the extension protocol stabilizes.
 
 ## Highlights
 
@@ -40,40 +39,55 @@ ty is currently in [beta](#version-policy).
 Run ty with [uvx](https://docs.astral.sh/uv/guides/tools/#running-tools) to get started quickly:
 
 ```shell
-uvx ty check
+uvx --from ty-extended ty check
 ```
 
 Or, check out the [ty playground](https://play.ty.dev) to try it out in your browser.
 
-To learn more about using ty, see the [documentation](https://docs.astral.sh/ty/).
+To learn more about using ty-extended, see the [documentation](./docs/index.md).
+
+## Extension SDK
+
+ty-extended also publishes the Rust crates extension authors use to build semantic extensions:
+
+- [`ty_plugin_protocol`](https://crates.io/crates/ty_plugin_protocol): the stable JSON wire
+    protocol for manifests, requests, responses, claims, and patches.
+- [`ty_plugin_sdk`](https://crates.io/crates/ty_plugin_sdk): the author-facing SDK with
+    `ManifestBuilder`, the `Plugin` trait, typed DSL helpers, JSON dispatch, and WASM exports.
+
+Start with the [extension authoring guide](./docs/extension-authoring.md) for a working crate
+layout, manifest claims, hook methods, and packaging guidance.
 
 ## Installation
 
-To install ty, see the [installation](https://docs.astral.sh/ty/installation/) documentation.
+To install ty-extended, see the [installation](./docs/installation.md) documentation.
 
 To add the ty language server to your editor, see the [editor integration](https://docs.astral.sh/ty/editors/) guide.
 
 ## Getting help
 
 If you have questions or want to report a bug, please open an
-[issue](https://github.com/astral-sh/ty/issues) in this repository.
-
-You may also join our [Discord server](https://discord.com/invite/astral-sh).
+[issue](https://github.com/regularkevvv/ty-extended/issues) in this repository.
 
 ## Contributing
 
-Development of this project takes place in the [Ruff](https://github.com/astral-sh/ruff) repository
-at this time. Please [open pull requests](https://github.com/astral-sh/ruff/pulls) there for changes
-to anything in the `ruff` submodule (which includes all of the Rust source code).
+Most of the implementation lives in the `ruff` submodule, which points at
+[regularkevvv/ruff-extended](https://github.com/regularkevvv/ruff-extended) for this fork.
 
 See the
 [contributing guide](./CONTRIBUTING.md) for more details.
 
 ## Version policy
 
-ty uses `0.0.x` versioning. ty does not yet have a stable API; breaking changes, including changes
-to diagnostics, may occur between any two versions. See the [type system support](https://github.com/astral-sh/ty/issues/1889)
-tracking issue for a detailed overview of currently supported features.
+ty-extended uses SemVer-compatible fork versioning that records the upstream ty base:
+
+- upstream `0.0.58` maps to `ty-extended 0.58.0`;
+- a second fork release on the same upstream base maps to `ty-extended 0.58.1`;
+- upstream `0.1.50` maps to `ty-extended 0.150.0`;
+- once upstream reaches `1.0.0`, ty-extended follows that shape directly as `1.0.x`.
+
+The semantic extension protocol and SDK crates are versioned independently. They are pre-1.0;
+breaking changes may occur between any two `0.0.x` releases.
 
 ## FAQ
 
@@ -113,9 +127,3 @@ ty is licensed under the MIT license ([LICENSE](LICENSE) or
 Unless you explicitly state otherwise, any contribution intentionally submitted for inclusion in ty
 by you, as defined in the MIT license, shall be licensed as above, without any additional terms or
 conditions.
-
-<div align="center">
-  <a target="_blank" href="https://astral.sh" style="background:none">
-    <img src="https://raw.githubusercontent.com/astral-sh/uv/main/assets/svg/Astral.svg" alt="Made by Astral">
-  </a>
-</div>

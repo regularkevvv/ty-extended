@@ -1,27 +1,27 @@
-# Installing ty
+# Installing ty-extended
 
 ## Running ty without installation
 
 Use [uvx](https://docs.astral.sh/uv/guides/tools/) to quickly get started with ty:
 
 ```shell
-uvx ty
+uvx --from ty-extended ty
 ```
 
 ## Installation methods
 
-### Adding ty to your project
+### Adding ty-extended to your project
 
 !!! tip
 
-    Adding ty as a dependency ensures that all developers on the project are using the same version
-    of ty.
+    Adding ty-extended as a dependency ensures that all developers on the project are using the
+    same version of ty.
 
-Use [uv](https://github.com/astral-sh/uv) (or your project manager of choice) to add ty as a
-development dependency:
+Use [uv](https://github.com/astral-sh/uv) (or your project manager of choice) to add ty-extended
+as a development dependency:
 
 ```shell
-uv add --dev ty
+uv add --dev ty-extended
 ```
 
 Then, use `uv run` to invoke ty:
@@ -33,45 +33,45 @@ uv run ty
 To update ty, use `--upgrade-package`:
 
 ```shell
-uv lock --upgrade-package ty
+uv lock --upgrade-package ty-extended
 ```
 
 ### Installing globally with uv
 
-Install ty globally with uv:
+Install ty-extended globally with uv:
 
 ```shell
-uv tool install ty@latest
+uv tool install ty-extended
 ```
 
 To update ty, use `uv tool upgrade`:
 
 ```shell
-uv tool upgrade ty
+uv tool upgrade ty-extended
 ```
 
 ### Installing with the standalone installer
 
-ty includes a standalone installer.
+ty-extended includes standalone installers on GitHub releases.
 
 === "macOS and Linux"
 
     Use `curl` to download the script and execute it with `sh`:
 
     ```console
-    $ curl -LsSf https://astral.sh/ty/install.sh | sh
+    $ curl -LsSf https://github.com/regularkevvv/ty-extended/releases/latest/download/ty-installer.sh | sh
     ```
 
     If your system doesn't have `curl`, you can use `wget`:
 
     ```console
-    $ wget -qO- https://astral.sh/ty/install.sh | sh
+    $ wget -qO- https://github.com/regularkevvv/ty-extended/releases/latest/download/ty-installer.sh | sh
     ```
 
     Request a specific version by including it in the URL:
 
     ```console
-    $ curl -LsSf https://astral.sh/ty/0.0.58/install.sh | sh
+    $ curl -LsSf https://github.com/regularkevvv/ty-extended/releases/download/0.58.0/ty-installer.sh | sh
     ```
 
 === "Windows"
@@ -79,7 +79,7 @@ ty includes a standalone installer.
     Use `irm` to download the script and execute it with `iex`:
 
     ```pwsh-session
-    PS> powershell -ExecutionPolicy ByPass -c "irm https://astral.sh/ty/install.ps1 | iex"
+    PS> powershell -ExecutionPolicy ByPass -c "irm https://github.com/regularkevvv/ty-extended/releases/latest/download/ty-installer.ps1 | iex"
     ```
 
     Changing the [execution policy](https://learn.microsoft.com/en-us/powershell/module/microsoft.powershell.core/about/about_execution_policies?view=powershell-7.4#powershell-execution-policies) allows running a script from the internet.
@@ -87,7 +87,7 @@ ty includes a standalone installer.
     Request a specific version by including it in the URL:
 
     ```pwsh-session
-    PS> powershell -ExecutionPolicy ByPass -c "irm https://astral.sh/ty/0.0.58/install.ps1 | iex"
+    PS> powershell -ExecutionPolicy ByPass -c "irm https://github.com/regularkevvv/ty-extended/releases/download/0.58.0/ty-installer.ps1 | iex"
     ```
 
 !!! tip
@@ -97,13 +97,13 @@ ty includes a standalone installer.
     === "macOS and Linux"
 
         ```console
-        $ curl -LsSf https://astral.sh/ty/install.sh | less
+        $ curl -LsSf https://github.com/regularkevvv/ty-extended/releases/latest/download/ty-installer.sh | less
         ```
 
     === "Windows"
 
         ```pwsh-session
-        PS> powershell -c "irm https://astral.sh/ty/install.ps1 | more"
+        PS> powershell -c "irm https://github.com/regularkevvv/ty-extended/releases/latest/download/ty-installer.ps1 | more"
         ```
 
     Alternatively, the installer or binaries can be downloaded directly from [GitHub](#installing-from-github-releases).
@@ -111,23 +111,23 @@ ty includes a standalone installer.
 ### Installing from GitHub Releases
 
 ty release artifacts can be downloaded directly from
-[GitHub Releases](https://github.com/astral-sh/ty/releases).
+[GitHub Releases](https://github.com/regularkevvv/ty-extended/releases).
 
 Each release page includes binaries for all supported platforms as well as instructions for using
 the standalone installer via `github.com` instead of `astral.sh`.
 
 ### Installing globally with pipx
 
-Install ty globally with pipx:
+Install ty-extended globally with pipx:
 
 ```shell
-pipx install ty
+pipx install ty-extended
 ```
 
 To update ty, use `pipx upgrade`:
 
 ```shell
-pipx upgrade ty
+pipx upgrade ty-extended
 ```
 
 ### Installing with pip
@@ -135,37 +135,8 @@ pipx upgrade ty
 Install ty into your current Python environment with pip:
 
 ```shell
-pip install ty
+pip install ty-extended
 ```
-
-### Installing globally with mise
-
-Install ty globally with with [mise](https://github.com/jdx/mise):
-
-```shell
-mise install ty
-```
-
-To set it globally:
-
-```shell
-mise use --global ty
-```
-
-### Installing in Docker
-
-Install ty in Docker by copying the binary from the official image:
-
-```dockerfile title="Dockerfile"
-COPY --from=ghcr.io/astral-sh/ty:latest /ty /bin/
-```
-
-The following tags are available:
-
-- `ghcr.io/astral-sh/ty:latest`
-- `ghcr.io/astral-sh/ty:{major}.{minor}.{patch}`, e.g., `ghcr.io/astral-sh/ty:0.0.58`
-- `ghcr.io/astral-sh/ty:{major}.{minor}`, e.g., `ghcr.io/astral-sh/ty:0.0` (the latest patch
-    version)
 
 ### Using ty with Bazel
 

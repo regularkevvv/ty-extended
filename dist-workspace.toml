@@ -1,7 +1,7 @@
 [workspace]
 members = ["cargo:./ruff"]
 packages = ["ty"]
-version = "0.0.58"
+version = "0.58.0"
 
 # Config for 'dist'
 [dist]
@@ -60,25 +60,24 @@ github-attestations-filters = ["*.json", "*.sh", "*.ps1", "*.zip", "*.tar.gz"]
 # Whether CI should include auto-generated code to build local artifacts
 build-local-artifacts = false
 # Local artifacts jobs to run in CI
-local-artifacts-jobs = ["./build-binaries", "./build-docker"]
+local-artifacts-jobs = ["./build-binaries"]
 # Publish jobs to run in CI
-publish-jobs = ["./publish-pypi"]
+publish-jobs = ["./publish-pypi", "./publish-sdk-crates"]
 # Post-announce jobs to run in CI
-post-announce-jobs = ["./notify-dependents", "./publish-docs", "./publish-versions", "./publish-mirror"]
+post-announce-jobs = []
 # Custom permissions for GitHub Jobs
-github-custom-job-permissions = { "build-docker" = { packages = "write", contents = "read", id-token = "write", attestations = "write" }, "publish-mirror" = { contents = "read" } }
+github-custom-job-permissions = { "publish-sdk-crates" = { contents = "read", id-token = "write" } }
 # Whether to install an updater program
 install-updater = false
 # Path that installers should place binaries in
 install-path = ["$XDG_BIN_HOME/", "$XDG_DATA_HOME/../bin", "~/.local/bin"]
 # Whether source tarballs should include submodules
 recursive-tarball = true
-# Prefer simple hosting for downloads, falling back to GitHub releases
-hosting = ["simple", "github"]
-simple-download-url = "https://releases.astral.sh/github/ty/releases/download/{tag}"
+# Publish installers and archives from this fork's GitHub releases.
+hosting = ["github"]
 
 [dist.github-custom-runners]
-global = "depot-ubuntu-latest-4"
+global = "ubuntu-latest"
 
 [dist.github-action-commits]
 "actions/checkout" = "0c366fd6a839edf440554fa01a7085ccba70ac98"                # v6.0.2

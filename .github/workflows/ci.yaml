@@ -18,9 +18,30 @@ env:
   CARGO_NET_RETRY: 10
   CARGO_TERM_COLOR: always
   RUSTUP_MAX_RETRIES: 10
-  PACKAGE_NAME: ty
+  PYTHON_VERSION: "3.13"
+  PACKAGE_NAME: ty-extended
 
 jobs:
+  ruff-submodule-source:
+    name: "ruff-extended submodule source"
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          persist-credentials: false
+      - name: "Check Ruff submodule fork"
+        run: |
+          url="$(git config --file .gitmodules --get submodule.ruff.url)"
+          case "$url" in
+            "https://github.com/regularkevvv/ruff-extended"|"https://github.com/regularkevvv/ruff-extended.git"|"git@github.com:regularkevvv/ruff-extended.git")
+              ;;
+            *)
+              echo "Expected ruff submodule to point at ruff-extended; got: $url"
+              exit 1
+              ;;
+          esac
+
   python-package:
     name: "python package"
     runs-on: ubuntu-latest
@@ -49,7 +70,7 @@ jobs:
 
   prek:
     name: "prek"
-    runs-on: depot-ubuntu-22.04-16
+    runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0

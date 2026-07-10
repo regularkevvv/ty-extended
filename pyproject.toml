@@ -1,12 +1,12 @@
 [project]
-name = "ty"
-version = "0.0.58"
+name = "ty-extended"
+version = "0.58.0"
 requires-python = ">=3.8"
 dependencies = []
-description = "An extremely fast Python type checker, written in Rust."
+description = "A ty fork with semantic extension support."
 readme = "README.md"
-authors = [{ name = "Astral Software Inc.", email = "hey@astral.sh" }]
-keywords = ["ty", "typing", "analysis", "check"]
+authors = [{ name = "Kevin Castro", email = "hola@kev.pe" }]
+keywords = ["ty", "typing", "analysis", "check", "extensions"]
 classifiers = [
     "Development Status :: 4 - Beta",
     "Environment :: Console",
@@ -30,10 +30,9 @@ classifiers = [
 ]
 
 [project.urls]
-Repository = "https://github.com/astral-sh/ty"
-Changelog = "https://github.com/astral-sh/ty/blob/main/CHANGELOG.md"
-Releases = "https://github.com/astral-sh/ty/releases"
-Discord = "https://discord.gg/astral-sh"
+Repository = "https://github.com/regularkevvv/ty-extended"
+Changelog = "https://github.com/regularkevvv/ty-extended/blob/main/CHANGELOG.md"
+Releases = "https://github.com/regularkevvv/ty-extended/releases"
 
 [build-system]
 requires = ["maturin>=1.0,<2.0"]

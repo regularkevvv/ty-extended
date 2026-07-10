@@ -1,6 +1,6 @@
-# ty
+# ty-extended
 
-An extremely fast Python type checker and language server, written in Rust.
+A fork of ty with semantic extension support for framework-aware type checking.
 
 <p align="center">
   <img alt="Shows a bar chart with benchmark results." width="500px" src="./assets/ty-benchmark-cli-light.svg#only-light">
@@ -14,8 +14,9 @@ An extremely fast Python type checker and language server, written in Rust.
   <i>Type checking the <a href="https://github.com/home-assistant/core">home-assistant</a> project without caching.</i>
 </p>
 
-ty is backed by [Astral](https://astral.sh), the creators of
-[uv](https://github.com/astral-sh/uv) and [Ruff](https://github.com/astral-sh/ruff).
+ty-extended builds on [Astral's ty](https://github.com/astral-sh/ty) and keeps the command-line
+executable named `ty`. The fork adds a semantic extension protocol, a Rust SDK for extension
+authors, and live WASM extension execution.
 
 ## Highlights
 
@@ -34,7 +35,7 @@ ty is backed by [Astral](https://astral.sh), the creators of
 Run ty with [uvx](https://docs.astral.sh/uv/guides/tools/#running-tools) to get started quickly:
 
 ```shell
-uvx ty check
+uvx --from ty-extended ty check
 ```
 
 ty will check all Python files in the working directory or project by default.
@@ -43,9 +44,20 @@ See the [type checking](./type-checking.md) documentation for more details.
 
 ## Installation
 
-To install ty, see the [installation](./installation.md) documentation.
+To install ty-extended, see the [installation](./installation.md) documentation.
 
 To add the ty language server to your editor, see the [editor integration](./editors.md) guide.
+
+## Extension SDK
+
+ty-extended publishes two Rust crates for extension authors:
+
+- [`ty_plugin_protocol`](https://crates.io/crates/ty_plugin_protocol), the stable wire protocol.
+- [`ty_plugin_sdk`](https://crates.io/crates/ty_plugin_sdk), the authoring SDK and WASM export
+    surface.
+
+Start with [extension authoring](./extension-authoring.md) to build an extension crate, then use
+[extension runtime](./extension-runtime.md) for the host-side execution model.
 
 ## Playground
 
