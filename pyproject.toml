@@ -1,6 +1,6 @@
 [project]
 name = "ty-extended"
-version = "0.58.0"
+version = "0.58.1"
 requires-python = ">=3.8"
 dependencies = []
 description = "A ty fork with semantic extension support."
@@ -93,6 +93,7 @@ manifest-path = "ruff/crates/ty/Cargo.toml"
 module-name = "ty"
 python-source = "python"
 strip = true
+features = ["plugins-wasm"]
 include = [
     { path = "dist-workspace.toml", format = [
         "sdist",
