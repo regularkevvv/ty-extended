@@ -20,7 +20,8 @@ Extension crates should use only `ty_plugin_sdk`.
 
 ## Loading Flow
 
-1. `ty_project` reads `[plugins]` entries from project config.
+1. `ty_project` reads `[plugins]` entries from `ty.toml` (or `[tool.ty.plugins]` from
+    `pyproject.toml`) and optionally discovers installed `ty-plugin.json` manifests.
 1. Trusted WASM entries load their manifest JSON and artifact bytes.
 1. `ty_plugin_host` validates manifest compatibility and builds routing tables from claims.
 1. The WASM runner registers each artifact and executes requests through JSON.
@@ -42,7 +43,8 @@ unsupported runtime reports an actionable diagnostic instead of crashing the che
 `ty-extended` publishes:
 
 - PyPI project `ty-extended`, which installs the `ty` executable.
-- crates.io projects `ty_plugin_protocol` and `ty_plugin_sdk`.
+- crates.io project `ty_plugin_sdk`, the author-facing extension API.
+- crates.io project `ty_plugin_protocol`, the serialized contract used by the SDK and host.
 
 `ruff-extended` is the source repository for the implementation crates. The top-level
 `ty-extended` release workflow records the exact `ruff` submodule commit and publishes SDK crates

@@ -81,6 +81,7 @@ plugins:
           - type-checking.md
           - editors.md
           - coming-from-mypy-or-pyright.md
+          - extension-authoring.md
         Concepts:
           - configuration.md
           - modules.md
@@ -88,13 +89,14 @@ plugins:
           - exclusions.md
           - rules.md
           - suppression.md
+          - extension-runtime.md
         Features:
           - features/type-system.md
           - features/diagnostics.md
           - features/language-server.md
         Reference:
+          - faq.md
           - reference/configuration.md
-          - reference/typing-faq.md
           - reference/rules.md
           - reference/cli.md
           - reference/exit-codes.md
@@ -114,11 +116,13 @@ extra:
       link: https://pypi.org/project/ty-extended/
 nav:
   - Introduction: index.md
+  - FAQ: faq.md
   - Guides:
       - Installation: installation.md
       - Type checking: type-checking.md
       - Editor integration: editors.md
       - Coming from mypy, pyright: coming-from-mypy-or-pyright.md
+      - Build an extension: extension-authoring.md
   - Concepts:
       - Configuration: configuration.md
       - Module discovery: modules.md
@@ -126,21 +130,18 @@ nav:
       - File exclusions: exclusions.md
       - Rules: rules.md
       - Suppression: suppression.md
+      - Extension runtime: extension-runtime.md
   - Features:
       - Type system: features/type-system.md
       - Diagnostics: features/diagnostics.md
       - Language server: features/language-server.md
   - Reference:
       - Configuration: reference/configuration.md
-      - Typing FAQ: reference/typing-faq.md
       - Rules: reference/rules.md
       - CLI: reference/cli.md
       - Exit codes: reference/exit-codes.md
       - Environment variables: reference/environment.md
       - Editor settings: reference/editor-settings.md
-      - Extension authoring: extension-authoring.md
-      - Extension runtime: extension-runtime.md
-      - Django extension: django-extension.md
       - Fork publishing: release-publishing.md
 validation:
   omitted_files: warn

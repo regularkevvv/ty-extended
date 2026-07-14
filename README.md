@@ -2,80 +2,145 @@
 
 [![PyPI](https://img.shields.io/pypi/v/ty-extended.svg)](https://pypi.org/project/ty-extended/)
 
-A fork of ty with semantic extension support for framework-aware type checking.
+[ty-extended](https://pypi.org/project/ty-extended/) is
+[Astral's ty](https://github.com/astral-sh/ty) with a sandboxed semantic extension system. It keeps
+the `ty` command and language server while allowing libraries to contribute library-aware types
+and diagnostics without linking to checker internals.
 
-<br />
+## Extension showcase
 
-<p align="center">
-  <img alt="Shows a bar chart with benchmark results." width="500px" src="https://raw.githubusercontent.com/astral-sh/ty/main/docs/assets/ty-benchmark-cli.svg">
-</p>
+[`django-ty`](https://github.com/regularkevvv/django-ty) is a live extension for Django ORM
+semantics, available now from [PyPI](https://pypi.org/project/django-ty/). It covers model fields,
+relations, managers, querysets, lookups, settings, forms, and requests, with its behavior measured
+against `django-stubs` in a reproducible differential-conformance suite.
 
-<p align="center">
-  <i>Type checking the <a href="https://github.com/home-assistant/core">home-assistant</a> project without caching.</i>
-</p>
+## What ships
 
-<br />
+| Distribution         | Published at                                                                                             | Purpose                                                                                                                                                   |
+| -------------------- | -------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `ty-extended`        | [PyPI](https://pypi.org/project/ty-extended/)                                                            | The `ty` checker and language server with semantic extension loading and WASM execution.                                                                  |
+| `ty_plugin_sdk`      | [crates.io](https://crates.io/crates/ty_plugin_sdk) · [docs.rs](https://docs.rs/ty_plugin_sdk)           | The Rust API used to [build an extension](./docs/extension-authoring.md): manifest builders, typed hooks, patch helpers, JSON dispatch, and WASM exports. |
+| `ty_plugin_protocol` | [crates.io](https://crates.io/crates/ty_plugin_protocol) · [docs.rs](https://docs.rs/ty_plugin_protocol) | The stable serialized manifest, request, response, claim, and patch types shared by extensions and the host.                                              |
 
-ty-extended builds on [Astral's ty](https://github.com/astral-sh/ty) and keeps the command-line
-executable named `ty`. The fork adds a semantic extension protocol, a Rust SDK for extension
-authors, and live WASM extension execution.
+Most extension authors only need `ty_plugin_sdk`; it re-exports the protocol crate as
+`ty_plugin_sdk::protocol`. The Rust implementation lives in the [`ruff` submodule](./ruff), backed
+by [ruff-extended](https://github.com/regularkevvv/ruff-extended).
 
-ty-extended tracks ty's beta checker and language server while the extension protocol stabilizes.
+## How extensions run
 
-## Highlights
+```mermaid
+flowchart LR
+    subgraph host["ty-extended"]
+        checker["ty semantic checker"] -->|claimed hook| router["Extension router"]
+        router -->|validated patch| checker
+    end
 
-- 10x - 100x faster than mypy and Pyright
-- Comprehensive [diagnostics](https://docs.astral.sh/ty/features/diagnostics/) with rich contextual information
-- Configurable [rule levels](https://docs.astral.sh/ty/rules/), [per-file overrides](https://docs.astral.sh/ty/reference/configuration/#overrides), [suppression comments](https://docs.astral.sh/ty/suppression/), and first-class project support
-- Designed for adoption, with support for [redeclarations](https://docs.astral.sh/ty/features/type-system/#redeclarations) and [partially typed code](https://docs.astral.sh/ty/features/type-system/#gradual-guarantee)
-- [Language server](https://docs.astral.sh/ty/features/language-server/) with code navigation, completions, code actions, auto-import, inlay hints, on-hover help, etc.
-- Fine-grained [incremental analysis](https://docs.astral.sh/ty/features/language-server/#fine-grained-incrementality) designed for fast updates when editing files in an IDE
-- Editor integrations for [VS Code](https://docs.astral.sh/ty/editors/#vs-code), [PyCharm](https://docs.astral.sh/ty/editors/#pycharm), [Neovim](https://docs.astral.sh/ty/editors/#neovim) and more
-- Advanced typing features like first-class [intersection types](https://docs.astral.sh/ty/features/type-system/#intersection-types), advanced [type narrowing](https://docs.astral.sh/ty/features/type-system/#top-and-bottom-materializations), and
-    [sophisticated reachability analysis](https://docs.astral.sh/ty/features/type-system/#reachability-based-on-types)
+    project["Python project"] --> checker
+    config["ty.toml + plugin manifest"] --> router
+    router -->|JSON request| wasm["WASM extension<br/>inside Wasmtime"]
+    wasm -->|declarative patch| router
+    checker --> output["Types + diagnostics"]
+```
+
+The manifest tells ty which symbols and hooks an extension owns. At a matching semantic query,
+ty serializes a small request, executes the extension inside a Wasmtime sandbox, validates the
+returned patch, and feeds the result back into type inference. Extensions receive protocol data,
+not ty's internal types, AST ids, or Salsa database.
 
 ## Getting started
 
-Run ty with [uvx](https://docs.astral.sh/uv/guides/tools/#running-tools) to get started quickly:
+Run the checker directly with [uvx](https://docs.astral.sh/uv/guides/tools/#running-tools):
 
 ```shell
 uvx --from ty-extended ty check
 ```
 
-Or, check out the [ty playground](https://play.ty.dev) to try it out in your browser.
+Or add it to a project:
 
-To learn more about using ty-extended, see the [documentation](./docs/index.md).
+```shell
+uv add --dev ty-extended
+uv run ty check
+```
 
-## Extension SDK
+See [installation](./docs/installation.md), [type checking](./docs/type-checking.md), and
+[editor integration](https://docs.astral.sh/ty/editors/) for the regular ty workflow.
 
-ty-extended also publishes the Rust crates extension authors use to build semantic extensions:
+## Configure extensions
 
-- [`ty_plugin_protocol`](https://crates.io/crates/ty_plugin_protocol): the stable JSON wire
-    protocol for manifests, requests, responses, claims, and patches.
-- [`ty_plugin_sdk`](https://crates.io/crates/ty_plugin_sdk): the author-facing SDK with
-    `ManifestBuilder`, the `Plugin` trait, typed DSL helpers, JSON dispatch, and WASM exports.
+An installed extension package can be discovered from the project's Python environment:
 
-Start with the [extension authoring guide](./docs/extension-authoring.md) for a working crate
-layout, manifest claims, hook methods, and packaging guidance.
+```toml
+# ty.toml
+[plugins]
+auto-discover = true
+```
 
-## Installation
+To load a WASM artifact explicitly, configure and trust it for the project:
 
-To install ty-extended, see the [installation](./docs/installation.md) documentation.
+```toml
+# ty.toml
+[plugins]
+enabled = true
 
-To add the ty language server to your editor, see the [editor integration](https://docs.astral.sh/ty/editors/) guide.
+[[plugins.plugin]]
+id = "my-extension"
+path = ".ty/plugins/my_extension.wasm"
+runtime = "wasm"
+manifest-path = ".ty/plugins/my-extension.plugin.json"
+trusted = true
+```
+
+Use `[tool.ty.plugins]` and `[[tool.ty.plugins.plugin]]` for the same settings in
+`pyproject.toml`. See [extension runtime](./docs/extension-runtime.md) for loading, trust, and
+sandbox details.
+
+## Everything from ty
+
+ty-extended tracks ty's checker and language server. That includes:
+
+- fast incremental type checking;
+- rich diagnostics and configurable rule levels;
+- gradual typing, advanced narrowing, and intersection types;
+- editor support for navigation, completion, code actions, auto-imports, inlay hints, and hover;
+- the same `ty check`, `ty server`, configuration, and project discovery behavior.
+
+The [upstream ty documentation](https://docs.astral.sh/ty/) remains the reference for those shared
+features.
+
+## Documentation
+
+- [Build a semantic extension](./docs/extension-authoring.md)
+- [Understand the host runtime](./docs/extension-runtime.md)
+- [Read the ty-extended FAQ](./docs/faq.md)
+- [Browse the full ty-extended documentation](./docs/index.md)
+
+## FAQ
+
+### Is ty-extended a separate checker?
+
+It is a fork of ty that preserves the `ty` CLI and language server and adds semantic extensions.
+
+### Why does it execute extensions as WASM?
+
+WASM gives extensions a stable, serialized boundary and lets the host enforce deterministic fuel,
+memory, and response-size limits without exposing checker internals or ambient system access.
+
+### Where are general ty questions answered?
+
+See [ty's upstream typing FAQ](https://docs.astral.sh/ty/reference/typing-faq/). The
+[ty-extended FAQ](./docs/faq.md) covers only fork and extension behavior.
 
 ## Getting help
 
-If you have questions or want to report a bug, please open an
-[issue](https://github.com/regularkevvv/ty-extended/issues) in this repository.
+For ty-extended packaging, extension runtime, SDK, or protocol issues, open an
+[issue](https://github.com/regularkevvv/ty-extended/issues). For behavior inherited unchanged from
+ty, check the [upstream documentation](https://docs.astral.sh/ty/) first.
 
 ## Contributing
 
-Most of the implementation lives in the `ruff` submodule, which points at
-[regularkevvv/ruff-extended](https://github.com/regularkevvv/ruff-extended) for this fork.
-
-See the
-[contributing guide](./CONTRIBUTING.md) for more details.
+Most implementation work happens in the `ruff` submodule, which points at
+[regularkevvv/ruff-extended](https://github.com/regularkevvv/ruff-extended). See the
+[contributing guide](./CONTRIBUTING.md) for the repository workflow.
 
 ## Version policy
 
@@ -84,47 +149,18 @@ ty-extended uses SemVer-compatible fork versioning that records the upstream ty 
 - upstream `0.0.58` maps to the initial `ty-extended 0.58.0` release;
 - later fork releases on the same upstream base increment the patch, such as `0.58.1` and `0.58.2`;
 - upstream `0.0.59` maps to `ty-extended 0.59.0`;
+- later releases on that base increment the patch, such as `ty-extended 0.59.1`;
 - upstream `0.1.50` maps to `ty-extended 0.150.0`;
 - once upstream reaches `1.0.0`, ty-extended follows that shape directly as `1.0.x`.
 
-The semantic extension protocol and SDK crates are versioned independently. They are pre-1.0;
-breaking changes may occur between any two `0.0.x` releases.
-
-## FAQ
-
-<!-- We intentionally use smaller headings for the FAQ items -->
-
-<!-- markdownlint-disable MD001 -->
-
-#### Which Python versions does ty support?
-
-ty officially supports type checking code that targets Python 3.10 and later. Earlier versions
-(Python 3.7 through 3.9) can still be selected, but may result in false negatives or false
-positives due to a lack of bundled standard library stubs.
-
-The target version is independent of the Python version used to install ty. For example, ty
-installed from PyPI using Python 3.8 or later can type check code targeting Python 3.7; the
-standalone installer does not require Python at all.
-
-#### Why is ty doing \_\_\_\_\_?
-
-See our [typing FAQ](https://docs.astral.sh/ty/reference/typing-faq).
-
-#### How do you pronounce ty?
-
-It's pronounced as "tee - why" ([`/tiː waɪ/`](https://en.wikipedia.org/wiki/Help:IPA/English#Key))
-
-#### How should I stylize ty?
-
-Just "ty", please.
-
-<!-- markdownlint-enable MD001 -->
+The protocol and SDK crates are versioned independently. They are pre-1.0, so breaking changes may
+occur between any two `0.0.x` releases.
 
 ## License
 
 ty is licensed under the MIT license ([LICENSE](LICENSE) or
 <https://opensource.org/licenses/MIT>).
 
-Unless you explicitly state otherwise, any contribution intentionally submitted for inclusion in ty
-by you, as defined in the MIT license, shall be licensed as above, without any additional terms or
-conditions.
+Unless you explicitly state otherwise, any contribution intentionally submitted for inclusion in
+ty by you, as defined in the MIT license, shall be licensed as above, without any additional terms
+or conditions.

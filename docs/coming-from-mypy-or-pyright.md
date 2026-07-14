@@ -16,7 +16,7 @@ This guide helps you migrate a project from
     no direct ty equivalent — use `warn` for both.
 - If you are looking for the equivalent of `disallow_untyped_defs` / `no-untyped-def` (mypy) or `reportMissingParameterType`,
     `reportUnknownParameterType` (pyright), check out this
-    [FAQ entry](reference/typing-faq.md#why-doesnt-ty-warn-about-missing-type-annotations).
+    [upstream FAQ entry](https://docs.astral.sh/ty/reference/typing-faq/#why-doesnt-ty-warn-about-missing-type-annotations).
 - Unlike mypy, ty checks the bodies of unannotated functions unconditionally, so there is no ty rule
     corresponding to mypy's `check_untyped_defs` setting. The equivalent pyright setting is
     `analyzeUnannotatedFunctions = true`.

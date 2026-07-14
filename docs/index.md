@@ -1,6 +1,6 @@
 # ty-extended
 
-A fork of ty with semantic extension support for framework-aware type checking.
+A fork of ty with semantic extension support for library-aware type checking.
 
 <p align="center">
   <img alt="Shows a bar chart with benchmark results." width="500px" src="./assets/ty-benchmark-cli-light.svg#only-light">
@@ -17,6 +17,24 @@ A fork of ty with semantic extension support for framework-aware type checking.
 ty-extended builds on [Astral's ty](https://github.com/astral-sh/ty) and keeps the command-line
 executable named `ty`. The fork adds a semantic extension protocol, a Rust SDK for extension
 authors, and live WASM extension execution.
+
+## What Ships
+
+ty-extended publishes three public distributions:
+
+| Distribution                                                        | Purpose                                                                                  |
+| ------------------------------------------------------------------- | ---------------------------------------------------------------------------------------- |
+| [`ty-extended`](https://pypi.org/project/ty-extended/)              | The `ty` checker and language server with semantic extension loading and WASM execution. |
+| [`ty_plugin_sdk`](https://crates.io/crates/ty_plugin_sdk)           | The author-facing Rust API for manifests, hooks, patches, dispatch, and WASM exports.    |
+| [`ty_plugin_protocol`](https://crates.io/crates/ty_plugin_protocol) | The serialized contract shared by extensions and the host.                               |
+
+Most extension authors only depend on `ty_plugin_sdk`, which re-exports the protocol types.
+
+## Extension Showcase
+
+[`django-ty`](https://github.com/regularkevvv/django-ty) is a published extension for Django ORM
+semantics. Install it from [PyPI](https://pypi.org/project/django-ty/) and enable installed-plugin
+discovery to use it with ty-extended.
 
 ## Highlights
 
@@ -50,14 +68,31 @@ To add the ty language server to your editor, see the [editor integration](./edi
 
 ## Extension SDK
 
-ty-extended publishes two Rust crates for extension authors:
+Build an extension with the public Rust crates:
 
-- [`ty_plugin_protocol`](https://crates.io/crates/ty_plugin_protocol), the stable wire protocol.
 - [`ty_plugin_sdk`](https://crates.io/crates/ty_plugin_sdk), the authoring SDK and WASM export
     surface.
+- [`ty_plugin_protocol`](https://crates.io/crates/ty_plugin_protocol), the stable wire protocol for
+    host and tooling authors.
 
 Start with [extension authoring](./extension-authoring.md) to build an extension crate, then use
 [extension runtime](./extension-runtime.md) for the host-side execution model.
+
+Enable an installed extension package in `ty.toml` with:
+
+```toml
+[plugins]
+auto-discover = true
+```
+
+Explicit WASM artifacts can instead be configured with `plugins.enabled = true`, an
+`[[plugins.plugin]]` entry, and `trusted = true`.
+
+## FAQ
+
+The [ty-extended FAQ](./faq.md) covers the fork, extension configuration, trust, and compatibility.
+For checker and typing questions shared with ty, use [ty's upstream typing
+FAQ](https://docs.astral.sh/ty/reference/typing-faq/).
 
 ## Playground
 
