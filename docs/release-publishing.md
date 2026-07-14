@@ -17,6 +17,7 @@ to publish the distribution as `ty-extended` and keep the binary name as `ty`.
 
 - upstream `0.0.58` maps to the initial `ty-extended 0.58.0` release;
 - later fork releases on the same upstream base increment the patch, such as `0.58.1` and `0.58.2`;
+- upstream `0.0.59` maps to `ty-extended 0.59.0`;
 - upstream `0.1.50` maps to `ty-extended 0.150.0`;
 - once upstream reaches `1.0.0`, ty-extended follows that shape directly as `1.0.x`.
 
