@@ -16,6 +16,45 @@ from pathlib import Path
 # See: https://github.com/pypi/warehouse/issues/11251
 BENCHMARK_URL = "https://raw.githubusercontent.com/astral-sh/ty/main/docs/assets/ty-benchmark-cli.svg"
 BENCHMARK_URL_LIGHT = "https://raw.githubusercontent.com/astral-sh/ty/main/docs/assets/ty-benchmark-cli-light.svg"
+REPOSITORY = "regularkevvv/ty-extended"
+
+
+def transform(content: str, version: str) -> str:
+    """Return README content suitable for the released PyPI package."""
+    release_ref = f"v{version}"
+
+    # Keep supporting the upstream benchmark if it is restored later, but do
+    # not require fork-owned READMEs to contain it.
+    content = content.replace(BENCHMARK_URL, BENCHMARK_URL_LIGHT)
+
+    # Replace relative src="./..." attributes with absolute GitHub raw URLs.
+    def replace_src(match: re.Match) -> str:
+        path = match.group(1).removeprefix("./")
+        return (
+            f'src="https://raw.githubusercontent.com/{REPOSITORY}/{release_ref}/{path}"'
+        )
+
+    content = re.sub(r'src="(\./[^"]+)"', replace_src, content)
+
+    # Replace relative Markdown links with links to the fork's release tag.
+    def replace_url(match: re.Match) -> str:
+        url = match.group(1)
+        parsed = urllib.parse.urlsplit(url)
+        if not parsed.scheme and not url.startswith("//"):
+            url = urllib.parse.urljoin(
+                f"https://github.com/{REPOSITORY}/blob/{release_ref}/README.md",
+                url,
+            )
+        return f"]({url})"
+
+    content = re.sub(r"]\(([^)]+)\)", replace_url, content)
+
+    # PyPI does not support GitHub's admonition marker syntax.
+    def replace_admonition(match: re.Match) -> str:
+        name = match.group(1)
+        return f"> {name}:"
+
+    return re.sub(r"> \[!(\w*)\]", replace_admonition, content)
 
 
 def main() -> None:
@@ -29,38 +68,7 @@ def main() -> None:
         else:
             raise ValueError("Version not found in dist-workspace.toml")
 
-    content = Path("README.md").read_text(encoding="utf8")
-
-    # Replace the benchmark image URL with the light-only version for PyPI.
-    if BENCHMARK_URL not in content:
-        msg = "README.md is not in the expected format (benchmark image not found)."
-        raise ValueError(msg)
-    content = content.replace(BENCHMARK_URL, BENCHMARK_URL_LIGHT)
-
-    # Replace relative src="./..." attributes with absolute GitHub raw URLs.
-    def replace_src(match: re.Match) -> str:
-        path = match.group(1).removeprefix("./")
-        return f'src="https://raw.githubusercontent.com/astral-sh/ty/{version}/{path}"'
-
-    content = re.sub(r'src="(\./[^"]+)"', replace_src, content)
-
-    # Replace any relative URLs (e.g., `[CONTRIBUTING.md`) with absolute URLs.
-    def replace(match: re.Match) -> str:
-        url = match.group(1)
-        if not url.startswith("http"):
-            url = urllib.parse.urljoin(
-                f"https://github.com/astral-sh/ty/blob/{version}/README.md", url
-            )
-        return f"]({url})"
-
-    content = re.sub(r"]\(([^)]+)\)", replace, content)
-
-    # Replace any GitHub admonitions
-    def replace(match: re.Match) -> str:
-        name = match.group(1)
-        return f"> {name}:"
-
-    content = re.sub(r"> \[\!(\w*)\]", replace, content)
+    content = transform(Path("README.md").read_text(encoding="utf8"), version)
 
     with Path("README.md").open("w", encoding="utf8") as fp:
         fp.write(content)
