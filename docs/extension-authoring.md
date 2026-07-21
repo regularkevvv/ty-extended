@@ -40,7 +40,7 @@ pub struct MyExtension;
 impl Plugin for MyExtension {
     fn manifest(&self) -> PluginManifest {
         ManifestBuilder::new("my-extension", "My extension", env!("CARGO_PKG_VERSION"))
-            .ty_compatibility(">=0.59.0,<0.60.0")
+            .ty_compatibility(">=0.60.0,<0.61.0")
             .runtime(RuntimeSpec::Wasm(WasmRuntimeSpec {
                 artifact: "my_ty_extension.wasm".to_string(),
                 sha256: None,
