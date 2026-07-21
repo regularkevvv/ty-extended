@@ -71,7 +71,7 @@ ty-extended includes standalone installers on GitHub releases.
     Request a specific version by including it in the URL:
 
     ```console
-    $ curl -LsSf https://github.com/regularkevvv/ty-extended/releases/download/v0.60.0/ty-installer.sh | sh
+    $ curl -LsSf https://github.com/regularkevvv/ty-extended/releases/download/v0.61.0/ty-installer.sh | sh
     ```
 
 === "Windows"
@@ -87,7 +87,7 @@ ty-extended includes standalone installers on GitHub releases.
     Request a specific version by including it in the URL:
 
     ```pwsh-session
-    PS> powershell -ExecutionPolicy ByPass -c "irm https://github.com/regularkevvv/ty-extended/releases/download/v0.60.0/ty-installer.ps1 | iex"
+    PS> powershell -ExecutionPolicy ByPass -c "irm https://github.com/regularkevvv/ty-extended/releases/download/v0.61.0/ty-installer.ps1 | iex"
     ```
 
 !!! tip

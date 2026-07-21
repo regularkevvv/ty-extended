@@ -6,6 +6,26 @@ support on top of it. This file records what the fork changes.
 Upstream's changes are not duplicated here. Every release below names the upstream ty version it is
 built on and links to that release's notes.
 
+## 0.61.0
+
+Built on [ty 0.0.61](https://github.com/astral-sh/ty/releases/tag/0.0.61). Released 2026-07-21.
+
+No breaking changes. `ty_plugin_protocol` and `ty_plugin_sdk` stay at `0.0.4`, and the wire
+protocol stays at `0.3`, so extensions built against 0.60.0 continue to load unchanged.
+
+### Plugin behaviour
+
+- Upstream generalised a tuple's variable-length segment so it may be an unpacked `TypeVarTuple`,
+    as in `tuple[*Ts]`. The protocol has no representation for a type variable, so a segment of
+    that kind is now reported to extensions as a variable-length tuple whose element type is
+    `object`. Reporting it as a fixed-length tuple instead would have told extensions the wrong
+    arity.
+
+### Documentation
+
+- The extension authoring guide and both plugin crate READMEs show a `ty_compatibility` range of
+    `>=0.61.0,<0.62.0`.
+
 ## 0.60.0
 
 Built on [ty 0.0.60](https://github.com/astral-sh/ty/releases/tag/0.0.60). Released 2026-07-21.
