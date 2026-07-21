@@ -72,6 +72,19 @@ The setup script publishes a `0.0.0` placeholder for new crates, creates the tru
 configuration for `regularkevvv/ty-extended/.github/workflows/release.yml`, enables
 `trustpub_only`, and records configured crate names in `ruff/.known-crates`.
 
+## Changelog
+
+`CHANGELOG.md` records only what this fork changes. Upstream's entries are not copied into it;
+each fork release names the upstream ty version it is built on and links to that release's notes.
+
+Upstream appends its own entries to the same file, so **`CHANGELOG.md` conflicts on every upstream
+merge**. Resolve it by keeping the fork's version and adding a new fork entry, never by taking
+upstream's side. Restoring upstream's text would reintroduce several thousand lines that duplicate
+a document Astral already publishes.
+
+The version files and the `ruff` submodule pointer conflict on every upstream merge too, for the
+same reason: the fork and upstream both edit them.
+
 ## Release
 
 1. Ensure `.gitmodules` points `ruff` at `https://github.com/regularkevvv/ruff-extended`.
