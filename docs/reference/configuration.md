@@ -816,6 +816,256 @@ Defaults to `false`.
 
 ---
 
+## `plugins`
+
+Configures external semantic plugins.
+
+### `auto-discover`
+
+Whether to load trusted plugin packages installed into the project's Python environment.
+
+Installed plugin packages expose a `ty-plugin.json` manifest next to their artifact. This
+is disabled by default. Set this to `true` to activate installed-package plugins for a
+project.
+
+**Default value**: `false`
+
+**Type**: `bool`
+
+**Example usage**:
+
+=== "pyproject.toml"
+
+    ```toml
+    [tool.ty.plugins]
+    auto-discover = true
+    ```
+
+=== "ty.toml"
+
+    ```toml
+    [plugins]
+    auto-discover = true
+    ```
+
+---
+
+### `enabled`
+
+Whether semantic plugins are enabled for this project.
+
+Plugins are disabled by default. Enabling this option only allows plugins
+that are explicitly listed in `plugins.plugin`.
+
+**Default value**: `false`
+
+**Type**: `bool`
+
+**Example usage**:
+
+=== "pyproject.toml"
+
+    ```toml
+    [tool.ty.plugins]
+    enabled = true
+    ```
+
+=== "ty.toml"
+
+    ```toml
+    [plugins]
+    enabled = true
+    ```
+
+---
+
+## `plugins.plugin`
+
+Plugin entries configured under `plugins.plugin`.
+
+
+#### `config`
+
+Plugin-specific configuration passed through the stable protocol.
+
+**Default value**: `{}`
+
+**Type**: `dict[str, Any]`
+
+**Example usage**:
+
+=== "pyproject.toml"
+
+    ```toml
+    [[tool.ty.plugins.plugin]]
+    config = { init-typed = true }
+    ```
+
+=== "ty.toml"
+
+    ```toml
+    [[plugins.plugin]]
+    config = { init-typed = true }
+    ```
+
+---
+
+#### `id`
+
+Stable plugin identifier.
+
+**Default value**: `""`
+
+**Type**: `str`
+
+**Example usage**:
+
+=== "pyproject.toml"
+
+    ```toml
+    [[tool.ty.plugins.plugin]]
+    id = "pydantic"
+    ```
+
+=== "ty.toml"
+
+    ```toml
+    [[plugins.plugin]]
+    id = "pydantic"
+    ```
+
+---
+
+#### `manifest-path`
+
+Optional path to a separate manifest file.
+
+**Default value**: `null`
+
+**Type**: `str`
+
+**Example usage**:
+
+=== "pyproject.toml"
+
+    ```toml
+    [[tool.ty.plugins.plugin]]
+    manifest-path = ".ty/plugins/pydantic.plugin.json"
+    ```
+
+=== "ty.toml"
+
+    ```toml
+    [[plugins.plugin]]
+    manifest-path = ".ty/plugins/pydantic.plugin.json"
+    ```
+
+---
+
+#### `path`
+
+Path to the plugin artifact.
+
+**Default value**: `""`
+
+**Type**: `str`
+
+**Example usage**:
+
+=== "pyproject.toml"
+
+    ```toml
+    [[tool.ty.plugins.plugin]]
+    path = ".ty/plugins/pydantic.wasm"
+    ```
+
+=== "ty.toml"
+
+    ```toml
+    [[plugins.plugin]]
+    path = ".ty/plugins/pydantic.wasm"
+    ```
+
+---
+
+#### `runtime`
+
+Runtime used to execute the plugin artifact.
+
+**Default value**: `"wasm"`
+
+**Type**: `wasm | subprocess | mock`
+
+**Example usage**:
+
+=== "pyproject.toml"
+
+    ```toml
+    [[tool.ty.plugins.plugin]]
+    runtime = "wasm"
+    ```
+
+=== "ty.toml"
+
+    ```toml
+    [[plugins.plugin]]
+    runtime = "wasm"
+    ```
+
+---
+
+#### `stub-overlay-path`
+
+Optional path to a plugin-provided stub overlay root.
+
+**Default value**: `null`
+
+**Type**: `str`
+
+**Example usage**:
+
+=== "pyproject.toml"
+
+    ```toml
+    [[tool.ty.plugins.plugin]]
+    stub-overlay-path = ".ty/plugins/pydantic-stubs"
+    ```
+
+=== "ty.toml"
+
+    ```toml
+    [[plugins.plugin]]
+    stub-overlay-path = ".ty/plugins/pydantic-stubs"
+    ```
+
+---
+
+#### `trusted`
+
+Whether this plugin artifact is trusted to execute locally.
+
+**Default value**: `false`
+
+**Type**: `bool`
+
+**Example usage**:
+
+=== "pyproject.toml"
+
+    ```toml
+    [[tool.ty.plugins.plugin]]
+    trusted = true
+    ```
+
+=== "ty.toml"
+
+    ```toml
+    [[plugins.plugin]]
+    trusted = true
+    ```
+
+---
+
 ## `src`
 
 ### `exclude`
