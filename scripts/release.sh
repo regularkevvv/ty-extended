@@ -21,6 +21,26 @@ else
     exit 1
 fi
 
+# This script pulls the submodule's `origin`. A fresh `git submodule update`
+# sets that to the `.gitmodules` URL, but a checkout that added remotes by hand
+# can have `origin` pointing at upstream astral-sh/ruff instead. Pulling that
+# would drag in upstream commits the release was never meant to include, and
+# `git add ruff` below would silently record the result.
+echo "Checking Ruff submodule remote..."
+declared_ruff_url=$(git config --file .gitmodules --get submodule.ruff.url)
+actual_ruff_url=$(git -C ruff config --get remote.origin.url)
+normalize_git_url() {
+    printf '%s' "$1" | sed -e 's|^git@github\.com:|https://github.com/|' -e 's|\.git$||'
+}
+if [ "$(normalize_git_url "$declared_ruff_url")" = "$(normalize_git_url "$actual_ruff_url")" ]; then
+    echo "Ruff submodule origin matches .gitmodules; continuing..."
+else
+    echo "Ruff submodule origin does not match .gitmodules; aborting!"
+    echo "  .gitmodules declares: ${declared_ruff_url}"
+    echo "  origin points at:     ${actual_ruff_url}"
+    exit 1
+fi
+
 # Read the typeshed source commit from the Ruff revision recorded by the
 # superproject, before switching the submodule to its local main branch.
 typeshed_commit_path="crates/ty_vendored/vendor/typeshed/source_commit.txt"
