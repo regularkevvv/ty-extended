@@ -1,6 +1,6 @@
 [project]
 name = "ty-extended"
-version = "0.61.0"
+version = "0.62.0"
 requires-python = ">=3.8"
 dependencies = []
 description = "A ty fork with semantic extension support."
@@ -39,7 +39,7 @@ requires = ["maturin>=1.0,<2.0"]
 build-backend = "maturin"
 
 [dependency-groups]
-dev = ["prek==0.4.8"]
+dev = ["prek==0.4.9"]
 release = ["rooster"]
 
 [tool.uv]

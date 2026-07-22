@@ -6,6 +6,25 @@ support on top of it. This file records what the fork changes.
 Upstream's changes are not duplicated here. Every release below names the upstream ty version it is
 built on and links to that release's notes.
 
+## 0.62.0
+
+Built on [ty 0.0.62](https://github.com/astral-sh/ty/releases/tag/0.0.62). Released 2026-07-22.
+
+No breaking changes, and no change to plugin behaviour. `ty_plugin_protocol` and `ty_plugin_sdk`
+stay at `0.0.4`, and the wire protocol stays at `0.3`, so extensions built against 0.60.0 continue
+to load unchanged.
+
+Upstream added per-file `rules` and `analysis` overrides sourced from PEP 723 script metadata.
+Plugin configuration is resolved per project rather than per file, so extensions continue to apply
+to scripts that carry their own inline metadata.
+
+### Documentation
+
+- The extension authoring guide and both plugin crate READMEs show a `ty_compatibility` range of
+    `>=0.62.0,<0.63.0`.
+- The installation guide omits upstream's new mise and Docker sections. Both install Astral's `ty`
+    rather than this fork, which publishes neither a mise package nor a container image.
+
 ## 0.61.0
 
 Built on [ty 0.0.61](https://github.com/astral-sh/ty/releases/tag/0.0.61). Released 2026-07-21.
