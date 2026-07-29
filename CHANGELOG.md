@@ -6,6 +6,31 @@ support on top of it. This file records what the fork changes.
 Upstream's changes are not duplicated here. Every release below names the upstream ty version it is
 built on and links to that release's notes.
 
+## 0.63.0
+
+Built on [ty 0.0.63](https://github.com/astral-sh/ty/releases/tag/0.0.63). Released 2026-07-29.
+
+No breaking changes, and no change to plugin behaviour. `ty_plugin_protocol` and `ty_plugin_sdk`
+stay at `0.0.4`, and the wire protocol stays at `0.3`, so extensions built against 0.60.0 continue
+to load unchanged.
+
+### Plugin behaviour
+
+- Upstream widened where intersection types are inferred: equality narrowing now applies across
+    non-final classes, and narrowing a `match` subject to `A & B` now infers `x.attr` as the
+    intersection of the two attribute types. The protocol has no intersection form, so such a type
+    reaches an extension as an opaque type expression rendered from ty's display output, such as
+    `A & B`, rather than a structured snapshot. This is the pre-existing representation for
+    intersections; only the number of positions that produce one has grown. Extensions that match
+    on structured snapshots see these types fall through to their expression fallback.
+
+### Documentation
+
+- The extension authoring guide and both plugin crate READMEs show a `ty_compatibility` range of
+    `>=0.63.0,<0.64.0`.
+- The installation guide continues to omit upstream's mise and Docker sections, which install
+    Astral's `ty` rather than this fork.
+
 ## 0.62.0
 
 Built on [ty 0.0.62](https://github.com/astral-sh/ty/releases/tag/0.0.62). Released 2026-07-22.
