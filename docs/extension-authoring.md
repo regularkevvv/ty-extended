@@ -23,7 +23,7 @@ edition = "2024"
 crate-type = ["rlib", "cdylib"]
 
 [dependencies]
-ty_plugin_sdk = "0.0.3"
+ty_plugin_sdk = "0.0.4"
 ```
 
 Implement `Plugin`, declare the matching manifest claim, and export the implementation:
@@ -40,7 +40,7 @@ pub struct MyExtension;
 impl Plugin for MyExtension {
     fn manifest(&self) -> PluginManifest {
         ManifestBuilder::new("my-extension", "My extension", env!("CARGO_PKG_VERSION"))
-            .ty_compatibility(">=0.63.0,<0.64.0")
+            .ty_compatibility(">=0.64.0,<0.65.0")
             .runtime(RuntimeSpec::Wasm(WasmRuntimeSpec {
                 artifact: "my_ty_extension.wasm".to_string(),
                 sha256: None,

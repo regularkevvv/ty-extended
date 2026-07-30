@@ -6,6 +6,32 @@ support on top of it. This file records what the fork changes.
 Upstream's changes are not duplicated here. Every release below names the upstream ty version it is
 built on and links to that release's notes.
 
+## 0.64.0
+
+Built on [ty 0.0.64](https://github.com/astral-sh/ty/releases/tag/0.0.64). Released 2026-07-29.
+
+No breaking changes, and no change to the wire protocol. `ty_plugin_protocol` and `ty_plugin_sdk`
+stay at `0.0.4`, and the wire protocol stays at `0.3`, so extensions built against 0.60.0 continue
+to load unchanged.
+
+### Plugin behaviour
+
+- Upstream now discovers uv workspace roots, adding uv workspace metadata as a configuration
+    source. Plugin configuration diagnostics report this origin, and a Python environment supplied
+    by uv workspace metadata is used when resolving the site-packages directories that extension
+    discovery searches.
+- Upstream's inference improvements (identity narrowing for NewTypes, tagged-union narrowing,
+    `Self` preserved in `__new__` calls, and others) change the inferred types that reach
+    extensions through hook requests. The protocol shape is unchanged; extensions see more precise
+    types in the same representations as before.
+
+### Documentation
+
+- The extension authoring guide and both plugin crate READMEs show a `ty_compatibility` range of
+    `>=0.64.0,<0.65.0`.
+- The installation guide continues to omit upstream's mise and Docker sections, which install
+    Astral's `ty` rather than this fork.
+
 ## 0.63.0
 
 Built on [ty 0.0.63](https://github.com/astral-sh/ty/releases/tag/0.0.63). Released 2026-07-29.
