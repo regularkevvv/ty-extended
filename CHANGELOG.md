@@ -3,6 +3,34 @@
 ty-extended tracks upstream [ty](https://github.com/astral-sh/ty) and adds semantic extension
 support on top of it. This file records what the fork changes.
 
+## 0.65.0
+
+Built on [ty 0.0.65](https://github.com/astral-sh/ty/releases/tag/0.0.65). Released 2026-07-31.
+
+No breaking changes, and no change to the wire protocol. `ty_plugin_protocol` and `ty_plugin_sdk`
+stay at `0.0.4`, and the wire protocol stays at `0.3`, so extensions built against 0.60.0 continue
+to load unchanged.
+
+### Plugin behaviour
+
+- Upstream's frozen-dataclass work changes how attribute assignment and deletion on frozen
+    dataclasses are validated, including delegation through `super()` for non-fields. Mutations that
+    upstream now rejects or resolves differently can change which writes reach an extension's
+    `validate_mutation` hook.
+- Upstream's inference improvements (tagged-union narrowing across all type kinds, constrained
+    TypeVar solutions, constructor-overload filtering, and others) change the inferred types that
+    reach extensions through hook requests. The protocol shape is unchanged; extensions see more
+    precise types in the same representations as before.
+
+### Documentation
+
+- The extension authoring guide and both plugin crate READMEs show a `ty_compatibility` range of
+    `>=0.65.0,<0.66.0`.
+- The `ruff` submodule gains an agent skill (`aligning-with-upstream-versions`) documenting the
+    upstream alignment and release procedure used by this fork.
+- The installation guide continues to omit upstream's mise and Docker sections, which install
+    Astral's `ty` rather than this fork.
+
 Upstream's changes are not duplicated here. Every release below names the upstream ty version it is
 built on and links to that release's notes.
 
