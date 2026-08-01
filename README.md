@@ -114,6 +114,8 @@ features.
 - [Read the ty-extended FAQ](./docs/faq.md)
 - [Browse the full ty-extended documentation](./docs/index.md)
 
+For information on upstream ty's timeline to a stable release, see its [Stable](https://github.com/astral-sh/ty/milestone/4) milestone.
+
 ## FAQ
 
 ### Is ty-extended a separate checker?
@@ -155,6 +157,7 @@ ty-extended uses SemVer-compatible fork versioning that records the upstream ty 
 - upstream `0.0.62` maps to `ty-extended 0.62.0`;
 - upstream `0.0.63` maps to `ty-extended 0.63.0`;
 - upstream `0.0.64` maps to `ty-extended 0.64.0`;
+- upstream `0.0.65` maps to `ty-extended 0.65.0`;
 - upstream `0.1.50` maps to `ty-extended 0.150.0`;
 - once upstream reaches `1.0.0`, ty-extended follows that shape directly as `1.0.x`.
 
