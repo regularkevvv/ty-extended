@@ -3,6 +3,40 @@
 ty-extended tracks upstream [ty](https://github.com/astral-sh/ty) and adds semantic extension
 support on top of it. This file records what the fork changes.
 
+## 0.66.0
+
+Built on [ty 0.0.66](https://github.com/astral-sh/ty/releases/tag/0.0.66). Released 2026-08-21.
+
+No breaking changes, and no change to the wire protocol. `ty_plugin_protocol` and `ty_plugin_sdk`
+stay at `0.0.4`, and the wire protocol stays at `0.3`, so extensions built against 0.60.0 continue
+to load unchanged.
+
+### Plugin behaviour
+
+- Upstream now treats user-provided extra search paths as capable of holding third-party code, and
+    recognizes Pydantic models installed there. Classes reached through an extra search path now
+    take the same third-party path as site-packages classes, so extensions receive class-transform
+    and member requests for models they previously never saw.
+- Upstream's inference improvements (exact numeric types preserved in covariant collections, bounds
+    and constraints respected in generic materializations, `TypeVarTuple` context preserved during
+    `Generic` recovery, and others) change the inferred types that reach extensions through hook
+    requests. The protocol shape is unchanged; extensions see more precise types in the same
+    representations as before.
+- Upstream now rejects `ClassVar` and `Final` qualifiers in `NamedTuple` fields and diagnoses
+    specializing a non-generic class. Code upstream now rejects no longer reaches a plugin's
+    class-transform hook as a valid class.
+- Plugin requests resolve types against the program's configured Python version. Upstream replaced
+    the single global program with per-file environments in this release; plugin queries are
+    project-wide rather than anchored to one file, so they continue to use the program version,
+    which is the version they already saw.
+
+### Documentation
+
+- The extension authoring guide and both plugin crate READMEs show a `ty_compatibility` range of
+    `>=0.66.0,<0.67.0`.
+- The installation guide continues to omit upstream's mise and Docker sections, which install
+    Astral's `ty` rather than this fork.
+
 ## 0.65.0
 
 Built on [ty 0.0.65](https://github.com/astral-sh/ty/releases/tag/0.0.65). Released 2026-07-31.
