@@ -30,6 +30,9 @@ to publish the distribution as `ty-extended` and keep the binary name as `ty`.
 - upstream `0.0.68` maps to `ty-extended 0.68.0`;
 - upstream `0.0.69` maps to `ty-extended 0.69.0`;
 - upstream `0.0.70` maps to `ty-extended 0.70.0`;
+- upstream `0.0.71` and `0.0.72` were merged but not released: both abort on deeply nested
+    expressions, which upstream fixed in `0.0.73`;
+- upstream `0.0.73` maps to `ty-extended 0.73.0`;
 - upstream `0.1.50` maps to `ty-extended 0.150.0`;
 - once upstream reaches `1.0.0`, ty-extended follows that shape directly as `1.0.x`.
 
