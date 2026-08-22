@@ -384,7 +384,9 @@ jobs:
 
   linux-aarch64:
     if: ${{ !contains(github.event.pull_request.labels.*.name, 'no-build') }}
-    runs-on: ubuntu-latest
+    # A native ARM runner: upstream's PGO training step refuses to run unless the
+    # target matches the host, so this cannot fall back to an x86_64 runner.
+    runs-on: ubuntu-24.04-arm
     env:
       # Preserve the jemalloc page-size compatibility used by the previous cross build.
       JEMALLOC_SYS_WITH_LG_PAGE: "16"
