@@ -3,6 +3,27 @@
 ty-extended tracks upstream [ty](https://github.com/astral-sh/ty) and adds semantic extension
 support on top of it. This file records what the fork changes.
 
+## 0.68.0
+
+Built on [ty 0.0.68](https://github.com/astral-sh/ty/releases/tag/0.0.68). Released 2026-08-22.
+
+No breaking changes, and no change to the wire protocol. `ty_plugin_protocol` and `ty_plugin_sdk`
+stay at `0.0.4`, and the wire protocol stays at `0.3`, so extensions built against 0.60.0 continue
+to load unchanged.
+
+### Plugin behaviour
+
+- Upstream's inference and diagnostic changes reach extensions as more precise types in the same
+    hook requests. No plugin-facing API changed, and this release needed no fork adaptation at all:
+    the plugin machinery now takes the same environment-threading shape as upstream's own code.
+
+### Documentation
+
+- The extension authoring guide and both plugin crate READMEs show a `ty_compatibility` range of
+    `>=0.68.0,<0.69.0`.
+- The installation guide continues to omit upstream's mise and Docker sections, which install
+    Astral's `ty` rather than this fork.
+
 ## 0.67.0
 
 Built on [ty 0.0.67](https://github.com/astral-sh/ty/releases/tag/0.0.67). Released 2026-08-22.
