@@ -159,6 +159,7 @@ ty-extended uses SemVer-compatible fork versioning that records the upstream ty 
 - upstream `0.0.64` maps to `ty-extended 0.64.0`;
 - upstream `0.0.65` maps to `ty-extended 0.65.0`;
 - upstream `0.0.66` maps to `ty-extended 0.66.0`;
+- upstream `0.0.67` maps to `ty-extended 0.67.0`;
 - upstream `0.1.50` maps to `ty-extended 0.150.0`;
 - once upstream reaches `1.0.0`, ty-extended follows that shape directly as `1.0.x`.
 

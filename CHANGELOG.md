@@ -3,6 +3,45 @@
 ty-extended tracks upstream [ty](https://github.com/astral-sh/ty) and adds semantic extension
 support on top of it. This file records what the fork changes.
 
+## 0.67.0
+
+Built on [ty 0.0.67](https://github.com/astral-sh/ty/releases/tag/0.0.67). Released 2026-08-22.
+
+No breaking changes for extensions, and no change to the wire protocol. `ty_plugin_protocol` and
+`ty_plugin_sdk` stay at `0.0.4`, and the wire protocol stays at `0.3`, so extensions built against
+0.60.0 continue to load unchanged.
+
+### Plugin behaviour
+
+- Plugin configuration now lives in its own tracked input rather than on ty's program. Upstream
+    replaced the single global program with a per-project value resolved through each file, so the
+    plugin registry, which is project-wide, was moved onto an input of its own. Changing the
+    configured plugins still invalidates every check that consulted them, and extensions see no
+    difference; the change keeps the plugin machinery independent of ty's program representation.
+- Plugin hooks resolve types against the environment of what they are anchored to — the class being
+    transformed, or the file a call or mutation occurs in — rather than a single global program.
+    On a project with one Python version, which is every project ty supports today, this resolves
+    exactly as before.
+- Upstream's generic inference improvements (`TypedDict`s inferred through synthesized
+    constructors and unpacked `TypedDict`s, class type parameters preserved through generic
+    decorators and constructor inference, and others) change the inferred types that reach
+    extensions through hook requests. The protocol shape is unchanged.
+- Upstream now rejects unhashable objects for `Hashable` protocols, unsupported
+    `dataclass_transform` parameters, and `Self` with incompatible explicit receiver annotations.
+    Code upstream now rejects no longer reaches a plugin's hooks as valid.
+
+### Configuration
+
+- Upstream removed the deprecated `src.root` setting in favour of `environment.root`. The fork's
+    `plugin-stub-overlay-paths` setting is unaffected and continues to sit alongside it.
+
+### Documentation
+
+- The extension authoring guide and both plugin crate READMEs show a `ty_compatibility` range of
+    `>=0.67.0,<0.68.0`.
+- The installation guide continues to omit upstream's mise and Docker sections, which install
+    Astral's `ty` rather than this fork.
+
 ## 0.66.0
 
 Built on [ty 0.0.66](https://github.com/astral-sh/ty/releases/tag/0.0.66). Released 2026-08-22.
