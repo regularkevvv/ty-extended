@@ -3,6 +3,28 @@
 ty-extended tracks upstream [ty](https://github.com/astral-sh/ty) and adds semantic extension
 support on top of it. This file records what the fork changes.
 
+## 0.69.0
+
+Built on [ty 0.0.69](https://github.com/astral-sh/ty/releases/tag/0.0.69). Released 2026-08-22.
+
+No breaking changes, and no change to the wire protocol. `ty_plugin_protocol` and `ty_plugin_sdk`
+stay at `0.0.4`, and the wire protocol stays at `0.3`, so extensions built against 0.60.0 continue
+to load unchanged.
+
+### Plugin behaviour
+
+- Upstream added a `strict-generic-narrowing` setting, which controls whether `isinstance()`,
+    `issubclass()`, and `match` class patterns narrow unspecialized generic classes to their top
+    materialization. Narrowed types reach extensions through hook requests, so a project that turns
+    this on sends different — more conservative — type arguments for narrowed generics.
+
+### Documentation
+
+- The extension authoring guide and both plugin crate READMEs show a `ty_compatibility` range of
+    `>=0.69.0,<0.70.0`.
+- The installation guide continues to omit upstream's mise and Docker sections, which install
+    Astral's `ty` rather than this fork.
+
 ## 0.68.0
 
 Built on [ty 0.0.68](https://github.com/astral-sh/ty/releases/tag/0.0.68). Released 2026-08-22.
