@@ -5,7 +5,7 @@ support on top of it. This file records what the fork changes.
 
 ## 0.66.0
 
-Built on [ty 0.0.66](https://github.com/astral-sh/ty/releases/tag/0.0.66). Released 2026-08-21.
+Built on [ty 0.0.66](https://github.com/astral-sh/ty/releases/tag/0.0.66). Released 2026-08-22.
 
 No breaking changes, and no change to the wire protocol. `ty_plugin_protocol` and `ty_plugin_sdk`
 stay at `0.0.4`, and the wire protocol stays at `0.3`, so extensions built against 0.60.0 continue
