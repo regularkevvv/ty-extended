@@ -3,6 +3,44 @@
 ty-extended tracks upstream [ty](https://github.com/astral-sh/ty) and adds semantic extension
 support on top of it. This file records what the fork changes.
 
+## 0.73.0
+
+Built on [ty 0.0.73](https://github.com/astral-sh/ty/releases/tag/0.0.73). Released 2026-08-22.
+
+No breaking changes, and no change to the wire protocol. `ty_plugin_protocol` and `ty_plugin_sdk`
+stay at `0.0.4`, and the wire protocol stays at `0.3`, so extensions built against 0.60.0 continue
+to load unchanged.
+
+### This release follows 0.70.0
+
+There is no ty-extended 0.71.0 or 0.72.0. Upstream ty 0.0.71 began aborting with a stack overflow
+on deeply nested expressions, and 0.0.72 still did; 0.0.73 is the first upstream release where that
+case checks cleanly again. Both of those upstream versions were merged so the history stays
+continuous, but neither was released, because a release that crashes on ordinary code is worse than
+no release. Anyone on 0.70.0 should move straight to this one.
+
+### Plugin behaviour
+
+- Plugin settings resolve their paths against the configuration they came from rather than always
+    against the project root. Upstream made options resolvable for a standalone script as well as a
+    project, so a `plugin-stub-overlay-paths` entry written in a script's inline metadata resolves
+    relative to that script's directory, exactly as every other path setting does. Project
+    configuration is unaffected.
+- Plugin configuration diagnostics can point at a script's inline metadata as their source,
+    alongside config files, the CLI, editor settings, and uv workspace metadata.
+- Upstream reworked member lookup to carry a result rather than a bare place, so a lookup can
+    report why it failed. A member supplied by an extension enters that flow as a successful
+    lookup; extensions see no change in the members they contribute.
+- Upstream's inference improvements across these four releases reach extensions as more precise
+    types in the same hook requests. The protocol shape is unchanged.
+
+### Documentation
+
+- The extension authoring guide and both plugin crate READMEs show a `ty_compatibility` range of
+    `>=0.73.0,<0.74.0`.
+- The installation guide continues to omit upstream's mise and Docker sections, which install
+    Astral's `ty` rather than this fork.
+
 ## 0.70.0
 
 Built on [ty 0.0.70](https://github.com/astral-sh/ty/releases/tag/0.0.70). Released 2026-08-22.
