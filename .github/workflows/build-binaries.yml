@@ -432,7 +432,7 @@ jobs:
           args: --release --locked --out dist --compatibility pypi
       - name: "Test wheel"
         run: |
-          pip install dist/"${PACKAGE_NAME}"-*.whl --force-reinstall
+          pip install dist/"${PACKAGE_FILE_STEM}"-*.whl --force-reinstall
           "${MODULE_NAME}" version
           "${MODULE_NAME}" --help
           python -m "${MODULE_NAME}" --help
