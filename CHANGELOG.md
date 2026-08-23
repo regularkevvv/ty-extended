@@ -1,7 +1,10 @@
 # Changelog
 
-ty-extended tracks upstream [ty](https://github.com/astral-sh/ty) and adds semantic extension
+ty-extended tracks upstream [ty](https://github.com/astral-sh/ty) and adds semantic plugin
 support on top of it. This file records what the fork changes.
+
+Entries below 0.74.0 say "extension" where they now would say "plugin"; the term was settled on
+"plugin" in 0.74.0 and released notes are left as they were published.
 
 ## 0.73.0
 

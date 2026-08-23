@@ -3,10 +3,10 @@ name = "ty-extended"
 version = "0.73.0"
 requires-python = ">=3.8"
 dependencies = []
-description = "A ty fork with semantic extension support."
+description = "A ty fork with semantic plugin support."
 readme = "README.md"
 authors = [{ name = "Kevin Castro", email = "hola@kev.pe" }]
-keywords = ["ty", "typing", "analysis", "check", "extensions"]
+keywords = ["ty", "typing", "analysis", "check", "plugins"]
 classifiers = [
     "Development Status :: 4 - Beta",
     "Environment :: Console",

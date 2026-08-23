@@ -1,8 +1,8 @@
-# Publish ty semantic extension SDK crates to crates.io.
+# Publish ty semantic plugin SDK crates to crates.io.
 #
 # Assumed to run as a subworkflow of .github/workflows/release.yml; specifically, as a publish job
 # within `cargo-dist`.
-name: "Publish ty extension SDK crates"
+name: "Publish ty plugin SDK crates"
 
 on:
   workflow_call:
@@ -13,7 +13,7 @@ on:
 
 jobs:
   crates-publish-sdk:
-    name: Upload ty extension SDK crates to crates.io
+    name: Upload ty plugin SDK crates to crates.io
     runs-on: ubuntu-latest
     environment:
       name: release
