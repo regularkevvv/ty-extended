@@ -6,6 +6,40 @@ support on top of it. This file records what the fork changes.
 Entries below 0.74.0 say "extension" where they now would say "plugin"; the term was settled on
 "plugin" in 0.74.0 and released notes are left as they were published.
 
+## 0.74.0
+
+Built on [ty 0.0.74](https://github.com/astral-sh/ty/releases/tag/0.0.74). Released 2026-08-23.
+
+No breaking changes, and no change to the wire protocol. `ty_plugin_protocol` and `ty_plugin_sdk`
+stay at `0.0.4`, and the wire protocol stays at `0.3`, so plugins built against 0.60.0 continue to
+load unchanged.
+
+### Plugin behaviour
+
+- Upstream added `__slots__` support, and that reaches instance-member plugins. On a class that
+    declares `__slots__`, does not list the requested name, and inherits no instance `__dict__`,
+    the instance-member lookup now ends before any plugin is consulted. Such an attribute cannot
+    exist at runtime, so a plugin claiming it was claiming something Python would refuse; this
+    aligns the plugin path with the runtime. Class-scope members are unaffected, as are classes
+    that do not use `__slots__` or that keep a `__dict__`.
+- Upstream's inference and constraint-solver work in this release reaches plugins as more precise
+    types in the same hook requests. The protocol shape and the set of hooks are unchanged.
+
+### Release infrastructure
+
+- The binary build workflow sets `ACTIONS_CACHE_MODE: none` again. Upstream added it when it
+    disabled cache-aware actions in release workflows; the 0.73.0 merge resolved that hunk by
+    taking the fork's side wholesale and dropped the setting along with upstream's package name.
+    Release builds no longer read from the Actions cache.
+- Upstream's `astral-sh/setup-uv` pin moves to v10.0.1 across the workflows.
+
+### Documentation
+
+- The plugin authoring guide and both plugin crate READMEs show a `ty_compatibility` range of
+    `>=0.74.0,<0.75.0`.
+- The installation guide continues to omit upstream's mise and Docker sections, which install
+    Astral's `ty` rather than this fork.
+
 ## 0.73.0
 
 Built on [ty 0.0.73](https://github.com/astral-sh/ty/releases/tag/0.0.73). Released 2026-08-22.
