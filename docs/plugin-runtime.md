@@ -1,6 +1,6 @@
-# Extension Runtime
+# Plugin Runtime
 
-ty-extended separates the public extension API from checker internals.
+ty-extended separates the public plugin API from checker internals.
 
 The source for the checker-side implementation lives in the `ruff` submodule, backed by
 [`regularkevvv/ruff-extended`](https://github.com/regularkevvv/ruff-extended). The wrapper
@@ -8,15 +8,15 @@ repository publishes the `ty-extended` Python distribution and the public SDK cr
 
 ## Components
 
-| Component            | Audience                   | Responsibility                                                                 |
-| -------------------- | -------------------------- | ------------------------------------------------------------------------------ |
-| `ty_plugin_protocol` | Extension authors and host | Stable serialized protocol types.                                              |
-| `ty_plugin_sdk`      | Extension authors          | Ergonomic manifest, hooks, DSL, JSON dispatch, WASM export.                    |
-| `ty_plugin_host`     | Host only                  | Manifest validation, routing, protocol negotiation, runtime runner.            |
-| `ty_python_semantic` | Host only                  | Applies extension responses during type inference.                             |
-| `ty_project`         | Host only                  | Reads project config, fingerprints extension environment, wires runtime state. |
+| Component            | Audience                | Responsibility                                                              |
+| -------------------- | ----------------------- | --------------------------------------------------------------------------- |
+| `ty_plugin_protocol` | Plugin authors and host | Stable serialized protocol types.                                           |
+| `ty_plugin_sdk`      | Plugin authors          | Ergonomic manifest, hooks, DSL, JSON dispatch, WASM export.                 |
+| `ty_plugin_host`     | Host only               | Manifest validation, routing, protocol negotiation, runtime runner.         |
+| `ty_python_semantic` | Host only               | Applies plugin responses during type inference.                             |
+| `ty_project`         | Host only               | Reads project config, fingerprints plugin environment, wires runtime state. |
 
-Extension crates should use only `ty_plugin_sdk`.
+Plugin crates should use only `ty_plugin_sdk`.
 
 ## Loading Flow
 
@@ -31,11 +31,11 @@ Extension crates should use only `ty_plugin_sdk`.
 
 ## Safety Model
 
-Extensions are disabled by default and must be explicitly trusted per project. WASM extensions run
+Plugins are disabled by default and must be explicitly trusted per project. WASM plugins run
 without filesystem, environment, clock, or network access. The host applies fuel, memory, and
 response-size limits per call.
 
-The runtime treats extension output as data. A bad type expression, oversized response, trap, or
+The runtime treats plugin output as data. A bad type expression, oversized response, trap, or
 unsupported runtime reports an actionable diagnostic instead of crashing the checker.
 
 ## Release Ownership
@@ -43,7 +43,7 @@ unsupported runtime reports an actionable diagnostic instead of crashing the che
 `ty-extended` publishes:
 
 - PyPI project `ty-extended`, which installs the `ty` executable.
-- crates.io project `ty_plugin_sdk`, the author-facing extension API.
+- crates.io project `ty_plugin_sdk`, the author-facing plugin API.
 - crates.io project `ty_plugin_protocol`, the serialized contract used by the SDK and host.
 
 `ruff-extended` is the source repository for the implementation crates. The top-level

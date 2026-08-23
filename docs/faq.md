@@ -1,11 +1,11 @@
 # FAQ
 
-This page covers ty-extended and its semantic extension system. For typing behavior inherited from
+This page covers ty-extended and its semantic plugin system. For typing behavior inherited from
 ty, see [ty's upstream typing FAQ](https://docs.astral.sh/ty/reference/typing-faq/).
 
 ## What Is the Difference Between ty and ty-extended?
 
-ty-extended is a fork of ty that adds a public semantic extension protocol, a Rust authoring SDK,
+ty-extended is a fork of ty that adds a public semantic plugin protocol, a Rust authoring SDK,
 plugin configuration, and sandboxed WASM execution. It otherwise keeps the `ty` command, language
 server, project discovery, configuration, and type-system behavior.
 
@@ -18,44 +18,44 @@ commands and editor configuration continue to work.
 
 There are three public distributions:
 
-- `ty-extended` on PyPI: the checker and language server with extension hosting;
-- `ty_plugin_sdk` on crates.io: the API most extension authors use;
+- `ty-extended` on PyPI: the checker and language server with plugin hosting;
+- `ty_plugin_sdk` on crates.io: the API most plugin authors use;
 - `ty_plugin_protocol` on crates.io: the serialized data contract used by the SDK and host.
 
-The SDK re-exports the protocol crate, so extension implementations normally depend only on
+The SDK re-exports the protocol crate, so plugin implementations normally depend only on
 `ty_plugin_sdk`.
 
-## Are Extensions Enabled by Default?
+## Are Plugins Enabled by Default?
 
-No. Installed extension packages require `plugins.auto-discover = true`. Manually configured
+No. Installed plugin packages require `plugins.auto-discover = true`. Manually configured
 artifacts require `plugins.enabled = true`, an explicit plugin entry, and `trusted = true`.
 
 ## Why Use WebAssembly?
 
-WASM keeps extensions behind a serialized boundary instead of exposing unstable checker internals.
+WASM keeps plugins behind a serialized boundary instead of exposing unstable checker internals.
 ty-extended runs WASM with Wasmtime and does not provide WASI, filesystem, environment, clock, or
 network access. Each call also has fuel, memory, and response-size limits.
 
-## What Can an Extension Change?
+## What Can a Plugin Change?
 
-An extension declares claims and capabilities in its manifest. At claimed semantic points it can
+A plugin declares claims and capabilities in its manifest. At claimed semantic points it can
 return declarative patches for class shapes, members, call signatures, return types, project
 indexes, dependencies, mutation diagnostics, or stub overlays. The host validates those patches
 before applying them.
 
-## Can an Extension Access ty Internals?
+## Can a Plugin Access ty Internals?
 
-No. Extensions receive serialized summaries and return protocol patches. They do not receive Salsa
+No. Plugins receive serialized summaries and return protocol patches. They do not receive Salsa
 keys, AST ids, checker-owned type objects, or direct access to `ty_python_semantic`.
 
-## Is the Extension API Stable?
+## Is the Plugin API Stable?
 
 The protocol and SDK are pre-1.0 and versioned independently from ty-extended. Hosts negotiate the
-protocol version declared by an extension and reject incompatible manifests. Extension packages
+protocol version declared by a plugin and reject incompatible manifests. Plugin packages
 should also declare a narrow ty compatibility range and test against every supported release.
 
 ## Where Should I Report a Problem?
 
-Report extension loading, WASM runtime, SDK, protocol, or ty-extended packaging issues in the
+Report plugin loading, WASM runtime, SDK, protocol, or ty-extended packaging issues in the
 [ty-extended issue tracker](https://github.com/regularkevvv/ty-extended/issues). Check the
 [upstream ty documentation](https://docs.astral.sh/ty/) for behavior shared unchanged with ty.

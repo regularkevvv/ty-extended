@@ -3,7 +3,7 @@
 This fork publishes three things:
 
 - `ty-extended` on PyPI. The installed executable and Python module remain named `ty`.
-- `ty_plugin_protocol` and `ty_plugin_sdk` on crates.io for extension authors.
+- `ty_plugin_protocol` and `ty_plugin_sdk` on crates.io for plugin authors.
 - Release artifacts from the `ruff` submodule source, which is hosted as
     `regularkevvv/ruff-extended`.
 

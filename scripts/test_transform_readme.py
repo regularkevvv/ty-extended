@@ -12,7 +12,7 @@ class TransformReadmeTest(unittest.TestCase):
         source = """\
 # ty-extended
 
-[Guide](./docs/extension-authoring.md)
+[Guide](./docs/plugin-authoring.md)
 [License](LICENSE)
 [External](https://example.com/path)
 
@@ -30,7 +30,7 @@ flowchart LR
         result = transform(source, "0.59.1")
 
         self.assertIn(
-            "https://github.com/regularkevvv/ty-extended/blob/v0.59.1/docs/extension-authoring.md",
+            "https://github.com/regularkevvv/ty-extended/blob/v0.59.1/docs/plugin-authoring.md",
             result,
         )
         self.assertIn(

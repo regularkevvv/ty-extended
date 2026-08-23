@@ -3,48 +3,48 @@
 [![PyPI](https://img.shields.io/pypi/v/ty-extended.svg)](https://pypi.org/project/ty-extended/)
 
 [ty-extended](https://pypi.org/project/ty-extended/) is
-[Astral's ty](https://github.com/astral-sh/ty) with a sandboxed semantic extension system. It keeps
+[Astral's ty](https://github.com/astral-sh/ty) with a sandboxed semantic plugin system. It keeps
 the `ty` command and language server while allowing libraries to contribute library-aware types
 and diagnostics without linking to checker internals.
 
-## Extension showcase
+## Plugin showcase
 
-[`django-ty`](https://github.com/regularkevvv/django-ty) is a live extension for Django ORM
+[`django-ty`](https://github.com/regularkevvv/django-ty) is a live plugin for Django ORM
 semantics, available now from [PyPI](https://pypi.org/project/django-ty/). It covers model fields,
 relations, managers, querysets, lookups, settings, forms, and requests, with its behavior measured
 against `django-stubs` in a reproducible differential-conformance suite.
 
 ## What ships
 
-| Distribution         | Published at                                                                                             | Purpose                                                                                                                                                   |
-| -------------------- | -------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `ty-extended`        | [PyPI](https://pypi.org/project/ty-extended/)                                                            | The `ty` checker and language server with semantic extension loading and WASM execution.                                                                  |
-| `ty_plugin_sdk`      | [crates.io](https://crates.io/crates/ty_plugin_sdk) · [docs.rs](https://docs.rs/ty_plugin_sdk)           | The Rust API used to [build an extension](./docs/extension-authoring.md): manifest builders, typed hooks, patch helpers, JSON dispatch, and WASM exports. |
-| `ty_plugin_protocol` | [crates.io](https://crates.io/crates/ty_plugin_protocol) · [docs.rs](https://docs.rs/ty_plugin_protocol) | The stable serialized manifest, request, response, claim, and patch types shared by extensions and the host.                                              |
+| Distribution         | Published at                                                                                             | Purpose                                                                                                                                            |
+| -------------------- | -------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `ty-extended`        | [PyPI](https://pypi.org/project/ty-extended/)                                                            | The `ty` checker and language server with semantic plugin loading and WASM execution.                                                              |
+| `ty_plugin_sdk`      | [crates.io](https://crates.io/crates/ty_plugin_sdk) · [docs.rs](https://docs.rs/ty_plugin_sdk)           | The Rust API used to [build a plugin](./docs/plugin-authoring.md): manifest builders, typed hooks, patch helpers, JSON dispatch, and WASM exports. |
+| `ty_plugin_protocol` | [crates.io](https://crates.io/crates/ty_plugin_protocol) · [docs.rs](https://docs.rs/ty_plugin_protocol) | The stable serialized manifest, request, response, claim, and patch types shared by plugins and the host.                                          |
 
-Most extension authors only need `ty_plugin_sdk`; it re-exports the protocol crate as
+Most plugin authors only need `ty_plugin_sdk`; it re-exports the protocol crate as
 `ty_plugin_sdk::protocol`. The Rust implementation lives in the [`ruff` submodule](./ruff), backed
 by [ruff-extended](https://github.com/regularkevvv/ruff-extended).
 
-## How extensions run
+## How plugins run
 
 ```mermaid
 flowchart LR
     subgraph host["ty-extended"]
-        checker["ty semantic checker"] -->|claimed hook| router["Extension router"]
+        checker["ty semantic checker"] -->|claimed hook| router["Plugin router"]
         router -->|validated patch| checker
     end
 
     project["Python project"] --> checker
     config["ty.toml + plugin manifest"] --> router
-    router -->|JSON request| wasm["WASM extension<br/>inside Wasmtime"]
+    router -->|JSON request| wasm["WASM plugin<br/>inside Wasmtime"]
     wasm -->|declarative patch| router
     checker --> output["Types + diagnostics"]
 ```
 
-The manifest tells ty which symbols and hooks an extension owns. At a matching semantic query,
-ty serializes a small request, executes the extension inside a Wasmtime sandbox, validates the
-returned patch, and feeds the result back into type inference. Extensions receive protocol data,
+The manifest tells ty which symbols and hooks a plugin owns. At a matching semantic query,
+ty serializes a small request, executes the plugin inside a Wasmtime sandbox, validates the
+returned patch, and feeds the result back into type inference. Plugins receive protocol data,
 not ty's internal types, AST ids, or Salsa database.
 
 ## Getting started
@@ -65,9 +65,9 @@ uv run ty check
 See [installation](./docs/installation.md), [type checking](./docs/type-checking.md), and
 [editor integration](https://docs.astral.sh/ty/editors/) for the regular ty workflow.
 
-## Configure extensions
+## Configure plugins
 
-An installed extension package can be discovered from the project's Python environment:
+An installed plugin package can be discovered from the project's Python environment:
 
 ```toml
 # ty.toml
@@ -83,15 +83,15 @@ To load a WASM artifact explicitly, configure and trust it for the project:
 enabled = true
 
 [[plugins.plugin]]
-id = "my-extension"
-path = ".ty/plugins/my_extension.wasm"
+id = "my-plugin"
+path = ".ty/plugins/my_plugin.wasm"
 runtime = "wasm"
-manifest-path = ".ty/plugins/my-extension.plugin.json"
+manifest-path = ".ty/plugins/my-plugin.json"
 trusted = true
 ```
 
 Use `[tool.ty.plugins]` and `[[tool.ty.plugins.plugin]]` for the same settings in
-`pyproject.toml`. See [extension runtime](./docs/extension-runtime.md) for loading, trust, and
+`pyproject.toml`. See [plugin runtime](./docs/plugin-runtime.md) for loading, trust, and
 sandbox details.
 
 ## Everything from ty
@@ -109,8 +109,8 @@ features.
 
 ## Documentation
 
-- [Build a semantic extension](./docs/extension-authoring.md)
-- [Understand the host runtime](./docs/extension-runtime.md)
+- [Build a semantic plugin](./docs/plugin-authoring.md)
+- [Understand the host runtime](./docs/plugin-runtime.md)
 - [Read the ty-extended FAQ](./docs/faq.md)
 - [Browse the full ty-extended documentation](./docs/index.md)
 
@@ -120,21 +120,21 @@ For information on upstream ty's timeline to a stable release, see its [Stable](
 
 ### Is ty-extended a separate checker?
 
-It is a fork of ty that preserves the `ty` CLI and language server and adds semantic extensions.
+It is a fork of ty that preserves the `ty` CLI and language server and adds semantic plugins.
 
-### Why does it execute extensions as WASM?
+### Why does it execute plugins as WASM?
 
-WASM gives extensions a stable, serialized boundary and lets the host enforce deterministic fuel,
+WASM gives plugins a stable, serialized boundary and lets the host enforce deterministic fuel,
 memory, and response-size limits without exposing checker internals or ambient system access.
 
 ### Where are general ty questions answered?
 
 See [ty's upstream typing FAQ](https://docs.astral.sh/ty/reference/typing-faq/). The
-[ty-extended FAQ](./docs/faq.md) covers only fork and extension behavior.
+[ty-extended FAQ](./docs/faq.md) covers only fork and plugin behavior.
 
 ## Getting help
 
-For ty-extended packaging, extension runtime, SDK, or protocol issues, open an
+For ty-extended packaging, plugin runtime, SDK, or protocol issues, open an
 [issue](https://github.com/regularkevvv/ty-extended/issues). For behavior inherited unchanged from
 ty, check the [upstream documentation](https://docs.astral.sh/ty/) first.
 
