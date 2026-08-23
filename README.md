@@ -166,6 +166,7 @@ ty-extended uses SemVer-compatible fork versioning that records the upstream ty 
 - upstream `0.0.71` and `0.0.72` were merged but not released: both abort on deeply nested
     expressions, which upstream fixed in `0.0.73`;
 - upstream `0.0.73` maps to `ty-extended 0.73.0`;
+- upstream `0.0.74` maps to `ty-extended 0.74.0`;
 - upstream `0.1.50` maps to `ty-extended 0.150.0`;
 - once upstream reaches `1.0.0`, ty-extended follows that shape directly as `1.0.x`.
 
