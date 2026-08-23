@@ -143,11 +143,6 @@ nav:
       - Environment variables: reference/environment.md
       - Editor settings: reference/editor-settings.md
       - Fork publishing: release-publishing.md
-# Stubs kept at the pre-rename paths so the links in the published ty_plugin_sdk and
-# ty_plugin_protocol 0.0.4 READMEs keep resolving; they are not part of the nav.
-not_in_nav: |
-  extension-authoring.md
-  extension-runtime.md
 validation:
   omitted_files: warn
   absolute_links: warn
