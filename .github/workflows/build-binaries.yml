@@ -69,8 +69,10 @@ jobs:
           run: |
             # pip builds outside /test, where the toolchain file no longer applies.
             rustup default "$(rustup show active-toolchain | cut -d ' ' -f1)"
-            # The wheel/sdist stem is the normalized package name (ty_extended-*, not ty-extended-*).
-            pip install --no-index --find-links=/dist "${PACKAGE_NAME}" --force-reinstall
+            # The sdist stem is the normalized package name (ty_extended-*, not
+            # ty-extended-*). Install it by path: building the sdist needs maturin
+            # from PyPI, so `--no-index` cannot be used here.
+            pip install /dist/"${PACKAGE_FILE_STEM}"-*.tar.gz --force-reinstall
             "${MODULE_NAME}" version
             "${MODULE_NAME}" --help
             python -m "${MODULE_NAME}" --help
