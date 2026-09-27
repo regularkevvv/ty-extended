@@ -6,6 +6,28 @@ support on top of it. This file records what the fork changes.
 Entries below 0.74.0 say "extension" where they now would say "plugin"; the term was settled on
 "plugin" in 0.74.0 and released notes are left as they were published.
 
+## 0.82.0
+
+Built on [ty 0.0.82](https://github.com/astral-sh/ty/releases/tag/0.0.82).
+
+No breaking changes, and no change to the wire protocol. `ty_plugin_protocol` and `ty_plugin_sdk`
+stay at `0.0.4`, and the wire protocol stays at `0.3`, so plugins built against 0.60.0 continue to
+load unchanged.
+
+### Plugin behaviour
+
+- Upstream rewrote the file watcher as a bounded reconciliation loop over a salsa-tracked
+    `watch_paths` set (for script-dependency watching in CLI watch mode and the language server).
+    Plugin manifest and reload paths are now registered through `watch_paths`, so they are part of
+    the watched-path cache key and remain watched exactly as before.
+- `BoundMethod::function` and `SubclassOfType::try_from_instance` changed signature upstream
+    (bound-method receiver comparison, and `type[A & B]` support). Plugin callee routing and
+    plugin type-expression parsing were ported to the new signatures; observable plugin behaviour
+    is unchanged.
+- The release is inference work — recursive implicit type aliases, tuple and intersection
+    precision, constraint-set assignability — which reaches plugins as more precise types in the
+    same hook requests.
+
 ## 0.81.0
 
 Built on [ty 0.0.81](https://github.com/astral-sh/ty/releases/tag/0.0.81). Released 2026-09-26.
