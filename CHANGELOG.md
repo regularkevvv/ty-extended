@@ -6,6 +6,22 @@ support on top of it. This file records what the fork changes.
 Entries below 0.74.0 say "extension" where they now would say "plugin"; the term was settled on
 "plugin" in 0.74.0 and released notes are left as they were published.
 
+## 0.81.0
+
+Built on [ty 0.0.81](https://github.com/astral-sh/ty/releases/tag/0.0.81). Released 2026-09-26.
+
+No breaking changes, and no change to the wire protocol. `ty_plugin_protocol` and `ty_plugin_sdk`
+stay at `0.0.4`, and the wire protocol stays at `0.3`, so plugins built against 0.60.0 continue to
+load unchanged.
+
+### Plugin behaviour
+
+- Upstream refactored module resolution, moving file resolution into `ModuleDirectory`.
+    Plugin stub overlays were ported to the new structure: overlay search paths resolve only
+    `.pyi` stubs, unchanged from before.
+- The release is inference and metaclass work — MRO ordering, enum member reassignment,
+    descriptor handling — which reaches plugins as more precise types in the same hook requests.
+
 ## 0.80.0
 
 Built on [ty 0.0.80](https://github.com/astral-sh/ty/releases/tag/0.0.80). Released 2026-09-26.
