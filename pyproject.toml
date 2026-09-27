@@ -1,6 +1,6 @@
 [project]
 name = "ty-extended"
-version = "0.81.0"
+version = "0.82.0"
 requires-python = ">=3.8"
 dependencies = []
 description = "A ty fork with semantic plugin support."
@@ -40,7 +40,7 @@ requires = ["maturin>=1.0,<2.0"]
 build-backend = "maturin"
 
 [dependency-groups]
-dev = ["prek==0.4.12"]
+dev = ["prek==0.4.14"]
 release = ["rooster"]
 docs = [
     "mdformat>=0.7.17",
@@ -54,7 +54,6 @@ docs = [
 ]
 
 [tool.uv]
-required-version = "==0.12.11"
 no-build = true
 exclude-newer = "P7D"
 cache-keys = [
