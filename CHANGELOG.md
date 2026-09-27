@@ -6,6 +6,28 @@ support on top of it. This file records what the fork changes.
 Entries below 0.74.0 say "extension" where they now would say "plugin"; the term was settled on
 "plugin" in 0.74.0 and released notes are left as they were published.
 
+## 0.75.0
+
+Built on [ty 0.0.75](https://github.com/astral-sh/ty/releases/tag/0.0.75). Released 2026-09-26.
+
+No breaking changes, and no change to the wire protocol. `ty_plugin_protocol` and `ty_plugin_sdk`
+stay at `0.0.4`, and the wire protocol stays at `0.3`, so plugins built against 0.60.0 continue to
+load unchanged.
+
+### Plugin behaviour
+
+- Upstream added PEP 723 script-environment support: ty now initialises and refreshes a standalone
+    script's own environment (in the CLI, and in watch mode on bounded workers). Plugins running on
+    such scripts see the script's resolved environment rather than the enclosing project's.
+- Upstream renamed `ValueSource::UvWorkspace` to `UvMetadata`, widening it to cover script
+    metadata. The fork's plugin-configuration diagnostics follow the rename and describe those
+    values as provided by "uv metadata".
+- Upstream added a dedicated `missing-slot` diagnostic for `__slots__` classes. The ordering
+    established in 0.74.0 is unchanged: on a slotted class that cannot carry an attribute, the
+    instance-member lookup ends before any plugin is consulted.
+- The rest of upstream's inference and constraint-solver work reaches plugins as more precise
+    types in the same hook requests. The protocol shape and the set of hooks are unchanged.
+
 ## 0.74.0
 
 Built on [ty 0.0.74](https://github.com/astral-sh/ty/releases/tag/0.0.74). Released 2026-08-23.
