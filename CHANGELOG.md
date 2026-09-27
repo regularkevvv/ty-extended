@@ -6,6 +6,23 @@ support on top of it. This file records what the fork changes.
 Entries below 0.74.0 say "extension" where they now would say "plugin"; the term was settled on
 "plugin" in 0.74.0 and released notes are left as they were published.
 
+## 0.80.0
+
+Built on [ty 0.0.80](https://github.com/astral-sh/ty/releases/tag/0.0.80). Released 2026-09-26.
+
+No breaking changes, and no change to the wire protocol. `ty_plugin_protocol` and `ty_plugin_sdk`
+stay at `0.0.4`, and the wire protocol stays at `0.3`, so plugins built against 0.60.0 continue to
+load unchanged.
+
+### Plugin behaviour
+
+- `BoundMethodType::function` now returns `Option<FunctionType>`: a bound method can wrap a
+    callable that is not a plain function. Plugin call routing (`plugin_callee`) follows
+    upstream and skips those methods; plugin `call_return` hooks see the same surface as before.
+- The release is otherwise inference stability and performance work — tuple variance, ParamSpec
+    forwarding, callable identity — which reaches plugins as more precise types in the same hook
+    requests.
+
 ## 0.79.0
 
 Built on [ty 0.0.79](https://github.com/astral-sh/ty/releases/tag/0.0.79). Released 2026-09-26.
