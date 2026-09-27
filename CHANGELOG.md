@@ -6,6 +6,26 @@ support on top of it. This file records what the fork changes.
 Entries below 0.74.0 say "extension" where they now would say "plugin"; the term was settled on
 "plugin" in 0.74.0 and released notes are left as they were published.
 
+## 0.84.0
+
+Built on [ty 0.0.84](https://github.com/astral-sh/ty/releases/tag/0.0.84).
+
+This upstream release fixes
+[GHSA-vxvm-j4xq-q7m4](https://github.com/astral-sh/ty/security/advisories/GHSA-vxvm-j4xq-q7m4),
+a use-after-free during incremental type checking that can result in arbitrary code execution when
+analyzing a specially crafted Python project. Anyone running ty-extended on untrusted code should
+use this release or newer.
+
+No breaking changes, and no change to the wire protocol. `ty_plugin_protocol` and `ty_plugin_sdk`
+stay at `0.0.4`, and the wire protocol stays at `0.3`, so plugins built against 0.60.0 continue to
+load unchanged.
+
+### Plugin behaviour
+
+- The upstream merge was textually clean: no plugin surface needed porting. The release is
+    inference correctness work and LSP improvements — closed-document requests, external-file
+    project selection — plus the security fix above, which applies to plugin sessions equally.
+
 ## 0.83.0
 
 Built on [ty 0.0.83](https://github.com/astral-sh/ty/releases/tag/0.0.83).
