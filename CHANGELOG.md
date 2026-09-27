@@ -6,6 +6,22 @@ support on top of it. This file records what the fork changes.
 Entries below 0.74.0 say "extension" where they now would say "plugin"; the term was settled on
 "plugin" in 0.74.0 and released notes are left as they were published.
 
+## 0.77.0
+
+Built on [ty 0.0.77](https://github.com/astral-sh/ty/releases/tag/0.0.77). Released 2026-09-26.
+
+No breaking changes, and no change to the wire protocol. `ty_plugin_protocol` and `ty_plugin_sdk`
+stay at `0.0.4`, and the wire protocol stays at `0.3`, so plugins built against 0.60.0 continue to
+load unchanged.
+
+### Plugin behaviour
+
+- Upstream hardened inference under recursion: bounded protocol traversal in generic
+    intersections, preserved recursion guards across nested type operations, and stabilised
+    receiver inference and condition truthiness in cyclic cases. These reach plugins as more
+    reliable types in the same hook requests; the protocol shape and the set of hooks are
+    unchanged.
+
 ## 0.76.0
 
 Built on [ty 0.0.76](https://github.com/astral-sh/ty/releases/tag/0.0.76). Released 2026-09-26.
