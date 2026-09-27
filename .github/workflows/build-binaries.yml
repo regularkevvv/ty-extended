@@ -71,8 +71,10 @@ jobs:
             rustup default "$(rustup show active-toolchain | cut -d ' ' -f1)"
             # The sdist stem is the normalized package name (ty_extended-*, not
             # ty-extended-*). Install it by path: building the sdist needs maturin
-            # from PyPI, so `--no-index` cannot be used here.
-            pip install /dist/"${PACKAGE_FILE_STEM}"-*.tar.gz --force-reinstall
+            # from PyPI, so `--no-index` cannot be used here. `PACKAGE_FILE_STEM`
+            # is not forwarded into this container, so glob the tarball directly;
+            # this job's artifact mount only contains the sdist.
+            pip install /dist/*.tar.gz --force-reinstall
             "${MODULE_NAME}" version
             "${MODULE_NAME}" --help
             python -m "${MODULE_NAME}" --help
