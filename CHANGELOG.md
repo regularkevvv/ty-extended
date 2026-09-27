@@ -6,6 +6,23 @@ support on top of it. This file records what the fork changes.
 Entries below 0.74.0 say "extension" where they now would say "plugin"; the term was settled on
 "plugin" in 0.74.0 and released notes are left as they were published.
 
+## 0.83.0
+
+Built on [ty 0.0.83](https://github.com/astral-sh/ty/releases/tag/0.0.83).
+
+No breaking changes, and no change to the wire protocol. `ty_plugin_protocol` and `ty_plugin_sdk`
+stay at `0.0.4`, and the wire protocol stays at `0.3`, so plugins built against 0.60.0 continue to
+load unchanged.
+
+### Plugin behaviour
+
+- The upstream merge was textually clean: no plugin surface needed porting. The release is
+    inference correctness work — bound-method fidelity, partial-application hangs, alias cycles —
+    which reaches plugins as more precise types in the same hook requests.
+- Upstream added suspicious-condition diagnostics for `Callable`, `Iterable`, `Iterator`, and
+    `Generator` used in boolean contexts; plugin-provided types are subject to these checks like
+    any other type.
+
 ## 0.82.0
 
 Built on [ty 0.0.82](https://github.com/astral-sh/ty/releases/tag/0.0.82).
