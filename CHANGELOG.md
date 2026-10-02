@@ -6,6 +6,26 @@ support on top of it. This file records what the fork changes.
 Entries below 0.74.0 say "extension" where they now would say "plugin"; the term was settled on
 "plugin" in 0.74.0 and released notes are left as they were published.
 
+## 0.84.1
+
+Built on [ty 0.0.84](https://github.com/astral-sh/ty/releases/tag/0.0.84). No upstream changes; this
+is a fork-only patch release.
+
+`ty_plugin_protocol` and `ty_plugin_sdk` are bumped to `0.0.5`, and the wire protocol moves from
+`0.3` to `0.4`. The changes are additive, so plugins built against earlier releases continue to
+load unchanged.
+
+### Plugin behaviour
+
+- `BuildProjectIndexRequest` now includes summaries of module-level decorated functions —
+    qualified names, decorator summaries, inferred post-decoration types, and source metadata.
+    Traversal covers module-level compound statements (`if`, `try`, loops, `with`, `match`) but
+    does not descend into function bodies or class bodies.
+- Plugins can claim method names by `*`-only glob pattern via the `on-subclass-of-matching` claim.
+    `*` matches every method; prefix, suffix, and contains patterns are supported. Exact claims and
+    pattern claims are evaluated independently, and pattern claims route both call-signature and
+    call-return hooks.
+
 ## 0.84.0
 
 Built on [ty 0.0.84](https://github.com/astral-sh/ty/releases/tag/0.0.84).
