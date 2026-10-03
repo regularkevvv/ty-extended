@@ -12,19 +12,76 @@ repository publishes the `ty-extended` Python distribution and the public SDK cr
 | -------------------- | ----------------------- | --------------------------------------------------------------------------- |
 | `ty_plugin_protocol` | Plugin authors and host | Stable serialized protocol types.                                           |
 | `ty_plugin_sdk`      | Plugin authors          | Ergonomic manifest, hooks, DSL, JSON dispatch, WASM export.                 |
-| `ty_plugin_host`     | Host only               | Manifest validation, routing, protocol negotiation, runtime runner.         |
+| `ty.plugin_sdk`      | Plugin authors          | Python SDK module shipped inside the `ty` wheel for Monty plugins.          |
+| `ty_plugin_host`     | Host only               | Manifest validation, routing, protocol negotiation, runtime runners.        |
 | `ty_python_semantic` | Host only               | Applies plugin responses during type inference.                             |
 | `ty_project`         | Host only               | Reads project config, fingerprints plugin environment, wires runtime state. |
 
-Plugin crates should use only `ty_plugin_sdk`.
+Plugin crates should use only `ty_plugin_sdk`. Python plugins use only the ambient
+`ty.plugin_sdk` names the Monty runner injects.
+
+## Runtimes
+
+ty-extended currently ships two plugin runtimes:
+
+- `wasm`: Rust plugins compiled to `wasm32-unknown-unknown` and executed by wasmtime.
+- `monty`: Python plugins executed inside the embedded
+    [Monty](https://github.com/pydantic/monty) interpreter — a restricted Python subset with no
+    imports, filesystem, environment, or clock access. Python plugins need no compilation step;
+    authors write a `.py` artifact against the ambient `ty.plugin_sdk` prelude.
+
+Both runtimes share the same serialized protocol, manifest format, claims routing, and trust
+model. A third runtime, `subprocess`, is reserved in the protocol but not implemented.
+
+### Monty worker processes
+
+Python plugins run in-process by default. The standard package includes the embedded Monty
+interpreter and installs no external worker:
+
+```shell
+pip install ty-extended
+```
+
+For crash isolation and hard timeouts, install the optional worker package and select worker
+mode in the project configuration:
+
+```shell
+pip install 'ty-extended[monty-workers]'
+```
+
+```toml
+[tool.ty.plugins]
+enabled = true
+monty-mode = "worker"
+```
+
+Installing a worker alone does not change the default execution mode. Worker mode resolves
+`TY_MONTY_BIN` first, then `monty` on `PATH`. Missing or unusable workers report a plugin error;
+worker mode never falls back to in-process execution. A separately built worker can be supplied
+instead of installing the extra.
+
+The extra installs `pydantic-monty-runtime` on Python 3.10+ on macOS x86_64 and arm64, Windows
+x86 and x86_64, and Linux x86_64, aarch64, ppc64le, and s390x. Linux glibc workers require glibc
+2.28 or newer; x86_64 and aarch64 also have musl wheels. Other platforms and Python 3.8–3.9 can
+use the default embedded interpreter or supply a compatible worker themselves.
+
+Global tool installers can keep dependency executables off `PATH`. With uv, expose the worker:
+
+```shell
+uv tool install --force --with-executables-from pydantic-monty-runtime 'ty-extended[monty-workers]'
+```
+
+With pipx, use `pipx install --include-deps 'ty-extended[monty-workers]'`.
 
 ## Loading Flow
 
 1. `ty_project` reads `[plugins]` entries from `ty.toml` (or `[tool.ty.plugins]` from
     `pyproject.toml`) and optionally discovers installed `ty-plugin.json` manifests.
-1. Trusted WASM entries load their manifest JSON and artifact bytes.
+1. Trusted entries load their manifest JSON and artifact bytes.
 1. `ty_plugin_host` validates manifest compatibility and builds routing tables from claims.
-1. The WASM runner registers each artifact and executes requests through JSON.
+1. The runner for each entry's `runtime` registers the artifact and executes requests through
+    JSON — WASM modules through wasmtime, Python sources through Monty with the SDK prelude
+    prepended.
 1. `ty_python_semantic` asks the host for hook responses at claimed semantic points.
 1. Runtime failures become diagnostics and inference falls back to normal ty behavior where
     possible.
@@ -32,11 +89,22 @@ Plugin crates should use only `ty_plugin_sdk`.
 ## Safety Model
 
 Plugins are disabled by default and must be explicitly trusted per project. WASM plugins run
-without filesystem, environment, clock, or network access. The host applies fuel, memory, and
-response-size limits per call.
+without filesystem, environment, clock, or network access. Monty plugins run in a Python subset
+sandbox with the same restrictions, enforced by the interpreter rather than the OS. The host
+applies fuel, feed-duration, recursion, and response-size limits where the runtime supports them.
+Wasmtime converts guest traps, including guest stack overflow, into plugin errors and caps linear
+memory at 64 MiB. Embedded Monty turns Python exceptions, execution-time and recursion-limit
+failures, and unwinding Rust panics into plugin errors. An interpreter panic invalidates its cache;
+subsequent calls reject that state until the project reloads.
 
-The runtime treats plugin output as data. A bad type expression, oversized response, trap, or
-unsupported runtime reports an actionable diagnostic instead of crashing the checker.
+Embedded Monty cannot contain native stack-overflow or allocator aborts, which terminate the ty
+process, and cannot enforce an allocator-backed memory cap because ty owns the process allocator.
+These limits differ from Wasmtime's guest protections. Explicit worker mode isolates interpreter
+crashes, enforces hard timeouts, and supports allocator-backed memory limits. The default Monty
+configuration does not set a memory cap.
+
+The runtime treats plugin output as data. Invalid type expressions, oversized responses, ordinary
+runtime errors, and unsupported runtimes become diagnostics.
 
 ## Release Ownership
 

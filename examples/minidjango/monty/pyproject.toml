@@ -1,0 +1,19 @@
+[project]
+name = "minidjango-monty-example"
+version = "0.0.0"
+requires-python = ">=3.12"
+
+[tool.ty.src]
+# Plugin artifacts use the ambient `ty.plugin_sdk` prelude, which only exists
+# inside the Monty sandbox — they are not checkable project code.
+exclude = [".ty"]
+
+[tool.ty.plugins]
+enabled = true
+
+[[tool.ty.plugins.plugin]]
+id = "example.minidjango"
+path = ".ty/plugins/minidjango.py"
+runtime = "monty"
+manifest-path = ".ty/plugins/minidjango.plugin.json"
+trusted = true

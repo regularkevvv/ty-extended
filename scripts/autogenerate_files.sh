@@ -22,3 +22,8 @@ cp ./ruff/crates/ty/docs/rules.md ./docs/reference/
 cp ./ruff/crates/ty/docs/environment.md ./docs/reference/
 
 echo "Documentation has been copied from Ruff submodule"
+
+echo "Copying the plugin SDK into the ty wheel..."
+cp ./ruff/crates/ty_plugin_host/python/ty_plugin_sdk.py ./python/ty/plugin_sdk.py
+
+echo "Plugin SDK has been copied from Ruff submodule"

@@ -18,7 +18,7 @@ against `django-stubs` in a reproducible differential-conformance suite.
 
 | Distribution         | Published at                                                                                             | Purpose                                                                                                                                            |
 | -------------------- | -------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `ty-extended`        | [PyPI](https://pypi.org/project/ty-extended/)                                                            | The `ty` checker and language server with semantic plugin loading and WASM execution.                                                              |
+| `ty-extended`        | [PyPI](https://pypi.org/project/ty-extended/)                                                            | The `ty` checker and language server with semantic plugin loading, WASM execution, and Monty Python plugins.                                       |
 | `ty_plugin_sdk`      | [crates.io](https://crates.io/crates/ty_plugin_sdk) · [docs.rs](https://docs.rs/ty_plugin_sdk)           | The Rust API used to [build a plugin](./docs/plugin-authoring.md): manifest builders, typed hooks, patch helpers, JSON dispatch, and WASM exports. |
 | `ty_plugin_protocol` | [crates.io](https://crates.io/crates/ty_plugin_protocol) · [docs.rs](https://docs.rs/ty_plugin_protocol) | The stable serialized manifest, request, response, claim, and patch types shared by plugins and the host.                                          |
 
@@ -39,11 +39,13 @@ flowchart LR
     config["ty.toml + plugin manifest"] --> router
     router -->|JSON request| wasm["WASM plugin<br/>inside Wasmtime"]
     wasm -->|declarative patch| router
+    router -->|JSON request| monty["Python plugin<br/>inside Monty"]
+    monty -->|declarative patch| router
     checker --> output["Types + diagnostics"]
 ```
 
 The manifest tells ty which symbols and hooks a plugin owns. At a matching semantic query,
-ty serializes a small request, executes the plugin inside a Wasmtime sandbox, validates the
+ty serializes a small request, executes the plugin inside a Wasmtime or Monty sandbox, validates the
 returned patch, and feeds the result back into type inference. Plugins receive protocol data,
 not ty's internal types, AST ids, or Salsa database.
 

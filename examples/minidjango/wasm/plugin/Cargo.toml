@@ -1,0 +1,17 @@
+[package]
+name = "minidjango-plugin"
+version = "0.1.0"
+edition = "2021"
+publish = false
+
+# A `cdylib` so it links to a `.wasm` artifact when built for
+# `wasm32-unknown-unknown`.
+[lib]
+crate-type = ["cdylib"]
+
+[dependencies]
+ty_plugin_examples = { path = "../../../../ruff/crates/ty_plugin_examples" }
+ty_plugin_sdk = { path = "../../../../ruff/crates/ty_plugin_sdk" }
+
+# Standalone crate living outside the ruff workspace.
+[workspace]
