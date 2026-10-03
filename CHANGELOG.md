@@ -6,7 +6,12 @@ support on top of it. This file records what the fork changes.
 Entries below 0.74.0 say "extension" where they now would say "plugin"; the term was settled on
 "plugin" in 0.74.0 and released notes are left as they were published.
 
-## Unreleased
+## 0.84.2
+
+Built on [ty 0.0.84](https://github.com/astral-sh/ty/releases/tag/0.0.84). No upstream changes; this
+is a fork-only patch release.
+
+`ty_plugin_protocol` and `ty_plugin_sdk` are bumped to `0.0.6`.
 
 ### Python plugins on the Monty runtime
 
@@ -38,6 +43,11 @@ plugins built against earlier releases continue to load unchanged.
     (class transforms, project indexing, cross-symbol contributions, virtual types, settings
     claims, lookup diagnostics) to Python over an identical project, so `monty` and `wasm`
     runs can be diffed side by side.
+
+### Rust plugin API
+
+- `SemanticContext` struct literals must include the new `config` field.
+- Construct `PluginResponse::Dependencies` with a `DependenciesResponse` wrapper.
 
 ## 0.84.1
 
