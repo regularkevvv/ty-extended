@@ -1072,6 +1072,24 @@ wheels = [
 ]
 
 [[package]]
+name = "pydantic-monty-runtime"
+version = "1.0.0"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/68/80/993fe8687f0435b07c6e80ff5638439f21b890b03d9a065f866cde6b1469/pydantic_monty_runtime-1.0.0.tar.gz", hash = "sha256:e3e5e992fce918fe4e07746ec18a762d52f6b03641d91210340da2d50f5c3808", size = 2118065, upload-time = "2026-09-25T09:28:25.888Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/a6/c7/229549266704c7fa590647d4d4d06e6d5f81b5ba7c29e703c834a0dcfa7a/pydantic_monty_runtime-1.0.0-py3-none-macosx_10_12_x86_64.whl", hash = "sha256:ad3cc6d8bc294ea30f87f2a58c3c825f7ccd7ce0f7c8670a0fac5a36392d3c1f", size = 11660795, upload-time = "2026-09-25T09:27:51.777Z" },
+    { url = "https://files.pythonhosted.org/packages/10/8c/9c3be4c955f1d60cf2762b5b97fc6ba7c4df2d533b30fb0e57d99c86cfb5/pydantic_monty_runtime-1.0.0-py3-none-macosx_11_0_arm64.whl", hash = "sha256:0eb6ad7aef7a8e6e0b00082476ef9c969a9592ef706760cbb499bab654424977", size = 13675944, upload-time = "2026-09-25T09:27:54.588Z" },
+    { url = "https://files.pythonhosted.org/packages/94/0f/b7f8fef18c826a63a736dabe9f324d1aaddd9ccdc8a6076c22aece79200d/pydantic_monty_runtime-1.0.0-py3-none-manylinux_2_28_aarch64.whl", hash = "sha256:f7855b0d1c903bbe25baa78fbf91449ad7c77d8eafb8d8c7dc61d44b83ad258a", size = 14155901, upload-time = "2026-09-25T09:27:57.278Z" },
+    { url = "https://files.pythonhosted.org/packages/cd/54/270c70afebc2e2509eebd0bd140ee801a4ba0417779001287241309638d5/pydantic_monty_runtime-1.0.0-py3-none-manylinux_2_28_ppc64le.whl", hash = "sha256:6a20fb0c69a4c6274eab9e975115ebbcac95697c47090779c1d7538682fa4849", size = 12812931, upload-time = "2026-09-25T09:28:05.462Z" },
+    { url = "https://files.pythonhosted.org/packages/aa/ba/d727a052c79129033cbfb6d1059f2fcee9cef0be6bd67be1e26ac5ffff24/pydantic_monty_runtime-1.0.0-py3-none-manylinux_2_28_s390x.whl", hash = "sha256:3129999308b229def8765b41acc53aa3cff5b98a2f5f48011b69d1b5707f9974", size = 13496373, upload-time = "2026-09-25T09:28:07.913Z" },
+    { url = "https://files.pythonhosted.org/packages/6c/4c/94dc2da6c43eebe4f0cc9ef314083e95fb629fe585ad064a0c0c5072648a/pydantic_monty_runtime-1.0.0-py3-none-manylinux_2_28_x86_64.whl", hash = "sha256:d4e9bf8fcbd394ec17c97197c2399e4cd19d8ed3faca2e7c3f1a18fce06d0358", size = 14724691, upload-time = "2026-09-25T09:28:11.155Z" },
+    { url = "https://files.pythonhosted.org/packages/d0/57/15bc3efcd2668f99c63fcc0f0c32a12a18af942536d3ea3ee91fb8b26544/pydantic_monty_runtime-1.0.0-py3-none-musllinux_1_1_aarch64.whl", hash = "sha256:f640b600b02226e146e491018a802ee72d7745d4faf5c04ac2845f47eb3c35ca", size = 11398386, upload-time = "2026-09-25T09:28:13.754Z" },
+    { url = "https://files.pythonhosted.org/packages/5a/8d/de1a9b073edbdf7416d0d205da918469f43f19303200c55659224e509810/pydantic_monty_runtime-1.0.0-py3-none-musllinux_1_1_x86_64.whl", hash = "sha256:68bc630c83853d338bf06fab9350642f85ec83ff086b3af41ec4ad3a0cd72e2c", size = 12010864, upload-time = "2026-09-25T09:28:16.419Z" },
+    { url = "https://files.pythonhosted.org/packages/0b/eb/85ed985b91de3812a04ea542ccf2d2add7021c1eeb33e691322ffa225ff4/pydantic_monty_runtime-1.0.0-py3-none-win32.whl", hash = "sha256:00103a0dce8261897a496ac6155ecc3dda4547175ce7f9553bc53cbe37ecb586", size = 11414331, upload-time = "2026-09-25T09:28:18.863Z" },
+    { url = "https://files.pythonhosted.org/packages/e2/3e/e441ee978043984af8ef4a227928436f24c126714f1a09a73d2e7cd0cdc1/pydantic_monty_runtime-1.0.0-py3-none-win_amd64.whl", hash = "sha256:7df6a7ed774eb53a955f267124127be07df7afd657883e5a5d1046a72255e67d", size = 12266376, upload-time = "2026-09-25T09:28:21.349Z" },
+]
+
+[[package]]
 name = "pygit2"
 version = "1.19.0"
 source = { registry = "https://pypi.org/simple" }
@@ -1365,6 +1383,11 @@ name = "ty-extended"
 version = "0.84.1"
 source = { editable = "." }
 
+[package.optional-dependencies]
+monty-workers = [
+    { name = "pydantic-monty-runtime", marker = "(python_full_version >= '3.10' and platform_machine == 'arm64' and sys_platform == 'darwin') or (python_full_version >= '3.10' and platform_machine == 'x86_64' and sys_platform == 'darwin') or (python_full_version >= '3.10' and platform_machine == 'aarch64' and sys_platform == 'linux') or (python_full_version >= '3.10' and platform_machine == 'ppc64le' and sys_platform == 'linux') or (python_full_version >= '3.10' and platform_machine == 's390x' and sys_platform == 'linux') or (python_full_version >= '3.10' and platform_machine == 'x86_64' and sys_platform == 'linux') or (python_full_version >= '3.10' and platform_machine == 'AMD64' and sys_platform == 'win32') or (python_full_version >= '3.10' and platform_machine == 'x86' and sys_platform == 'win32') or (python_full_version >= '3.10' and platform_machine == 'x86_64' and sys_platform == 'win32')" },
+]
+
 [package.dev-dependencies]
 dev = [
     { name = "prek", marker = "python_full_version >= '3.12'" },
@@ -1384,6 +1407,8 @@ release = [
 ]
 
 [package.metadata]
+requires-dist = [{ name = "pydantic-monty-runtime", marker = "(python_full_version >= '3.10' and platform_machine == 'arm64' and sys_platform == 'darwin' and extra == 'monty-workers') or (python_full_version >= '3.10' and platform_machine == 'x86_64' and sys_platform == 'darwin' and extra == 'monty-workers') or (python_full_version >= '3.10' and platform_machine == 'aarch64' and sys_platform == 'linux' and extra == 'monty-workers') or (python_full_version >= '3.10' and platform_machine == 'ppc64le' and sys_platform == 'linux' and extra == 'monty-workers') or (python_full_version >= '3.10' and platform_machine == 's390x' and sys_platform == 'linux' and extra == 'monty-workers') or (python_full_version >= '3.10' and platform_machine == 'x86_64' and sys_platform == 'linux' and extra == 'monty-workers') or (python_full_version >= '3.10' and platform_machine == 'AMD64' and sys_platform == 'win32' and extra == 'monty-workers') or (python_full_version >= '3.10' and platform_machine == 'x86' and sys_platform == 'win32' and extra == 'monty-workers') or (python_full_version >= '3.10' and platform_machine == 'x86_64' and sys_platform == 'win32' and extra == 'monty-workers')", specifier = ">=1.0.0,<2" }]
+provides-extras = ["monty-workers"]
 
 [package.metadata.requires-dev]
 dev = [{ name = "prek", marker = "python_full_version >= '3.12'", specifier = "==0.4.14" }]

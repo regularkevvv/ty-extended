@@ -6,6 +6,39 @@ support on top of it. This file records what the fork changes.
 Entries below 0.74.0 say "extension" where they now would say "plugin"; the term was settled on
 "plugin" in 0.74.0 and released notes are left as they were published.
 
+## Unreleased
+
+### Python plugins on the Monty runtime
+
+Plugins can now be authored in Python and executed inside the embedded
+[Monty](https://github.com/pydantic/monty) sandbox — no Rust toolchain required. The wire
+protocol moves from `0.4` to `0.5` for the new `monty` runtime kind; the change is additive, so
+plugins built against earlier releases continue to load unchanged.
+
+- A new `monty` plugin runtime executes a `.py` artifact inside Monty's restricted Python
+    subset: no third-party imports, filesystem, environment, or clock access. The `ty.plugin_sdk`
+    module shipped inside the `ty` wheel is prepended to the plugin source, so its hook
+    decorators (`@on_call_return`, ...), manifest helpers, and response builders are ambient
+    names in plugin files.
+- Standard builds include WASM, embedded Monty, and optional Monty worker-process support.
+    Python plugins run in-process by default, without an external runtime dependency. Install
+    `ty-extended[monty-workers]` and set `plugins.monty-mode = "worker"` to enable crash isolation
+    on supported platforms with Python 3.10+. Workers are resolved from `TY_MONTY_BIN`, then
+    `monty` on `PATH`; worker startup failures report a plugin error.
+- Semantic-hook requests now carry the plugin's resolved configuration in `context.config`,
+    matching what `build-project-index` requests already sent.
+- Project configuration accepts `runtime = "monty"` for `[[tool.ty.plugins.plugin]]` entries, and
+    installed-package discovery maps `{"kind": "monty"}` manifests. Feature-disabled builds
+    report `monty` as an unsupported runtime through the existing settings diagnostic.
+- `PluginResponse::Dependencies` now serializes through a `DependenciesResponse` wrapper — the
+    previous internally-tagged newtype sequence could not round-trip on the wire, so no plugin
+    could have emitted it before.
+- A runnable end-to-end project lives at `examples/monty/`; authoring guidance is in
+    `docs/plugin-authoring.md`. `examples/minidjango/` ports the reference `MiniDjangoPlugin`
+    (class transforms, project indexing, cross-symbol contributions, virtual types, settings
+    claims, lookup diagnostics) to Python over an identical project, so `monty` and `wasm`
+    runs can be diffed side by side.
+
 ## 0.84.1
 
 Built on [ty 0.0.84](https://github.com/astral-sh/ty/releases/tag/0.0.84). No upstream changes; this

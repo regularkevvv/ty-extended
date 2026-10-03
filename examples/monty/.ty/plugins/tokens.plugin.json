@@ -1,0 +1,12 @@
+{
+  "id": "example.tokens",
+  "name": "example-tokens",
+  "version": "0.1.0",
+  "protocol-version": { "major": 0, "minor": 5 },
+  "ty-compatibility": { "requirement": ">=0.0.0" },
+  "runtime": { "kind": "monty", "artifact": "tokens.py" },
+  "capabilities": { "call-return": true },
+  "claims": {
+    "functions": [{ "qualified-name": "example.issue_token" }]
+  }
+}

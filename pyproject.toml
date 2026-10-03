@@ -30,6 +30,12 @@ classifiers = [
     "Topic :: Software Development :: Libraries :: Python Modules",
 ]
 
+[project.optional-dependencies]
+monty-workers = [
+    # Worker wheels are available only on these Python versions and platforms.
+    "pydantic-monty-runtime>=1.0.0,<2; python_version>='3.10' and ((sys_platform=='linux' and (platform_machine=='x86_64' or platform_machine=='aarch64' or platform_machine=='ppc64le' or platform_machine=='s390x')) or (sys_platform=='darwin' and (platform_machine=='x86_64' or platform_machine=='arm64')) or (sys_platform=='win32' and (platform_machine=='AMD64' or platform_machine=='x86' or platform_machine=='x86_64')))",
+]
+
 [project.urls]
 Repository = "https://github.com/regularkevvv/ty-extended"
 Changelog = "https://github.com/regularkevvv/ty-extended/blob/main/CHANGELOG.md"
@@ -107,7 +113,7 @@ manifest-path = "ruff/crates/ty/Cargo.toml"
 module-name = "ty"
 python-source = "python"
 strip = true
-features = ["plugins-wasm"]
+features = ["plugins-wasm", "plugins-monty", "plugins-monty-pool"]
 include = [
     { path = "dist-workspace.toml", format = [
         "sdist",

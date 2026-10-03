@@ -1,0 +1,47 @@
+{
+  "id": "example.minidjango",
+  "name": "Mini-Django example plugin",
+  "version": "0.1.0",
+  "protocol-version": { "major": 0, "minor": 5 },
+  "ty-compatibility": { "requirement": ">=0.0.0" },
+  "runtime": { "kind": "wasm", "artifact": "minidjango.wasm" },
+  "capabilities": {
+    "class-transform": true,
+    "call-return": true,
+    "project-index": true,
+    "cross-symbol-contributions": true,
+    "settings-data": true,
+    "virtual-types": true
+  },
+  "claims": {
+    "classes": [{ "kind": "subclass-of", "base-qualified-name": "minidjango.Model" }],
+    "attributes": [
+      {
+        "kind": "contribution-target",
+        "owner-base-qualified-name": "minidjango.Model",
+        "scope": "instance"
+      }
+    ],
+    "methods": [
+      { "kind": "on-subclass-of", "base-qualified-name": "minidjango.Manager", "method-name": "filter" },
+      { "kind": "on-subclass-of", "base-qualified-name": "minidjango.Manager", "method-name": "get" },
+      { "kind": "on-subclass-of", "base-qualified-name": "minidjango.Manager", "method-name": "get_or_create" },
+      { "kind": "on-subclass-of", "base-qualified-name": "minidjango.Manager", "method-name": "first" },
+      { "kind": "on-subclass-of", "base-qualified-name": "minidjango.Manager", "method-name": "count" },
+      { "kind": "on-subclass-of", "base-qualified-name": "minidjango.Manager", "method-name": "exists" },
+      { "kind": "on-subclass-of", "base-qualified-name": "minidjango.Manager", "method-name": "values" },
+      { "kind": "on-subclass-of", "base-qualified-name": "minidjango.Manager", "method-name": "values_list" },
+      { "kind": "on-subclass-of", "base-qualified-name": "minidjango.Manager", "method-name": "annotate" },
+      { "kind": "on-subclass-of", "base-qualified-name": "minidjango.QuerySet", "method-name": "filter" },
+      { "kind": "on-subclass-of", "base-qualified-name": "minidjango.QuerySet", "method-name": "get" },
+      { "kind": "on-subclass-of", "base-qualified-name": "minidjango.QuerySet", "method-name": "get_or_create" },
+      { "kind": "on-subclass-of", "base-qualified-name": "minidjango.QuerySet", "method-name": "first" },
+      { "kind": "on-subclass-of", "base-qualified-name": "minidjango.QuerySet", "method-name": "count" },
+      { "kind": "on-subclass-of", "base-qualified-name": "minidjango.QuerySet", "method-name": "exists" },
+      { "kind": "on-subclass-of", "base-qualified-name": "minidjango.QuerySet", "method-name": "values" },
+      { "kind": "on-subclass-of", "base-qualified-name": "minidjango.QuerySet", "method-name": "values_list" },
+      { "kind": "on-subclass-of", "base-qualified-name": "minidjango.QuerySet", "method-name": "annotate" }
+    ],
+    "settings": [{ "module": "minidjango_settings" }]
+  }
+}

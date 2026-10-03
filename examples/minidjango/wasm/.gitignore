@@ -1,0 +1,4 @@
+# Build outputs — regenerate with ./build-plugin.sh
+plugin/target/
+plugin/Cargo.lock
+.ty/plugins/minidjango.wasm

@@ -1,0 +1,1 @@
+../shared/minidjango_settings.py

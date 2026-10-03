@@ -1055,6 +1055,36 @@ that are explicitly listed in `plugins.plugin`.
 
 ---
 
+### `monty-mode`
+
+How Python plugins execute in Monty.
+
+The default `in-process` mode uses the interpreter embedded in ty. Select `worker` for
+crash isolation and hard timeouts. Worker mode requires a `monty` executable and a build
+with `plugins-monty-pool`; failure to start workers reports a plugin error.
+
+**Default value**: `"in-process"`
+
+**Type**: `"in-process" | "worker"`
+
+**Example usage**:
+
+=== "pyproject.toml"
+
+    ```toml
+    [tool.ty.plugins]
+    monty-mode = "worker"
+    ```
+
+=== "ty.toml"
+
+    ```toml
+    [plugins]
+    monty-mode = "worker"
+    ```
+
+---
+
 ## `plugins.plugin`
 
 Plugin entries configured under `plugins.plugin`.
@@ -1170,7 +1200,7 @@ Runtime used to execute the plugin artifact.
 
 **Default value**: `"wasm"`
 
-**Type**: `wasm | subprocess | mock`
+**Type**: `wasm | subprocess | monty | mock`
 
 **Example usage**:
 

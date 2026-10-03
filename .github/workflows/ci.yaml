@@ -64,9 +64,13 @@ jobs:
           args: --out dist
       - name: "Test wheel"
         run: |
-          pip install --force-reinstall --find-links dist "${PACKAGE_NAME}" --pre
+          pip install dist/*.whl --force-reinstall
           ty --help
           python -m ty --help
+          python scripts/test_plugin_wheel.py
+          python -c 'from importlib.metadata import distributions; assert "pydantic-monty-runtime" not in {d.metadata["Name"] for d in distributions()}'
+          pip install "dist/$(basename dist/*.whl)[monty-workers]"
+          python scripts/test_plugin_wheel.py --workers
       - name: "Remove wheels from cache"
         run: rm -rf target/wheels
 
