@@ -5,7 +5,8 @@
 [ty-extended](https://pypi.org/project/ty-extended/) is
 [Astral's ty](https://github.com/astral-sh/ty) with a sandboxed semantic plugin system. It keeps
 the `ty` command and language server while allowing libraries to contribute library-aware types
-and diagnostics without linking to checker internals.
+and diagnostics without linking to checker internals. Plugins can be written in Rust and compiled
+to WebAssembly, or written in Python and run inside Monty's restricted interpreter.
 
 ## Plugin showcase
 
@@ -22,9 +23,11 @@ against `django-stubs` in a reproducible differential-conformance suite.
 | `ty_plugin_sdk`      | [crates.io](https://crates.io/crates/ty_plugin_sdk) · [docs.rs](https://docs.rs/ty_plugin_sdk)           | The Rust API used to [build a plugin](./docs/plugin-authoring.md): manifest builders, typed hooks, patch helpers, JSON dispatch, and WASM exports. |
 | `ty_plugin_protocol` | [crates.io](https://crates.io/crates/ty_plugin_protocol) · [docs.rs](https://docs.rs/ty_plugin_protocol) | The stable serialized manifest, request, response, claim, and patch types shared by plugins and the host.                                          |
 
-Most plugin authors only need `ty_plugin_sdk`; it re-exports the protocol crate as
-`ty_plugin_sdk::protocol`. The Rust implementation lives in the [`ruff` submodule](./ruff), backed
-by [ruff-extended](https://github.com/regularkevvv/ruff-extended).
+Rust plugin authors usually only need `ty_plugin_sdk`; it re-exports the protocol crate as
+`ty_plugin_sdk::protocol`. Python plugin authors use `ty.plugin_sdk`, which is included in the
+`ty-extended` wheel, and do not need a Rust toolchain or a compilation step. Both SDKs use the same
+plugin protocol. The Rust implementation lives in the [`ruff` submodule](./ruff), backed by
+[ruff-extended](https://github.com/regularkevvv/ruff-extended).
 
 ## How plugins run
 
@@ -39,7 +42,7 @@ flowchart LR
     config["ty.toml + plugin manifest"] --> router
     router -->|JSON request| wasm["WASM plugin<br/>inside Wasmtime"]
     wasm -->|declarative patch| router
-    router -->|JSON request| monty["Python plugin<br/>inside Monty"]
+    router -->|JSON request| monty["Python plugin inside Monty<br/>embedded by default, optional worker"]
     monty -->|declarative patch| router
     checker --> output["Types + diagnostics"]
 ```
@@ -48,6 +51,9 @@ The manifest tells ty which symbols and hooks a plugin owns. At a matching seman
 ty serializes a small request, executes the plugin inside a Wasmtime or Monty sandbox, validates the
 returned patch, and feeds the result back into type inference. Plugins receive protocol data,
 not ty's internal types, AST ids, or Salsa database.
+
+The standard package includes both Wasmtime and embedded Monty. Python plugins run in-process by
+default; a separate Monty worker process is optional and must be explicitly selected.
 
 ## Getting started
 
@@ -92,6 +98,26 @@ manifest-path = ".ty/plugins/my-plugin.json"
 trusted = true
 ```
 
+To load a Python artifact instead, point to its `.py` file and select the Monty runtime:
+
+```toml
+# ty.toml
+[plugins]
+enabled = true
+
+[[plugins.plugin]]
+id = "my-python-plugin"
+path = ".ty/plugins/my_plugin.py"
+runtime = "monty"
+manifest-path = ".ty/plugins/my-python-plugin.json"
+trusted = true
+```
+
+This uses embedded Monty with the standard installation. For a separate worker process, install
+`ty-extended[monty-workers]` and set `monty-mode = "worker"` under `[plugins]`. Installing the extra
+alone does not change the default mode. See [Monty worker processes](./docs/plugin-runtime.md#monty-worker-processes)
+for installation commands and supported platforms.
+
 Use `[tool.ty.plugins]` and `[[tool.ty.plugins.plugin]]` for the same settings in
 `pyproject.toml`. See [plugin runtime](./docs/plugin-runtime.md) for loading, trust, and
 sandbox details.
@@ -124,10 +150,18 @@ For information on upstream ty's timeline to a stable release, see its [Stable](
 
 It is a fork of ty that preserves the `ty` CLI and language server and adds semantic plugins.
 
-### Why does it execute plugins as WASM?
+### Which plugin runtimes are supported?
 
-WASM gives plugins a stable, serialized boundary and lets the host enforce deterministic fuel,
-memory, and response-size limits without exposing checker internals or ambient system access.
+Rust plugins compile to WebAssembly and run in Wasmtime; Python plugins run in Monty without a
+compilation step. Both use the same serialized protocol and return validated patches without
+access to checker internals, the filesystem, or the network. Their execution limits and crash
+protections differ; see the [runtime safety model](./docs/plugin-runtime.md#safety-model).
+
+### Do Python plugins need an external Monty runtime?
+
+No. Embedded Monty is included in `ty-extended` and is the default. The optional `monty-workers`
+extra installs `pydantic-monty-runtime` for separate worker processes; enable them with
+`plugins.monty-mode = "worker"`. The `pydantic-monty` Python client library is not required.
 
 ### Where are general ty questions answered?
 
