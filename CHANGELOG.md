@@ -6,6 +6,12 @@ support on top of it. This file records what the fork changes.
 Entries below 0.74.0 say "extension" where they now would say "plugin"; the term was settled on
 "plugin" in 0.74.0 and released notes are left as they were published.
 
+## 0.84.4
+
+- Add protocol 0.7 constructor state claims for exact classes and subclasses.
+- Ship Python constructor claims and Rust protocol/SDK crates 0.0.8.
+- Retain upstream ty 0.0.84.
+
 ## 0.84.3
 
 Built on [ty 0.0.84](https://github.com/astral-sh/ty/releases/tag/0.0.84).

@@ -74,7 +74,7 @@ which is pinned by the `ruff` submodule. See [CONTRIBUTING.md](./CONTRIBUTING.md
 
 ## Version policy
 
-Versions track the upstream ty base: `ty-extended 0.84.3` builds on `ty 0.0.84`, with fork-only
+Versions track the upstream ty base: `ty-extended 0.84.4` builds on `ty 0.0.84`, with fork-only
 releases incrementing the patch. SDK and protocol crates are versioned independently; breaking
 changes may occur between their pre-1.0 releases.
 

@@ -350,3 +350,9 @@ Before publishing a plugin:
 The protocol and SDK are pre-1.0 and versioned independently from ty-extended. A release that uses
 new protocol fields must raise its required protocol version rather than relying on an older host
 to ignore them.
+
+Protocol 0.7 can select constructors by base class. In Rust, use
+`claim_call_state_constructors_on_subclass("pkg.Record")`; in Python, use
+`claims(constructors=[class_claim_subclass_of("pkg.Record")])` with `call_state=True`.
+The hook receives the actual constructed class name. Check custom `__new__` and `__init__`
+implementations before promising a fresh result or initial member values.

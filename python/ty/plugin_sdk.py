@@ -25,7 +25,7 @@ else:
     Response = dict
 
 # The wire protocol this SDK was built against. Bumped with the host's protocol version.
-PROTOCOL_VERSION: dict[str, int] = {"major": 0, "minor": 6}
+PROTOCOL_VERSION: dict[str, int] = {"major": 0, "minor": 7}
 
 _hooks: dict[str, list[Handler]] = {}
 _MANIFEST: Optional[JsonObject] = None
@@ -773,12 +773,14 @@ def claims(
     attributes: Optional[list[JsonObject]] = None,
     settings: Optional[list[JsonObject]] = None,
     mutations: Optional[list[JsonObject]] = None,
+    constructors: Optional[list[JsonObject]] = None,
 ) -> JsonObject:
     """`mutations` takes `class_claim_*` entries; `decorators`/`functions` take `symbol_claim`s."""
     result = {}
     groups = (
         ("modules", modules),
         ("classes", classes),
+        ("constructors", constructors),
         ("decorators", decorators),
         ("functions", functions),
         ("methods", methods),
