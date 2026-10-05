@@ -25,7 +25,7 @@ else:
     Response = dict
 
 # The wire protocol this SDK was built against. Bumped with the host's protocol version.
-PROTOCOL_VERSION: dict[str, int] = {"major": 0, "minor": 5}
+PROTOCOL_VERSION: dict[str, int] = {"major": 0, "minor": 6}
 
 _hooks: dict[str, list[Handler]] = {}
 _MANIFEST: Optional[JsonObject] = None
@@ -90,6 +90,7 @@ on_class_member: Decorator = _register("resolve-class-member")
 on_instance_member: Decorator = _register("resolve-instance-member")
 on_call_signature: Decorator = _register("adjust-call-signature")
 on_call_return: Decorator = _register("adjust-call-return")
+on_call_state: Decorator = _register("adjust-call-state")
 on_project_index: Decorator = _register("build-project-index")
 on_dependencies: Decorator = _register("additional-dependencies")
 on_mutation: Decorator = _register("validate-mutation")
@@ -110,6 +111,10 @@ def on_instance_member_of(*member_names: str) -> Decorator:
 
 def on_call_signature_of(*qualified_names: str) -> Decorator:
     return _filtered_callee("adjust-call-signature", qualified_names)
+
+
+def on_call_state_of(*qualified_names: str) -> Decorator:
+    return _filtered_callee("adjust-call-state", qualified_names)
 
 
 def on_call_return_of(*qualified_names: str) -> Decorator:
@@ -959,6 +964,23 @@ def call_return_patch(
     if result_metadata is not None:
         patch["result-metadata"] = result_metadata
     return patch
+
+
+def call_state_patch(
+    receiver_members: Optional[JsonObject] = None,
+    result_members: Optional[JsonObject] = None,
+    *,
+    fresh_result: bool = False,
+    preserves_other_objects: bool = False,
+) -> JsonObject:
+    """Member facts after successful completion; result facts require a fresh object."""
+    return {
+        "kind": "call-state-patch",
+        "receiver-members": receiver_members or {},
+        "result-members": result_members or {},
+        "fresh-result": fresh_result,
+        "preserves-other-objects": preserves_other_objects,
+    }
 
 
 def project_index(

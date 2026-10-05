@@ -28,7 +28,7 @@ edition = "2024"
 crate-type = ["rlib", "cdylib"]
 
 [dependencies]
-ty_plugin_sdk = "0.0.6"
+ty_plugin_sdk = "0.0.7"
 ```
 
 Implement `Plugin`, declare the matching manifest claim, and export the implementation:
@@ -107,20 +107,77 @@ maintaining a second hand-written list of capabilities and claims.
 
 ## Choose Hooks
 
-| Hook                      | Use it for                                                        | Response                |
-| ------------------------- | ----------------------------------------------------------------- | ----------------------- |
-| `analyze_class`           | Add fields, members, constructors, diagnostics, or virtual types. | `ClassPatch`            |
-| `resolve_class_member`    | Provide a class member after normal lookup misses.                | `MemberPatch`           |
-| `resolve_instance_member` | Provide an instance member after normal lookup misses.            | `MemberPatch`           |
-| `adjust_call_signature`   | Replace a claimed call signature before argument checking.        | `CallSignaturePatch`    |
-| `adjust_call_return`      | Override the inferred type of a claimed call.                     | `CallReturnPatch`       |
-| `build_project_index`     | Build plugin-owned project data and cross-symbol contributions.   | `ProjectIndexResponse`  |
-| `additional_dependencies` | Add files that fingerprint plugin results.                        | `Vec<PluginDependency>` |
-| `validate_mutation`       | Diagnose claimed writes or deletes.                               | `MutationResponse`      |
+| Hook                      | Use it for                                                         | Response                |
+| ------------------------- | ------------------------------------------------------------------ | ----------------------- |
+| `analyze_class`           | Add fields, members, constructors, diagnostics, or virtual types.  | `ClassPatch`            |
+| `resolve_class_member`    | Provide a class member after normal lookup misses.                 | `MemberPatch`           |
+| `resolve_instance_member` | Provide an instance member after normal lookup misses.             | `MemberPatch`           |
+| `adjust_call_signature`   | Replace a claimed call signature before argument checking.         | `CallSignaturePatch`    |
+| `adjust_call_return`      | Override the inferred type of a claimed call.                      | `CallReturnPatch`       |
+| `adjust_call_state`       | Describe receiver members or a fresh result after a call succeeds. | `CallStatePatch`        |
+| `build_project_index`     | Build plugin-owned project data and cross-symbol contributions.    | `ProjectIndexResponse`  |
+| `additional_dependencies` | Add files that fingerprint plugin results.                         | `Vec<PluginDependency>` |
+| `validate_mutation`       | Diagnose claimed writes or deletes.                                | `MutationResponse`      |
 
 Use `TypeExpr::annotation`, `TypeExpr::expression`, or `TypeExpr::stub` to send types across the
 protocol. Invalid or unsupported expressions degrade safely instead of exposing a checker-owned
 type representation.
+
+## Object member state
+
+Protocol 0.6 adds `call-state`. It changes member facts after a synchronous call succeeds,
+independently of the return type. Enable the capability and claim functions, constructors,
+or methods with `claim_call_state`, `claim_call_state_method`, or
+`claim_call_state_method_on_subclass` in the Rust SDK.
+
+In Python:
+
+```python
+@on_call_state_of("example.Record.set_key")
+def set_key_state(request):
+    return call_state_patch(
+        receiver_members={"key": type_expr("int", mode="annotation")},
+        preserves_other_objects=True,
+    )
+```
+
+The manifest needs `capabilities(call_state=True)` and a matching function or method claim.
+`set_key()` can still return `None`:
+
+```python
+record = Record()  # Constructor hook can specify key: None.
+alias = record
+alias.set_key()
+# record.key: int
+if condition:
+    alias.clear_key()  # Hook specifies key: None.
+# record.key: int | None
+```
+
+`CallStatePatch` fields:
+
+| Field                     | Contract                                                                                 |
+| ------------------------- | ---------------------------------------------------------------------------------------- |
+| `receiver-members`        | Member types on the existing receiver after successful completion.                       |
+| `result-members`          | Member types on a newly created result. Ignored without `fresh-result`.                  |
+| `fresh-result`            | The result is distinct from every pre-existing object. Defaults to false.                |
+| `preserves-other-objects` | Only the receiver can mutate; caller-visible names cannot be rebound. Defaults to false. |
+
+Constructors and loaders can provide fresh result facts. Inspect constructor arguments to distinguish
+an unset key from an explicitly supplied key. The checker tracks member values, not persistence.
+
+Same-scope name assignments share identity; rebinding a name does not rebind its aliases. Branches
+union member facts, including the declared member type where a path has no fact. Inherited-method
+claims exclude overrides; an override needs its own explicit claim.
+
+Unknown calls, writes, suspension, and exception paths discard facts conservatively. Unknown code
+also invalidates aliases involving globals and writable closure cells. Loop boundaries discard
+identities. Complex aliases through containers or attributes are not inferred, and
+facts do not propagate between scopes. Hooks describe completed synchronous calls, not mutations
+performed later by a coroutine. Domain-specific state rules belong in the plugin.
+
+Plugin facts take precedence over ordinary member narrowing. Invalidated members fall back to
+their declared types, so some member guards remain conservative.
 
 ## Load the Plugin
 
@@ -201,12 +258,12 @@ def adjust_issue_token(request: Request) -> Response:
 The ambient API mirrors the Rust SDK surface:
 
 - hook decorators: `on_class_transform`, `on_class_member`, `on_instance_member`,
-    `on_call_signature`, `on_call_return`, `on_project_index`, `on_dependencies`, `on_mutation`,
+    `on_call_signature`, `on_call_return`, `on_call_state`, `on_project_index`, `on_dependencies`, `on_mutation`,
     `on_manifest`. Each kind accepts several handlers — they run in registration order and the
     first non-`None` result wins;
 - filtered decorators for the common case of handling specific symbols:
     `on_class_transform_of`, `on_class_member_of`, `on_instance_member_of`,
-    `on_call_signature_of`, `on_call_return_of`, `on_mutation_of`;
+    `on_call_signature_of`, `on_call_return_of`, `on_call_state_of`, `on_mutation_of`;
 - request accessors: `context`, `plugin_config`, `strict_settings`, `speculative`, `callee`,
     `receiver`, `owner`, `member_name`, `class_summary`, `project_index_of`, `call_arguments`,
     `positional_arguments`, `keyword_arguments`, `argument_type`, and `literal_value` — which
@@ -233,7 +290,7 @@ The ambient API mirrors the Rust SDK surface:
     `snapshot_union`, `snapshot_plugin_class`, `snapshot_self`, `snapshot_annotated`,
     `snapshot_field`, `snapshot_metadata`, `snapshot_name`, `snapshot_to_expression`,
     `type_expr_from_snapshot`, `type_expr_expression`, `type_expr_snapshot`;
-- response builders: `call_signature_patch`, `call_return_patch`, `project_index`,
+- response builders: `call_signature_patch`, `call_return_patch`, `call_state_patch`, `project_index`,
     `dependencies`, `mutation_diagnostics`, `manifest_response`, `no_change`, and `error`.
 
 The manifest runtime entry names the Python artifact:
