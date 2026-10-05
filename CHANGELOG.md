@@ -6,6 +6,21 @@ support on top of it. This file records what the fork changes.
 Entries below 0.74.0 say "extension" where they now would say "plugin"; the term was settled on
 "plugin" in 0.74.0 and released notes are left as they were published.
 
+## 0.84.3
+
+Built on [ty 0.0.84](https://github.com/astral-sh/ty/releases/tag/0.0.84).
+
+- Plugins can describe receiver member changes after a successful call, independently of its
+    return type. Constructor and loader hooks can also describe members on fresh results.
+- Member facts follow explicit aliases and join across branches. Unknown calls, possible aliases,
+    writes, exceptions, suspension, loops, and unclaimed overrides invalidate assumptions
+    conservatively. Container aliases and facts across scopes are not inferred.
+- Protocol `0.6` adds `adjust-call-state` and `CallStatePatch`; Rust and Python SDKs expose the
+    new hook. `ty_plugin_protocol` and `ty_plugin_sdk` advance to `0.0.7`.
+
+Domain rules remain in plugins. See [plugin authoring](docs/plugin-authoring.md#object-member-state)
+for the hook contracts and limitations.
+
 ## 0.84.2
 
 Built on [ty 0.0.84](https://github.com/astral-sh/ty/releases/tag/0.0.84). No upstream changes; this
