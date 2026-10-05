@@ -1,6 +1,6 @@
 [project]
 name = "ty-extended"
-version = "0.84.3"
+version = "0.84.4"
 requires-python = ">=3.8"
 dependencies = []
 description = "A ty fork with semantic plugin support."
