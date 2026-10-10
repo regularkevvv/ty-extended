@@ -68,6 +68,7 @@ jobs:
           ty --help
           python -m ty --help
           python scripts/test_plugin_wheel.py
+          python scripts/test_wasm_cache.py
           python -c 'from importlib.metadata import distributions; assert "pydantic-monty-runtime" not in {d.metadata["Name"] for d in distributions()}'
           pip install "dist/$(basename dist/*.whl)[monty-workers]"
           python scripts/test_plugin_wheel.py --workers
