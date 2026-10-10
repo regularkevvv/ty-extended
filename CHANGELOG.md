@@ -6,6 +6,13 @@ support on top of it. This file records what the fork changes.
 Entries below 0.74.0 say "extension" where they now would say "plugin"; the term was settled on
 "plugin" in 0.74.0 and released notes are left as they were published.
 
+## 0.86.0
+
+Built on [ty 0.0.86](https://github.com/astral-sh/ty/releases/tag/0.0.86).
+
+- Preserve plugin configuration and metadata across upstream environment and recursive `Annotated` changes.
+- Publish Rust protocol/SDK crates 0.0.9 with updated compatibility examples. Protocol 0.7 and the SDK API are unchanged.
+
 ## 0.85.0
 
 Built on [ty 0.0.85](https://github.com/astral-sh/ty/releases/tag/0.0.85).
