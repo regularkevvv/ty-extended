@@ -6,6 +6,16 @@ support on top of it. This file records what the fork changes.
 Entries below 0.74.0 say "extension" where they now would say "plugin"; the term was settled on
 "plugin" in 0.74.0 and released notes are left as they were published.
 
+## 0.84.5
+
+Built on [ty 0.0.84](https://github.com/astral-sh/ty/releases/tag/0.0.84).
+
+- Cache compiled WASM plugins in the user cache directory and reuse native code across checker
+    launches. Plugin packages continue to ship portable `.wasm` files.
+- Recompile when plugin contents or engine settings change, and continue without caching when
+    the cache is unavailable.
+- Keep protocol 0.7 and the Rust protocol/SDK crates at 0.0.8.
+
 ## 0.84.4
 
 - Add protocol 0.7 constructor state claims for exact classes and subclasses.
