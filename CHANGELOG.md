@@ -10,7 +10,7 @@ Entries below 0.74.0 say "extension" where they now would say "plugin"; the term
 
 Built on [ty 0.0.85](https://github.com/astral-sh/ty/releases/tag/0.0.85).
 
-- Merge upstream checker fixes and language-server improvements while retaining semantic plugin support.
+- Preserve plugin argument types and annotated casts across upstream call-inference changes.
 - Keep protocol 0.7 and the Rust protocol/SDK crates at 0.0.8.
 
 ## 0.84.5
