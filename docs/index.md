@@ -11,7 +11,7 @@ A fork of ty with semantic plugin support for library-aware type checking.
 </p>
 
 <p align="center">
-  <i>Type checking the <a href="https://github.com/home-assistant/core">home-assistant</a> project without caching.</i>
+  <i>Type checking the <a href="https://github.com/home-assistant/core">home-assistant</a> project without caching (<a href="https://github.com/astral-sh/ty/blob/main/BENCHMARKS.md">benchmarks</a>).</i>
 </p>
 
 ty-extended builds on [Astral's ty](https://github.com/astral-sh/ty) and keeps the command-line
