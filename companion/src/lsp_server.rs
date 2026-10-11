@@ -137,7 +137,14 @@ pub fn uri_path(uri: &str) -> Result<PathBuf> {
     }
     for parent in normalized.ancestors() {
         if let Ok(canonical) = parent.canonicalize() {
-            return Ok(canonical.join(normalized.strip_prefix(parent)?));
+            let suffix = normalized.strip_prefix(parent)?;
+            // Joining an empty path adds a separator, turning an existing file
+            // into `file.py/` in diagnostic notes and generated file URIs.
+            return Ok(if suffix.as_os_str().is_empty() {
+                canonical
+            } else {
+                canonical.join(suffix)
+            });
         }
     }
     Ok(normalized)
@@ -1410,6 +1417,40 @@ mod tests {
         #[cfg(not(windows))]
         assert!(uri_path("file://remote/example.py").is_err());
         assert!(uri_path("file:///tmp/%00.py").is_err());
+        Ok(())
+    }
+
+    #[test]
+    fn existing_external_file_uri_preserves_exact_canonical_path() -> Result<()> {
+        let directory = scratch()?;
+        let file = directory.0.join("external 😀 100%.pyi");
+        std::fs::write(&file, "value: int\n")?;
+        let expected = file.canonicalize()?;
+        let mapped = uri_path(&file_uri(&file)?)?;
+        // Path equality ignores trailing separators; diagnostic rendering and
+        // file URI serialization must preserve the exact underlying string.
+        assert_eq!(mapped.as_os_str(), expected.as_os_str());
+        assert_eq!(file_uri(&mapped)?, file_uri(&expected)?);
+        assert_eq!(std::fs::read_to_string(mapped)?, "value: int\n");
+        Ok(())
+    }
+
+    #[test]
+    fn missing_child_uri_keeps_suffix_after_canonical_parent() -> Result<()> {
+        let directory = scratch()?;
+        let parent = directory.0.join("parent");
+        std::fs::create_dir(&parent)?;
+        #[cfg(unix)]
+        let parent = {
+            let alias = directory.0.join("alias");
+            std::os::unix::fs::symlink(&parent, &alias)?;
+            alias
+        };
+        let file = parent.join("missing").join("new.py");
+        let expected = parent.canonicalize()?.join("missing").join("new.py");
+        let mapped = uri_path(&file_uri(&file)?)?;
+        assert_eq!(mapped.as_os_str(), expected.as_os_str());
+        assert!(!mapped.exists());
         Ok(())
     }
 }
