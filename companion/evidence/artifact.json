@@ -1,14 +1,11 @@
 {
-  "bytes": 11603904,
-  "sha256": "10009752a3051df7a08023eaafb41484c127f89e6533297f0cd35b9e8b7aac02",
+  "source_commit": "4ce52071c8901e06b5c4e30a22b03487cfe416ed",
+  "bytes": 13972912,
+  "sha256": "75b7804e9c0e49efa9f0ff3f1e21f20ee3ffe310b824e9b2609618fb0a132110",
+  "gzip_bytes": 6221558,
+  "gzip_sha256": "7cbe5b70f22b28be9bc989bd423e106b72fd81054d3e89c60d80b54daa9e6e65",
   "target": "aarch64-apple-darwin",
-  "executable_bytes": 11603904,
-  "gzip_bytes": 5142898,
-  "gzip_sha256": "5bc37248e1153fdd4bf9b893d4908112ee1aa77ebc46a10620d378c496699416",
-  "source": "companion/",
-  "status": "all final local correctness and benchmark gates passed; portable evidence exported",
   "upstream_checker_included": false,
-  "passed": true,
-  "format": "Mach-O 64-bit arm64",
-  "retained_file": "ty-companion-rust"
+  "validation_source_commit": "72bdf0c3efc8b228296853d06ee47520af20d7e2",
+  "production_inputs_unchanged_since_build": true
 }

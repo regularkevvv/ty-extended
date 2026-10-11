@@ -160,52 +160,6 @@
         "severity": "major"
       }
     ],
-    "42b49ad538d0b7b23678b95ed58b8591d7016c3ede9fdc922e7b6f0c0ac3365e": [
-      {
-        "begin": {
-          "column": 12,
-          "line": 12
-        },
-        "code": "invalid-return-type",
-        "end": {
-          "column": 27,
-          "line": 12
-        },
-        "message": "invalid-return-type: Return type does not match returned value: expected `str`, found `None | str`",
-        "path": "demo.py",
-        "severity": "major"
-      }
-    ],
-    "4b23d688d86a77feeb8923628805ab0fe021c3bb9e92a6cb194b80ed60480f70": [
-      {
-        "begin": {
-          "column": 12,
-          "line": 2833
-        },
-        "code": "invalid-argument-type",
-        "end": {
-          "column": 14,
-          "line": 2833
-        },
-        "message": "invalid-argument-type: Argument to function `demo.decode` is incorrect: Expected `str`, found `Literal[42]`",
-        "path": "demo.py",
-        "severity": "major"
-      },
-      {
-        "begin": {
-          "column": 19,
-          "line": 2835
-        },
-        "code": "invalid-assignment",
-        "end": {
-          "column": 31,
-          "line": 2835
-        },
-        "message": "invalid-assignment: Object of type `int` is not assignable to `str`",
-        "path": "demo.py",
-        "severity": "major"
-      }
-    ],
     "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945": [],
     "541aa2aae27c6c8475bb230d9b2b00ccce229386f5f1e168932e4bdcf9960920": [
       {
@@ -267,36 +221,6 @@
           "line": 12
         },
         "message": "invalid-return-type: Return type does not match returned value: expected `str`, found `str | None`",
-        "path": "demo.py",
-        "severity": "major"
-      }
-    ],
-    "718a56cfc1adaf29497c32e0ec204007808e4102615aec5717f9c42c38895222": [
-      {
-        "begin": {
-          "column": 12,
-          "line": 69
-        },
-        "code": "invalid-argument-type",
-        "end": {
-          "column": 14,
-          "line": 69
-        },
-        "message": "invalid-argument-type: Argument to function `demo.decode` is incorrect: Expected `str`, found `Literal[42]`",
-        "path": "demo.py",
-        "severity": "major"
-      },
-      {
-        "begin": {
-          "column": 19,
-          "line": 71
-        },
-        "code": "invalid-assignment",
-        "end": {
-          "column": 31,
-          "line": 71
-        },
-        "message": "invalid-assignment: Object of type `int` is not assignable to `str`",
         "path": "demo.py",
         "severity": "major"
       }
@@ -387,36 +311,6 @@
         "end": {
           "column": 31,
           "line": 2835
-        },
-        "message": "invalid-assignment: Object of type `int` is not assignable to `str`",
-        "path": "demo.py",
-        "severity": "major"
-      }
-    ],
-    "a67f0276868f95e83401dda51ee19cd946035703d83e766478b62a1a7715b0d2": [
-      {
-        "begin": {
-          "column": 24,
-          "line": 69
-        },
-        "code": "invalid-argument-type",
-        "end": {
-          "column": 26,
-          "line": 69
-        },
-        "message": "invalid-argument-type: Argument to function `demo.decode` is incorrect: Expected `str`, found `Literal[42]`",
-        "path": "demo.py",
-        "severity": "major"
-      },
-      {
-        "begin": {
-          "column": 31,
-          "line": 71
-        },
-        "code": "invalid-assignment",
-        "end": {
-          "column": 43,
-          "line": 71
         },
         "message": "invalid-assignment: Object of type `int` is not assignable to `str`",
         "path": "demo.py",
@@ -829,36 +723,6 @@
           "line": 12
         },
         "message": "invalid-return-type: Return type does not match returned value: expected `str`, found `str | None`",
-        "path": "demo.py",
-        "severity": "major"
-      }
-    ],
-    "d3cd995e7e3381d1e8cf0448341eeb848d381df943349b2bac0d5ec5d2cc1325": [
-      {
-        "begin": {
-          "column": 12,
-          "line": 313
-        },
-        "code": "invalid-argument-type",
-        "end": {
-          "column": 14,
-          "line": 313
-        },
-        "message": "invalid-argument-type: Argument to function `demo.decode` is incorrect: Expected `str`, found `Literal[42]`",
-        "path": "demo.py",
-        "severity": "major"
-      },
-      {
-        "begin": {
-          "column": 19,
-          "line": 315
-        },
-        "code": "invalid-assignment",
-        "end": {
-          "column": 31,
-          "line": 315
-        },
-        "message": "invalid-assignment: Object of type `int` is not assignable to `str`",
         "path": "demo.py",
         "severity": "major"
       }

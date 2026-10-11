@@ -1,13 +1,43 @@
-# Verified experiment evidence
+# Companion evidence
 
-These reports were exported only after both 18-pair Django matrices, all three generic checker modes, protocol replay, unit tests, and verified Django benchmarks passed. This proves the recorded corpus; it does not claim every plugin or editor workflow is supported.
+Frozen release source:
+`4ce52071c8901e06b5c4e30a22b03487cfe416ed`, SHA-256
+`75b7804e9c0e49efa9f0ff3f1e21f20ee3ffe310b824e9b2609618fb0a132110`.
+Its macOS arm64 size is 13,972,912 bytes, or 6,221,558 bytes with gzip.
+The separately installed official ty executable is excluded. Combined, the two
+executables occupy **40,308,864 bytes**, versus **37,518,400 bytes** for the reference
+fork. The companion artifact is smaller; the combined installation is larger.
 
-`provenance.json` pins sources, checker binaries and raw gate logs. `matrix.json` retains installed dependency fingerprints and every contract case. `diagnostics.json` deduplicates complete normalized diagnostic arrays by hash. Generic non-reveal wording is not its parity contract; both actual message arrays are retained.
+- `artifact.json` and `provenance.json`: executable, source, checker and dependency identities.
+- `matrix.json` and `diagnostics.json`: both complete 18-pair Django matrices, unchanged expectations and exact diagnostic arrays.
+- `generic.json`: all three checker modes, including source locations, inferred types and rejection controls.
+- `supplemental.json`: CLI/SDK gates; all five CLI formats; editor/notebook/lifecycle checks; actual public CLI and persistent-editor timing samples.
+- `protocol-inputs/`: the original 150-request Django plugin corpus. Both response-limit policies are checked, including the expected 8 MiB rejection.
+- `benchmark.json`: internal `project` command timings, including every accepted sample, counter, warmup and backend order.
 
-`benchmark.json` retains every first-observed, warmup and measured sample plus native counters. Each invocation starts fresh processes; push mode reuses its official checker within an invocation only.
+Public `check` timings include full-format notes: 36 verified invocations, two
+warmups then seven measurements per backend/format. CLI checks cover `full`,
+`concise`, GitLab, GitHub and JUnit, including 28 primary diagnostics/locations
+and external note paths. Internal `project` timings are separate from public CLI
+performance. Editor measurements reuse the checker; fresh invocations may reuse
+OS caches. Neither establishes cold-disk timing.
 
-`source:` and `binary:` labels identify inputs; `artifact:` labels identify original local reports. The unmodified originals and the label/path mapping remain under the acceptance root. Reproduction commands are documented in ../tests/DJANGO_ACCEPTANCE.md and the exporter accepts `--help`. Generated projections and build caches are intentionally absent.
+Checker pins: Django uses official 0.0.84 / fork 0.84.4; generic/editor
+differentials use official 0.0.86 / fork 0.86.0. Separate reference failures:
 
-`benchmark-method-note.json` records the actual per-workload order and desktop load; repetitions were not order-balanced. `known-upgrade-failure.json` retains the separate 0.86 reference-fork failure. `artifact.json` records the preserved executable size/hash. The original hook corpus is in `protocol-inputs/`.
+- [`known-upgrade-failure.json`](known-upgrade-failure.json): fork 0.86 reports
+    `invalid-attribute-override` for `forms.model-forms/inherited-meta`
+    (`cases/extras.py:18`). The original expectation remains unchanged.
+- [`known-reference-editor-failure.json`](known-reference-editor-failure.json): fork
+    0.84.4 returns `-32802` after comment or semantic edits; server logs record a
+    Salsa cycle-head panic. No warm-editor comparison ratio is claimed.
 
-`cleanup.json` records generated-output deletion, unchanged Git worktrees, and allocated versus observed free-space measurements.
+Reproduce the inherited-`Meta` failure with the unchanged Django `baseline` gate
+and the 0.86 fork. Reproduce the editor failure with
+`scripts/lsp_django.py --fork /path/to/ty-extended-0.84.4` and the same accepted Django
+project. [Gate commands and required inputs](../tests/DJANGO_ACCEPTANCE.md) document
+the setup; each script exposes its complete arguments through `--help`.
+
+`source:`, `binary:` and `artifact:` labels replace local paths; original reports
+and the mapping are retained by the exporter. These fixtures bound the compatibility
+claim. Hosted platform results remain available in [PR #41’s checks](https://github.com/regularkevvv/ty-extended/pull/41/checks).
