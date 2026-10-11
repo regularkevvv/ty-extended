@@ -2,9 +2,10 @@ use crate::model::{CallSite, Oracle, Source, typ};
 use crate::project::Project;
 use anyhow::{Context, Result, bail};
 use serde_json::{Value, json};
+use sha2::{Digest, Sha256};
 use std::{
     collections::{BTreeMap, BTreeSet},
-    path::Path,
+    path::{Path, PathBuf},
     sync::Arc,
     time::{Duration, Instant},
 };
@@ -13,42 +14,231 @@ use ty_plugin_protocol::{PluginManifest, PluginRequest, method_name_pattern_matc
 
 pub struct Runtime {
     host: PluginHost<MontyRunner>,
-    id: String,
+    plugins: Vec<Registration>,
     pub manifest: Value,
     pub project: Option<Arc<Project>>,
     pub project_index: Option<Value>,
     pub config: Value,
     pub python_version: String,
+    pub platform: String,
     pub project_patches: BTreeMap<String, Value>,
     pub project_contributions: Vec<Value>,
-    cache: BTreeMap<String, Value>,
+    pub projected_receivers: BTreeMap<String, String>,
+    cache: RequestCache,
     pub executions: usize,
     pub hits: usize,
     pub execution_time: Duration,
 }
+
+#[derive(Clone)]
+struct Registration {
+    id: String,
+    manifest: Value,
+    config: Value,
+    index: Option<Value>,
+    index_generation: u64,
+    virtual_names: BTreeMap<String, String>,
+}
+
+type RequestKey = [u8; 32];
+
+/// Serializes directly into the digest, so project summaries need no second
+/// megabyte-sized allocation just to look up a cached result.
+fn request_key(value: &impl serde::Serialize) -> Result<RequestKey> {
+    struct HashWriter(Sha256);
+    impl std::io::Write for HashWriter {
+        fn write(&mut self, bytes: &[u8]) -> std::io::Result<usize> {
+            self.0.update(bytes);
+            Ok(bytes.len())
+        }
+        fn flush(&mut self) -> std::io::Result<()> {
+            Ok(())
+        }
+    }
+    let mut writer = HashWriter(Sha256::new());
+    serde_json::to_writer(&mut writer, value)?;
+    Ok(writer.0.finalize().into())
+}
+
+#[derive(Default)]
+struct RequestCache {
+    entries: BTreeMap<RequestKey, CachedResponse>,
+    oldest: BTreeSet<(u64, RequestKey)>,
+    clock: u64,
+    bytes: usize,
+}
+
+struct CachedResponse {
+    value: Value,
+    touched: u64,
+    bytes: usize,
+}
+
+impl RequestCache {
+    const MAX_ENTRIES: usize = 8192;
+    const MAX_BYTES: usize = 64 * 1024 * 1024;
+
+    fn get(&mut self, key: &RequestKey) -> Option<&Value> {
+        let entry = self.entries.get_mut(key)?;
+        self.oldest.remove(&(entry.touched, *key));
+        self.clock += 1;
+        entry.touched = self.clock;
+        self.oldest.insert((entry.touched, *key));
+        Some(&entry.value)
+    }
+
+    fn insert(&mut self, key: RequestKey, value: Value) {
+        // Include allocation/container overhead as well as string data. Bounds
+        // apply to retained response storage, independent of project lifetime.
+        fn weight(value: &Value) -> usize {
+            std::mem::size_of::<Value>()
+                + match value {
+                    Value::String(value) => value.capacity(),
+                    Value::Array(values) => values.iter().map(weight).sum(),
+                    Value::Object(values) => values
+                        .iter()
+                        .map(|(name, value)| name.capacity() + 64 + weight(value))
+                        .sum(),
+                    _ => 0,
+                }
+        }
+        let bytes = weight(&value) + std::mem::size_of::<CachedResponse>() + 128;
+        if bytes > Self::MAX_BYTES {
+            return;
+        }
+        if let Some(previous) = self.entries.remove(&key) {
+            self.oldest.remove(&(previous.touched, key));
+            self.bytes -= previous.bytes;
+        }
+        while self.entries.len() >= Self::MAX_ENTRIES || self.bytes + bytes > Self::MAX_BYTES {
+            let Some((_, key)) = self.oldest.pop_first() else {
+                break;
+            };
+            self.bytes -= self.entries.remove(&key).unwrap().bytes;
+        }
+        self.clock += 1;
+        self.entries.insert(
+            key,
+            CachedResponse {
+                value,
+                touched: self.clock,
+                bytes,
+            },
+        );
+        self.oldest.insert((self.clock, key));
+        self.bytes += bytes;
+    }
+}
+
 impl Runtime {
     pub fn new(manifest_path: &Path, plugin_path: &Path) -> Result<Self> {
-        let data = std::fs::read(manifest_path)?;
-        let manifest_value: Value = serde_json::from_slice(&data)?;
-        let manifest: PluginManifest = serde_json::from_slice(&data)?;
-        let id = manifest.id.clone();
-        let environment = PluginEnvironment::from_manifests(vec![manifest])?;
+        Self::from_plugins(&[(
+            manifest_path.to_path_buf(),
+            plugin_path.to_path_buf(),
+            json!({}),
+        )])
+    }
+
+    pub fn from_plugins(paths: &[(PathBuf, PathBuf, Value)]) -> Result<Self> {
+        let mut plugins = Vec::new();
+        let mut manifests = Vec::new();
         let mut runner = MontyRunner::new(MontyLimits::default())?;
-        runner.add_plugin(&id, std::fs::read(plugin_path)?)?;
-        Ok(Self {
-            host: PluginHost::new(environment, runner),
-            id,
-            config: manifest_value
+        for (manifest_path, plugin_path, overrides) in paths {
+            let data = std::fs::read(manifest_path)?;
+            let manifest: PluginManifest = serde_json::from_slice(&data)?;
+            let manifest_value: Value = serde_json::from_slice(&data)?;
+            let mut config = manifest_value
                 .get("default-config")
                 .cloned()
+                .unwrap_or(json!({}));
+            merge_config(&mut config, overrides);
+            runner.add_plugin(&manifest.id, std::fs::read(plugin_path)?)?;
+            plugins.push(Registration {
+                id: manifest.id.clone(),
+                manifest: manifest_value,
+                config,
+                index: None,
+                index_generation: 0,
+                virtual_names: BTreeMap::new(),
+            });
+            manifests.push(manifest);
+        }
+        // The fork creates its semantic environment from the host's BTreeMap,
+        // so first-claim and first-field precedence are lexical plugin-id order.
+        plugins.sort_by(|left, right| left.id.cmp(&right.id));
+        let environment = PluginEnvironment::from_manifests(manifests)?;
+        let mut manifest_value = plugins
+            .first()
+            .map(|plugin| plugin.manifest.clone())
+            .unwrap_or_else(|| json!({"id":"companion.empty","capabilities":{},"claims":{}}));
+        for plugin in plugins.iter().skip(1) {
+            for (capability, enabled) in plugin.manifest["capabilities"]
+                .as_object()
+                .into_iter()
+                .flatten()
+            {
+                if enabled == true {
+                    manifest_value["capabilities"][capability] = json!(true);
+                }
+            }
+            for (key, values) in plugin.manifest["claims"].as_object().into_iter().flatten() {
+                if let Some(values) = values.as_array() {
+                    let aggregate = manifest_value["claims"]
+                        .as_object_mut()
+                        .unwrap()
+                        .entry(key.clone())
+                        .or_insert(json!([]))
+                        .as_array_mut()
+                        .unwrap();
+                    for value in values {
+                        if !aggregate.contains(value) {
+                            aggregate.push(value.clone());
+                        }
+                    }
+                }
+            }
+        }
+        let mut settings = Vec::new();
+        for plugin in &plugins {
+            for claim in plugin.manifest["claims"]["settings"]
+                .as_array()
+                .into_iter()
+                .flatten()
+            {
+                let resolved = claim["config-key"]
+                    .as_str()
+                    .and_then(|key| plugin.config[key].as_str());
+                let claim =
+                    resolved.map_or_else(|| claim.clone(), |module| json!({"module":module}));
+                if !settings.contains(&claim) {
+                    settings.push(claim);
+                }
+            }
+        }
+        if !settings.is_empty() {
+            manifest_value["claims"]["settings"] = json!(settings);
+        }
+        Ok(Self {
+            host: PluginHost::new(environment, runner),
+            config: plugins
+                .first()
+                .map(|plugin| plugin.config.clone())
                 .unwrap_or(json!({})),
+            plugins,
             python_version: "3.13".into(),
+            platform: match std::env::consts::OS {
+                "macos" => "darwin",
+                "windows" => "win32",
+                platform => platform,
+            }
+            .into(),
             manifest: manifest_value,
             project: None,
             project_index: None,
             project_patches: BTreeMap::new(),
             project_contributions: Vec::new(),
-            cache: BTreeMap::new(),
+            projected_receivers: BTreeMap::new(),
+            cache: RequestCache::default(),
             executions: 0,
             hits: 0,
             execution_time: Duration::ZERO,
@@ -57,16 +247,47 @@ impl Runtime {
 
     pub fn attach_project(&mut self, project: Arc<Project>, config: Value) {
         self.project = Some(project);
-        if let (Some(defaults), Some(overrides)) = (self.config.as_object_mut(), config.as_object())
-        {
-            defaults.extend(overrides.clone());
-        } else if !config.is_null() {
-            self.config = config;
+        merge_config(&mut self.config, &config);
+        // --config is the original single-plugin CLI override. Discovered
+        // plugins retain their independently resolved configuration.
+        if self.plugins.len() == 1 {
+            merge_config(&mut self.plugins[0].config, &config);
         }
-        self.cache.clear();
+        // Monty evaluates each request from fresh module state with a fixed
+        // clock/random seed and no filesystem access. Every observable input is
+        // in the request; changing a source snapshot does not invalidate equal
+        // requests. Configuration is included in each request's cache key.
+    }
+
+    /// Semantic results can depend on each plugin's opaque project index even
+    /// when the merged contributions and virtual types have not changed.
+    pub fn index_generations(&self) -> Vec<(String, u64)> {
+        self.plugins
+            .iter()
+            .map(|plugin| (plugin.id.clone(), plugin.index_generation))
+            .collect()
+    }
+
+    pub fn virtual_display_names(&self) -> BTreeMap<String, String> {
+        self.plugins
+            .iter()
+            .flat_map(|plugin| {
+                plugin
+                    .virtual_names
+                    .iter()
+                    .map(|(original, generated)| (generated.clone(), original.clone()))
+            })
+            .collect()
     }
 
     pub fn canonical_name(&self, source: &Source, name: &str) -> String {
+        if let Some(owner) = self
+            .projected_receivers
+            .get(&format!("{}.{}", source.module, name))
+            .or_else(|| self.projected_receivers.get(name))
+        {
+            return owner.clone();
+        }
         self.project.as_ref().map_or_else(
             || name.to_string(),
             |project| {
@@ -145,6 +366,31 @@ impl Runtime {
                 qualified
             },
         )
+    }
+
+    pub fn protocol_name(&self, source: &Source, name: &str) -> String {
+        let Some(module) = &source.protocol_module else {
+            return name.to_owned();
+        };
+        name.strip_prefix(&format!("{}.", source.module))
+            .map_or_else(
+                || name.to_owned(),
+                |name| {
+                    if module.is_empty() {
+                        name.to_owned()
+                    } else {
+                        format!("{module}.{name}")
+                    }
+                },
+            )
+    }
+
+    fn internal_protocol_name(&self, source: &Source, name: &str) -> String {
+        if source.protocol_module.is_some() {
+            self.canonical_name(source, name)
+        } else {
+            name.to_owned()
+        }
     }
 
     pub fn member_type(
@@ -299,6 +545,12 @@ impl Runtime {
     }
 
     pub fn type_expr(&self, source: &Source, expression: &str) -> Value {
+        if let Some(owner) = self
+            .projected_receivers
+            .get(&format!("{}.{}", source.module, expression))
+        {
+            return self.qualified_type_expr(owner);
+        }
         // Display spelling and nominal identity are independent SDK fields.
         // Plugins may inspect either: keep the checker spelling while resolving
         // imported classes for the structural snapshot.
@@ -393,12 +645,12 @@ impl Runtime {
                 .is_some_and(|p| p.is_subclass(class, base))
     }
 
-    fn class_claim(&self, claim: &Value, qualified: &str) -> bool {
+    fn class_claim(&self, source: &Source, claim: &Value, qualified: &str) -> bool {
         match claim["kind"].as_str().unwrap_or("exact") {
-            "exact" => claim["qualified-name"] == qualified,
-            "subclass-of" => claim["base-qualified-name"]
-                .as_str()
-                .is_some_and(|base| self.subclass(qualified, base)),
+            "exact" => claim["qualified-name"] == self.protocol_name(source, qualified),
+            "subclass-of" => claim["base-qualified-name"].as_str().is_some_and(|base| {
+                self.subclass(qualified, &self.internal_protocol_name(source, base))
+            }),
             _ => false,
         }
     }
@@ -481,11 +733,6 @@ impl Runtime {
         true
     }
 
-    pub fn default_member_type(&self, owner: &str, member: &str) -> Option<String> {
-        self.default_member_expr(owner, member)
-            .and_then(|value| crate::project::type_expression(&value))
-    }
-
     pub fn default_member_expr(&self, owner: &str, member: &str) -> Option<Value> {
         let (owner, _) = generic_parts(owner);
         if let Some(patch) = self.project_patches.get(owner) {
@@ -526,7 +773,48 @@ impl Runtime {
             .cloned()
     }
 
-    fn allowed(&self, source: &Source, kind: &str, payload: &Value) -> bool {
+    pub fn resolve_member(
+        &mut self,
+        source: &Source,
+        owner: &str,
+        member: &str,
+        class_access: bool,
+        existing: Option<&Value>,
+    ) -> Result<Value> {
+        let nominal = self.nominal_name(source, owner);
+        let mro = self
+            .project
+            .as_ref()
+            .and_then(|project| project.mro(&nominal))
+            .unwrap_or_else(|| vec![nominal]);
+        for candidate in mro {
+            let candidate = if class_access {
+                format!("type[{candidate}]")
+            } else {
+                candidate
+            };
+            let mut payload =
+                json!({"owner":self.qualified_type_expr(&candidate), "member-name":member});
+            if let Some(existing) = existing {
+                payload["existing-member"] = json!({"name":member,"access":{"kind":"value","type-expr":existing},"is-read-only":false});
+            }
+            let response = self.execute(
+                source,
+                if class_access {
+                    "resolve-class-member"
+                } else {
+                    "resolve-instance-member"
+                },
+                payload,
+            )?;
+            if response["kind"] == "member-patch" && response["name"] == member {
+                return Ok(response);
+            }
+        }
+        Ok(json!({"kind":"no-change"}))
+    }
+
+    fn allowed(&self, source: &Source, kind: &str, payload: &Value, manifest: &Value) -> bool {
         let capability = match kind {
             "build-project-index" => "project-index",
             "analyze-class" => "class-transform",
@@ -539,10 +827,10 @@ impl Runtime {
             "additional-dependencies" => "additional-dependencies",
             _ => return false,
         };
-        if self.manifest["capabilities"][capability] != true {
+        if manifest["capabilities"][capability] != true {
             return false;
         }
-        let claims = &self.manifest["claims"];
+        let claims = &manifest["claims"];
         let list = |key: &str| claims[key].as_array().map(Vec::as_slice).unwrap_or(&[]);
         match kind {
             "build-project-index" | "additional-dependencies" => true,
@@ -551,13 +839,13 @@ impl Runtime {
                 .is_some_and(|name| {
                     list("classes")
                         .iter()
-                        .any(|claim| self.class_claim(claim, name))
+                        .any(|claim| self.class_claim(source, claim, name))
                 }),
             "adjust-call-signature" | "adjust-call-return" | "adjust-call-state" => {
                 let callee = payload["callee"]["expression"].as_str().unwrap_or("");
                 if list("functions")
                     .iter()
-                    .any(|claim| claim["qualified-name"] == callee)
+                    .any(|claim| claim["qualified-name"] == self.protocol_name(source, callee))
                 {
                     return true;
                 }
@@ -567,7 +855,7 @@ impl Runtime {
                     && payload.get("receiver").is_none()
                     && list("constructors")
                         .iter()
-                        .any(|claim| self.class_claim(claim, callee))
+                        .any(|claim| self.class_claim(source, claim, callee))
                 {
                     return true;
                 }
@@ -580,12 +868,13 @@ impl Runtime {
                                 "{}.{}",
                                 claim["class-qualified-name"].as_str().unwrap_or(""),
                                 claim["method-name"].as_str().unwrap_or("")
-                            ) == callee
+                            ) == self.protocol_name(source, callee)
                         }
                         "on-subclass-of" | "on-subclass-of-matching" => {
                             let Some(base) = claim["base-qualified-name"].as_str() else {
                                 return false;
                             };
+                            let base = self.internal_protocol_name(source, base);
                             let matches = if claim["kind"] == "on-subclass-of-matching" {
                                 claim["method-name-pattern"]
                                     .as_str()
@@ -596,7 +885,7 @@ impl Runtime {
                                 claim["method-name"] == method
                             };
                             matches
-                                && receiver.is_some_and(|owner| self.subclass(owner, base))
+                                && receiver.is_some_and(|owner| self.subclass(owner, &base))
                                 && (kind != "adjust-call-state"
                                     || callee == format!("{base}.{method}"))
                         }
@@ -616,12 +905,19 @@ impl Runtime {
                     claim["scope"] == scope
                         && match claim["kind"].as_str().unwrap_or("exact") {
                             "exact" => {
-                                claim["owner-qualified-name"] == owner
+                                claim["owner-qualified-name"] == self.protocol_name(source, &owner)
                                     && claim["attribute-name"] == payload["member-name"]
                             }
-                            "on-subclass-of" => claim["owner-base-qualified-name"]
-                                .as_str()
-                                .is_some_and(|base| self.subclass(&owner, base)),
+                            "on-subclass-of" if scope == "instance" => {
+                                claim["owner-base-qualified-name"]
+                                    .as_str()
+                                    .is_some_and(|base| {
+                                        self.subclass(
+                                            &owner,
+                                            &self.internal_protocol_name(source, base),
+                                        )
+                                    })
+                            }
                             // Contribution targets authorize project-index patches,
                             // not a direct member hook invocation.
                             _ => false,
@@ -633,14 +929,18 @@ impl Runtime {
                 let owner = self.nominal_name(source, expression);
                 list("mutations")
                     .iter()
-                    .any(|claim| self.class_claim(claim, &owner))
+                    .any(|claim| self.class_claim(source, claim, &owner))
             }
             _ => false,
         }
     }
 
-    fn dispatch(&mut self, payload: Value) -> Result<Value> {
-        let key = serde_json::to_string(&payload)?;
+    fn dispatch(&mut self, id: &str, payload: Value) -> Result<Value> {
+        let key = request_key(&("project", id, &payload))?;
+        self.dispatch_with_key(id, payload, key)
+    }
+
+    fn dispatch_with_key(&mut self, id: &str, payload: Value, key: RequestKey) -> Result<Value> {
         if let Some(value) = self.cache.get(&key) {
             self.hits += 1;
             return Ok(value.clone());
@@ -648,7 +948,7 @@ impl Runtime {
         let request: PluginRequest =
             serde_json::from_value(payload).context("invalid plugin request")?;
         let start = Instant::now();
-        let response = serde_json::to_value(self.host.execute(&self.id, &request)?)?;
+        let response = serde_json::to_value(self.host.execute(id, &request)?)?;
         self.execution_time += start.elapsed();
         self.executions += 1;
         if response["kind"] == "error" {
@@ -658,41 +958,351 @@ impl Runtime {
         Ok(response)
     }
 
-    pub fn execute_project(&mut self, kind: &str, mut payload: Value) -> Result<Value> {
+    fn dispatch_semantic(&mut self, index: usize, mut payload: Value) -> Result<Value> {
+        let id = self.plugins[index].id.clone();
+        // A generation identifies the exact opaque index supplied to this
+        // plugin. Equal indexes preserve cached results across source revisions
+        // without cloning or hashing a megabyte-sized index for every hook.
+        let key = request_key(&(
+            "semantic",
+            &id,
+            self.plugins[index].index_generation,
+            &payload,
+        ))?;
+        if let Some(response) = self.cache.get(&key) {
+            self.hits += 1;
+            return Ok(response.clone());
+        }
+        if let Some(project_index) = self.plugins[index].index.as_ref() {
+            payload["project-index"] = project_index.clone();
+        }
+        self.dispatch_with_key(&id, payload, key)
+    }
+
+    pub fn execute_project(&mut self, kind: &str, payload: Value) -> Result<Value> {
         let capability = match kind {
             "build-project-index" => "project-index",
             "additional-dependencies" => "additional-dependencies",
             _ => bail!("not a project hook: {kind}"),
         };
-        if self.manifest["capabilities"][capability] != true {
+        let mut responses = Vec::new();
+        for index in 0..self.plugins.len() {
+            let plugin = &self.plugins[index];
+            if plugin.manifest["capabilities"][capability] != true {
+                continue;
+            }
+            let mut request = payload.clone();
+            request["kind"] = json!(kind);
+            if kind == "build-project-index" {
+                request["context"]["config"] = plugin.config.clone();
+                if self.plugins.len() > 1 {
+                    let modules: BTreeSet<_> = plugin.manifest["claims"]["settings"]
+                        .as_array()
+                        .into_iter()
+                        .flatten()
+                        .filter_map(|claim| {
+                            claim["config-key"]
+                                .as_str()
+                                .and_then(|key| plugin.config[key].as_str())
+                                .or_else(|| claim["module"].as_str())
+                        })
+                        .collect();
+                    if let Some(settings) =
+                        request.get_mut("settings").and_then(Value::as_array_mut)
+                    {
+                        settings.retain(|setting| {
+                            setting["module"]
+                                .as_str()
+                                .is_some_and(|module| modules.contains(module))
+                        });
+                    }
+                }
+            } else {
+                request["config"] = plugin.config.clone();
+            }
+            let id = plugin.id.clone();
+            let mut response = self.dispatch(&id, request)?;
+            if kind == "build-project-index" {
+                let next_index = response.get("plugin-index").cloned();
+                if self.plugins[index].index != next_index {
+                    self.plugins[index].index_generation = self.plugins[index]
+                        .index_generation
+                        .checked_add(1)
+                        .context("plugin index generation exhausted")?;
+                    self.plugins[index].index = next_index;
+                }
+            }
+            if self.plugins.len() > 1 && kind == "build-project-index" {
+                let namespace = id
+                    .bytes()
+                    .map(|byte| format!("{byte:02x}"))
+                    .collect::<String>();
+                let names: BTreeMap<_, _> = response["virtual-types"]
+                    .as_array()
+                    .into_iter()
+                    .flatten()
+                    .filter_map(|definition| {
+                        let name = definition["name"].as_str()?;
+                        Some((name.to_owned(), format!("_ty_plugin_{namespace}.{name}")))
+                    })
+                    .collect();
+                self.plugins[index].virtual_names = names;
+                rewrite_protocol_names(&mut response, &self.plugins[index].virtual_names);
+                if let Some(definitions) = response
+                    .get_mut("virtual-types")
+                    .and_then(Value::as_array_mut)
+                {
+                    for definition in definitions {
+                        if let Some(name) = definition["name"]
+                            .as_str()
+                            .and_then(|name| self.plugins[index].virtual_names.get(name))
+                        {
+                            definition["name"] = json!(name);
+                        }
+                    }
+                }
+            }
+            responses.push(response);
+        }
+        if responses.len() == 1 {
+            return Ok(responses.pop().unwrap());
+        }
+        if responses.is_empty() {
             return Ok(json!({"kind":"no-change"}));
         }
-        payload["kind"] = json!(kind);
-        if kind == "build-project-index" {
-            payload["context"]["config"] = self.config.clone();
-        } else {
-            payload["config"] = self.config.clone();
+        let mut merged = json!({"kind":if kind == "build-project-index" {"project-index"} else {"dependencies"}});
+        for key in [
+            "contributions",
+            "virtual-types",
+            "dependencies",
+            "diagnostics",
+        ] {
+            let values: Vec<_> = responses
+                .iter()
+                .flat_map(|response| response[key].as_array().into_iter().flatten().cloned())
+                .collect();
+            if !values.is_empty() {
+                merged[key] = json!(values);
+            }
         }
-        self.dispatch(payload)
+        Ok(merged)
     }
 
-    pub fn execute(&mut self, source: &Source, kind: &str, mut payload: Value) -> Result<Value> {
-        if !self.allowed(source, kind, &payload) {
+    pub fn execute(&mut self, source: &Source, kind: &str, payload: Value) -> Result<Value> {
+        let mut responses = Vec::new();
+        for index in 0..self.plugins.len() {
+            let plugin = &self.plugins[index];
+            if plugin.virtual_names.is_empty()
+                && !self.allowed(source, kind, &payload, &plugin.manifest)
+            {
+                continue;
+            }
+            let mut request = payload.clone();
+            let inverse: BTreeMap<_, _> = plugin
+                .virtual_names
+                .iter()
+                .map(|(original, generated)| (generated.clone(), original.clone()))
+                .collect();
+            rewrite_protocol_names(&mut request, &inverse);
+            if !plugin.virtual_names.is_empty()
+                && !self.allowed(source, kind, &request, &plugin.manifest)
+            {
+                continue;
+            }
+            let object = request
+                .as_object_mut()
+                .context("hook payload must be object")?;
+            object.insert("kind".into(), json!(kind));
+            object.insert("context".into(), json!({"module":source.protocol_module.as_ref().unwrap_or(&source.module),"file-path":source.path,
+                "python-version":self.python_version,"platform":self.platform,"config":plugin.config,"speculative":false}));
+            if source.protocol_module.is_some() {
+                rewrite_notebook_request(&mut request, source, |name| {
+                    self.protocol_name(source, name)
+                });
+            }
+            let mut response = self.dispatch_semantic(index, request)?;
+            rewrite_protocol_names(&mut response, &self.plugins[index].virtual_names);
+            if source.protocol_module.is_some() {
+                rewrite_notebook_request(&mut response, source, |name| {
+                    self.internal_protocol_name(source, name)
+                });
+            }
+            match kind {
+                "analyze-class" => responses.push(response),
+                "resolve-instance-member" | "resolve-class-member" => {
+                    if response["kind"] == "member-patch"
+                        && response["name"] == payload["member-name"]
+                    {
+                        return Ok(response);
+                    }
+                }
+                // Calls and mutations choose a claiming plugin before running
+                // it. A no-change response must not fall through to another.
+                _ => return Ok(response),
+            }
+        }
+        if kind != "analyze-class" || responses.is_empty() {
             return Ok(json!({"kind":"no-change"}));
         }
-        let object = payload
-            .as_object_mut()
-            .context("hook payload must be object")?;
-        object.insert("kind".into(), json!(kind));
-        object.insert(
-            "context".into(),
-            json!({"module":source.module,"file-path":source.path,
-            "python-version":self.python_version,"platform":"darwin","config":self.config,"speculative":false}),
-        );
-        if let Some(index) = &self.project_index {
-            object.insert("project-index".into(), index.clone());
+        if responses.len() == 1 {
+            return Ok(responses.pop().unwrap());
         }
-        self.dispatch(payload)
+        let mut merged = json!({"kind":"class-patch"});
+        for key in ["fields", "class-members", "instance-members"] {
+            let mut names = BTreeSet::new();
+            let members: Vec<_> = responses
+                .iter()
+                .flat_map(|response| response[key].as_array().into_iter().flatten())
+                .filter(|member| names.insert(member["name"].clone().to_string()))
+                .cloned()
+                .collect();
+            if !members.is_empty() {
+                merged[key] = json!(members);
+            }
+        }
+        if let Some(constructor) = responses
+            .iter()
+            .find_map(|response| response.get("constructor"))
+        {
+            merged["constructor"] = constructor.clone();
+        }
+        let diagnostics: Vec<_> = responses
+            .iter()
+            .flat_map(|response| {
+                response["diagnostics"]
+                    .as_array()
+                    .into_iter()
+                    .flatten()
+                    .cloned()
+            })
+            .collect();
+        if !diagnostics.is_empty() {
+            merged["diagnostics"] = json!(diagnostics);
+        }
+        Ok(merged)
+    }
+}
+
+fn merge_config(config: &mut Value, overrides: &Value) {
+    if let (Some(defaults), Some(overrides)) = (config.as_object_mut(), overrides.as_object()) {
+        defaults.extend(overrides.clone());
+    } else if !overrides.is_null() {
+        *config = overrides.clone();
+    }
+}
+
+/// Notebook namespace translation is restricted to protocol type/identity
+/// nodes. Opaque indexes, metadata and literal values remain byte-for-byte data.
+fn rewrite_notebook_request(
+    value: &mut Value,
+    source: &Source,
+    rename: impl Fn(&str) -> String + Copy,
+) {
+    match value {
+        Value::Object(object) => {
+            if let Some(expression) = object.get("expression").and_then(Value::as_str)
+                && object.get("mode").is_some_and(Value::is_string)
+            {
+                object.insert(
+                    "expression".into(),
+                    json!(crate::project::rewrite_names(expression, rename)),
+                );
+            }
+            for key in ["qualified-name", "nominal-class", "identity"] {
+                if let Some(name) = object.get(key).and_then(Value::as_str) {
+                    object.insert(key.into(), json!(rename(name)));
+                }
+            }
+            if object.get("module").and_then(Value::as_str) == Some(source.module.as_str()) {
+                object.insert(
+                    "module".into(),
+                    json!(source.protocol_module.as_ref().unwrap_or(&source.module)),
+                );
+            }
+            for (key, child) in object.iter_mut() {
+                if !matches!(
+                    key.as_str(),
+                    "config"
+                        | "plugin-index"
+                        | "plugin-metadata"
+                        | "result-metadata"
+                        | "metadata"
+                        | "value"
+                ) {
+                    rewrite_notebook_request(child, source, rename);
+                }
+            }
+        }
+        Value::Array(values) => {
+            for value in values {
+                rewrite_notebook_request(value, source, rename);
+            }
+        }
+        _ => {}
+    }
+}
+
+/// Virtual declarations are private to their owning plugin. Rewrite protocol
+/// type nodes at the boundary; opaque plugin indexes/config/metadata and quoted
+/// Literal values must never be inspected or changed.
+fn rewrite_protocol_names(value: &mut Value, names: &BTreeMap<String, String>) {
+    if names.is_empty() {
+        return;
+    }
+    match value {
+        Value::Object(object) => {
+            if object.get("expression").is_some_and(Value::is_string)
+                && object.get("mode").is_some_and(Value::is_string)
+            {
+                let expression = object["expression"].as_str().unwrap();
+                object.insert(
+                    "expression".into(),
+                    json!(crate::project::rewrite_names(expression, |name| names
+                        .get(name)
+                        .cloned()
+                        .unwrap_or_else(|| name.to_owned()))),
+                );
+                if let Some(imports) = object.get_mut("imports").and_then(Value::as_array_mut) {
+                    for import in imports {
+                        if let (Some(module), Some(name)) =
+                            (import["module"].as_str(), import["name"].as_str())
+                            && let Some(renamed) = names.get(&format!("{module}.{name}"))
+                            && let Some((module, name)) = renamed.rsplit_once('.')
+                        {
+                            import["module"] = json!(module);
+                            import["name"] = json!(name);
+                        }
+                    }
+                }
+            }
+            for key in ["qualified-name", "nominal-class", "identity"] {
+                if let Some(original) = object.get(key).and_then(Value::as_str)
+                    && let Some(renamed) = names.get(original)
+                {
+                    object.insert(key.into(), json!(renamed));
+                }
+            }
+            for (key, child) in object.iter_mut() {
+                if !matches!(
+                    key.as_str(),
+                    "config"
+                        | "plugin-index"
+                        | "plugin-metadata"
+                        | "result-metadata"
+                        | "metadata"
+                        | "source"
+                        | "value"
+                ) {
+                    rewrite_protocol_names(child, names);
+                }
+            }
+        }
+        Value::Array(values) => {
+            for value in values {
+                rewrite_protocol_names(value, names);
+            }
+        }
+        _ => {}
     }
 }
 
@@ -890,6 +1500,418 @@ mod tests {
     use super::*;
 
     #[test]
+    fn notebook_protocol_uses_local_names_without_sharing_internal_classes() -> Result<()> {
+        let directory =
+            std::env::temp_dir().join(format!("native-runtime-notebooks-{}", std::process::id()));
+        std::fs::create_dir_all(&directory)?;
+        let directory = directory.canonicalize()?;
+        let manifest = json!({"id":"notebook","name":"Notebook test","version":"0.0.0","protocol-version":{"major":0,"minor":7},"ty-compatibility":{"requirement":">=0.86.0,<0.87.0"},"runtime":{"kind":"monty","artifact":"plugin.py"},"capabilities":{"class-transform":true,"call-return":true},"claims":{"classes":[{"kind":"exact","qualified-name":"Resource"}],"functions":[{"qualified-name":"load"}]}});
+        std::fs::write(
+            directory.join("plugin.json"),
+            serde_json::to_vec(&manifest)?,
+        )?;
+        std::fs::write(
+            directory.join("plugin.py"),
+            "@on_class_transform\ndef transform(request):\n    assert request['context']['module'] == ''\n    assert request['class']['qualified-name'] == 'Resource'\n    assert request['class']['source']['module'] == ''\n    annotation = 'int' if request['context']['file-path'].endswith('one.py') else 'str'\n    return class_patch(fields=[field('value', type_annotation(annotation)), field('parent', type_annotation('Resource'))])\n@on_call_return\ndef returns(request):\n    assert request['callee']['expression'] == 'load'\n    return call_return_patch(type_annotation('Resource'))\n",
+        )?;
+        let files = [directory.join("one.py"), directory.join("two.py")];
+        for path in &files {
+            std::fs::write(
+                path,
+                "class Resource: pass\ndef load() -> Resource: return Resource()\n",
+            )?;
+        }
+        let mut project = Project::load(&directory, &files, &manifest, json!({}))?;
+        for path in &files {
+            project.register_notebook_source(path)?;
+        }
+        assert!(
+            project.build_request()["classes"]
+                .as_array()
+                .unwrap()
+                .is_empty()
+        );
+        let project = Arc::new(project);
+        let mut runtime =
+            Runtime::new(&directory.join("plugin.json"), &directory.join("plugin.py"))?;
+        runtime.attach_project(project.clone(), json!({}));
+        for (module, expected) in [("one", "int"), ("two", "str")] {
+            let source = &project.modules[module].source;
+            let response = runtime.execute(
+                source,
+                "analyze-class",
+                json!({"class":project.class_summary(&format!("{module}.Resource")).unwrap()}),
+            )?;
+            assert_eq!(
+                response["fields"][0]["instance-get-type"]["expression"],
+                expected
+            );
+            assert_eq!(
+                response["fields"][1]["instance-get-type"]["expression"],
+                format!("{module}.Resource")
+            );
+            let mut types = crate::type_render::Types::with_project("_test_", module, &project);
+            assert_eq!(
+                types.render(&response["fields"][1]["instance-get-type"])?,
+                "Resource"
+            );
+            assert!(!types.prelude().contains(&format!("import {module}")));
+            let returns = runtime.execute(
+                source,
+                "adjust-call-return",
+                json!({"callee":{"expression":format!("{module}.load"),"mode":"expression"}}),
+            )?;
+            assert_eq!(
+                returns["return-type"]["expression"],
+                format!("{module}.Resource")
+            );
+        }
+        assert_eq!(runtime.executions, 4);
+        let mut opaque = json!({"expression":"one.Resource | Literal['one.Resource']","mode":"annotation","plugin-index":{"qualified-name":"one.Resource"},"metadata":{"expression":"one.Resource","mode":"annotation"}});
+        let source = &project.modules["one"].source;
+        rewrite_notebook_request(&mut opaque, source, |name| {
+            runtime.protocol_name(source, name)
+        });
+        assert_eq!(opaque["expression"], "Resource | Literal['one.Resource']");
+        assert_eq!(opaque["plugin-index"]["qualified-name"], "one.Resource");
+        assert_eq!(opaque["metadata"]["expression"], "one.Resource");
+        std::fs::remove_dir_all(directory)?;
+        Ok(())
+    }
+
+    #[test]
+    fn deep_acyclic_call_hooks_converge_beyond_twelve_rounds() -> Result<()> {
+        let official = std::env::var("TY_COMPANION_TEST_OFFICIAL")?;
+        let directory =
+            std::env::temp_dir().join(format!("ty-deep-call-inference-{}", std::process::id()));
+        let root = directory.join("project");
+        std::fs::create_dir_all(&root)?;
+        let root = root.canonicalize()?;
+        let manifest_path = directory.join("plugin.json");
+        let plugin = directory.join("plugin.py");
+        let manifest = json!({"id":"test.deep","name":"Deep calls","version":"0.0.0","protocol-version":{"major":0,"minor":7},"ty-compatibility":{"requirement":">=0.86.0,<0.87.0"},"runtime":{"kind":"monty","artifact":"plugin.py"},"capabilities":{"call-return":true},"claims":{"functions":[{"qualified-name":"app.seed"},{"qualified-name":"app.identity"}]}});
+        std::fs::write(&manifest_path, serde_json::to_vec(&manifest)?)?;
+        std::fs::write(
+            &plugin,
+            "@on_call_return\ndef returns(request):\n    if request['callee']['expression']=='app.seed':\n        return call_return_patch(type_annotation('int'))\n    return call_return_patch(request['arguments'][0]['type-expr'])\n",
+        )?;
+        let depth = 20;
+        std::fs::write(
+            root.join("app.py"),
+            format!(
+                "def seed() -> object: return object()\ndef identity(value: object) -> object: return value\nvalue: int = {}seed(){}\n",
+                "identity(".repeat(depth),
+                ")".repeat(depth)
+            ),
+        )?;
+        let options = BTreeMap::from([
+            ("ty".into(), official),
+            (
+                "out".into(),
+                directory.join("output").to_string_lossy().into_owned(),
+            ),
+            ("checker-mode".into(), "push".into()),
+            (
+                "manifest".into(),
+                manifest_path.to_string_lossy().into_owned(),
+            ),
+            ("plugin".into(), plugin.to_string_lossy().into_owned()),
+            ("python-version".into(), "3.13".into()),
+        ]);
+        let result = crate::project_check::Session::new(&root, &options)?.check(&BTreeMap::new())?;
+        assert_eq!(result["diagnostics"], json!([]), "{result:#}");
+        assert!(
+            result["projection_rounds"].as_u64().unwrap() > 12,
+            "fixture must exercise the old arbitrary bound: {result:#}"
+        );
+        std::fs::remove_dir_all(directory)?;
+        Ok(())
+    }
+
+    #[test]
+    fn failed_source_refresh_cannot_reuse_partially_updated_snapshot() -> Result<()> {
+        let official = std::env::var("TY_COMPANION_TEST_OFFICIAL")?;
+        let directory =
+            std::env::temp_dir().join(format!("ty-failed-refresh-{}", std::process::id()));
+        let root = directory.join("project");
+        std::fs::create_dir_all(&root)?;
+        let root = root.canonicalize()?;
+        std::fs::write(
+            root.join("ty.toml"),
+            "[environment]\npython-version='3.13'\n",
+        )?;
+        std::fs::write(root.join("a.py"), "class Resource:\n    marker: int = 1\n")?;
+        std::fs::write(
+            root.join("b.py"),
+            "from a import Resource\nvalue: int = Resource().marker\n",
+        )?;
+        let notebook = serde_json::to_string(
+            &json!({"cells":[{"cell_type":"code","execution_count":null,"metadata":{},"outputs":[],"source":["value = 1\n"]}],"metadata":{"language_info":{"name":"python"}},"nbformat":4,"nbformat_minor":5}),
+        )?;
+        std::fs::write(root.join("z.ipynb"), &notebook)?;
+        let mut session = crate::project_check::Session::new(
+            &root,
+            &BTreeMap::from([
+                ("ty".into(), official),
+                (
+                    "out".into(),
+                    directory.join("output").to_string_lossy().into_owned(),
+                ),
+                ("checker-mode".into(), "push".into()),
+            ]),
+        )?;
+        assert_eq!(session.check(&BTreeMap::new())?["diagnostics"], json!([]));
+        std::fs::write(
+            root.join("a.py"),
+            "class Resource:\n    marker: str = 'bad'\n",
+        )?;
+        std::fs::write(root.join("z.ipynb"), "{")?;
+        assert!(session.check(&BTreeMap::new()).is_err());
+        std::fs::write(root.join("z.ipynb"), notebook)?;
+        let final_result = session.check(&BTreeMap::new())?;
+        let diagnostics = final_result["diagnostics"].as_array().unwrap();
+        assert_eq!(
+            diagnostics.len(),
+            1,
+            "failed refresh returned stale results: {final_result:#}"
+        );
+        assert_eq!(diagnostics[0]["check_name"], "invalid-assignment");
+        drop(session);
+        std::fs::remove_dir_all(directory)?;
+        Ok(())
+    }
+
+    #[test]
+    fn changed_opaque_index_invalidates_unchanged_modules_with_multiple_plugins() -> Result<()> {
+        let official = std::env::var("TY_COMPANION_TEST_OFFICIAL")?;
+        let directory = std::env::temp_dir().join(format!(
+            "ty-multi-index-invalidation-{}",
+            std::process::id()
+        ));
+        let root = directory.join("project");
+        std::fs::create_dir_all(&root)?;
+        let root = root.canonicalize()?;
+        std::fs::write(
+            root.join("app.py"),
+            "def load() -> object: return object()\nvalue: int = load()\n",
+        )?;
+        std::fs::write(root.join("settings.py"), "TYPE = 'int'\n")?;
+        let mut entries = Vec::new();
+        for id in ["a", "z"] {
+            let manifest_path = directory.join(format!("{id}.json"));
+            let plugin = directory.join(format!("{id}.py"));
+            let manifest = json!({"id":id,"name":id,"version":"0.0.0","protocol-version":{"major":0,"minor":7},"ty-compatibility":{"requirement":">=0.86.0,<0.87.0"},"runtime":{"kind":"monty","artifact":format!("{id}.py")},"capabilities":{"project-index":true,"call-return":id=="a"},"claims":{"modules":[{"name":"settings"}],"functions":if id=="a" {json!([{"qualified-name":"app.load"}])} else {json!([])}}});
+            std::fs::write(&manifest_path, serde_json::to_vec(&manifest)?)?;
+            let code = if id == "a" {
+                "@on_project_index\ndef index(request):\n    annotation='int'\n    for assignment in request['assignments']:\n        if assignment['qualified-name']=='settings.TYPE':\n            annotation=assignment['assigned-value']['value']['value']\n    return project_index(plugin_index={'annotation':annotation})\n@on_call_return\ndef returns(request):\n    return call_return_patch(type_annotation(request['project-index']['annotation']))\n"
+            } else {
+                "@on_project_index\ndef index(request):\n    return project_index(plugin_index={'fixed':True})\n"
+            };
+            std::fs::write(&plugin, code)?;
+            entries.push(format!(
+                "{{id={id:?},runtime='monty',trusted=true,path={},manifest-path={}}}",
+                serde_json::to_string(&plugin)?,
+                serde_json::to_string(&manifest_path)?
+            ));
+        }
+        std::fs::write(
+            root.join("ty.toml"),
+            format!(
+                "[environment]\npython-version='3.13'\n[plugins]\nenabled=true\nauto-discover=false\nplugin=[{}]\n",
+                entries.join(",")
+            ),
+        )?;
+        let mut session = crate::project_check::Session::new(
+            &root,
+            &BTreeMap::from([
+                ("ty".into(), official),
+                (
+                    "out".into(),
+                    directory.join("output").to_string_lossy().into_owned(),
+                ),
+                ("checker-mode".into(), "push".into()),
+            ]),
+        )?;
+        let first = session.check(&BTreeMap::new())?;
+        assert_eq!(first["diagnostics"], json!([]), "{first:#}");
+        std::fs::write(root.join("settings.py"), "TYPE = 'str'\n")?;
+        let second = session.check(&BTreeMap::new())?;
+        let diagnostics = second["diagnostics"].as_array().unwrap();
+        assert_eq!(diagnostics.len(), 1, "{second:#}");
+        assert_eq!(diagnostics[0]["check_name"], "invalid-assignment");
+        assert!(
+            diagnostics[0]["location"]["path"]
+                .as_str()
+                .unwrap()
+                .ends_with("app.py")
+        );
+        std::fs::write(root.join("settings.py"), "TYPE = 'int'\n")?;
+        assert_eq!(session.check(&BTreeMap::new())?["diagnostics"], json!([]));
+        drop(session);
+        std::fs::remove_dir_all(directory)?;
+        Ok(())
+    }
+
+    #[test]
+    fn request_cache_bounds_storage_and_retains_recent_results() {
+        let mut cache = RequestCache::default();
+        let first = request_key(&0).unwrap();
+        let second = request_key(&1).unwrap();
+        for index in 0..RequestCache::MAX_ENTRIES {
+            cache.insert(request_key(&index).unwrap(), json!(index));
+        }
+        assert_eq!(cache.get(&first), Some(&json!(0)));
+        cache.insert(
+            request_key(&RequestCache::MAX_ENTRIES).unwrap(),
+            json!("new"),
+        );
+        assert!(cache.get(&second).is_none());
+        assert!(cache.get(&first).is_some());
+        assert_eq!(cache.entries.len(), RequestCache::MAX_ENTRIES);
+        assert_eq!(cache.entries.len(), cache.oldest.len());
+        assert!(cache.bytes <= RequestCache::MAX_BYTES);
+    }
+
+    #[test]
+    fn multiple_plugins_preserve_precedence_and_isolate_config_index_and_cache() {
+        let directory =
+            std::env::temp_dir().join(format!("native-runtime-multiple-{}", std::process::id()));
+        std::fs::create_dir_all(&directory).unwrap();
+        let mut paths = Vec::new();
+        for (id, annotation, abstain) in [("z-last", "str", false), ("a-first", "int", true)] {
+            let manifest = json!({"id":id,"name":id,"version":"0.0.0","protocol-version":{"major":0,"minor":7},"ty-compatibility":{"requirement":">=0.86.0,<0.87.0"},"runtime":{"kind":"monty","artifact":format!("{id}.py")},"capabilities":{"class-transform":true,"project-index":true,"instance-member":true,"call-return":true},"claims":{"classes":[{"kind":"exact","qualified-name":"demo.Item"}],"functions":[{"qualified-name":"demo.load"}],"attributes":[{"kind":"exact","scope":"instance","owner-qualified-name":"demo.Item","attribute-name":"dynamic"}]}});
+            let manifest_path = directory.join(format!("{id}.json"));
+            let artifact = directory.join(format!("{id}.py"));
+            std::fs::write(&manifest_path, serde_json::to_vec(&manifest).unwrap()).unwrap();
+            std::fs::write(&artifact, "@on_project_index\ndef index(request):\n    annotation = request['context']['config']['annotation']\n    if not request['context']['config']['abstain']:\n        annotation = request['context']['root'] or annotation\n    return project_index(plugin_index={'annotation':annotation}, virtual_types=[virtual_type('virtual.Record', virtual_class(members=[member('value',type_annotation(request['context']['config']['annotation']))]))])\n@on_class_transform\ndef transform(request):\n    return class_patch(fields=[field('shared',type_annotation(request['context']['config']['annotation'])),field(request['context']['config']['unique'],type_annotation('bool'))])\n@on_call_return\ndef result(request):\n    if request['context']['config']['abstain']: return None\n    return call_return_patch(type_annotation('str'))\n@on_instance_member\ndef member_hook(request):\n    if request['context']['config']['abstain']: return None\n    return member_response(member('dynamic',type_annotation(request['project-index']['annotation'])))\n").unwrap();
+            paths.push((
+                manifest_path,
+                artifact,
+                json!({"annotation":annotation,"abstain":abstain,"unique":id.replace('-',"_")}),
+            ));
+        }
+        let mut runtime = Runtime::from_plugins(&paths).unwrap();
+        let source = Source::new(String::new(), "demo.py".into(), "demo".into());
+        let request = json!({"context":{"root":"","python-version":"3.13","platform":"darwin"}});
+        let index = runtime
+            .execute_project("build-project-index", request.clone())
+            .unwrap();
+        let virtuals = index["virtual-types"].as_array().unwrap();
+        assert_eq!(virtuals.len(), 2);
+        assert_ne!(virtuals[0]["name"], virtuals[1]["name"]);
+        assert_eq!(runtime.virtual_display_names().len(), 2);
+        let class = runtime
+            .execute(
+                &source,
+                "analyze-class",
+                json!({"class":{"qualified-name":"demo.Item"}}),
+            )
+            .unwrap();
+        assert_eq!(class["fields"][0]["instance-get-type"]["expression"], "int");
+        assert_eq!(class["fields"].as_array().unwrap().len(), 3);
+        let result = runtime
+            .execute(
+                &source,
+                "adjust-call-return",
+                json!({"callee":{"expression":"demo.load","mode":"expression"}}),
+            )
+            .unwrap();
+        assert_eq!(
+            result["kind"], "no-change",
+            "first claiming plugin does not fall through"
+        );
+        let member_request = json!({"owner":typ("demo.Item"),"member-name":"dynamic"});
+        let member = runtime
+            .execute(&source, "resolve-instance-member", member_request.clone())
+            .unwrap();
+        assert_eq!(member["access"]["type-expr"]["expression"], "str");
+        let executions = runtime.executions;
+        assert_eq!(
+            runtime
+                .execute(&source, "resolve-instance-member", member_request.clone())
+                .unwrap(),
+            member
+        );
+        assert_eq!(runtime.executions, executions);
+        assert!(runtime.hits >= 2);
+
+        std::fs::write(directory.join("demo.py"), "# changed source snapshot\n").unwrap();
+        let project = Project::load(
+            &directory,
+            &[directory.join("demo.py")],
+            &runtime.manifest,
+            json!({}),
+        )
+        .unwrap();
+        runtime.attach_project(Arc::new(project), json!({}));
+        runtime
+            .execute_project("build-project-index", request.clone())
+            .unwrap();
+        assert_eq!(
+            runtime
+                .execute(&source, "resolve-instance-member", member_request.clone())
+                .unwrap(),
+            member
+        );
+        assert_eq!(
+            runtime.executions, executions,
+            "equal requests survive revisions"
+        );
+
+        let first_generation = runtime.plugins[0].index_generation;
+        let mut changed = request.clone();
+        changed["context"]["root"] = json!("bytes");
+        runtime
+            .execute_project("build-project-index", changed)
+            .unwrap();
+        assert_eq!(runtime.plugins[0].index_generation, first_generation);
+        let changed_member = runtime
+            .execute(&source, "resolve-instance-member", member_request.clone())
+            .unwrap();
+        assert_eq!(changed_member["access"]["type-expr"]["expression"], "bytes");
+        assert_eq!(
+            runtime.executions,
+            executions + 3,
+            "only changed index invalidates semantic results"
+        );
+
+        runtime.plugins[1].config["annotation"] = json!("bool");
+        runtime
+            .execute_project("build-project-index", request)
+            .unwrap();
+        let configured_member = runtime
+            .execute(&source, "resolve-instance-member", member_request)
+            .unwrap();
+        assert_eq!(
+            configured_member["access"]["type-expr"]["expression"],
+            "bool"
+        );
+        assert_eq!(
+            runtime.executions,
+            executions + 5,
+            "config is part of project and semantic keys"
+        );
+        std::fs::remove_dir_all(directory).unwrap();
+    }
+
+    #[test]
+    fn no_plugins_leave_ordinary_python_unchanged() {
+        let mut runtime = Runtime::from_plugins(&[]).unwrap();
+        let source = Source::new(String::new(), "demo.py".into(), "demo".into());
+        assert_eq!(
+            runtime
+                .execute(
+                    &source,
+                    "analyze-class",
+                    json!({"class":{"qualified-name":"demo.Item"}})
+                )
+                .unwrap(),
+            json!({"kind":"no-change"})
+        );
+        assert_eq!(runtime.executions, 0);
+    }
+
+    #[test]
     fn generic_arguments_preserve_nested_and_quoted_commas() {
         assert_eq!(
             generic_parts("QuerySet[Book, tuple[int, Literal['a,b']]]"),
@@ -942,12 +1964,27 @@ mod tests {
         );
         let inherited = json!({"callee":{"expression":runtime.method_callee("models.Child","save")},"receiver":runtime.receiver_summary(&source,"Child")});
         let overridden = json!({"callee":{"expression":runtime.method_callee("models.Override","save")},"receiver":runtime.receiver_summary(&source,"Override")});
-        assert!(runtime.allowed(&source, "adjust-call-state", &inherited));
-        assert!(!runtime.allowed(&source, "adjust-call-state", &overridden));
-        assert!(runtime.allowed(&source, "adjust-call-return", &overridden));
+        assert!(runtime.allowed(&source, "adjust-call-state", &inherited, &runtime.manifest));
+        assert!(!runtime.allowed(&source, "adjust-call-state", &overridden, &runtime.manifest));
+        assert!(runtime.allowed(
+            &source,
+            "adjust-call-return",
+            &overridden,
+            &runtime.manifest
+        ));
         let constructor = json!({"callee":{"expression":"models.Child"}});
-        assert!(runtime.allowed(&source, "adjust-call-state", &constructor));
-        assert!(!runtime.allowed(&source, "adjust-call-return", &constructor));
+        assert!(runtime.allowed(
+            &source,
+            "adjust-call-state",
+            &constructor,
+            &runtime.manifest
+        ));
+        assert!(!runtime.allowed(
+            &source,
+            "adjust-call-return",
+            &constructor,
+            &runtime.manifest
+        ));
         std::fs::remove_dir_all(directory).unwrap();
     }
 

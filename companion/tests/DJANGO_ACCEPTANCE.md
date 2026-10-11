@@ -6,13 +6,13 @@ plugin execution, or type inference.
 The gate checks:
 
 - All 166 marked assertions across 38 dynamic features, including 49 model-ID
-  cases. Every rejection must land on its original marked source line; unexpected
-  diagnostics fail the gate. Reviewed diagnostic-message requirements are kept.
+    cases. Every rejection must land on its original marked source line; unexpected
+    diagnostics fail the gate. Reviewed diagnostic-message requirements are kept.
 - Exact reference/native diagnostic codes, full messages, severity, original
-  source paths and start/end positions, and process exit status.
+    source paths and start/end positions, and process exit status.
 - The existing e2e positive project and all six required negative controls.
 - All 83 independent Django runtime proofs and nine QueryDict runtime/checker
-  comparisons.
+    comparisons.
 - All 18 supported Django/Python pairs from django-ty's checked-in version matrix.
 
 `inventory` hashes the complete source fixtures and plugin package, including
@@ -135,16 +135,15 @@ Temporary paths become explicit artifact labels. Unmodified originals and the
 label mapping remain under the acceptance root; build trees and generated
 projections are not copied into the branch.
 
-Additional Rust gates use `cargo +1.98.0 test --release --manifest-path
-companion/Cargo.toml`. Select the binary/tests and environment below. Integration
+Additional Rust gates use `cargo +1.98.0 test --release --manifest-path companion/Cargo.toml`. Select the binary/tests and environment below. Integration
 tests require `-- --ignored --nocapture`; use fresh output directories.
 
-| Selection | Required environment |
-| --- | --- |
-| `--bin ty-companion-rust` | `TY_COMPANION_TEST_OFFICIAL` = official ty executable |
-| `--test django_monty_parity` | `DJANGO_TY_SOURCE` = plugin checkout; `DJANGO_TY_ORACLE` = decompressed `evidence/protocol-inputs/oracle.jsonl.gz` |
+| Selection                      | Required environment                                                                                                                                                      |
+| ------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `--bin ty-companion-rust`      | `TY_COMPANION_TEST_OFFICIAL` = official ty executable                                                                                                                     |
+| `--test django_monty_parity`   | `DJANGO_TY_SOURCE` = plugin checkout; `DJANGO_TY_ORACLE` = decompressed `evidence/protocol-inputs/oracle.jsonl.gz`                                                        |
 | `--test django_frontend_edges` | `DJANGO_TY_SOURCE`, `TY_COMPANION_TEST_OFFICIAL`, `TY_COMPANION_TEST_FORK`, `TY_COMPANION_TEST_PYTHON` = Django environment, `TY_COMPANION_EDGE_OUTPUT` = fresh directory |
-| `--test sdk_virtual_semantics` | `TY_COMPANION_TEST_OFFICIAL`, `TY_COMPANION_TEST_FORK`, `TY_COMPANION_SDK_OUTPUT` = fresh directory |
+| `--test sdk_virtual_semantics` | `TY_COMPANION_TEST_OFFICIAL`, `TY_COMPANION_TEST_FORK`, `TY_COMPANION_SDK_OUTPUT` = fresh directory                                                                       |
 
 Use the 0.84 checker pair for these gates and `TY_MAX_PARALLELISM=1`. Harness
 checks are `python3 -m unittest discover -s companion/tests -p 'test_*.py'`.

@@ -1,4 +1,5 @@
 """Negative controls for the acceptance gate itself, not plugin correctness."""
+
 from __future__ import annotations
 
 import importlib.util

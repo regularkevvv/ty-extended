@@ -1,8 +1,13 @@
 mod checker;
+mod cli;
+mod cli_edits;
 mod flow;
 mod lower;
+mod lsp_mapping;
+mod lsp_server;
 mod mapping;
 mod model;
+mod notebook;
 mod project;
 mod project_check;
 mod runtime;
@@ -30,7 +35,7 @@ fn class_edits(source: &Source, analysis: &Analysis, edits: &mut Edits) {
             }
         }
         if !additions.is_empty() {
-            edits.insert(info.insertion, additions);
+            edits.insert_with_origin(info.insertion, additions, info.origin);
         }
     }
     let _ = source;
@@ -76,6 +81,7 @@ fn build_edits(
         }
     }
     for (&s, expression) in patches {
+        edits.annotate_type(s, expression.clone());
         edits.wrap(
             s,
             format!("{}({expression}, ", source.cast_name()),
@@ -273,6 +279,63 @@ fn check(input: &Path, options: &BTreeMap<String, String>) -> Result<Value> {
 }
 
 fn main() -> std::process::ExitCode {
+    let arguments: Vec<_> = std::env::args().skip(1).collect();
+    if arguments.is_empty()
+        || arguments
+            .first()
+            .is_some_and(|arg| matches!(arg.as_str(), "--help" | "-h"))
+    {
+        print!("{}", cli::HELP);
+        return std::process::ExitCode::SUCCESS;
+    }
+    if arguments
+        .first()
+        .is_some_and(|arg| arg == "--version" || arg == "-V")
+    {
+        println!("ty-companion-rust {}", env!("CARGO_PKG_VERSION"));
+        return std::process::ExitCode::SUCCESS;
+    }
+    if arguments.first().is_some_and(|arg| arg == "check")
+        && !arguments.iter().any(|arg| arg == "--out")
+    {
+        return match cli::check(&arguments[1..]) {
+            Ok(code) => std::process::ExitCode::from(code as u8),
+            Err(error) => {
+                eprintln!("{error:#}");
+                std::process::ExitCode::from(2)
+            }
+        };
+    }
+    if arguments.first().is_some_and(|arg| arg == "server") {
+        let mut index = 1;
+        let root = arguments
+            .get(index)
+            .filter(|arg| !arg.starts_with("--"))
+            .map(PathBuf::from);
+        if root.is_some() {
+            index += 1;
+        }
+        let mut options = BTreeMap::new();
+        while index < arguments.len() {
+            if arguments[index] == "--stdio" {
+                index += 1;
+                continue;
+            }
+            if !arguments[index].starts_with("--") || index + 1 >= arguments.len() {
+                eprintln!("server options require --NAME VALUE");
+                return std::process::ExitCode::from(2);
+            }
+            options.insert(arguments[index][2..].into(), arguments[index + 1].clone());
+            index += 2;
+        }
+        return match lsp_server::run(root.as_deref(), options) {
+            Ok(()) => std::process::ExitCode::SUCCESS,
+            Err(error) => {
+                eprintln!("{error:#}");
+                std::process::ExitCode::from(2)
+            }
+        };
+    }
     let run = || -> Result<(Value, bool)> {
         let arguments: Vec<_> = std::env::args().skip(1).collect();
         if arguments.first().map(String::as_str) == Some("suite") {

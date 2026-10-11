@@ -20,6 +20,9 @@ pub struct Source {
     pub text: String,
     pub path: String,
     pub module: String,
+    /// Notebook files have no importable Python module. Internal indexing still
+    /// uses `module`; only semantic protocol requests use this override.
+    pub protocol_module: Option<String>,
     pub prefix: String,
     pub lines: Vec<usize>,
 }
@@ -39,6 +42,7 @@ impl Source {
             text,
             path,
             module,
+            protocol_module: None,
             prefix,
             lines,
         }
@@ -96,6 +100,7 @@ impl CallSite {
 }
 #[derive(Clone)]
 pub struct ClassInfo {
+    pub origin: Span,
     pub fields: BTreeMap<String, String>,
     pub methods: BTreeSet<String>,
     pub insertion: usize,
@@ -108,6 +113,7 @@ pub struct Analysis {
     pub classes: BTreeMap<String, ClassInfo>,
     pub intrinsics: BTreeSet<String>,
     pub calls: BTreeMap<Span, CallSite>,
+    pub unbound_calls: BTreeSet<Span>,
     pub edits: Edits,
     pub helpers: BTreeMap<String, String>,
     pub expression_probes: BTreeMap<Span, String>,
@@ -205,6 +211,81 @@ pub type ReturnPatches = BTreeMap<Span, String>;
 
 pub fn expression_key(span: Span) -> String {
     format!("expr:{}:{}", span.start, span.end)
+}
+
+pub fn comprehension(
+    expr: &ruff_python_ast::Expr,
+) -> Option<(
+    &[ruff_python_ast::Comprehension],
+    Vec<&ruff_python_ast::Expr>,
+)> {
+    use ruff_python_ast::Expr;
+    match expr {
+        Expr::ListComp(comp) => Some((&comp.generators, vec![&comp.elt])),
+        Expr::SetComp(comp) => Some((&comp.generators, vec![&comp.elt])),
+        Expr::DictComp(comp) => Some((
+            &comp.generators,
+            comp.key
+                .iter()
+                .map(|key| key.as_ref())
+                .chain(std::iter::once(comp.value.as_ref()))
+                .collect(),
+        )),
+        Expr::Generator(comp) => Some((&comp.generators, vec![&comp.elt])),
+        _ => None,
+    }
+}
+
+/// Assignment expressions bind outside comprehensions; iteration targets do not.
+pub fn comprehension_outer_bindings(expr: &ruff_python_ast::Expr) -> BTreeSet<String> {
+    use ruff_python_ast::{
+        Expr,
+        visitor::{self, Visitor},
+    };
+    #[derive(Default)]
+    struct Named(BTreeSet<String>);
+    impl<'a> Visitor<'a> for Named {
+        fn visit_expr(&mut self, expression: &'a Expr) {
+            match expression {
+                Expr::Named(named) => {
+                    if let Expr::Name(name) = named.target.as_ref() {
+                        self.0.insert(name.id.to_string());
+                    }
+                    self.visit_expr(&named.value);
+                }
+                Expr::Lambda(_) => {}
+                _ => visitor::walk_expr(self, expression),
+            }
+        }
+    }
+    let mut names = Named::default();
+    names.visit_expr(expr);
+    names.0
+}
+
+pub fn pattern_bindings(pattern: &ruff_python_ast::Pattern) -> BTreeSet<String> {
+    use ruff_python_ast::{
+        Pattern,
+        visitor::{self, Visitor},
+    };
+    struct Bindings(BTreeSet<String>);
+    impl<'a> Visitor<'a> for Bindings {
+        fn visit_pattern(&mut self, pattern: &'a Pattern) {
+            let name = match pattern {
+                Pattern::MatchAs(pattern) => pattern.name.as_ref(),
+                Pattern::MatchStar(pattern) => pattern.name.as_ref(),
+                Pattern::MatchMapping(pattern) => pattern.rest.as_ref(),
+                _ => None,
+            };
+            if let Some(name) = name {
+                self.0.insert(name.to_string());
+            }
+            visitor::walk_pattern(self, pattern);
+        }
+    }
+    let mut bindings = Bindings(BTreeSet::new());
+    bindings.visit_pattern(pattern);
+    bindings.0
 }
 
 #[cfg(test)]

@@ -1,11 +1,11 @@
 //! Byte-preserving source projection and sparse diagnostic source maps.
 //!
 //! Internal edit ranges use UTF-8 byte offsets. CLI and probe positions count
-//! Unicode scalar values, as ty GitLab diagnostics do. This does not implement
-//! the UTF-16 positions of the LSP protocol.
+//! Unicode scalar values, as ty GitLab diagnostics do. The editor protocol's
+//! negotiated position encoding is handled by `lsp_mapping`.
 use std::collections::{BTreeMap, BTreeSet};
 
-use anyhow::{Result, anyhow, bail, ensure};
+use anyhow::{Context, Result, anyhow, bail, ensure};
 use serde_json::{Value, json};
 
 use crate::model::{Source, Span};
@@ -119,6 +119,7 @@ enum Operation {
     Insert {
         offset: usize,
         text: String,
+        origin: Option<Span>,
     },
     Replace {
         span: Span,
@@ -129,12 +130,30 @@ enum Operation {
         before: String,
         after: String,
         probe: Option<String>,
+        callable: Option<String>,
+    },
+    TypeHint {
+        span: Span,
+        expression: String,
     },
 }
 
 impl Edits {
     pub fn insert(&mut self, offset: usize, text: String) {
-        self.operations.push(Operation::Insert { offset, text });
+        self.operations.push(Operation::Insert {
+            offset,
+            text,
+            origin: None,
+        });
+    }
+    /// Anchor a generated declaration to its user-authored declaration. This
+    /// allows navigation, but never authorizes applying generated text edits.
+    pub fn insert_with_origin(&mut self, offset: usize, text: String, origin: Span) {
+        self.operations.push(Operation::Insert {
+            offset,
+            text,
+            origin: Some(origin),
+        });
     }
     pub fn replace(&mut self, span: Span, text: String) {
         self.operations.push(Operation::Replace { span, text });
@@ -146,6 +165,33 @@ impl Edits {
             before,
             after,
             probe,
+            callable: None,
+        });
+    }
+    pub fn annotate_type(&mut self, span: Span, expression: String) {
+        self.operations
+            .push(Operation::TypeHint { span, expression });
+    }
+    pub fn wrap_with_type(
+        &mut self,
+        span: Span,
+        before: String,
+        after: String,
+        probe: Option<String>,
+        expression: String,
+    ) {
+        self.annotate_type(span, expression);
+        self.wrap(span, before, after, probe);
+    }
+    /// Route callable hover through the actual projected callable selected by
+    /// this wrapper, while preserving source navigation through copied bytes.
+    pub fn wrap_callable(&mut self, span: Span, before: String, after: String, helper: String) {
+        self.operations.push(Operation::Wrap {
+            span,
+            before,
+            after,
+            probe: None,
+            callable: Some(helper),
         });
     }
     pub fn extend(&mut self, other: Edits) {
@@ -158,6 +204,7 @@ struct Wrapper {
     before: String,
     after: String,
     probe: Option<String>,
+    callable: Option<String>,
 }
 
 struct Node {
@@ -177,19 +224,370 @@ impl Node {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 struct Mapping {
     generated: Span,
     original: Span,
     exact: bool,
 }
 
+#[derive(Clone)]
 pub struct Rendered {
     pub text: String,
     pub probes: BTreeMap<(usize, usize), String>,
     mappings: Vec<Mapping>,
+    exact_mappings: Vec<usize>,
     lines: Vec<usize>,
     synthetic_casts: BTreeSet<usize>,
+    type_hints: Vec<(Span, String)>,
+    callable_hovers: Vec<(Span, Span)>,
+    synthetic_argument_positions: BTreeSet<usize>,
+    signature_masks: Vec<Span>,
+}
+
+impl Rendered {
+    /// Split the combined notebook projection back into its code cells. Each
+    /// source span excludes the one newline separator appended by ty between
+    /// cells. Generated preludes belong to the first cell; trailing generated
+    /// declarations belong to the last. No offsets are inferred from lines.
+    pub fn split_cells(&self, original: &str, cells: &[Span]) -> Result<Vec<Self>> {
+        if cells.is_empty() {
+            return Ok(Vec::new());
+        }
+        let mut output = Vec::with_capacity(cells.len());
+        let mut expected_original = 0;
+        let mut generated_start = 0;
+        for (index, cell) in cells.iter().copied().enumerate() {
+            ensure!(
+                cell.start == expected_original
+                    && cell.start <= cell.end
+                    && original.get(cell.end..cell.end + 1) == Some("\n"),
+                "notebook cells must cover source with one newline separator each"
+            );
+            ensure!(
+                original.is_char_boundary(cell.start) && original.is_char_boundary(cell.end),
+                "notebook cell splits a Unicode character"
+            );
+            let separator = self
+                .exact_generated_span(Span {
+                    start: cell.end,
+                    end: cell.end + 1,
+                })
+                .context("notebook separator was replaced by a projection")?;
+            let final_cell = index + 1 == cells.len();
+            let generated_end = if final_cell {
+                self.text.len() - usize::from(self.text.ends_with('\n'))
+            } else {
+                separator.start
+            };
+            ensure!(
+                generated_start <= generated_end,
+                "overlapping generated notebook cells"
+            );
+            output.push(self.slice(
+                cell,
+                Span {
+                    start: generated_start,
+                    end: generated_end,
+                },
+            )?);
+            generated_start = separator.end;
+            expected_original = cell.end + 1;
+        }
+        ensure!(
+            expected_original == original.len(),
+            "notebook cells do not cover combined source"
+        );
+        Ok(output)
+    }
+
+    /// Restrict an existing byte map to one source/generated window. This is
+    /// used for native notebook cells; crossing exact chunks are clipped while
+    /// unanchored helper declarations remain unmapped.
+    pub fn slice(&self, original: Span, generated: Span) -> Result<Self> {
+        ensure!(
+            original.start <= original.end && generated.start <= generated.end,
+            "inverted source-map window"
+        );
+        let text = self
+            .text
+            .get(generated.start..generated.end)
+            .context("source-map window splits generated UTF-8")?
+            .to_owned();
+        let shift = |span: Span, offset: usize| Span {
+            start: span.start - offset,
+            end: span.end - offset,
+        };
+        let contains =
+            |outer: Span, inner: Span| outer.start <= inner.start && inner.end <= outer.end;
+        let mut mappings = Vec::new();
+        for mapping in &self.mappings {
+            let mut start = mapping.generated.start.max(generated.start);
+            let mut end = mapping.generated.end.min(generated.end);
+            if start >= end {
+                continue;
+            }
+            let mapped_original = if mapping.exact {
+                start = start.max(
+                    mapping.generated.start + original.start.saturating_sub(mapping.original.start),
+                );
+                end = end.min(
+                    mapping.generated.start + original.end.saturating_sub(mapping.original.start),
+                );
+                if start >= end {
+                    continue;
+                }
+                Span {
+                    start: mapping.original.start + start - mapping.generated.start,
+                    end: mapping.original.start + end - mapping.generated.start,
+                }
+            } else {
+                if !contains(original, mapping.original) {
+                    continue;
+                }
+                mapping.original
+            };
+            mappings.push(Mapping {
+                generated: shift(Span { start, end }, generated.start),
+                original: shift(mapped_original, original.start),
+                exact: mapping.exact,
+            });
+        }
+        let mut lines = vec![0];
+        for (index, byte) in text.bytes().enumerate() {
+            if byte == b'\n' || (byte == b'\r' && text.as_bytes().get(index + 1) != Some(&b'\n')) {
+                lines.push(index + 1);
+            }
+        }
+        let exact_mappings = mappings
+            .iter()
+            .enumerate()
+            .filter_map(|(index, mapping)| mapping.exact.then_some(index))
+            .collect();
+        let points = |values: &BTreeSet<usize>| {
+            values
+                .range(generated.start..generated.end)
+                .map(|offset| offset - generated.start)
+                .collect()
+        };
+        let mut output = Self {
+            text,
+            lines,
+            mappings,
+            exact_mappings,
+            probes: BTreeMap::new(),
+            synthetic_casts: points(&self.synthetic_casts),
+            synthetic_argument_positions: points(&self.synthetic_argument_positions),
+            type_hints: self
+                .type_hints
+                .iter()
+                .filter(|(span, _)| contains(original, *span))
+                .map(|(span, hint)| (shift(*span, original.start), hint.clone()))
+                .collect(),
+            callable_hovers: self
+                .callable_hovers
+                .iter()
+                .filter(|(source, target)| {
+                    contains(original, *source) && contains(generated, *target)
+                })
+                .map(|(source, target)| {
+                    (
+                        shift(*source, original.start),
+                        shift(*target, generated.start),
+                    )
+                })
+                .collect(),
+            signature_masks: self
+                .signature_masks
+                .iter()
+                .filter(|span| contains(generated, **span))
+                .map(|span| shift(*span, generated.start))
+                .collect(),
+        };
+        for (&(line, column), key) in &self.probes {
+            let offset = offset_at(self, &json!({"line":line,"column":column}))?;
+            if generated.start <= offset && offset < generated.end {
+                let local = offset - generated.start;
+                let line = output
+                    .lines
+                    .partition_point(|start| *start <= local)
+                    .saturating_sub(1);
+                let mut column = output.text[output.lines[line]..local].chars().count() + 1;
+                if line == 0 && output.text.starts_with('\u{feff}') {
+                    column = column.saturating_sub(1).max(1);
+                }
+                output.probes.insert((line + 1, column), key.clone());
+            }
+        }
+        Ok(output)
+    }
+    pub fn hover_target(&self, original: usize) -> Option<Span> {
+        self.callable_hovers
+            .iter()
+            .filter(|(span, _)| span.start <= original && original < span.end)
+            .min_by_key(|(span, _)| span.end - span.start)
+            .map(|(_, generated)| *generated)
+    }
+    /// A declaration-oriented editor view retains normal calls while removing
+    /// only the tuple dispatch to validation helpers. Byte/line positions stay
+    /// identical, so the same source map remains valid.
+    pub fn signature_text(&self) -> Option<String> {
+        if self.signature_masks.is_empty() {
+            return None;
+        }
+        let mut bytes = self.text.as_bytes().to_vec();
+        for mask in &self.signature_masks {
+            for byte in &mut bytes[mask.start..mask.end] {
+                if !matches!(*byte, b'\r' | b'\n') {
+                    *byte = b' ';
+                }
+            }
+        }
+        String::from_utf8(bytes).ok()
+    }
+    pub fn hover_type(&self, original: Span) -> Option<&str> {
+        // An attribute result refinement applies to its terminal member, never
+        // to a receiver or argument contained in the same expression.
+        self.type_hints
+            .iter()
+            .rev()
+            .filter(|(span, _)| span.start <= original.start && span.end == original.end)
+            .min_by_key(|(span, _)| span.end - span.start)
+            .map(|(_, expression)| expression.as_str())
+    }
+    pub fn synthetic_parameter_hint(&self, generated: usize) -> bool {
+        self.synthetic_argument_positions.contains(&generated)
+    }
+    /// Map a generated read-only range. Synthesized expressions/declarations
+    /// return their original enclosing expression/declaration when anchored.
+    pub fn original_span(&self, generated: Span) -> Option<Span> {
+        map_range(self, generated)
+    }
+
+    /// Map edits and semantic tokens only when every byte is copied verbatim.
+    /// A diagnostic anchor is deliberately insufficient for applying an edit.
+    pub fn exact_original_span(&self, generated: Span) -> Option<Span> {
+        self.exact_span(generated, false)
+    }
+
+    pub fn exact_generated_span(&self, original: Span) -> Option<Span> {
+        self.exact_span(original, true)
+    }
+
+    fn exact_span(&self, span: Span, reverse: bool) -> Option<Span> {
+        if span.start > span.end {
+            return None;
+        }
+        // Writer emits exact chunks in both source and generated order. The
+        // sparse index avoids rescanning a whole module for each semantic token.
+        let chunk = |index: usize| {
+            let m = &self.mappings[self.exact_mappings[index]];
+            if reverse {
+                (m.original, m.generated)
+            } else {
+                (m.generated, m.original)
+            }
+        };
+        let candidate = self
+            .exact_mappings
+            .partition_point(|index| {
+                let m = &self.mappings[*index];
+                (if reverse { m.original } else { m.generated }).start <= span.start
+            })
+            .checked_sub(1)?;
+        // Prefer the chunk beginning at a cursor over the chunk ending there.
+        // This puts a cursor at the start of a wrapped expression inside it.
+        if span.start == span.end {
+            let (from, to) = chunk(candidate);
+            if span.start > from.end {
+                return None;
+            }
+            let offset = to.start + span.start - from.start;
+            return Some(Span {
+                start: offset,
+                end: offset,
+            });
+        }
+        let mut cursor = span.start;
+        let mut target_start = None;
+        let mut target_end = 0;
+        for index in candidate..self.exact_mappings.len() {
+            let (from, to) = chunk(index);
+            if from.end <= cursor {
+                continue;
+            }
+            if from.start > cursor {
+                break;
+            }
+            let mapped = to.start + cursor - from.start;
+            if target_start.is_some() && mapped != target_end {
+                return None;
+            }
+            target_start.get_or_insert(mapped);
+            let end = from.end.min(span.end);
+            target_end = to.start + end - from.start;
+            cursor = end;
+            if cursor == span.end {
+                return Some(Span {
+                    start: target_start?,
+                    end: target_end,
+                });
+            }
+        }
+        None
+    }
+
+    /// Route a user request into its generated expression. Exact copied text
+    /// wins; replacement-only expressions use their enclosing generated span.
+    pub fn generated_span(&self, original: Span) -> Option<Span> {
+        if let Some(span) = self.exact_generated_span(original) {
+            return Some(span);
+        }
+        if original.start > original.end {
+            return None;
+        }
+        let boundary = |offset: usize, end: bool| {
+            let point = Span {
+                start: offset,
+                end: offset,
+            };
+            // End positions have left affinity (before a closing wrapper).
+            if end {
+                if let Some(m) = self
+                    .mappings
+                    .iter()
+                    .filter(|m| m.exact)
+                    .find(|m| m.original.start < offset && offset <= m.original.end)
+                {
+                    return Some(m.generated.start + offset - m.original.start);
+                }
+            } else if let Some(exact) = self.exact_generated_span(point) {
+                return Some(exact.start);
+            }
+            let m = self
+                .mappings
+                .iter()
+                .filter(|m| m.original.start <= offset && offset <= m.original.end)
+                .min_by_key(|m| {
+                    (
+                        m.original.end - m.original.start,
+                        m.generated.end - m.generated.start,
+                    )
+                })?;
+            Some(if end {
+                m.generated.end
+            } else {
+                m.generated.start
+            })
+        };
+        let start = boundary(original.start, false)?;
+        let end = if original.start == original.end {
+            start
+        } else {
+            boundary(original.end, true)?
+        };
+        (start <= end).then_some(Span { start, end })
+    }
 }
 
 /// Each instrumented module includes an unconditional calibration probe.
@@ -248,12 +646,35 @@ fn validate_offset(source: &Source, offset: usize) -> Result<()> {
 
 pub fn render(source: &Source, edits: &Edits) -> Result<Rendered> {
     let mut grouped = BTreeMap::<Span, Node>::new();
-    let mut insertions = BTreeMap::<usize, Vec<String>>::new();
+    let mut insertions = BTreeMap::<usize, Vec<(String, Option<Span>)>>::new();
+    let mut type_hints = Vec::new();
     for operation in &edits.operations {
         let span = match operation {
-            Operation::Insert { offset, text } => {
+            Operation::TypeHint { span, expression } => {
+                validate_offset(source, span.start)?;
+                validate_offset(source, span.end)?;
+                ensure!(span.start < span.end, "empty/inverted hover type origin");
+                type_hints.push((*span, expression.clone()));
+                continue;
+            }
+            Operation::Insert {
+                offset,
+                text,
+                origin,
+            } => {
                 validate_offset(source, *offset)?;
-                insertions.entry(*offset).or_default().push(text.clone());
+                if let Some(origin) = origin {
+                    validate_offset(source, origin.start)?;
+                    validate_offset(source, origin.end)?;
+                    ensure!(
+                        origin.start <= origin.end,
+                        "inverted inserted declaration origin"
+                    );
+                }
+                insertions
+                    .entry(*offset)
+                    .or_default()
+                    .push((text.clone(), *origin));
                 continue;
             }
             Operation::Replace { span, .. } | Operation::Wrap { span, .. } => *span,
@@ -277,13 +698,15 @@ pub fn render(source: &Source, edits: &Edits) -> Result<Rendered> {
                 before,
                 after,
                 probe,
+                callable,
                 ..
             } => node.wrappers.push(Wrapper {
                 before: before.clone(),
                 after: after.clone(),
                 probe: probe.clone(),
+                callable: callable.clone(),
             }),
-            Operation::Insert { .. } => unreachable!(),
+            Operation::Insert { .. } | Operation::TypeHint { .. } => unreachable!(),
         }
     }
     let root_span = Span {
@@ -345,8 +768,13 @@ pub fn render(source: &Source, edits: &Edits) -> Result<Rendered> {
             text: String::with_capacity(source.text.len()),
             probes: BTreeMap::new(),
             mappings: Vec::new(),
+            exact_mappings: Vec::new(),
             lines: vec![0],
             synthetic_casts: BTreeSet::new(),
+            type_hints,
+            callable_hovers: Vec::new(),
+            synthetic_argument_positions: BTreeSet::new(),
+            signature_masks: Vec::new(),
         },
     };
     writer.node(0)?;
@@ -355,13 +783,22 @@ pub fn render(source: &Source, edits: &Edits) -> Result<Rendered> {
         writer.next_insertion == writer.insertions.len(),
         "unrendered source insertions"
     );
+    writer.output.exact_mappings = writer
+        .output
+        .mappings
+        .iter()
+        .enumerate()
+        .filter_map(|(index, m)| m.exact.then_some(index))
+        .collect();
     Ok(writer.output)
 }
+
+type InsertedText = (String, Option<Span>);
 
 struct Writer<'a> {
     source: &'a Source,
     nodes: &'a [Node],
-    insertions: Vec<(usize, Vec<String>)>,
+    insertions: Vec<(usize, Vec<InsertedText>)>,
     next_insertion: usize,
     output: Rendered,
 }
@@ -396,8 +833,19 @@ impl Writer<'_> {
             // Clone the insertion group to release its borrow before appending.
             let texts = self.insertions[self.next_insertion].1.clone();
             self.next_insertion += 1;
-            for text in texts {
+            for (text, origin) in texts {
+                let start = self.output.text.len();
                 self.append(&text);
+                if let Some(original) = origin {
+                    self.output.mappings.push(Mapping {
+                        generated: Span {
+                            start,
+                            end: self.output.text.len(),
+                        },
+                        original,
+                        exact: false,
+                    });
+                }
             }
         }
         Ok(())
@@ -448,6 +896,11 @@ impl Writer<'_> {
                 self.output.synthetic_casts.insert(self.output.text.len());
             }
             self.append(&wrapper.before);
+            if wrapper.before.contains(&self.source.cast_name()) {
+                self.output
+                    .synthetic_argument_positions
+                    .insert(self.output.text.len());
+            }
             if let Some(key) = &wrapper.probe {
                 let offset = self.output.text.len();
                 let line = self.output.lines.len();
@@ -487,6 +940,32 @@ impl Writer<'_> {
             self.original(cursor, node.span.end)?;
         }
         for wrapper in &node.wrappers {
+            if let Some(helper) = &wrapper.callable {
+                let relative = wrapper.after.find(helper).ok_or_else(|| {
+                    anyhow!("callable wrapper does not contain its helper reference")
+                })?;
+                let start = self.output.text.len() + relative;
+                self.output.callable_hovers.push((
+                    node.span,
+                    Span {
+                        start,
+                        end: start + helper.len(),
+                    },
+                ));
+                let close = wrapper.after[relative + helper.len()..]
+                    .find(')')
+                    .map(|offset| offset + relative + helper.len())
+                    .ok_or_else(|| anyhow!("callable wrapper is missing tuple close"))?;
+                let base = self.output.text.len();
+                self.output.signature_masks.push(Span {
+                    start: base,
+                    end: base + close,
+                });
+                self.output.signature_masks.push(Span {
+                    start: base + close + 1,
+                    end: base + wrapper.after.len(),
+                });
+            }
             self.append(&wrapper.after);
         }
         if !node.wrappers.is_empty() {
@@ -544,17 +1023,8 @@ fn map_range(rendered: &Rendered, span: Span) -> Option<Span> {
         mapping.generated.start <= span.start && span.end <= mapping.generated.end
     };
     // Exact copied bytes have priority over enclosing synthetic expressions.
-    if let Some(mapping) = rendered
-        .mappings
-        .iter()
-        .filter(|mapping| mapping.exact)
-        .find(contains)
-    {
-        let start = mapping.original.start + span.start - mapping.generated.start;
-        return Some(Span {
-            start,
-            end: start + span.end - span.start,
-        });
+    if let Some(original) = rendered.exact_original_span(span) {
+        return Some(original);
     }
     if let Some(mapping) = rendered
         .mappings
@@ -641,6 +1111,19 @@ pub fn map_diagnostics_with_origins(
             .as_str()
             .ok_or_else(|| anyhow!("diagnostic has no description: {diagnostic}"))?
             .to_owned();
+        if diagnostic["check_name"] == "invalid-argument-type" {
+            for helper in helpers
+                .keys()
+                .filter(|name| name.starts_with(&format!("{}call_", source.prefix)))
+            {
+                let prefix =
+                    format!("invalid-argument-type: Argument to function `{helper}` is incorrect");
+                if let Some(detail) = description.strip_prefix(&prefix) {
+                    description = format!("invalid-argument-type: Argument is incorrect{detail}");
+                    break;
+                }
+            }
+        }
         for (helper, original) in helpers {
             description = description.replace(&format!("`{helper}`"), &format!("`{original}`"));
         }
@@ -839,6 +1322,36 @@ mod tests {
                 .1,
             unrelated
         );
+        Ok(())
+    }
+
+    #[test]
+    fn generated_callable_wording_matches_plugin_contract_without_changing_original_functions()
+    -> Result<()> {
+        let source = source("decode(42)\noriginal(42)\n");
+        let rendered = render(&source, &Edits::default())?;
+        let first = source.text.find("42").unwrap();
+        let second = source.text.rfind("42").unwrap();
+        let helper = format!("{}call_0", source.prefix);
+        let mut generated = diagnostic(&rendered, "invalid-argument-type", first, first + 2);
+        generated["description"] = json!(format!(
+            "invalid-argument-type: Argument to function `{helper}` is incorrect: Expected `str`, found `Literal[42]`"
+        ));
+        let mut original = diagnostic(&rendered, "invalid-argument-type", second, second + 2);
+        let original_message = "invalid-argument-type: Argument to function `original` is incorrect: Expected `str`, found `Literal[42]`";
+        original["description"] = json!(original_message);
+        let (mapped, _) = map_diagnostics(
+            &source,
+            &rendered,
+            &[generated, original],
+            &BTreeMap::from([(helper, "demo.decode".into())]),
+            &[],
+        )?;
+        assert_eq!(
+            mapped[0]["description"],
+            "invalid-argument-type: Argument is incorrect: Expected `str`, found `Literal[42]`"
+        );
+        assert_eq!(mapped[1]["description"], original_message);
         Ok(())
     }
 
@@ -1212,6 +1725,61 @@ mod tests {
         assert_eq!(
             source.position(source.text.find("print").unwrap()),
             json!({"line":2,"column":1})
+        );
+        Ok(())
+    }
+
+    #[test]
+    fn notebook_cells_keep_unicode_offsets_wrappers_and_helpers() -> Result<()> {
+        let first = "label = '😀'\r\nvalue = 1";
+        let second = "result = value\n";
+        let source = source(&format!("{first}\n{second}\n"));
+        let mut edits = Edits::default();
+        edits.insert(0, "from typing import cast\n".into());
+        let original = source.text.rfind("value").unwrap();
+        edits.wrap_with_type(
+            Span {
+                start: original,
+                end: original + 5,
+            },
+            "cast(int, ".into(),
+            ")".into(),
+            None,
+            "int".into(),
+        );
+        edits.insert(source.text.len(), "final_helper: int = 1\n".into());
+        let rendered = render(&source, &edits)?;
+        let cells = rendered.split_cells(
+            &source.text,
+            &[
+                Span {
+                    start: 0,
+                    end: first.len(),
+                },
+                Span {
+                    start: first.len() + 1,
+                    end: first.len() + 1 + second.len(),
+                },
+            ],
+        )?;
+        assert_eq!(cells[0].text, format!("from typing import cast\n{first}"));
+        assert_eq!(
+            cells[1].text,
+            "result = cast(int, value)\n\nfinal_helper: int = 1"
+        );
+        let generated = cells[1].text.find("value").unwrap();
+        assert_eq!(
+            cells[1].exact_original_span(Span {
+                start: generated,
+                end: generated + 5
+            }),
+            Some(Span { start: 9, end: 14 })
+        );
+        assert_eq!(cells[1].hover_type(Span { start: 9, end: 14 }), Some("int"));
+        assert!(
+            cells[0]
+                .exact_original_span(Span { start: 0, end: 4 })
+                .is_none()
         );
         Ok(())
     }

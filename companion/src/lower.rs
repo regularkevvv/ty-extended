@@ -153,17 +153,7 @@ fn class_patch(
             _ => {}
         }
     }
-    let first = class.body.first().context("empty class body")?;
-    let insertion = span(first).start;
-    let line = source.text[..insertion]
-        .rfind(['\r', '\n'])
-        .map_or(0, |i| i + 1);
-    let raw_indent = &source.text[line..insertion];
-    let indent = if raw_indent.chars().all(|c| c == ' ' || c == '\t') {
-        raw_indent.to_owned()
-    } else {
-        "    ".into()
-    };
+    let (insertion, indent) = crate::static_project::class_insertion(source, class, edits)?;
     let mut declared = BTreeMap::new();
     let mut methods = BTreeSet::new();
     for stmt in &class.body {
@@ -275,6 +265,7 @@ fn class_patch(
         diagnostics.push(json!({"diagnostic":diagnostic,"source":source.location(span(class))}));
     }
     Ok(ClassInfo {
+        origin: span(&class.name),
         fields: field_types.clone(),
         methods,
         insertion,
@@ -288,6 +279,9 @@ struct Bindings {
     names: BTreeSet<String>,
 }
 impl<'a> Visitor<'a> for Bindings {
+    fn visit_pattern(&mut self, pattern: &'a ruff_python_ast::Pattern) {
+        self.names.extend(crate::model::pattern_bindings(pattern));
+    }
     fn visit_stmt(&mut self, node: &'a Stmt) {
         match node {
             Stmt::FunctionDef(f) => {
@@ -319,6 +313,11 @@ impl<'a> Visitor<'a> for Bindings {
         }
     }
     fn visit_expr(&mut self, node: &'a Expr) {
+        if crate::model::comprehension(node).is_some() {
+            self.names
+                .extend(crate::model::comprehension_outer_bindings(node));
+            return;
+        }
         match node {
             Expr::Name(name) if name.ctx == ExprContext::Store => {
                 self.names.insert(name.id.to_string());
@@ -336,12 +335,44 @@ struct Calls<'a> {
     probes: BTreeMap<Span, String>,
     intrinsics: BTreeSet<String>,
     shadowed: BTreeSet<String>,
+    available_imports: BTreeSet<String>,
+    deferred: bool,
+    unbound: BTreeSet<Span>,
 }
 impl<'a> Visitor<'a> for Calls<'_> {
     fn visit_annotation(&mut self, _node: &'a Expr) {}
     fn visit_expr(&mut self, node: &'a Expr) {
+        if let Some((generators, elements)) = crate::model::comprehension(node) {
+            let Some((first, rest)) = generators.split_first() else {
+                return;
+            };
+            self.visit_expr(&first.iter);
+            let previous = self.shadowed.clone();
+            let mut bindings = Bindings::default();
+            bindings.visit_expr(&first.target);
+            self.shadowed.extend(bindings.names);
+            for condition in &first.ifs {
+                self.visit_expr(condition);
+            }
+            for generator in rest {
+                self.visit_expr(&generator.iter);
+                let mut bindings = Bindings::default();
+                bindings.visit_expr(&generator.target);
+                self.shadowed.extend(bindings.names);
+                for condition in &generator.ifs {
+                    self.visit_expr(condition);
+                }
+            }
+            for element in elements {
+                self.visit_expr(element);
+            }
+            self.shadowed = previous;
+            return;
+        }
         if let Expr::Lambda(lambda) = node {
             let previous = self.shadowed.clone();
+            let deferred = self.deferred;
+            self.deferred = true;
             if let Some(parameters) = &lambda.parameters {
                 self.shadowed.extend(
                     parameters
@@ -351,6 +382,7 @@ impl<'a> Visitor<'a> for Calls<'_> {
             }
             self.visit_expr(&lambda.body);
             self.shadowed = previous;
+            self.deferred = deferred;
             return;
         }
         match node {
@@ -373,6 +405,19 @@ impl<'a> Visitor<'a> for Calls<'_> {
             let canonical = self.runtime.canonical_name(self.source, raw);
             let last = raw.rsplit('.').next().unwrap_or(raw);
             let root = raw.split('.').next().unwrap_or(raw);
+            if !self.deferred
+                && self.runtime.project.as_ref().is_some_and(|project| {
+                    project
+                        .modules
+                        .get(&self.source.module)
+                        .is_some_and(|module| module.imports.contains_key(root))
+                })
+                && !self.available_imports.contains(root)
+            {
+                self.unbound.insert(span(call));
+                visitor::walk_expr(self, node);
+                return;
+            }
             let shadowed = self.shadowed.contains(root);
             if !shadowed
                 && matches!(
@@ -407,7 +452,9 @@ impl<'a> Visitor<'a> for Calls<'_> {
                     .as_array()
                     .into_iter()
                     .flatten()
-                    .any(|c| c["qualified-name"] == canonical);
+                    .any(|c| {
+                        c["qualified-name"] == self.runtime.protocol_name(self.source, &canonical)
+                    });
             let constructor = !shadowed
                 && self.runtime.project.as_ref().is_some_and(|p| {
                     claims["constructors"]
@@ -415,10 +462,16 @@ impl<'a> Visitor<'a> for Calls<'_> {
                         .into_iter()
                         .flatten()
                         .any(|c| {
-                            c["qualified-name"] == canonical
-                                || c["base-qualified-name"]
-                                    .as_str()
-                                    .is_some_and(|b| p.is_subclass(&canonical, b))
+                            c["qualified-name"]
+                                == self.runtime.protocol_name(self.source, &canonical)
+                                || c["base-qualified-name"].as_str().is_some_and(|base| {
+                                    let base = if self.source.protocol_module.is_some() {
+                                        self.runtime.canonical_name(self.source, base)
+                                    } else {
+                                        base.to_owned()
+                                    };
+                                    p.is_subclass(&canonical, &base)
+                                })
                         })
                 });
             if method || exact || constructor {
@@ -483,6 +536,9 @@ impl<'a> Visitor<'a> for Calls<'_> {
                     }
                 }
                 let previous = self.shadowed.clone();
+                let deferred = self.deferred;
+                let imports = self.available_imports.clone();
+                self.deferred = true;
                 let mut bindings = Bindings::default();
                 bindings.visit_body(&function.body);
                 self.shadowed.extend(bindings.names);
@@ -494,8 +550,14 @@ impl<'a> Visitor<'a> for Calls<'_> {
                 );
                 self.visit_body(&function.body);
                 self.shadowed = previous;
+                self.deferred = deferred;
+                self.available_imports = imports;
             }
-            Stmt::ClassDef(class) => self.visit_body(&class.body),
+            Stmt::ClassDef(class) => {
+                let imports = self.available_imports.clone();
+                self.visit_body(&class.body);
+                self.available_imports = imports;
+            }
             Stmt::AnnAssign(assignment) => {
                 self.visit_expr(&assignment.target);
                 if let Some(value) = &assignment.value {
@@ -517,6 +579,12 @@ impl<'a> Visitor<'a> for Calls<'_> {
                 }
             }
             Stmt::ImportFrom(import) => {
+                self.available_imports.extend(
+                    import
+                        .names
+                        .iter()
+                        .map(|alias| alias.asname.as_ref().unwrap_or(&alias.name).to_string()),
+                );
                 if import
                     .module
                     .as_ref()
@@ -530,12 +598,33 @@ impl<'a> Visitor<'a> for Calls<'_> {
                     }
                 }
             }
+            Stmt::Import(import) => {
+                self.available_imports
+                    .extend(import.names.iter().map(|alias| {
+                        alias
+                            .asname
+                            .as_ref()
+                            .map(ToString::to_string)
+                            .unwrap_or_else(|| {
+                                alias.name.as_str().split('.').next().unwrap().to_owned()
+                            })
+                    }));
+            }
             _ => visitor::walk_stmt(self, node),
         }
     }
 }
 
 pub fn analyze(source: &Source, suite: &[Stmt], runtime: &mut Runtime) -> Result<Analysis> {
+    analyze_with_oracle(source, suite, runtime, None)
+}
+
+pub fn analyze_with_oracle(
+    source: &Source,
+    suite: &[Stmt],
+    runtime: &mut Runtime,
+    oracle: Option<&crate::model::Oracle>,
+) -> Result<Analysis> {
     let offset = crate::static_project::prelude_offset(source, suite);
     let mut types = Types::with_project(
         &format!("{}static_", source.prefix),
@@ -575,7 +664,7 @@ pub fn analyze(source: &Source, suite: &[Stmt], runtime: &mut Runtime) -> Result
                         diagnostics,
                         generated,
                     )?;
-                    classes.insert(c.name.to_string(), info);
+                    classes.insert(name.clone(), info);
                     classes_in(
                         source,
                         &c.body,
@@ -632,14 +721,18 @@ pub fn analyze(source: &Source, suite: &[Stmt], runtime: &mut Runtime) -> Result
         probes: BTreeMap::new(),
         intrinsics: BTreeSet::new(),
         shadowed: BTreeSet::new(),
+        available_imports: BTreeSet::new(),
+        deferred: false,
+        unbound: BTreeSet::new(),
     };
     collector.visit_body(suite);
     let calls = collector.calls;
+    let unbound_calls = collector.unbound;
     let expression_probes = collector.probes;
     let intrinsics = collector.intrinsics;
     let mut helpers = BTreeMap::new();
     for call in calls.values() {
-        let response = call_request(runtime, source, "adjust-call-signature", call, None, None)?;
+        let response = call_request(runtime, source, "adjust-call-signature", call, oracle, None)?;
         if response["kind"] == "call-signature-patch" {
             let signature = &response["signature"];
             let parameters = types.parameter_list(
@@ -658,7 +751,7 @@ pub fn analyze(source: &Source, suite: &[Stmt], runtime: &mut Runtime) -> Result
             helpers.insert(helper.clone(), call.callee.clone());
             // Keep the original callable expression available for checking and
             // nested probes while selecting the plugin's callable signature.
-            edits.wrap(call.function, "(".into(), format!(", {helper})[1]"), None);
+            edits.wrap_callable(call.function, "(".into(), format!(", {helper})[1]"), helper);
         }
         for diagnostic in response["diagnostics"].as_array().into_iter().flatten() {
             diagnostics.push(json!({"diagnostic":diagnostic,"source":source.location(call.span)}));
@@ -672,11 +765,13 @@ pub fn analyze(source: &Source, suite: &[Stmt], runtime: &mut Runtime) -> Result
             types.prelude()
         ),
     );
+    helpers.extend(types.display_names());
     Ok(Analysis {
         prelude_offset: offset,
         classes,
         intrinsics,
         calls,
+        unbound_calls,
         edits,
         helpers,
         expression_probes,

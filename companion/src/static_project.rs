@@ -52,6 +52,56 @@ pub fn prelude_offset(source: &Source, suite: &[Stmt]) -> usize {
         })
 }
 
+/// Keep the real leading docstring first, and split simple suites before
+/// inserting generated declarations. All original statement bytes stay mapped.
+pub(crate) fn class_insertion(
+    source: &Source,
+    class: &ruff_python_ast::StmtClassDef,
+    edits: &mut Edits,
+) -> Result<(usize, String)> {
+    let first = class.body.first().context("empty class body")?;
+    let first_start = span(first).start;
+    let first_line = source.text[..first_start]
+        .rfind(['\r', '\n'])
+        .map_or(0, |offset| offset + 1);
+    let leading = &source.text[first_line..first_start];
+    let inline = !leading.chars().all(|c| c == ' ' || c == '\t');
+    let indent = if inline {
+        let class_start = span(class).start;
+        let line_start = source.text[..class_start]
+            .rfind(['\r', '\n'])
+            .map_or(0, |offset| offset + 1);
+        format!("{}    ", &source.text[line_start..class_start])
+    } else {
+        leading.to_owned()
+    };
+    if inline {
+        edits.insert(first_start, format!("\n{indent}"));
+    }
+    let docstring =
+        matches!(first, Stmt::Expr(node) if matches!(node.value.as_ref(), Expr::StringLiteral(_)));
+    let insertion = if docstring {
+        class
+            .body
+            .get(1)
+            .map_or(span(first).end, |second| span(second).start)
+    } else {
+        first_start
+    };
+    if insertion != first_start {
+        let line = source.text[..insertion]
+            .rfind(['\r', '\n'])
+            .map_or(0, |offset| offset + 1);
+        if !source.text[line..insertion]
+            .chars()
+            .all(|c| c == ' ' || c == '\t')
+        {
+            edits.insert(insertion, format!("\n{indent}"));
+        }
+    }
+    Ok((insertion, indent))
+}
+
 struct Validate<'s> {
     top_level: BTreeSet<Span>,
     intrinsics: BTreeSet<String>,
@@ -312,19 +362,11 @@ pub fn analyze(source: &Source, suite: &[Stmt], runtime: &mut Runtime) -> Result
     }
     let mut classes = BTreeMap::new();
     let mut functions = BTreeSet::new();
+    let mut edits = Edits::default();
     for statement in suite {
         match statement {
             Stmt::ClassDef(class) => {
-                let first = class.body.first().context("empty class body")?;
-                let insertion = span(first).start;
-                let line = source.text[..insertion]
-                    .rfind(['\r', '\n'])
-                    .map_or(0, |i| i + 1);
-                let indent = &source.text[line..insertion];
-                ensure!(
-                    indent.chars().all(|c| c == ' ' || c == '\t'),
-                    "prototype does not project same-line class bodies"
-                );
+                let (insertion, indent) = class_insertion(source, class, &mut edits)?;
                 let mut fields = BTreeMap::new();
                 let mut methods = BTreeSet::new();
                 for member in &class.body {
@@ -347,10 +389,11 @@ pub fn analyze(source: &Source, suite: &[Stmt], runtime: &mut Runtime) -> Result
                 classes.insert(
                     class.name.to_string(),
                     ClassInfo {
+                        origin: span(&class.name),
                         fields,
                         methods,
                         insertion,
-                        indent: indent.to_owned(),
+                        indent,
                         declared,
                     },
                 );
@@ -414,7 +457,6 @@ pub fn analyze(source: &Source, suite: &[Stmt], runtime: &mut Runtime) -> Result
         calls: BTreeMap::new(),
     };
     collector.visit_body(suite);
-    let mut edits = Edits::default();
     let mut helpers = BTreeMap::new();
     let mut definitions = String::new();
     for call in collector.calls.values() {
@@ -474,6 +516,7 @@ pub fn analyze(source: &Source, suite: &[Stmt], runtime: &mut Runtime) -> Result
         classes,
         intrinsics: validation.intrinsics,
         calls: collector.calls,
+        unbound_calls: BTreeSet::new(),
         edits,
         helpers,
         expression_probes: BTreeMap::new(),
@@ -485,6 +528,52 @@ pub fn analyze(source: &Source, suite: &[Stmt], runtime: &mut Runtime) -> Result
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn injected_members_preserve_leading_class_docstrings_and_inline_suites() {
+        for text in [
+            "class Example:\n    'Class docs'\n    pass\n",
+            "class Example:\n    'Class docs'\n",
+            "class Example: 'Class docs'\n",
+            "class Example: 'Class docs'; pass\n",
+            "class Outer:\n    class Example: 'Class docs'; pass\n",
+        ] {
+            let source = Source::new(text.to_owned(), "demo.py".into(), "demo".into());
+            let suite = ruff_python_parser::parse_module(text).unwrap();
+            let Stmt::ClassDef(outer) = &suite.syntax().body[0] else {
+                panic!()
+            };
+            let class = if let Some(Stmt::ClassDef(inner)) = outer.body.first() {
+                inner
+            } else {
+                outer
+            };
+            let mut edits = Edits::default();
+            let (offset, indent) = class_insertion(&source, class, &mut edits).unwrap();
+            edits.insert(offset, format!("generated: int\n{indent}"));
+            let rendered = crate::mapping::render(&source, &edits).unwrap();
+            let parsed = ruff_python_parser::parse_module(&rendered.text)
+                .unwrap_or_else(|error| panic!("{error}: {}", rendered.text));
+            let Stmt::ClassDef(outer) = &parsed.syntax().body[0] else {
+                panic!()
+            };
+            let class = if let Some(Stmt::ClassDef(inner)) = outer.body.first() {
+                inner
+            } else {
+                outer
+            };
+            assert!(
+                matches!(&class.body[0], Stmt::Expr(node) if matches!(node.value.as_ref(), Expr::StringLiteral(_))),
+                "{}",
+                rendered.text
+            );
+            assert!(
+                matches!(&class.body[1], Stmt::AnnAssign(_)),
+                "{}",
+                rendered.text
+            );
+        }
+    }
 
     fn source(text: &str) -> Source {
         Source::new(text.to_owned(), "demo.py".into(), "demo".into())

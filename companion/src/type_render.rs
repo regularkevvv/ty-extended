@@ -14,6 +14,8 @@ pub struct Types {
     pub imports: BTreeSet<String>,
     pub definitions: String,
     prefix: String,
+    module: String,
+    unimportable_module: bool,
     aliases: BTreeMap<String, String>,
     modules: BTreeSet<String>,
     import_bindings: BTreeMap<String, String>,
@@ -28,6 +30,8 @@ impl Types {
             imports: BTreeSet::new(),
             definitions: String::new(),
             prefix: prefix.into(),
+            module: module.into(),
+            unimportable_module: false,
             aliases: BTreeMap::new(),
             modules: BTreeSet::from([module.to_owned()]),
             import_bindings: BTreeMap::new(),
@@ -39,6 +43,10 @@ impl Types {
     }
     pub fn with_project(prefix: &str, module: &str, project: &Project) -> Self {
         let mut renderer = Self::new(prefix, module);
+        renderer.unimportable_module = project
+            .modules
+            .get(module)
+            .is_some_and(|module| module.source.protocol_module.is_some());
         renderer.modules.extend(project.modules.keys().cloned());
         renderer.unavailable_modules = project.unavailable_modules.clone();
         for (qualified, summary) in &project.classes {
@@ -53,6 +61,22 @@ impl Types {
     pub fn add_module(&mut self, module: &str) {
         self.modules.insert(module.to_owned());
     }
+    pub fn display_names(&self) -> BTreeMap<String, String> {
+        self.imported_modules
+            .iter()
+            .map(|(module, alias)| (alias.clone(), module.clone()))
+            .chain(
+                self.imported_symbols
+                    .iter()
+                    .map(|((module, symbol), alias)| (alias.clone(), format!("{module}.{symbol}"))),
+            )
+            .chain(
+                self.aliases
+                    .iter()
+                    .map(|(expression, alias)| (alias.clone(), expression.clone())),
+            )
+            .collect()
+    }
     pub fn typing_alias(&mut self) -> String {
         self.module_alias("typing")
     }
@@ -61,6 +85,31 @@ impl Types {
     }
     pub fn builtins_alias(&mut self) -> String {
         self.module_alias("builtins")
+    }
+    /// Direct member hooks use the instance-get type even for a class lookup.
+    /// This follows plugin_member_access_to_type_with_virtual_types in ty; the
+    /// descriptor class/set types belong to class-transform field patches.
+    pub fn member_access(&mut self, access: &Value, helper: &str) -> Result<String> {
+        match access["kind"].as_str().unwrap_or("value") {
+            "descriptor" => self.render(&access["instance-get-type"]),
+            "callable" => {
+                let signature = &access["signature"];
+                let parameters = self.parameter_list(
+                    signature["parameters"]
+                        .as_array()
+                        .map(Vec::as_slice)
+                        .unwrap_or(&[]),
+                    true,
+                )?;
+                let result = self.render(&signature["return-type"])?;
+                let typing = self.typing_alias();
+                self.definitions.push_str(&format!(
+                    "class {helper}({typing}.Protocol):\n    def __call__({parameters}) -> {result}: ...\n"
+                ));
+                Ok(helper.to_owned())
+            }
+            _ => self.render(&access["type-expr"]),
+        }
     }
     pub fn render(&mut self, value: &Value) -> Result<String> {
         let previous_bindings = std::mem::take(&mut self.import_bindings);
@@ -73,6 +122,20 @@ impl Types {
                 module == unresolved || module.starts_with(&format!("{unresolved}."))
             }) {
                 self.unresolved_bindings.insert(alias.to_owned());
+                continue;
+            }
+            if module == self.module {
+                if self.unimportable_module {
+                    self.import_bindings
+                        .insert(alias.to_owned(), name.to_owned());
+                    continue;
+                }
+                // Importing a symbol from this file before its declaration
+                // creates a circular binding. A module alias supports forward
+                // references while remaining hygienic inside local scopes.
+                let module_alias = self.module_alias(module);
+                self.import_bindings
+                    .insert(alias.to_owned(), format!("{module_alias}.{name}"));
                 continue;
             }
             let key = (module.to_owned(), name.to_owned());
@@ -183,6 +246,11 @@ impl Types {
         // Resolve the complete qualified name before traversing Attribute's
         // shorter children. Strings are never edited, including Literal values.
         if let Some(name) = qualified_name(node) {
+            if self.unimportable_module
+                && let Some(local) = name.strip_prefix(&format!("{}.", self.module))
+            {
+                return Ok(local.to_owned());
+            }
             if self.unresolved(&name) {
                 return Ok(self.unknown());
             }

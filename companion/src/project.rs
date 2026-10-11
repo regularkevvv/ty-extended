@@ -18,7 +18,7 @@ use crate::model::{Source, span, typ};
 #[derive(Clone)]
 pub struct Module {
     pub source: Arc<Source>,
-    pub suite: Vec<Stmt>,
+    pub suite: Arc<Vec<Stmt>>,
     pub imports: BTreeMap<String, String>,
     pub bindings: BTreeSet<String>,
     pub assignments: BTreeMap<String, Expr>,
@@ -28,6 +28,7 @@ pub struct Module {
 #[derive(Clone)]
 pub struct Project {
     pub root: PathBuf,
+    source_roots: Vec<PathBuf>,
     pub modules: BTreeMap<String, Module>,
     pub classes: BTreeMap<String, Value>,
     pub config: Value,
@@ -37,22 +38,66 @@ pub struct Project {
     /// Modules proven unavailable by the official checker's environment. Absence
     /// from the syntax index alone must never populate this set.
     pub unavailable_modules: BTreeSet<String>,
+    /// Modules with incomplete editor buffers are checked unchanged by ty.
+    pub syntax_errors: BTreeSet<String>,
+    allow_invalid: bool,
+    notebook_sources: BTreeSet<PathBuf>,
+    additional_sources: BTreeSet<PathBuf>,
     assignments: Vec<Value>,
     functions: Vec<Value>,
     settings: Vec<Value>,
 }
 
+pub fn parse_source(
+    text: &str,
+    source_type: ast::PySourceType,
+) -> Result<ruff_python_parser::Parsed<ast::ModModule>> {
+    let parsed = ruff_python_parser::parse_unchecked_source(text, source_type);
+    if let Some(error) = parsed.errors().first() {
+        bail!("{error}");
+    }
+    Ok(parsed)
+}
+
 impl Project {
+    #[cfg(test)]
     pub fn load(
         root: &Path,
         source_paths: &[PathBuf],
         manifest: &Value,
         config: Value,
     ) -> Result<Self> {
+        Self::load_inner(root, source_paths, manifest, config, false, false)
+    }
+
+    #[cfg(test)]
+    pub fn load_editor(root: &Path, manifest: &Value, config: Value) -> Result<Self> {
+        Self::load_inner(root, &[], manifest, config, true, false)
+    }
+
+    pub fn load_selected(
+        root: &Path,
+        paths: &[PathBuf],
+        manifest: &Value,
+        config: Value,
+        editor: bool,
+    ) -> Result<Self> {
+        Self::load_inner(root, paths, manifest, config, editor, true)
+    }
+
+    fn load_inner(
+        root: &Path,
+        source_paths: &[PathBuf],
+        manifest: &Value,
+        config: Value,
+        allow_invalid: bool,
+        exact_paths: bool,
+    ) -> Result<Self> {
         let root = root
             .canonicalize()
             .with_context(|| format!("project root {}", root.display()))?;
         let mut project = Self {
+            source_roots: vec![root.clone()],
             root,
             modules: BTreeMap::new(),
             classes: BTreeMap::new(),
@@ -60,12 +105,16 @@ impl Project {
             manifest: manifest.clone(),
             virtual_identities: BTreeMap::new(),
             unavailable_modules: BTreeSet::new(),
+            syntax_errors: BTreeSet::new(),
+            allow_invalid,
+            notebook_sources: BTreeSet::new(),
+            additional_sources: BTreeSet::new(),
             assignments: vec![],
             functions: vec![],
             settings: vec![],
         };
         let mut paths = source_paths.to_vec();
-        if paths.is_empty() {
+        if paths.is_empty() && !exact_paths {
             collect_python(&project.root, &mut paths)?;
         }
         for path in paths {
@@ -77,7 +126,10 @@ impl Project {
             let path = path
                 .canonicalize()
                 .with_context(|| format!("source file {}", path.display()))?;
-            let module = module_name(&project.root, &path)?;
+            if !path.starts_with(&project.root) {
+                project.additional_sources.insert(path.clone());
+            }
+            let module = project.source_module_name(&path)?;
             project.add_module(&module, &path, false)?;
         }
         // Claims select settings modules; they are dependencies even when user
@@ -92,11 +144,223 @@ impl Project {
         Ok(project)
     }
 
+    /// Match ty's configured source roots when resolving module identities.
+    pub fn set_source_roots(&mut self, roots: Vec<PathBuf>) -> Result<()> {
+        if self.source_roots == roots {
+            return Ok(());
+        }
+        self.source_roots = roots;
+        let locals: Vec<_> = self
+            .modules
+            .values()
+            .filter(|m| !m.external)
+            .cloned()
+            .collect();
+        self.modules.retain(|_, m| m.external);
+        self.syntax_errors.clear();
+        for module in locals {
+            let path = Path::new(&module.source.path);
+            let name = self.source_module_name(path)?;
+            self.add_module_text(&name, path, false, module.source.text.clone())?;
+        }
+        self.load_imports()?;
+        self.rebuild()
+    }
+
+    pub fn register_notebook_source(&mut self, path: &Path) -> Result<()> {
+        if self.notebook_sources.insert(path.into())
+            && let Some((name, module)) = self
+                .modules
+                .iter()
+                .find(|(_, m)| Path::new(&m.source.path) == path)
+                .map(|(n, m)| (n.clone(), m.clone()))
+        {
+            self.add_module_text(&name, path, module.external, module.source.text.clone())?;
+            self.rebuild()?;
+        }
+        Ok(())
+    }
+
+    pub fn source_type(&self, path: &Path) -> ruff_python_ast::PySourceType {
+        if self.notebook_sources.contains(path)
+            || path.extension().is_some_and(|ext| ext == "ipynb")
+        {
+            ruff_python_ast::PySourceType::Ipynb
+        } else {
+            ruff_python_ast::PySourceType::Python
+        }
+    }
+
+    pub fn add_source_paths(&mut self, paths: impl IntoIterator<Item = PathBuf>) {
+        self.additional_sources.extend(paths);
+    }
+
+    fn source_module_name(&self, path: &Path) -> Result<String> {
+        if self.source_type(path) == ast::PySourceType::Ipynb
+            || !path.starts_with(&self.root)
+                && !self.source_roots.iter().any(|root| path.starts_with(root))
+        {
+            use sha2::{Digest, Sha256};
+            return Ok(format!(
+                "_ty_nonmodule_{:x}",
+                Sha256::digest(path.to_string_lossy().as_bytes())
+            ));
+        }
+        let root = self
+            .source_roots
+            .iter()
+            .find(|root| path.starts_with(root))
+            .unwrap_or(&self.root);
+        module_name(root, path)
+    }
+    fn find_source_module(&self, name: &str) -> Option<PathBuf> {
+        self.source_roots
+            .iter()
+            .find_map(|root| find_module(root, name))
+    }
+
+    pub fn add_resolved_module(&mut self, name: &str, path: &Path) -> Result<()> {
+        if self.modules.contains_key(name) {
+            return Ok(());
+        }
+        self.add_module(name, path, true)?;
+        self.rebuild()
+    }
+
+    /// Resolve only superclass chains used by first-party declarations. Ordinary
+    /// external functions/types remain the official checker's responsibility.
+    pub fn ancestry_imports(&self) -> BTreeSet<String> {
+        let mut visited = BTreeSet::new();
+        let mut queue = self
+            .classes
+            .iter()
+            .filter(|(_, summary)| {
+                summary
+                    .pointer("/source/module")
+                    .and_then(Value::as_str)
+                    .and_then(|name| self.modules.get(name))
+                    .is_some_and(|module| !module.external)
+            })
+            .map(|(name, _)| name.clone())
+            .collect::<Vec<_>>();
+        let mut requests = BTreeSet::new();
+        while let Some(name) = queue.pop() {
+            if !visited.insert(name.clone()) {
+                continue;
+            }
+            let Some(class) = self.classes.get(&name) else {
+                continue;
+            };
+            let module = class
+                .pointer("/source/module")
+                .and_then(Value::as_str)
+                .unwrap_or("");
+            for base in class["bases"].as_array().into_iter().flatten() {
+                let Some(expression) = base["expression"].as_str() else {
+                    continue;
+                };
+                let canonical = self.canonical_name(module, expression);
+                let nominal = canonical.split('[').next().unwrap_or(&canonical);
+                if self.classes.contains_key(nominal) {
+                    queue.push(nominal.into());
+                    continue;
+                }
+                if let Some((base_module, _)) = nominal.rsplit_once('.')
+                    && !self.modules.contains_key(base_module)
+                {
+                    requests.insert(base_module.to_owned());
+                }
+            }
+        }
+        requests
+    }
+
+    /// Conservative dependency edges for incremental projection. Include imports
+    /// in every scope/branch, star imports, package initializers, and submodules.
+    pub fn import_dependencies(&self) -> BTreeMap<String, BTreeSet<String>> {
+        use ruff_python_ast::visitor::{self, Visitor};
+        struct Imports<'a> {
+            module: &'a str,
+            package: bool,
+            targets: BTreeSet<String>,
+        }
+        impl<'a> Visitor<'a> for Imports<'a> {
+            fn visit_stmt(&mut self, statement: &'a Stmt) {
+                match statement {
+                    Stmt::Import(import) => self
+                        .targets
+                        .extend(import.names.iter().map(|alias| alias.name.to_string())),
+                    Stmt::ImportFrom(import) => {
+                        let module = relative_import(
+                            self.module,
+                            self.package,
+                            import.level,
+                            import.module.as_ref().map(|name| name.as_str()),
+                        );
+                        self.targets.insert(module.clone());
+                        self.targets.extend(
+                            import
+                                .names
+                                .iter()
+                                .filter(|alias| alias.name.as_str() != "*")
+                                .map(|alias| format!("{module}.{}", alias.name)),
+                        );
+                    }
+                    _ => {}
+                }
+                visitor::walk_stmt(self, statement);
+            }
+        }
+        self.modules
+            .iter()
+            .map(|(name, module)| {
+                let mut imports = Imports {
+                    module: name,
+                    package: Path::new(&module.source.path)
+                        .file_stem()
+                        .is_some_and(|name| name == "__init__"),
+                    targets: BTreeSet::new(),
+                };
+                imports.visit_body(&module.suite);
+                let mut dependencies = BTreeSet::new();
+                for target in imports.targets {
+                    let mut prefix = target.as_str();
+                    loop {
+                        if self.modules.contains_key(prefix) {
+                            dependencies.insert(prefix.to_owned());
+                        }
+                        let Some((parent, _)) = prefix.rsplit_once('.') else {
+                            break;
+                        };
+                        prefix = parent;
+                    }
+                }
+                (name.clone(), dependencies)
+            })
+            .collect()
+    }
+
+    pub fn retain_external_roots(&mut self, roots: &[PathBuf]) -> Result<()> {
+        self.modules.retain(|_, module| {
+            !module.external
+                || roots
+                    .iter()
+                    .any(|root| Path::new(&module.source.path).starts_with(root))
+        });
+        self.rebuild()
+    }
+
     /// Add a stub/source overlay's import graph. External classes participate in
     /// name and ancestry resolution but are not sent as user model declarations.
     pub fn add_source_tree(&mut self, root: &Path) -> Result<()> {
         let mut paths = vec![];
         collect_python(root, &mut paths)?;
+        let current: BTreeSet<_> = paths.iter().cloned().collect();
+        self.modules.retain(|_, module| {
+            !module.external
+                || !Path::new(&module.source.path).starts_with(root)
+                || current.contains(Path::new(&module.source.path))
+        });
         paths.sort_by_key(|p| p.extension().is_some_and(|x| x == "pyi"));
         for path in paths {
             let module = module_name(root, &path)?;
@@ -109,20 +373,70 @@ impl Project {
     }
 
     fn add_module(&mut self, name: &str, path: &Path, external: bool) -> Result<()> {
-        let text =
-            std::fs::read_to_string(path).with_context(|| format!("read {}", path.display()))?;
-        let parsed = ruff_python_parser::parse_module(&text)
-            .with_context(|| format!("parse {}", path.display()))?;
-        let suite = parsed.syntax().body.to_vec();
-        let source = Arc::new(Source::new(
-            text,
-            path.to_string_lossy().into_owned(),
-            name.to_owned(),
-        ));
+        let text = read_source(path)?;
+        if self.modules.get(name).is_some_and(|m| {
+            m.external == external && m.source.text == text && Path::new(&m.source.path) == path
+        }) {
+            return Ok(());
+        }
+        self.add_module_text(name, path, external, text)
+    }
+
+    fn add_module_text(
+        &mut self,
+        name: &str,
+        path: &Path,
+        external: bool,
+        text: String,
+    ) -> Result<()> {
+        let source_type = self.source_type(path);
+        let parsed = if source_type == ast::PySourceType::Ipynb
+            && let Ok(notebook) = ruff_notebook::Notebook::from_path(path)
+            && notebook.source_code() == text
+        {
+            ruff_python_parser::parse_cells_unchecked(
+                &text,
+                notebook.cell_offsets().content_ranges(),
+                &source_type.into(),
+            )
+        } else {
+            ruff_python_parser::parse_unchecked_source(&text, source_type)
+        };
+        let suite = match parsed.errors().first() {
+            None => {
+                self.syntax_errors.remove(name);
+                parsed.syntax().body.to_vec()
+            }
+            Some(_) if self.allow_invalid && !external => {
+                self.syntax_errors.insert(name.to_owned());
+                let first_error = parsed
+                    .errors()
+                    .first()
+                    .map(|error| usize::from(error.location.start()))
+                    .unwrap_or(text.len());
+                // A malformed suffix remains byte-for-byte in Source. Safe earlier
+                // declarations still receive plugin fields for editor completion.
+                parsed
+                    .syntax()
+                    .body
+                    .iter()
+                    .filter(|statement| span(*statement).end <= first_error)
+                    .cloned()
+                    .collect()
+            }
+            Some(error) => bail!("parse {}: {error}", path.display()),
+        };
+        let mut source = Source::new(text, path.to_string_lossy().into_owned(), name.to_owned());
+        if self.source_type(path) == ast::PySourceType::Ipynb
+            || (!external && !self.source_roots.iter().any(|root| path.starts_with(root)))
+        {
+            source.protocol_module = Some(String::new());
+        }
+        let source = Arc::new(source);
         let is_package = path.file_stem().is_some_and(|x| x == "__init__");
         let mut module = Module {
             source,
-            suite,
+            suite: Arc::new(suite),
             imports: BTreeMap::new(),
             bindings: BTreeSet::new(),
             assignments: BTreeMap::new(),
@@ -140,6 +454,124 @@ impl Project {
         Ok(())
     }
 
+    /// Refresh project files without reparsing unchanged modules or external stubs.
+    /// Overlay keys are absolute original paths; missing disk files may be new editor documents.
+    /// Passing no overlay restores the on-disk contents after didClose.
+    #[cfg(test)]
+    pub fn refresh_sources(&mut self, overlays: &BTreeMap<PathBuf, String>) -> Result<bool> {
+        self.refresh_sources_filtered(overlays, |_, _| true)
+    }
+
+    pub fn refresh_sources_filtered(
+        &mut self,
+        overlays: &BTreeMap<PathBuf, String>,
+        include: impl Fn(&Path, &str) -> bool,
+    ) -> Result<bool> {
+        // Arc-backed syntax snapshots are cheap to retain. A read/parse failure
+        // must not commit half a revision and make a later retry appear fresh.
+        let modules = self.modules.clone();
+        let syntax_errors = self.syntax_errors.clone();
+        let result = self.refresh_sources_inner(overlays, include);
+        if result.is_err() {
+            self.modules = modules;
+            self.syntax_errors = syntax_errors;
+            self.rebuild()
+                .context("restore project after failed refresh")?;
+        }
+        result
+    }
+
+    fn refresh_sources_inner(
+        &mut self,
+        overlays: &BTreeMap<PathBuf, String>,
+        include: impl Fn(&Path, &str) -> bool,
+    ) -> Result<bool> {
+        let mut paths = Vec::new();
+        collect_python(&self.root, &mut paths)?;
+        paths.extend(overlays.keys().cloned());
+        for path in &self.additional_sources {
+            if path.is_dir() {
+                collect_python(path, &mut paths)?;
+            } else if path.exists() {
+                paths.push(path.clone());
+            }
+        }
+        paths.sort();
+        paths.dedup();
+        let previous_modules = self.modules.keys().cloned().collect::<BTreeSet<_>>();
+        let mut current = BTreeSet::new();
+        let mut changed = false;
+        let mut summaries_changed = BTreeSet::new();
+        for path in paths {
+            let name = self.source_module_name(&path)?;
+            let text = match overlays.get(&path) {
+                Some(text) => text.clone(),
+                None => read_source(&path)?,
+            };
+            if !include(&path, &text) && !overlays.contains_key(&path) {
+                continue;
+            }
+            current.insert(name.clone());
+            if self
+                .modules
+                .get(&name)
+                .is_some_and(|m| m.source.text == text && !m.external)
+            {
+                continue;
+            }
+            let previous = self.modules.get(&name).cloned();
+            self.add_module_text(&name, &path, false, text)?;
+            let current = &self.modules[&name];
+            let same_summary = previous.as_ref().is_some_and(|old| {
+                if old.suite != current.suite || self.syntax_errors.contains(&name) {
+                    return false;
+                }
+                let end = current
+                    .suite
+                    .last()
+                    .map_or(0, |statement| span(statement).end);
+                old.source.text.get(..end) == current.source.text.get(..end)
+            });
+            if !same_summary {
+                summaries_changed.insert(name.clone());
+            }
+            changed = true;
+        }
+        self.modules.retain(|name, module| {
+            let keep = module.external || current.contains(name);
+            changed |= !keep;
+            if !keep {
+                summaries_changed.insert(name.clone());
+            }
+            keep
+        });
+        self.syntax_errors.retain(|name| current.contains(name));
+        if !summaries_changed.is_empty() {
+            self.load_imports()?;
+            if previous_modules.iter().eq(self.modules.keys()) {
+                let dependencies = self.import_dependencies();
+                loop {
+                    let affected = dependencies
+                        .iter()
+                        .filter(|(name, imports)| {
+                            !summaries_changed.contains(*name)
+                                && imports.iter().any(|name| summaries_changed.contains(name))
+                        })
+                        .map(|(name, _)| name.clone())
+                        .collect::<Vec<_>>();
+                    if affected.is_empty() {
+                        break;
+                    }
+                    summaries_changed.extend(affected);
+                }
+                self.rebuild_selected(&summaries_changed)?;
+            } else {
+                self.rebuild()?;
+            }
+        }
+        Ok(changed)
+    }
+
     fn load_imports(&mut self) -> Result<()> {
         loop {
             let mut additions = BTreeMap::new();
@@ -148,7 +580,7 @@ impl Project {
                     let mut candidate = target.as_str();
                     loop {
                         if !self.modules.contains_key(candidate)
-                            && let Some(path) = find_module(&self.root, candidate)
+                            && let Some(path) = self.find_source_module(candidate)
                         {
                             additions.insert(candidate.to_owned(), path);
                         }
@@ -194,12 +626,84 @@ impl Project {
         self.classes = classes;
         self.assignments = assignments;
         self.functions = functions;
+        self.rebuild_settings();
+        Ok(())
+    }
+
+    fn rebuild_selected(&mut self, affected: &BTreeSet<String>) -> Result<()> {
+        let paths = affected
+            .iter()
+            .filter_map(|name| self.modules.get(name))
+            .map(|module| module.source.path.as_str())
+            .collect::<BTreeSet<_>>();
+        let retain = |value: &Value| {
+            value
+                .pointer("/source/file-path")
+                .and_then(Value::as_str)
+                .is_none_or(|path| !paths.contains(path))
+        };
+        self.classes.retain(|_, summary| retain(summary));
+        self.assignments.retain(retain);
+        self.functions.retain(retain);
+        for name in affected {
+            if let Some(module) = self.modules.get(name) {
+                register_class_names(&module.suite, name, &module.imports, &mut self.classes);
+            }
+        }
+        let mut classes = BTreeMap::new();
+        let mut assignments = Vec::new();
+        let mut functions = Vec::new();
+        for name in affected {
+            if let Some(module) = self.modules.get(name) {
+                self.summarize_body(
+                    name,
+                    module,
+                    &module.suite,
+                    &mut classes,
+                    &mut assignments,
+                    &mut functions,
+                )?;
+            }
+        }
+        self.classes.extend(classes);
+        self.assignments.extend(assignments);
+        self.functions.extend(functions);
+        // Keep the exact full-rebuild request order, including explicit roots.
+        let order = self
+            .modules
+            .values()
+            .enumerate()
+            .map(|(index, module)| (module.source.path.as_str(), index))
+            .collect::<BTreeMap<_, _>>();
+        let key = |value: &Value| {
+            (
+                order
+                    .get(
+                        value
+                            .pointer("/source/file-path")
+                            .and_then(Value::as_str)
+                            .unwrap_or(""),
+                    )
+                    .copied()
+                    .unwrap_or(usize::MAX),
+                value["source"]["start"]["line"].as_u64().unwrap_or(0),
+                value["source"]["start"]["column"].as_u64().unwrap_or(0),
+            )
+        };
+        self.assignments.sort_by_key(key);
+        self.functions.sort_by_key(key);
+        self.rebuild_settings();
+        Ok(())
+    }
+
+    fn rebuild_settings(&mut self) {
+        self.settings.clear();
         for name in self.settings_modules() {
             if let Some(module) = self.modules.get(&name) {
                 let mut values = vec![];
                 let mut diagnostics = vec![];
                 let mut dependencies = BTreeSet::from([module.source.path.clone()]);
-                for statement in &module.suite {
+                for statement in module.suite.iter() {
                     let pair = match statement {
                         Stmt::Assign(assignment) => assignment.targets.first().and_then(|target| {
                             if let Expr::Name(target) = target {
@@ -245,7 +749,6 @@ impl Project {
                 self.settings.push(json!({"module":name,"values":[],"dependencies":[],"diagnostics":[{"id":"ty.settings.module-not-found","message":format!("Settings module `{name}` could not be resolved"),"severity":self.settings_severity()}],"source":{"module":name}}));
             }
         }
-        Ok(())
     }
 
     fn settings_modules(&self) -> Vec<String> {
@@ -591,12 +1094,35 @@ impl Project {
             .values()
             .filter(|c| {
                 let module = c["source"]["module"].as_str().unwrap_or("");
-                self.modules.get(module).is_some_and(|m| !m.external)
+                self.modules
+                    .get(module)
+                    .is_some_and(|m| !m.external && m.source.protocol_module.is_none())
             })
             .cloned()
             .collect();
-        json!({"kind":"build-project-index","context":{"root":self.root,"python-version":"3.13","platform":std::env::consts::OS.replace("macos","darwin"),"config":self.config},
-            "classes":classes,"settings":self.settings,"assignments":self.assignments,"functions":self.functions})
+        let in_regular_module = |value: &&Value| {
+            value
+                .pointer("/source/file-path")
+                .and_then(Value::as_str)
+                .is_none_or(|path| {
+                    self.modules
+                        .values()
+                        .find(|m| m.source.path == path)
+                        .is_none_or(|m| m.source.protocol_module.is_none())
+                })
+        };
+        let assignments = self
+            .assignments
+            .iter()
+            .filter(in_regular_module)
+            .collect::<Vec<_>>();
+        let functions = self
+            .functions
+            .iter()
+            .filter(in_regular_module)
+            .collect::<Vec<_>>();
+        json!({"kind":"build-project-index","context":{"root":"","python-version":"3.13","platform":std::env::consts::OS.replace("macos","darwin"),"config":self.config},
+            "classes":classes,"settings":self.settings,"assignments":assignments,"functions":functions})
     }
 
     pub fn register_virtual_types(
@@ -1148,6 +1674,22 @@ fn add_literals(left: Value, right: Value) -> Value {
     }
 }
 
+/// Read the Python cells through the same notebook library used by ty.
+/// Non-Python notebooks intentionally have no Python source.
+pub fn read_source(path: &Path) -> Result<String> {
+    if path.extension().is_some_and(|ext| ext == "ipynb") {
+        let notebook = ruff_notebook::Notebook::from_path(path)
+            .with_context(|| format!("read notebook {}", path.display()))?;
+        Ok(if notebook.is_python_notebook() {
+            notebook.source_code().to_owned()
+        } else {
+            String::new()
+        })
+    } else {
+        std::fs::read_to_string(path).with_context(|| format!("read {}", path.display()))
+    }
+}
+
 fn collect_python(root: &Path, files: &mut Vec<PathBuf>) -> Result<()> {
     for item in std::fs::read_dir(root)? {
         let item = item?;
@@ -1160,7 +1702,10 @@ fn collect_python(root: &Path, files: &mut Vec<PathBuf>) -> Result<()> {
             {
                 collect_python(&path, files)?;
             }
-        } else if path.extension().is_some_and(|e| e == "py" || e == "pyi") {
+        } else if path
+            .extension()
+            .is_some_and(|e| e == "py" || e == "pyi" || e == "ipynb")
+        {
             files.push(path);
         }
     }
@@ -1745,6 +2290,73 @@ mod tests {
         fn drop(&mut self) {
             let _ = std::fs::remove_dir_all(&self.0);
         }
+    }
+
+    #[test]
+    fn editor_overlays_reuse_unchanged_modules_and_restore_disk_text() -> Result<()> {
+        let fixture = Fixture::new(&[("a.py", "class A: pass\n"), ("b.py", "value = 1\n")]);
+        let root = fixture.0.canonicalize()?;
+        let mut project = Project::load_editor(&root, &json!({}), json!({}))?;
+        let unchanged = project.modules["a"].source.clone();
+        let b = root.join("b.py");
+        assert!(project.refresh_sources(&BTreeMap::from([(
+            b.clone(),
+            "value: str = 'new'\n".into()
+        )]))?);
+        assert!(Arc::ptr_eq(&unchanged, &project.modules["a"].source));
+        assert_eq!(std::fs::read_to_string(&b)?, "value = 1\n");
+        assert!(!project.refresh_sources(&BTreeMap::from([(
+            b.clone(),
+            "value: str = 'new'\n".into()
+        )]))?);
+        assert!(project.refresh_sources(&BTreeMap::from([(b.clone(), "value = (\n".into())]))?);
+        assert!(project.syntax_errors.contains("b"));
+        assert_eq!(project.modules["b"].source.text, "value = (\n");
+        let new = root.join("new.py");
+        assert!(
+            project
+                .refresh_sources(&BTreeMap::from([(new.clone(), "class New: pass\n".into())]))?
+        );
+        assert!(project.classes.contains_key("new.New"));
+        assert!(!new.exists());
+        assert!(!project.syntax_errors.contains("b"));
+        assert_eq!(project.modules["b"].source.text, "value = 1\n");
+        assert!(project.refresh_sources(&BTreeMap::new())?);
+        assert!(!project.modules.contains_key("new"));
+        Ok(())
+    }
+
+    #[test]
+    fn incremental_summaries_equal_full_rebuild_with_aliases_and_settings() -> Result<()> {
+        let fixture = Fixture::new(&[
+            ("base.py", "VALUE = 1\nTYPE = int\nclass Base: pass\n"),
+            (
+                "bridge.py",
+                "from base import VALUE, TYPE, Base as Parent\n",
+            ),
+            (
+                "models.py",
+                "from bridge import VALUE, TYPE, Parent\nclass Model(Parent):\n    field: TYPE\n    constant = VALUE\n",
+            ),
+            ("settings.py", "from bridge import VALUE\nDEFAULT = VALUE\n"),
+        ]);
+        let root = fixture.0.canonicalize()?;
+        let manifest = json!({"claims":{"settings":[{"module":"settings"}]}});
+        let mut project = Project::load_editor(&root, &manifest, json!({}))?;
+        for source in [
+            "VALUE = 2\nTYPE = str\nclass Base: pass\n",
+            "VALUE = 3\nTYPE = bytes\nclass Alternative: pass\n",
+            "VALUE = 1\nTYPE = int\nclass Base: pass\n",
+        ] {
+            project.refresh_sources(&BTreeMap::from([(root.join("base.py"), source.into())]))?;
+            let incremental = project.build_request();
+            let classes = project.classes.clone();
+            let mut rebuilt = project.clone();
+            rebuilt.rebuild()?;
+            assert_eq!(incremental, rebuilt.build_request());
+            assert_eq!(classes, rebuilt.classes);
+        }
+        Ok(())
     }
 
     #[test]

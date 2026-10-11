@@ -1,0 +1,75 @@
+{
+  "id": "research.sdk_extended",
+  "name": "SDK and flow compatibility",
+  "version": "0.0.1",
+  "protocol-version": {
+    "major": 0,
+    "minor": 7
+  },
+  "ty-compatibility": {
+    "requirement": ">=0.86.0,<0.87.0"
+  },
+  "runtime": {
+    "kind": "monty",
+    "artifact": "plugin.py"
+  },
+  "capabilities": {
+    "class-member": true,
+    "instance-member": true,
+    "call-state": true,
+    "mutation-validation": true
+  },
+  "claims": {
+    "modules": [
+      {
+        "name": "demo",
+        "recursive": false
+      }
+    ],
+    "constructors": [
+      {
+        "kind": "exact",
+        "qualified-name": "demo.Item"
+      }
+    ],
+    "methods": [
+      {
+        "kind": "exact",
+        "class-qualified-name": "demo.Item",
+        "method-name": "touch"
+      }
+    ],
+    "attributes": [
+      {
+        "kind": "exact",
+        "owner-qualified-name": "demo.Gateway",
+        "attribute-name": "version",
+        "scope": "class"
+      },
+      {
+        "kind": "exact",
+        "owner-qualified-name": "demo.Gateway",
+        "attribute-name": "token",
+        "scope": "instance"
+      },
+      {
+        "kind": "exact",
+        "owner-qualified-name": "demo.Gateway",
+        "attribute-name": "make",
+        "scope": "instance"
+      },
+      {
+        "kind": "exact",
+        "owner-qualified-name": "demo.Gateway",
+        "attribute-name": "api",
+        "scope": "class"
+      }
+    ],
+    "mutations": [
+      {
+        "kind": "exact",
+        "qualified-name": "demo.Bag"
+      }
+    ]
+  }
+}

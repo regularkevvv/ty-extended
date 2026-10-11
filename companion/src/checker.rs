@@ -4,7 +4,7 @@
 //! persistent path reuses one public LSP session and one virtual document across
 //! oracle rounds; it does not link or patch the checker.
 use std::{
-    collections::BTreeMap,
+    collections::{BTreeMap, BTreeSet},
     fs::{self, File},
     io::{BufRead, BufReader, Write},
     path::{Path, PathBuf},
@@ -19,6 +19,19 @@ use serde_json::{Value, json};
 
 const RESPONSE_TIMEOUT: Duration = Duration::from_secs(10);
 const MAX_FRAME: usize = 64 * 1024 * 1024;
+
+#[derive(Debug)]
+pub struct ProtocolError {
+    pub code: i64,
+    pub message: String,
+    pub data: Option<Value>,
+}
+impl std::fmt::Display for ProtocolError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{} ({})", self.message, self.code)
+    }
+}
+impl std::error::Error for ProtocolError {}
 
 pub struct Checker {
     binary: PathBuf,
@@ -105,6 +118,8 @@ struct Server {
     version: i32,
     push: bool,
     stderr: PathBuf,
+    initialized: Value,
+    project: bool,
 }
 
 /// A persistent official checker with the real generated module paths. All
@@ -112,14 +127,150 @@ struct Server {
 pub struct ProjectChecker {
     server: Server,
     documents: BTreeMap<PathBuf, (String, i32, String)>,
+    notebooks: BTreeMap<PathBuf, String>,
+    external_sources: BTreeSet<PathBuf>,
 }
 
 impl ProjectChecker {
     pub fn new(binary: &Path, root: &Path, config: &Path) -> Result<Self> {
+        let mut server = Server::configured(binary, root, config, true)?;
+        server.project = true;
         Ok(Self {
-            server: Server::configured(binary, root, config, true)?,
+            server,
             documents: BTreeMap::new(),
+            notebooks: BTreeMap::new(),
+            external_sources: BTreeSet::new(),
         })
+    }
+    pub fn new_editor(
+        binary: &Path,
+        root: &Path,
+        config: &Path,
+        capabilities: Value,
+    ) -> Result<Self> {
+        Self::new_editor_with_options(binary, root, config, capabilities, Value::Null)
+    }
+    pub fn new_editor_with_options(
+        binary: &Path,
+        root: &Path,
+        config: &Path,
+        capabilities: Value,
+        initialization_options: Value,
+    ) -> Result<Self> {
+        let mut server = Server::configured_editor(
+            binary,
+            root,
+            config,
+            true,
+            Some(capabilities),
+            initialization_options,
+        )?;
+        server.project = true;
+        Ok(Self {
+            server,
+            documents: BTreeMap::new(),
+            notebooks: BTreeMap::new(),
+            external_sources: BTreeSet::new(),
+        })
+    }
+    pub fn initialization(&self) -> &Value {
+        &self.server.initialized
+    }
+    pub fn process_id(&self) -> u32 {
+        self.server.child.id()
+    }
+    pub fn request(&mut self, method: &str, params: Value) -> Result<Value> {
+        self.server.request(method, params)
+    }
+    pub fn notify(&mut self, method: &str, params: Value) -> Result<()> {
+        self.server.notify(method, params)
+    }
+    /// Use the upstream notebook parser for an aggregate notebook projection,
+    /// including IPython escapes. The source retains its normal analysis path
+    /// so diagnostics and oracle probes use the same byte source map.
+    pub fn register_notebook_source(&mut self, path: &Path) -> Result<()> {
+        if self.notebooks.contains_key(path) {
+            return Ok(());
+        }
+        ensure!(
+            !self.documents.contains_key(path),
+            "notebook must be registered before opening its projection"
+        );
+        self.notebooks
+            .insert(path.into(), file_uri(&path.with_extension("oracle.ipynb"))?);
+        Ok(())
+    }
+    pub fn register_external_source(&mut self, path: &Path) -> Result<()> {
+        if self.external_sources.contains(path) {
+            return Ok(());
+        }
+        let parent = path.parent().context("external source has no parent")?;
+        if !self
+            .external_sources
+            .iter()
+            .filter_map(|file| file.parent())
+            .any(|root| parent.starts_with(root))
+        {
+            // Pull diagnostics still honor workspace membership. Register the
+            // original parent so ty can check the memory overlay in place;
+            // the global generated configuration retains its import roots.
+            self.server.notify("workspace/didChangeWorkspaceFolders", json!({"event":{"added":[{"uri":file_uri(parent)?,"name":"companion-external"}],"removed":[]}}))?;
+        }
+        self.external_sources.insert(path.into());
+        Ok(())
+    }
+    pub fn sync_documents(&mut self, sources: &BTreeMap<PathBuf, String>) -> Result<()> {
+        let removed: Vec<_> = self
+            .documents
+            .keys()
+            .filter(|p| !sources.contains_key(*p))
+            .cloned()
+            .collect();
+        let mut changed_external = removed
+            .iter()
+            .filter(|path| self.external_sources.contains(*path))
+            .map(|path| {
+                file_uri(path).map(|uri| json!({"uri":uri,"type":if path.exists() {2} else {3}}))
+            })
+            .collect::<Result<Vec<_>>>()?;
+        for path in removed {
+            let (uri, _, _) = self.documents.remove(&path).unwrap();
+            if let Some(notebook) = self.notebooks.get(&path) {
+                self.server.notify(
+                    "notebookDocument/didClose",
+                    json!({"notebookDocument":{"uri":notebook},"cellTextDocuments":[{"uri":uri}]}),
+                )?;
+            } else {
+                self.server
+                    .notify("textDocument/didClose", json!({"textDocument":{"uri":uri}}))?;
+            }
+        }
+        changed_external.extend(
+            sources
+                .iter()
+                .filter(|(path, source)| {
+                    self.external_sources.contains(*path)
+                        && self
+                            .documents
+                            .get(*path)
+                            .is_none_or(|(_, _, previous)| previous != *source)
+                })
+                .map(|(path, _)| file_uri(path).map(|uri| json!({"uri":uri,"type":2})))
+                .collect::<Result<Vec<_>>>()?,
+        );
+        for (path, source) in sources {
+            self.update(path, source, false)?;
+        }
+        if !changed_external.is_empty() {
+            // didChange synchronizes only the document's own project. Other
+            // workspace databases may already cache it as an import; watcher
+            // events refresh those dependencies against the shared open buffer.
+            self.server.notify(
+                "workspace/didChangeWatchedFiles",
+                json!({"changes":changed_external}),
+            )?;
+        }
+        Ok(())
     }
     fn update(&mut self, path: &Path, source: &str, force: bool) -> Result<()> {
         if let Some((uri, version, previous)) = self.documents.get_mut(path) {
@@ -130,13 +281,21 @@ impl ProjectChecker {
                 .checked_add(1)
                 .context("LSP document version overflow")?;
             *previous = source.to_owned();
-            self.server.notify("textDocument/didChange",json!({"textDocument":{"uri":uri,"version":version},"contentChanges":[{"text":source}]}))?;
+            if let Some(notebook) = self.notebooks.get(path) {
+                self.server.notify("notebookDocument/didChange",json!({"notebookDocument":{"uri":notebook,"version":version},"change":{"cells":{"textContent":[{"document":{"uri":uri,"version":version},"changes":[{"text":source}]}]}}}))?;
+            } else {
+                self.server.notify("textDocument/didChange",json!({"textDocument":{"uri":uri,"version":version},"contentChanges":[{"text":source}]}))?;
+            }
         } else {
             let uri = file_uri(path)?;
-            self.server.notify(
+            if let Some(notebook) = self.notebooks.get(path) {
+                self.server.notify("notebookDocument/didOpen",json!({"notebookDocument":{"uri":notebook,"notebookType":"jupyter-notebook","version":1,"cells":[{"kind":2,"document":uri}]},"cellTextDocuments":[{"uri":uri,"languageId":"python","version":1,"text":source}]}))?;
+            } else {
+                self.server.notify(
                 "textDocument/didOpen",
                 json!({"textDocument":{"uri":uri,"languageId":"python","version":1,"text":source}}),
             )?;
+            }
             self.documents
                 .insert(path.to_owned(), (uri, 1, source.to_owned()));
         }
@@ -147,14 +306,15 @@ impl ProjectChecker {
         sources: &BTreeMap<PathBuf, String>,
         paths: &[PathBuf],
     ) -> Result<Vec<Value>> {
-        for (path, source) in sources {
-            self.update(path, source, false)?;
-        }
+        self.sync_documents(sources)?;
         let mut pending = BTreeMap::new();
         for path in paths {
             let source = sources
                 .get(path)
                 .context("queried document absent from project view")?;
+            if self.external_sources.contains(path) {
+                continue;
+            }
             // Rechecking after synchronization prevents a publication from an
             // earlier partial project state from satisfying this batch.
             self.update(path, source, true)?;
@@ -210,6 +370,31 @@ impl ProjectChecker {
                 self.server.handle_server_message(&message)?;
             }
         }
+        // Documents outside the generated workspace do not publish eagerly.
+        // Query these after consuming the workspace publications so handling a
+        // request cannot discard a publication still needed by this batch.
+        for path in paths
+            .iter()
+            .filter(|path| self.external_sources.contains(*path))
+        {
+            let uri = &self
+                .documents
+                .get(path)
+                .context("external source was not synchronized")?
+                .0;
+            let report = self.server.request(
+                "textDocument/diagnostic",
+                json!({"textDocument":{"uri":uri}}),
+            )?;
+            for item in report["items"]
+                .as_array()
+                .context("external document diagnostics")?
+            {
+                if let Some(item) = normalize_diagnostic(path, &sources[path], item)? {
+                    output.push(item);
+                }
+            }
+        }
         Ok(output)
     }
 }
@@ -222,6 +407,17 @@ impl Server {
     }
 
     fn configured(binary: &Path, out: &Path, config: &Path, push: bool) -> Result<Self> {
+        Self::configured_editor(binary, out, config, push, None, Value::Null)
+    }
+
+    fn configured_editor(
+        binary: &Path,
+        out: &Path,
+        config: &Path,
+        push: bool,
+        capabilities: Option<Value>,
+        initialization_options: Value,
+    ) -> Result<Self> {
         let stderr = out.join("checker-server.stderr.log");
         let mut child = Command::new(binary)
             .arg("server")
@@ -254,6 +450,8 @@ impl Server {
             version: 0,
             push,
             stderr,
+            initialized: Value::Null,
+            project: false,
         };
         let root_uri = file_uri(out)?;
         let mut initialization = json!({
@@ -274,11 +472,31 @@ impl Server {
                 "showSyntaxErrors":true
             }
         });
-        if push {
-            initialization["capabilities"]["textDocument"]
+        if let Some(mut capabilities) = capabilities {
+            // The projection protocol has one fixed coordinate encoding. The
+            // editor-facing side negotiates its own encoding and translates it.
+            capabilities["general"]["positionEncodings"] = json!(["utf-32"]);
+            capabilities["workspace"]["configuration"] = json!(false);
+            capabilities["workspace"]["didChangeWatchedFiles"]["dynamicRegistration"] =
+                json!(false);
+            capabilities["window"]["workDoneProgress"] = json!(false);
+            initialization["capabilities"] = capabilities;
+        }
+        if let Some(options) = initialization_options.as_object() {
+            let merged = initialization["initializationOptions"]
                 .as_object_mut()
-                .unwrap()
-                .remove("diagnostic");
+                .unwrap();
+            merged.extend(options.clone());
+            // Always analyze the generated workspace with the relocated config.
+            merged.insert("configurationFile".into(), json!(config));
+            merged.insert("diagnosticMode".into(), json!("openFilesOnly"));
+            merged.insert("showSyntaxErrors".into(), json!(true));
+        }
+        if push
+            && let Some(capabilities) =
+                initialization["capabilities"]["textDocument"].as_object_mut()
+        {
+            capabilities.remove("diagnostic");
         }
         let initialized = server.request("initialize", initialization)?;
         ensure!(
@@ -295,6 +513,7 @@ impl Server {
             "official ty does not advertise pull diagnostics: {initialized}"
         );
         server.notify("initialized", json!({}))?;
+        server.initialized = initialized;
         Ok(server)
     }
 
@@ -440,7 +659,15 @@ impl Server {
                     if method == "textDocument/diagnostic" && cancelled && attempt < 2 {
                         break;
                     }
-                    bail!("official ty LSP {method} failed: {error}");
+                    return Err(ProtocolError {
+                        code: error["code"].as_i64().unwrap_or(-32603),
+                        message: error["message"]
+                            .as_str()
+                            .unwrap_or("official ty request failed")
+                            .into(),
+                        data: error.get("data").cloned(),
+                    }
+                    .into());
                 }
                 return message
                     .get("result")
@@ -479,7 +706,8 @@ impl Server {
                 message["params"]["message"]
             );
         }
-        if method == "textDocument/publishDiagnostics"
+        if !self.project
+            && method == "textDocument/publishDiagnostics"
             && message["params"]["uri"] != self.document_uri
         {
             let items = message["params"]["diagnostics"]
@@ -514,7 +742,7 @@ impl Drop for Server {
     }
 }
 
-fn read_frame(reader: &mut impl BufRead) -> Result<Value> {
+pub(crate) fn read_frame(reader: &mut impl BufRead) -> Result<Value> {
     let mut length = None;
     let mut header_bytes = 0_usize;
     loop {
@@ -543,22 +771,42 @@ fn read_frame(reader: &mut impl BufRead) -> Result<Value> {
     serde_json::from_slice(&bytes).context("invalid JSON-RPC frame")
 }
 
-fn file_uri(path: &Path) -> Result<String> {
+pub(crate) fn file_uri(path: &Path) -> Result<String> {
     ensure!(
         path.is_absolute(),
         "file URI needs absolute path: {}",
         path.display()
     );
-    let text = path.to_str().context("non-UTF-8 file path")?;
-    // Unix/macOS research executable. Windows drive and UNC handling belongs
-    // to the separately enumerated platform parity gate.
-    ensure!(
-        text.starts_with('/'),
-        "this research file URI encoder supports Unix absolute paths"
-    );
+    encode_file_uri(path.to_str().context("non-UTF-8 file path")?, cfg!(windows))
+}
+
+fn encode_file_uri(text: &str, windows: bool) -> Result<String> {
+    let normalized;
+    let text = if windows {
+        // canonicalize() returns verbatim Windows paths. Neither the prefix
+        // nor backslashes are part of their corresponding file URI.
+        let path = text.strip_prefix(r"\\?\").unwrap_or(text);
+        normalized = if let Some(path) = path.strip_prefix(r"UNC\") {
+            format!("//{}", path.replace('\\', "/"))
+        } else {
+            path.replace('\\', "/")
+        };
+        normalized.as_str()
+    } else {
+        text
+    };
     let mut result = String::from("file://");
+    let text = if windows && text.starts_with("//") {
+        &text[2..]
+    } else if windows && text.as_bytes().get(1) == Some(&b':') {
+        result.push('/');
+        text
+    } else {
+        ensure!(text.starts_with('/'), "file URI needs an absolute path");
+        text
+    };
     for byte in text.bytes() {
-        if byte.is_ascii_alphanumeric() || b"/-._~".contains(&byte) {
+        if byte.is_ascii_alphanumeric() || b"/-._~:".contains(&byte) {
             result.push(byte as char);
         } else {
             use std::fmt::Write;
@@ -568,7 +816,11 @@ fn file_uri(path: &Path) -> Result<String> {
     Ok(result)
 }
 
-fn normalize_diagnostic(path: &Path, source: &str, item: &Value) -> Result<Option<Value>> {
+pub(crate) fn normalize_diagnostic(
+    path: &Path,
+    source: &str,
+    item: &Value,
+) -> Result<Option<Value>> {
     let Some(code) = item["code"].as_str() else {
         ensure!(
             item["code"].is_null()
@@ -618,6 +870,7 @@ fn normalize_diagnostic(path: &Path, source: &str, item: &Value) -> Result<Optio
     Ok(Some(json!({
         "check_name":code,"description":format!("{code}: {primary_message}"),"severity":severity,
         "lsp_message":message,
+        "lsp_diagnostic":item,
         "location":{"path":path,"positions":{
             "begin":position(&item["range"]["start"])? ,"end":position(&item["range"]["end"])?
         }}
@@ -628,6 +881,27 @@ fn normalize_diagnostic(path: &Path, source: &str, item: &Value) -> Result<Optio
 mod tests {
     use super::*;
     use std::io::Cursor;
+
+    #[test]
+    fn file_uri_handles_windows_drives_and_unc_paths() -> Result<()> {
+        assert_eq!(
+            encode_file_uri(r"C:\Users\Name Here\雪.py", true)?,
+            "file:///C:/Users/Name%20Here/%E9%9B%AA.py"
+        );
+        assert_eq!(
+            encode_file_uri(r"\\?\C:\Users\100%.py", true)?,
+            "file:///C:/Users/100%25.py"
+        );
+        assert_eq!(
+            encode_file_uri(r"\\?\UNC\server\share\file.py", true)?,
+            "file://server/share/file.py"
+        );
+        assert_eq!(
+            encode_file_uri(r"\\server\share\file.py", true)?,
+            "file://server/share/file.py"
+        );
+        Ok(())
+    }
 
     #[test]
     fn framing_accepts_utf8_and_rejects_missing_lengths() -> Result<()> {
@@ -650,7 +924,7 @@ mod tests {
     #[test]
     fn uri_encoder_handles_spaces_and_unicode() -> Result<()> {
         assert_eq!(
-            file_uri(Path::new("/tmp/a b/雪.py"))?,
+            encode_file_uri("/tmp/a b/雪.py", false)?,
             "file:///tmp/a%20b/%E9%9B%AA.py"
         );
         Ok(())
