@@ -146,9 +146,10 @@ def run(args, encoding):
     root.mkdir(parents=True)
     stubs.mkdir()
     source = root / "demo.py"
-    source.write_text(SOURCE)
+    source.write_text(SOURCE, encoding="utf-8")
     (root / "helpers.py").write_text(
-        'def helper(value: int) -> int:\n    """Return a helper value."""\n    return value\n'
+        'def helper(value: int) -> int:\n    """Return a helper value."""\n    return value\n',
+        encoding="utf-8",
     )
     before = {
         path.name: hashlib.sha256(path.read_bytes()).hexdigest()
@@ -159,7 +160,8 @@ def run(args, encoding):
     fork_config.write_text(
         '[environment]\npython-version = "3.13"\n[plugins]\nenabled = true\nauto-discover = false\n[[plugins.plugin]]\n'
         f'id = "research.generic"\nruntime = "monty"\ntrusted = true\npath = {json.dumps(str(fixture / "plugin.py"))}\n'
-        f"manifest-path = {json.dumps(str(fixture / 'plugin.plugin.json'))}\n"
+        f"manifest-path = {json.dumps(str(fixture / 'plugin.plugin.json'))}\n",
+        encoding="utf-8",
     )
     caps = {
         "general": {"positionEncodings": [encoding]},
@@ -513,7 +515,7 @@ def run(args, encoding):
         other_root = case / "other-workspace"
         other_root.mkdir()
         other_source = other_root / "other.py"
-        other_source.write_text("value = 1\n")
+        other_source.write_text("value = 1\n", encoding="utf-8")
         for client in clients.values():
             client.notify(
                 "workspace/didChangeWorkspaceFolders",
@@ -580,7 +582,9 @@ def run(args, encoding):
     finally:
         for client in clients.values():
             client.close()
-        (case / "evidence.json").write_text(json.dumps(evidence, indent=2) + "\n")
+        (case / "evidence.json").write_text(
+            json.dumps(evidence, indent=2) + "\n", encoding="utf-8"
+        )
     return evidence
 
 
@@ -597,7 +601,9 @@ def main():
         "passed": all(report["passed"] for report in reports),
         "reports": reports,
     }
-    (args.output / "summary.json").write_text(json.dumps(summary, indent=2) + "\n")
+    (args.output / "summary.json").write_text(
+        json.dumps(summary, indent=2) + "\n", encoding="utf-8"
+    )
     print(
         json.dumps(
             {

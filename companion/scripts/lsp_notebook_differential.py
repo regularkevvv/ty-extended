@@ -48,7 +48,7 @@ def run(args, encoding):
     root.mkdir(parents=True)
     stubs = case / "stubs"
     stubs.mkdir()
-    (root / "demo.py").write_text(DEFINITIONS)
+    (root / "demo.py").write_text(DEFINITIONS, encoding="utf-8")
     uri = (root / "analysis.ipynb").as_uri()
     cell_uris = [f"vscode-notebook-cell:{uri}#cell-{index}" for index in range(4)]
     texts = ["Notebook documentation", FIRST, "%%bash\necho ignored", SECOND]
@@ -71,7 +71,7 @@ def run(args, encoding):
         },
         indent=2,
     )
-    notebook_path.write_text(notebook_text)
+    notebook_path.write_text(notebook_text, encoding="utf-8")
     cells = [
         {"kind": 1 if index == 0 else 2, "document": cell_uri}
         for index, cell_uri in enumerate(cell_uris)
@@ -97,7 +97,8 @@ def run(args, encoding):
     config = case / "fork.toml"
     config.write_text(
         '[environment]\npython-version = "3.13"\n[plugins]\nenabled = true\nauto-discover = false\n[[plugins.plugin]]\n'
-        f'id = "research.generic"\nruntime = "monty"\ntrusted = true\npath = {json.dumps(str(fixture / "plugin.py"))}\nmanifest-path = {json.dumps(str(fixture / "plugin.plugin.json"))}\n'
+        f'id = "research.generic"\nruntime = "monty"\ntrusted = true\npath = {json.dumps(str(fixture / "plugin.py"))}\nmanifest-path = {json.dumps(str(fixture / "plugin.plugin.json"))}\n',
+        encoding="utf-8",
     )
     commands = {
         "fork": [str(args.fork), "server"],
@@ -447,7 +448,7 @@ def run(args, encoding):
             item["uri"] != uri and item["uri"] not in cell_uris
             for item in closed["items"]
         ), closed
-        assert notebook_path.read_text() == notebook_text, (
+        assert notebook_path.read_text(encoding="utf-8") == notebook_text, (
             "editor changes rewrote notebook JSON"
         )
         evidence["closed_notebook_diagnostics_cleared"] = True
@@ -455,7 +456,9 @@ def run(args, encoding):
     finally:
         for client in clients.values():
             client.close()
-        (case / "evidence.json").write_text(json.dumps(evidence, indent=2) + "\n")
+        (case / "evidence.json").write_text(
+            json.dumps(evidence, indent=2) + "\n", encoding="utf-8"
+        )
     return evidence
 
 
@@ -470,7 +473,9 @@ def main():
         "passed": all(report["passed"] for report in reports),
         "reports": reports,
     }
-    (args.output / "summary.json").write_text(json.dumps(summary, indent=2) + "\n")
+    (args.output / "summary.json").write_text(
+        json.dumps(summary, indent=2) + "\n", encoding="utf-8"
+    )
     print(
         json.dumps(
             {

@@ -148,7 +148,7 @@ def gate(args, encoding: str, pull: bool):
     root.mkdir(parents=True)
     stubs.mkdir()
     source = root / "demo.py"
-    source.write_text(SOURCE)
+    source.write_text(SOURCE, encoding="utf-8")
     original_hash = hashlib.sha256(source.read_bytes()).hexdigest()
     uri = source.as_uri()
     fixture = Path(__file__).resolve().parents[1] / "tests/fixtures/generic"
@@ -376,7 +376,9 @@ def gate(args, encoding: str, pull: bool):
         return evidence
     finally:
         client.close()
-        (case / "evidence.json").write_text(json.dumps(evidence, indent=2) + "\n")
+        (case / "evidence.json").write_text(
+            json.dumps(evidence, indent=2) + "\n", encoding="utf-8"
+        )
 
 
 def main():
@@ -393,7 +395,8 @@ def main():
         json.dumps(
             {"passed": True, "sessions": len(results), "results": results}, indent=2
         )
-        + "\n"
+        + "\n",
+        encoding="utf-8",
     )
     print(f"Passed {len(results)} real editor sessions")
 

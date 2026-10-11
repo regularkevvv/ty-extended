@@ -22,22 +22,24 @@ def main():
     first.mkdir()
     second.mkdir()
     fixture = Path(__file__).resolve().parents[1] / "tests/fixtures/generic"
-    (first / "demo.py").write_text(SOURCE)
+    (first / "demo.py").write_text(SOURCE, encoding="utf-8")
     config = first / "ty.toml"
     config.write_text(
         '[environment]\npython-version="3.13"\n'
         "[plugins]\nenabled=true\nauto-discover=false\n"
         '[[plugins.plugin]]\nid="research.generic"\nruntime="monty"\ntrusted=true\n'
         f"path={json.dumps(str(fixture / 'plugin.py'))}\n"
-        f"manifest-path={json.dumps(str(fixture / 'plugin.plugin.json'))}\n"
+        f"manifest-path={json.dumps(str(fixture / 'plugin.plugin.json'))}\n",
+        encoding="utf-8",
     )
     other_text = 'number: int = "wrong"\n'
     dependencies = args.output / "dependencies"
     dependencies.mkdir()
-    (second / "other.py").write_text(other_text)
+    (second / "other.py").write_text(other_text, encoding="utf-8")
     (second / "pyproject.toml").write_text(
         '[tool.ty.environment]\npython-version="3.13"\n'
-        f"extra-paths=[{json.dumps(str(dependencies))}]\n"
+        f"extra-paths=[{json.dumps(str(dependencies))}]\n",
+        encoding="utf-8",
     )
     client = Client(
         [
@@ -153,7 +155,7 @@ def main():
             item.get("code") == "unresolved-import" for item in missing["items"]
         ), missing
         installed = dependencies / "installed_later.py"
-        installed.write_text("value = 42\n")
+        installed.write_text("value = 42\n", encoding="utf-8")
         client.notify(
             "workspace/didChangeWatchedFiles",
             {"changes": [{"uri": installed.as_uri(), "type": 1}]},
@@ -186,7 +188,9 @@ def main():
 
         # A real config change must invalidate the projection and checker rules.
         config.write_text(
-            config.read_text() + '\n[rules]\ninvalid-assignment="ignore"\n'
+            config.read_text(encoding="utf-8")
+            + '\n[rules]\ninvalid-assignment="ignore"\n',
+            encoding="utf-8",
         )
         client.notify(
             "workspace/didChangeWatchedFiles",
@@ -218,8 +222,8 @@ def main():
         )
         assert client.request("tyCompanion/statistics")["workspaces"] == 2
         assert client.request("textDocument/diagnostic", one)["items"] == []
-        assert (first / "demo.py").read_text() == SOURCE
-        assert (second / "other.py").read_text() == other_text
+        assert (first / "demo.py").read_text(encoding="utf-8") == SOURCE
+        assert (second / "other.py").read_text(encoding="utf-8") == other_text
         evidence["statistics"] = client.request("tyCompanion/statistics")
         evidence["timings"] = client.timings
         client.notify(
@@ -260,7 +264,7 @@ def main():
         outside = args.output / "outside"
         outside.mkdir()
         outside_file = outside / "standalone.py"
-        outside_file.write_text("value: int = 'bad'\n")
+        outside_file.write_text("value: int = 'bad'\n", encoding="utf-8")
         client.notify(
             "textDocument/didOpen",
             {
@@ -268,7 +272,7 @@ def main():
                     "uri": outside_file.as_uri(),
                     "version": 1,
                     "languageId": "python",
-                    "text": outside_file.read_text(),
+                    "text": outside_file.read_text(encoding="utf-8"),
                 }
             },
         )
@@ -286,7 +290,7 @@ def main():
     finally:
         client.close()
         (args.output / "evidence.json").write_text(
-            json.dumps(evidence, indent=2) + "\n"
+            json.dumps(evidence, indent=2) + "\n", encoding="utf-8"
         )
     print(
         "Configured plugin, multiple workspaces, unsaved files and config reload: PASS"

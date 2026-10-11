@@ -140,6 +140,26 @@ fn watch_rechecks_source_plugin_config_and_dependencies() -> Result<()> {
             "Watching for file changes",
         ],
     )?;
+    // FSEvents can coalesce fixture-creation events into its first delivery.
+    // Observe a real source change and restoration before measuring reuse:
+    // a delayed plugin-creation event legitimately invalidates the session.
+    fs::write(
+        root.join("demo.py"),
+        format!("{source}watch_ready: int = 'bad'\n"),
+    )?;
+    wait(
+        "initial event delivery",
+        &[
+            "error[invalid-assignment]",
+            "Found 1 diagnostic",
+            "Checked in",
+        ],
+    )?;
+    fs::write(root.join("demo.py"), source)?;
+    wait(
+        "restore after initial event delivery",
+        &["All checks passed!", "Checked in"],
+    )?;
     // A comment-only edit has identical semantic requests and reuses Monty state.
     fs::write(root.join("demo.py"), format!("{source}# comment\n"))?;
     let trivia = wait("comment-only edit", &["All checks passed!", "Checked in"])?;
