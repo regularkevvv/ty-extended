@@ -103,6 +103,36 @@ class BenchmarkTests(unittest.TestCase):
         self.assertEqual(summary["fork"]["runs"], 1)
         self.assertEqual(summary["push"]["runs"], 1)
 
+    def test_every_workload_rotates_backend_order_across_measured_rounds(self):
+        cases = ["conformance", "positive", "negative"]
+        backends = ["fork", "cli", "push"]
+        plan = list(
+            benchmark.invocation_plan(
+                cases, backends, [("first-observed", 1), ("warmup", 2), ("measured", 7)]
+            )
+        )
+        self.assertEqual(len(plan), 90)
+        for case in cases:
+            orders = [
+                [
+                    backend
+                    for phase, repetition, name, backend in plan
+                    if phase == "measured" and name == case and repetition == index
+                ]
+                for index in range(7)
+            ]
+            for order in orders:
+                self.assertCountEqual(order, backends)
+            for position in range(3):
+                self.assertCountEqual(
+                    [order[position] for order in orders[:3]], backends
+                )
+                counts = [
+                    sum(order[position] == backend for order in orders)
+                    for backend in backends
+                ]
+                self.assertLessEqual(max(counts) - min(counts), 1)
+
 
 if __name__ == "__main__":
     unittest.main()

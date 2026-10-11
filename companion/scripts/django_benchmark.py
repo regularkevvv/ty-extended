@@ -108,6 +108,18 @@ def summarize(records: list[dict]) -> dict:
     return result
 
 
+def invocation_plan(cases, backends, phases):
+    """Rotate each workload through every backend position across rounds."""
+    round_number = 0
+    for phase, repetitions in phases:
+        for repetition in range(repetitions):
+            for case_index, case in enumerate(cases):
+                offset = (round_number + case_index) % len(backends)
+                for backend in backends[offset:] + backends[:offset]:
+                    yield phase, repetition, case, backend
+            round_number += 1
+
+
 def benchmark(args: Any) -> dict:
     sys.path.insert(0, str(args.django / "scripts"))
     evaluator = load_module(
@@ -203,66 +215,61 @@ def benchmark(args: Any) -> dict:
         ("warmup", args.warmups),
         ("measured", args.repetitions),
     ]
-    order = 0
-    for phase, repetitions in phases:
-        for repetition in range(repetitions):
-            for suite, root, paths, settings in cases:
-                offset = order % len(backends)
-                order += 1
-                for backend in backends[offset:] + backends[:offset]:
-                    invocation = SimpleNamespace(**vars(args))
-                    invocation.checker_mode = backend if backend != "fork" else "cli"
-                    label = f"{phase}-{repetition:02d}/{suite}-{backend}"
-                    load_before = os.getloadavg()
-                    actual = checker_run(
-                        invocation,
-                        root,
-                        paths,
-                        settings,
-                        label,
-                        native=backend != "fork",
-                    )
-                    try:
-                        counters = verify_result(
-                            actual,
-                            expected[suite],
-                            backend,
-                            counter_baselines.get((suite, backend)),
-                        )
-                        if (
-                            suite == "conformance"
-                            and not score_contract(
-                                actual["diagnostics"], args.django, evaluator
-                            )["passed"]
-                        ):
-                            raise Failure("unchanged conformance expectations failed")
-                    except Failure as error:
-                        report["failure"] = {"label": label, "error": str(error)}
-                        write_json(args.output / "benchmark.json", report)
-                        raise
-                    counter_baselines[(suite, backend)] = counters
-                    record = {
-                        "phase": phase,
-                        "repetition": repetition,
-                        "suite": suite,
-                        "backend": backend,
-                        "seconds": actual["seconds"],
-                        "exit": actual["exit"],
-                        "diagnostic_sha256": diagnostic_hash(actual["diagnostics"]),
-                        "diagnostics": len(actual["diagnostics"]),
-                        "verified": True,
-                        "counters": counters,
-                        "native_metrics": actual["metrics"],
-                        "load_average_before": load_before,
-                        "load_average_after": os.getloadavg(),
-                        "evidence": str(args.output / "runs" / label),
-                    }
-                    records.append(record)
-                    write_json(args.output / "benchmark.json", report)
-                    print(
-                        f"{label}: {actual['seconds']:.3f}s verified {record['diagnostics']} diagnostics",
-                        flush=True,
-                    )
+    for phase, repetition, case, backend in invocation_plan(cases, backends, phases):
+        suite, root, paths, settings = case
+        invocation = SimpleNamespace(**vars(args))
+        invocation.checker_mode = backend if backend != "fork" else "cli"
+        label = f"{phase}-{repetition:02d}/{suite}-{backend}"
+        load_before = os.getloadavg()
+        actual = checker_run(
+            invocation,
+            root,
+            paths,
+            settings,
+            label,
+            native=backend != "fork",
+        )
+        try:
+            counters = verify_result(
+                actual,
+                expected[suite],
+                backend,
+                counter_baselines.get((suite, backend)),
+            )
+            if (
+                suite == "conformance"
+                and not score_contract(actual["diagnostics"], args.django, evaluator)[
+                    "passed"
+                ]
+            ):
+                raise Failure("unchanged conformance expectations failed")
+        except Failure as error:
+            report["failure"] = {"label": label, "error": str(error)}
+            write_json(args.output / "benchmark.json", report)
+            raise
+        counter_baselines[(suite, backend)] = counters
+        record = {
+            "phase": phase,
+            "repetition": repetition,
+            "suite": suite,
+            "backend": backend,
+            "seconds": actual["seconds"],
+            "exit": actual["exit"],
+            "diagnostic_sha256": diagnostic_hash(actual["diagnostics"]),
+            "diagnostics": len(actual["diagnostics"]),
+            "verified": True,
+            "counters": counters,
+            "native_metrics": actual["metrics"],
+            "load_average_before": load_before,
+            "load_average_after": os.getloadavg(),
+            "evidence": str(args.output / "runs" / label),
+        }
+        records.append(record)
+        write_json(args.output / "benchmark.json", report)
+        print(
+            f"{label}: {actual['seconds']:.3f}s verified {record['diagnostics']} diagnostics",
+            flush=True,
+        )
     if inventory(args.django, evaluator) != original_inputs:
         raise Failure("benchmark source changed during the run")
     for name, binary in binaries.items():
