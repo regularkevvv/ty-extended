@@ -13,6 +13,13 @@ from pathlib import Path
 from harness_paths import relative_path
 from lsp_acceptance import Client
 
+MISSING_ARTIFACT_PATHS = {
+    "missing-artifact": "../missing.py",
+    "pyproject-origin": "../missing.py",
+    "nested-missing-artifact": "nested café %雪/missing.py",
+    "outside-nested-missing-artifact": "../nested café %雪/missing.py",
+}
+
 
 def digest(path):
     return hashlib.sha256(path.read_bytes()).hexdigest()
@@ -115,11 +122,19 @@ class Gate:
         config = '# café 😀\n[environment]\npython-version="3.13"\n[plugins]\nenabled=true\nauto-discover=false\n[[plugins.plugin]]\nid="research.invalid"\npath="../plugin.py"\nruntime="monty"\ntrusted=true\nmanifest-path="../plugin.json"\n'
         if name == "disabled":
             config = config.replace("enabled=true", "enabled=false")
-        elif name in ("missing-artifact", "pyproject-origin"):
-            config = config.replace('path="../plugin.py"', 'path="../missing.py"')
-        elif name == "missing-manifest":
+        elif name in MISSING_ARTIFACT_PATHS:
+            missing = MISSING_ARTIFACT_PATHS[name]
+            (root / missing).parent.mkdir(parents=True, exist_ok=True)
+            config = config.replace('path="../plugin.py"', f'path="{missing}"')
+        elif name in ("missing-manifest", "nested-missing-manifest"):
+            missing = (
+                "nested café %雪/missing.json"
+                if name == "nested-missing-manifest"
+                else "../missing.json"
+            )
+            (root / missing).parent.mkdir(parents=True, exist_ok=True)
             config = config.replace(
-                'manifest-path="../plugin.json"', 'manifest-path="../missing.json"'
+                'manifest-path="../plugin.json"', f'manifest-path="{missing}"'
             )
         elif name == "untrusted":
             config = config.replace("trusted=true", "trusted=false")
@@ -131,8 +146,14 @@ class Gate:
         elif name == "protocol":
             bad["protocol-version"] = {"major": 99, "minor": 1}
             save(case / "plugin.json", bad)
-        elif name in ("missing-stubs", "stub-capability"):
-            config += 'stub-overlay-path="../stubs"\n'
+        elif name in ("missing-stubs", "nested-missing-stubs", "stub-capability"):
+            missing = (
+                "nested café %雪/stubs"
+                if name == "nested-missing-stubs"
+                else "../stubs"
+            )
+            (root / missing).parent.mkdir(parents=True, exist_ok=True)
+            config += f'stub-overlay-path="{missing}"\n'
             if name == "stub-capability":
                 (case / "stubs").mkdir()
         elif name == "invalid-artifact":
@@ -283,13 +304,15 @@ class Gate:
                     },
                 }
             self.equal(name + "/editor", raw["companion"], raw["fork"])
-            if name in ("missing-artifact", "bad-manifest", "invalid-artifact"):
-                target = case / (
-                    "missing.py"
-                    if name == "missing-artifact"
-                    else "plugin.json"
-                    if name == "bad-manifest"
-                    else "plugin.py"
+            if name in MISSING_ARTIFACT_PATHS or name in (
+                "bad-manifest",
+                "invalid-artifact",
+            ):
+                target = (
+                    (root / MISSING_ARTIFACT_PATHS[name]).resolve()
+                    if name in MISSING_ARTIFACT_PATHS
+                    else case
+                    / ("plugin.json" if name == "bad-manifest" else "plugin.py")
                 )
                 old = target.read_bytes() if target.exists() else None
                 valid = manifest("research.invalid", "demo.bad")
@@ -571,13 +594,17 @@ class Gate:
             for name in (
                 "disabled",
                 "missing-artifact",
+                "nested-missing-artifact",
+                "outside-nested-missing-artifact",
                 "pyproject-origin",
                 "missing-manifest",
+                "nested-missing-manifest",
                 "untrusted",
                 "bad-manifest",
                 "id-mismatch",
                 "protocol",
                 "missing-stubs",
+                "nested-missing-stubs",
                 "stub-capability",
                 "invalid-artifact",
                 "crashing-artifact",

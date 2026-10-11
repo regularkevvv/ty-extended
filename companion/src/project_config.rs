@@ -664,7 +664,17 @@ fn relocated(value: &str, base: &Path, root: &Path, view: &Path) -> String {
     #[cfg(windows)]
     {
         windows_relative_path(&comparable, &comparable_root)
-            .map_or(normalized.clone(), |suffix| view.join(suffix))
+            .map_or(normalized.clone(), |suffix| {
+                // `windows_relative_path` uses slash-separated glob spelling.
+                // Rebuild the filesystem path as native `SystemPath::absolute`
+                // does, retaining the view's verbatim prefix where required.
+                Path::new(suffix)
+                    .components()
+                    .fold(view.to_owned(), |mut path, component| {
+                        path.push(component.as_os_str());
+                        path
+                    })
+            })
             .to_string_lossy()
             .into_owned()
     }
@@ -928,15 +938,9 @@ impl PluginOrigin {
 }
 
 fn plugin_path_display(path: &Path) -> String {
-    // Canonical Windows paths carry a \\?\ prefix internally. URI identity
-    // serialization removes that implementation prefix while preserving drive,
-    // UNC, Unicode and percent characters in user-visible diagnostic labels.
-    crate::checker::file_uri(path)
-        .ok()
-        .and_then(|uri| crate::lsp_mapping::decode_file_uri(&uri).ok().flatten())
-        .unwrap_or_else(|| path.to_owned())
-        .display()
-        .to_string()
+    // Match native filesystem labels without converting their separators to
+    // URI syntax. Retain Windows verbatim prefixes when the path requires them.
+    crate::checker::native_cli_path(path).display().to_string()
 }
 
 fn plugin_registrations(
@@ -1929,6 +1933,97 @@ pub fn load(
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    #[cfg(windows)]
+    fn plugin_diagnostic_paths_keep_native_windows_spelling() {
+        for (path, expected) in [
+            (r"D:\project\missing.py", r"D:\project\missing.py"),
+            (r"\\?\D:\project\missing.py", r"D:\project\missing.py"),
+            (r"\\?\D:\café 😀\雪 100%.py", r"D:\café 😀\雪 100%.py"),
+            (r"\\server\share\雪 100%.py", r"\\server\share\雪 100%.py"),
+            (
+                r"\\?\UNC\server\share\雪 100%.py",
+                r"\\?\UNC\server\share\雪 100%.py",
+            ),
+            (r"\\?\D:\project\NUL.py", r"\\?\D:\project\NUL.py"),
+            (
+                r"\\?\D:\project\trailing.\missing.py",
+                r"\\?\D:\project\trailing.\missing.py",
+            ),
+        ] {
+            assert_eq!(plugin_path_display(Path::new(path)), expected);
+        }
+    }
+
+    #[test]
+    #[cfg(windows)]
+    fn nested_windows_plugin_paths_rebuild_native_separators() {
+        let ordinary_root = Path::new(r"D:\project");
+        assert_eq!(
+            relocated(
+                "nested/missing.py",
+                ordinary_root,
+                ordinary_root,
+                ordinary_root
+            ),
+            r"D:\project\nested\missing.py"
+        );
+        let root = Path::new(r"\\?\D:\project");
+        for (relative, expected, label) in [
+            (
+                "nested/missing.py",
+                r"\\?\D:\project\nested\missing.py",
+                r"D:\project\nested\missing.py",
+            ),
+            (
+                "café 😀/雪 100%/missing.py",
+                r"\\?\D:\project\café 😀\雪 100%\missing.py",
+                r"D:\project\café 😀\雪 100%\missing.py",
+            ),
+            (
+                "nested/NUL.py",
+                r"\\?\D:\project\nested\NUL.py",
+                r"\\?\D:\project\nested\NUL.py",
+            ),
+            (
+                "trailing./missing.py",
+                r"\\?\D:\project\trailing.\missing.py",
+                r"\\?\D:\project\trailing.\missing.py",
+            ),
+        ] {
+            let path = relocated(relative, root, root, root);
+            assert_eq!(path, expected);
+            assert_eq!(plugin_path_display(Path::new(&path)), label);
+        }
+        let unc = Path::new(r"\\?\UNC\server\share\project");
+        assert_eq!(
+            relocated("nested/missing.py", unc, unc, unc),
+            r"\\?\UNC\server\share\project\nested\missing.py"
+        );
+        assert_eq!(
+            relocated(
+                "nested/missing.py",
+                root,
+                root,
+                Path::new(r"\\?\D:\analysis")
+            ),
+            r"\\?\D:\analysis\nested\missing.py"
+        );
+    }
+
+    #[test]
+    #[cfg(unix)]
+    fn plugin_diagnostic_paths_preserve_posix_filename_characters() {
+        for path in [
+            "/tmp/project/missing.py",
+            "/tmp/café 😀/雪 100%.py",
+            r"/tmp/project/literal\backslash.py",
+            r"/tmp/project/\\?\NUL.py",
+        ] {
+            assert_eq!(plugin_path_display(Path::new(path)), path);
+        }
+    }
 
     fn editor_fixture(name: &str) -> Result<PathBuf> {
         let root = std::env::temp_dir().join(format!("ty-editor-{name}-{}", std::process::id()));
