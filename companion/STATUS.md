@@ -4,8 +4,8 @@ The companion runs embedded Monty semantic plugins with unchanged official ty.
 CLI and LSP map diagnostics, positions and edits back to original files. WASM and
 the optional Python worker are outside this build.
 
-Validated source: `09015e694ca7897271961c075fb1be71162d7c82`. Executable SHA-256:
-`c4f681887b358944318e01c73db864bf0de76e00ab24d15417e07d9ed2a4f8f2`.
+Validated source: `a4753158c11354d7042ac8d701d162981815369f`. Executable SHA-256:
+`54a5c41f3b595b2a053f1d5d676cff72c0a73e03639bb6d38a52aaafa9dedbe0`.
 
 | Passed gates  | Coverage                                                                                                                                                                                                 |
 | ------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -21,9 +21,11 @@ ran unchanged**, **90 public contracts passed through companion adapters**, and
 194 executed companion tests. The ledger records differences in internal hook
 and index counters; public results match the accepted fixtures.
 
-Additional checks: 172 default Rust tests, one configuration test, 31 Python harness
+Additional checks: 172 default Rust tests, two live-checker tests, 37 Python harness
 tests, Clippy and repository checks. Both 150-request Django protocol replays pass:
 8 MiB rejects one oversized response as expected; 16 MiB accepts all.
+Windows path normalization has a CLI/LSP regression for nominal and generic
+classes imported from their own file, including a genuine type-error control.
 
 Django comparisons pin **official ty 0.0.84 / ty-extended 0.84.4**; generic/editor
 comparisons pin **official ty 0.0.86 / ty-extended 0.86.0**. Compatibility is bounded
@@ -33,22 +35,22 @@ Fresh-process public `check` medians on the Django conformance project:
 
 | Output    | Companion | Reference fork | Companion / fork |
 | --------- | --------- | -------------- | ---------------- |
-| `full`    | 4.174 s   | 0.703 s        | 5.93×            |
-| `concise` | 3.940 s   | 0.701 s        | 5.62×            |
+| `full`    | 4.350 s   | 0.735 s        | 5.92×            |
+| `concise` | 4.110 s   | 0.730 s        | 5.63×            |
 
 These are seven measured runs after two warmups; all 36 invocations preserve
 accepted output. Persistent-editor medians are **34 ms for comment edits** and
-**736 ms for semantic edits**, with seven measurements after three warmups.
+**735 ms for semantic edits**, with seven measurements after three warmups.
 The measured trailing-comment edits make no Monty calls or native hint queries.
 
-An alternating comparison against the preceding binary retained all 60
-invocations: batching native queries reduced positive/negative e2e medians by
-**17.3% / 17.8%**; conformance changed by **+0.05%**. Fresh-process overhead remains:
-internal `project` e2e-negative medians are 3.012 s versus 0.298 s for the fork
-(10.10×); persistent-checker mode within each invocation takes 2.980 s (9.99×).
+An alternating comparison against the binary before the final `NoneType` query prefetch retained all 60
+invocations: prefetching `NoneType` with the other native queries reduced positive/negative e2e medians by
+**17.2% / 17.3%**; conformance changed by **-0.39%**. Fresh-process overhead remains:
+internal `project` e2e-negative medians are 3.154 s versus 0.312 s for the fork
+(10.11×); persistent-checker mode within each invocation takes 3.118 s (9.99×).
 These desktop measurements do not establish cold-disk or universally optimal performance.
 
-The macOS arm64 executable is **14,948,064 bytes** (gzip: **6,576,615 bytes**).
+The macOS arm64 executable is **14,948,064 bytes** (gzip: **6,576,170 bytes**).
 With separately installed official ty, executables total **41,284,016 bytes**,
 versus **37,518,400 bytes** for the fork. Distribution is independent; total
 installed size is larger. The companion includes Ruff parser/SDK crates and Monty,

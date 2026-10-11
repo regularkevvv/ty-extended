@@ -2,7 +2,7 @@
   "binaries": {
     "companion": {
       "path": "binary:companion",
-      "sha256": "c4f681887b358944318e01c73db864bf0de76e00ab24d15417e07d9ed2a4f8f2"
+      "sha256": "54a5c41f3b595b2a053f1d5d676cff72c0a73e03639bb6d38a52aaafa9dedbe0"
     },
     "fork": {
       "path": "binary:django-fork",
@@ -955,13 +955,13 @@
           "requests": 150
         }
       ],
-      "sha256": "17dd3b43a3edf7f30800e7b42d21052d668b2bd39fabf4e8dee8ce4bcb0a1280"
+      "sha256": "c8c9368ce08559e5ff0c2e612df9fcd784a8c2f03888d744896ae6d3966e24a4"
     },
     "unit": {
       "artifact": "artifact:unit-test-log",
-      "ignored": 12,
+      "ignored": 13,
       "passed": 172,
-      "sha256": "9eefab9b9c5f1bec6febeb3a9a429dcbdb13636a68d25047ba0bcff7d1848fe4"
+      "sha256": "081a246c1eea77891ce31236be69bcd16e1fa4d902c3d795e4529cb161f0e382"
     }
   },
   "generic_fixture_sha256": {
@@ -1031,56 +1031,57 @@
   "original_artifacts": {
     "generic-cli": {
       "artifact": "artifact:generic-cli-results",
-      "sha256": "3308370cc542080a70399fb73fde659e4b142f1b2c451307e502258fbe60165a"
+      "sha256": "558cedd75233aa0e84b998fbb2cf918a966886b56dad2cc2eecdb4a1820713d9"
     },
     "generic-lsp": {
       "artifact": "artifact:generic-lsp-results",
-      "sha256": "7a30e8d3f2639961f0536ebd821810e946e34f7e2f56f85d2d8911f37abc96ae"
+      "sha256": "ba0516bafde6ea60936a7d519bd547427e0067f278610f104d4dfc8d582b4c14"
     },
     "generic-push": {
       "artifact": "artifact:generic-push-results",
-      "sha256": "b960b8340a6694454f86d3d48dbeffa274020dcd66026bcb3dd5bf5e13275c8a"
+      "sha256": "4e596955684ed9bc57ae0c5ff09c32c5c2b47486b5d33b7f74ab3905f45be799"
     },
     "matrix-cli": {
       "artifact": "artifact:matrix-cli",
-      "sha256": "0a91f41f71482df5de896e90fb85a50577bb07cf10c49e2a36938bd885210fac"
+      "sha256": "df1e8ed7862be248f73204428e7f61be06dc445d5bca3efafa38f50aec2e86eb"
     },
     "matrix-push": {
       "artifact": "artifact:matrix-push",
-      "sha256": "52495292f088d52ce46a31b7dcd69d988b0cc92748e773a58c79dc2f14478a4c"
+      "sha256": "f6513d4316cdaeb58196bbab81ab02691a6ee5aca4a8348d649a77dec54e119c"
     }
   },
   "schema": 1,
   "source": {
     "commits": {
-      "repository": "09015e694ca7897271961c075fb1be71162d7c82",
+      "repository": "a4753158c11354d7042ac8d701d162981815369f",
       "ruff": "601b36e9d1884d058535f9daa888eb637f0cc488"
     },
     "source_sha256": {
-      "Cargo.lock": "f319c871494e7881262617c49dac4d90437db21b3338ffff3efea8e9e8059ea5",
-      "Cargo.toml": "8329fe1d61e90b360e229d7d800c5a888358a53003dbf3de81465d42e955552a",
+      "Cargo.lock": "459b491c865ede5d55d29441c8fa1373276eba11e65a7cb97f46fc2712d48015",
+      "Cargo.toml": "db0c0e0a16e59b0a95902ff61f8b4777b1f568319a7625f7684a459f2bb55109",
       "scripts/ci.py": "e2e37238dc2206373d4c065bf4bf53270ceecf59c7ce31f0ff01a097ca871c09",
       "scripts/collect_evidence.py": "1d04552eeaac50c118290c95aa64e19ead7bde6d3e00071213d7373cafa5337f",
       "scripts/django_acceptance.py": "a953af94c0981bbea5d7b7c1e8db0015cc245095b9b178ae1d5fffd085cb8349",
       "scripts/django_benchmark.py": "cbdca177e104ff8cd731dbe152786c511caea80dc613f2438f100140fc719908",
       "scripts/django_matrix.py": "7ce4c1e184430e0a17684d34b19770a510a3d28e973a7d6379d2d440be8132f6",
+      "scripts/harness_paths.py": "39e1f64f95a0ce6b7dc0903bbf8452b3d4785a8a830cbf2b0ffd42a9ea8ec505",
       "scripts/lsp_acceptance.py": "7ec1b0edeb654aa59c6a5eb8ba359fd559f1b09b4275ffd5d41aec87db58cb4a",
       "scripts/lsp_configuration.py": "5cbb940e335aec58e356fdd6169eb74fc7eb8f4cf633c70646cf0ab435ed09a7",
       "scripts/lsp_differential.py": "82ce8a03bac05b952fafa60e96c00f1bcc3ea7bf946824959bb7cb693ce124c7",
       "scripts/lsp_django.py": "973602577eaed223f7389c3074c604aa5c887f29963bc445edc1acf55113eed4",
       "scripts/lsp_lifecycle.py": "8494c324fa9fe851674bc0dd5278a89377c93a7aa642d4409a6a311ba57f07ea",
       "scripts/lsp_notebook_differential.py": "e7583fd3c797c8b6a4523cd4bf598e0b14b5439e5a123f629871026b3118c070",
-      "scripts/plugin_configuration_differential.py": "f2c915c7109c4dd69cf480b04ba0eea120862070a0a9c443d62a16cbac3ac8d1",
-      "scripts/plugin_error_differential.py": "bcded493a729e9965767360ed62353d56a32c60deeb0cbeaeec91df6860f0983",
+      "scripts/plugin_configuration_differential.py": "a274e5c361dec22a42bc8d92e4af837dd2e2e3b4f537a33be5f3842321f1032a",
+      "scripts/plugin_error_differential.py": "12d260521d1ebf71d6a65dc905ee3cf8865e26d423097c7a0da8b163fdb16c1b",
       "scripts/sdk_class_inventory.py": "f8a1186693c107cc19e9443607953e48c507c857a130bb1c21c0420c208039be",
       "scripts/sdk_class_summary_inventory.py": "a1b47fdceb0262f2b0e43adf228d5b138f28fc3040e5d8bdf5ac0388a0ad234b",
       "scripts/sdk_cli_inventory.py": "d3b7818f9e422912a43ac0a8c7107d7bff25cc6715645a0844dee6cf9ee9fdf8",
       "scripts/sdk_function_inventory.py": "d7e1703805925d35dbb78d08c0ea3bf54855355d94d07cd001a1f2e4e977e5a2",
       "scripts/sdk_method_inventory.py": "2cd7c4e36b5094d30fb454f3552c26628eaf4dba0b2defc7964cf345a9a45935",
       "scripts/sdk_minidjango_inventory.py": "bc5df2bb8945e71797fcf068ece87ce61fc95410bf007c23b0a9f0c289e505f2",
-      "scripts/sdk_overlay_inventory.py": "73b42de48e5dba760e04696eda72663de9e9d8a63a258ba08e2c13c6ab05c724",
+      "scripts/sdk_overlay_inventory.py": "d46be74ab7e13f1c4538f29378b0d0640305b2e5a3f5a0a80cb62a76ccbfaa79",
       "scripts/sdk_state_inventory.py": "0dc8db0d4d53e71bfb34644e7dd8aba1c1917b5b9398e09658c251a5c0a8c69f",
-      "src/checker.rs": "2b3dba90c52ba2647144d81d43f5101fa1bac6ddd886899d6bb73cda308b81a1",
+      "src/checker.rs": "1cd5b4d1863722f240296ea791ee287f355789c04c564a2eade3e2062c389bf3",
       "src/cli.rs": "11e58291e47b04ed3a9c08fa54a843ea1d15a5d5c30a6b70b2dfdaa04478f078",
       "src/cli_edits.rs": "01543f2a5d63f7a66545923b6ccd25e06161b6e3fd9b2936d09073768902c444",
       "src/editor_options.rs": "6c3d5540fdea2956a9ed179fb2291f087456a48cf744647063bdd11a3f775d46",
@@ -1093,8 +1094,8 @@
       "src/model.rs": "b369aefc5a4471527f78b0f8ecf92f1fa9c391366e8e359335d35e4a44a533c7",
       "src/notebook.rs": "9a12ae49794573b05662125390c295f852b49e4c8d1cd05ead6a1d78fffc2749",
       "src/project.rs": "b0e8da8dad47191ac79504e9a410656db8f2a836d6e6eec2bc65da0dd81bb618",
-      "src/project_check.rs": "43d048736eca2d5aa7d8ba767d4d92bdc2f5c374739eaee47bf51d5f327bb675",
-      "src/project_config.rs": "d4c3d0c797323d6b3a80a90d32bbdf037a812434cd8936e2fbeaf65d9ba62439",
+      "src/project_check.rs": "deccd61973368f9cf39192b587618260efc719496ebba053fd34914685784e10",
+      "src/project_config.rs": "e45146b5e1155d5ba01c2c2c486e90663afceb06c7b1b3785243bef589fa7f66",
       "src/runtime.rs": "84b613f89dca33cfa443e419a4f8661c9f98ed3cfc7a605f6b80c16283c794b5",
       "src/static_project.rs": "e843d64266ae54c65faad8bf77f684a88684b70eb06e7b20145d23c305d350dd",
       "src/type_render.rs": "fcac0aa745413e5944915a02612de47be5c11d8aa36791dd797a75d8400fd665",
@@ -1172,6 +1173,7 @@
       "tests/test_collect_evidence.py": "c1f65415ad0af1bf73ff51d6c239dce4319e53d45702597cf31b710f2eeffbea",
       "tests/test_django_acceptance.py": "78eb7f1473d4b121fa216c7b4ed16e4a25ca231a1963aa8a02c5e8ef789ac733",
       "tests/test_django_benchmark.py": "bc79bba6c484f1bb0b960b3cd16f9b14844e250064dc6dc522ac361474d89676",
+      "tests/test_harness_paths.py": "8e5e3162b87ab825b87838fdc132cc105c97598ad87d30cbab1d9316b151e8a4",
       "tests/test_lsp_io.py": "2de741f96567f58726d08d537f9837701400f114f736f1eb38b54dbc4e846a7a"
     }
   }

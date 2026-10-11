@@ -1,8 +1,8 @@
 # Companion evidence
 
-Validated source: `09015e694ca7897271961c075fb1be71162d7c82`. Executable SHA-256:
-`c4f681887b358944318e01c73db864bf0de76e00ab24d15417e07d9ed2a4f8f2`.
-The macOS arm64 executable is 14,948,064 bytes, or 6,576,615 bytes with gzip.
+Validated source: `a4753158c11354d7042ac8d701d162981815369f`. Executable SHA-256:
+`54a5c41f3b595b2a053f1d5d676cff72c0a73e03639bb6d38a52aaafa9dedbe0`.
+The macOS arm64 executable is 14,948,064 bytes, or 6,576,170 bytes with gzip.
 Including separately installed official ty, executables total 41,284,016 bytes,
 versus 37,518,400 bytes for the fork. These are executable sizes, not wheel sizes.
 
@@ -27,7 +27,7 @@ counter differences are recorded, not claimed as literal test passes.
 
 Public `check` measurements retain 36 verified invocations: two warmups and seven
 measurements per backend/format. Editor measurements retain three warmups and
-seven measured revisions per edit kind. The previous/final binary comparison
+seven measured revisions per edit kind. The comparison with the binary before the final `NoneType` query prefetch
 retains 60 calls across conformance and both e2e workloads, alternating execution
 order with three warmups and seven measured pairs per workload. Every invocation
 must match accepted output; artifact and input hashes are checked throughout.
