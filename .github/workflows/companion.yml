@@ -45,7 +45,8 @@ jobs:
       - name: Install pinned Rust toolchain
         run: rustup toolchain install 1.98.0 --profile minimal --component rustfmt --component clippy
       - name: Run compiler, SDK, and real editor checks
-        run: python companion/scripts/ci.py --output companion-ci-evidence
+        # Keep staged projects outside the repository's inherited Python config.
+        run: python companion/scripts/ci.py --output "${{ runner.temp }}/companion-ci-evidence"
       - name: Preserve compatibility reports
         if: always()
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
@@ -53,9 +54,9 @@ jobs:
           name: companion-${{ matrix.os }}
           retention-days: 5
           path: |
-            companion-ci-evidence/ci.json
-            companion-ci-evidence/**/evidence.json
-            companion-ci-evidence/**/summary.json
-            companion-ci-evidence/**/acceptance.json
-            companion-ci-evidence/**/*.stderr
-            companion-ci-evidence/**/stderr.log
+            ${{ runner.temp }}/companion-ci-evidence/ci.json
+            ${{ runner.temp }}/companion-ci-evidence/**/evidence.json
+            ${{ runner.temp }}/companion-ci-evidence/**/summary.json
+            ${{ runner.temp }}/companion-ci-evidence/**/acceptance.json
+            ${{ runner.temp }}/companion-ci-evidence/**/*.stderr
+            ${{ runner.temp }}/companion-ci-evidence/**/stderr.log

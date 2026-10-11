@@ -243,11 +243,85 @@ fn relocated(value: &str, base: &Path, root: &Path, view: &Path) -> String {
             component => normalized.push(component.as_os_str()),
         }
     }
+    #[cfg(windows)]
+    let comparable = windows_glob_path(&normalized.to_string_lossy());
+    #[cfg(windows)]
+    let comparable_root = windows_glob_path(&root.to_string_lossy());
+    #[cfg(windows)]
+    {
+        windows_relative_path(&comparable, &comparable_root)
+            .map_or(normalized.clone(), |suffix| view.join(suffix))
+            .to_string_lossy()
+            .into_owned()
+    }
+    #[cfg(not(windows))]
     normalized
         .strip_prefix(root)
         .map_or(normalized.clone(), |suffix| view.join(suffix))
         .to_string_lossy()
         .into_owned()
+}
+
+#[cfg(any(windows, test))]
+fn windows_glob_path(value: &str) -> String {
+    let value = value.replace('\\', "/");
+    if let Some(path) = value.strip_prefix("//?/UNC/") {
+        format!("//{path}")
+    } else {
+        value.strip_prefix("//?/").unwrap_or(&value).to_owned()
+    }
+}
+
+#[cfg(any(windows, test))]
+fn windows_relative_path<'a>(path: &'a str, root: &str) -> Option<&'a str> {
+    let root = root.trim_end_matches('/');
+    let prefix = path.get(..root.len())?;
+    if !prefix.eq_ignore_ascii_case(root) {
+        return None;
+    }
+    let suffix = &path[root.len()..];
+    if suffix.is_empty() {
+        Some(suffix)
+    } else {
+        suffix.strip_prefix('/')
+    }
+}
+
+#[cfg(any(windows, test))]
+fn windows_glob_pattern(value: &str, checker_root: &str) -> Result<String> {
+    let (negated, value) = value
+        .strip_prefix('!')
+        .map_or((false, value), |v| (true, v));
+    let path = windows_glob_path(value);
+    let root = windows_glob_path(checker_root);
+    // ty's portable glob parser rejects drive colons and verbatim prefixes.
+    // Relative patterns let ty anchor and escape the Windows root itself.
+    let pattern = match windows_relative_path(&path, &root) {
+        Some("") => ".",
+        Some(relative) => relative,
+        None => &path,
+    };
+    ensure!(
+        pattern.as_bytes().get(1) != Some(&b':')
+            && !pattern.split('/').any(|component| component == ".."),
+        "Windows glob {value:?} is outside checker root {checker_root:?}; official ty cannot represent drive-qualified or parent-directory glob patterns"
+    );
+    Ok(if negated {
+        format!("!{pattern}")
+    } else {
+        pattern.to_owned()
+    })
+}
+
+#[cfg(windows)]
+fn portable_windows_globs(value: &mut Value, checker_root: &Path) -> Result<()> {
+    let root = checker_root.to_string_lossy();
+    for value in value.as_array_mut().into_iter().flatten() {
+        if let Some(path) = value.as_str() {
+            *value = Value::String(windows_glob_pattern(path, &root)?);
+        }
+    }
+    Ok(())
 }
 
 fn relocate_list(value: &mut Value, base: &Path, root: &Path, view: &Path) {
@@ -267,7 +341,17 @@ fn preserve_negated_globs(value: &mut Value, checker_root: &Path) -> Result<()> 
         let Some(path) = value.as_str().and_then(|path| path.strip_prefix('!')) else {
             continue;
         };
+        #[cfg(windows)]
+        let normalized_target = PathBuf::from(windows_glob_path(path));
+        #[cfg(windows)]
+        let normalized_base = PathBuf::from(windows_glob_path(&checker_root.to_string_lossy()));
+        #[cfg(windows)]
+        let target: Vec<_> = normalized_target.components().collect();
+        #[cfg(windows)]
+        let base: Vec<_> = normalized_base.components().collect();
+        #[cfg(not(windows))]
         let target: Vec<_> = Path::new(path).components().collect();
+        #[cfg(not(windows))]
         let base: Vec<_> = checker_root.components().collect();
         let common = target
             .iter()
@@ -834,6 +918,8 @@ pub fn load(
                 if key == "exclude" {
                     preserve_negated_globs(value, view.parent().context("checker root")?)?;
                 }
+                #[cfg(windows)]
+                portable_windows_globs(value, view.parent().context("checker root")?)?;
             }
         }
     }
@@ -846,6 +932,8 @@ pub fn load(
                         if key == "exclude" {
                             preserve_negated_globs(value, view.parent().context("checker root")?)?;
                         }
+                        #[cfg(windows)]
+                        portable_windows_globs(value, view.parent().context("checker root")?)?;
                     }
                 }
             }
@@ -880,6 +968,73 @@ pub fn load(
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn windows_glob_paths_normalize_disk_and_unc_prefixes() {
+        for (original, expected) in [
+            (r"C:\work\project\src", "C:/work/project/src"),
+            (r"\\?\C:\work\project\src", "C:/work/project/src"),
+            (r"\\server\share\src", "//server/share/src"),
+            (r"\\?\UNC\server\share\src", "//server/share/src"),
+            (
+                r"\\?\C:\work\project\**\test_[ab]?.py",
+                "C:/work/project/**/test_[ab]?.py",
+            ),
+        ] {
+            assert_eq!(windows_glob_path(original), expected);
+        }
+    }
+
+    #[test]
+    fn windows_globs_anchor_relatively_without_losing_negation_or_wildcards() {
+        for (pattern, root, expected) in [
+            (
+                r"\\?\C:\work\output\project\src",
+                r"C:\work\output",
+                "project/src",
+            ),
+            (
+                r"C:\work\output\project\tests\**",
+                r"\\?\C:\work\output",
+                "project/tests/**",
+            ),
+            (
+                r"!\\?\C:\work\output\project\**\test_[ab]?.py",
+                r"C:\work\output",
+                "!project/**/test_[ab]?.py",
+            ),
+            (
+                r"\\?\UNC\server\share\output\project\src",
+                r"\\server\share\output",
+                "project/src",
+            ),
+            (
+                r"!\\server\other\**\test_?.py",
+                r"\\?\UNC\server\share\output",
+                "!//server/other/**/test_?.py",
+            ),
+            (
+                r"c:\WORK\output\project\src",
+                r"C:\work\output",
+                "project/src",
+            ),
+            (r"\\?\C:\work\output", r"C:\work\output", "."),
+        ] {
+            assert_eq!(windows_glob_pattern(pattern, root).unwrap(), expected);
+        }
+        for pattern in [
+            r"C:\work\output-other\src",
+            r"D:\work\output\src",
+            "../shared",
+            "!../shared/**",
+        ] {
+            let error = windows_glob_pattern(pattern, r"C:\work\output").unwrap_err();
+            assert!(
+                error.to_string().contains("outside checker root"),
+                "{error}"
+            );
+        }
+    }
     #[test]
     fn source_filters_match_directories_negation_and_scripts() -> Result<()> {
         let root = Path::new("/workspace");
@@ -993,9 +1148,13 @@ mod tests {
             value["environment"]["python"].as_str(),
             Some(root.join("./.venv").to_str().unwrap())
         );
+        #[cfg(windows)]
+        let expected_glob = "generated/tests/**".to_owned();
+        #[cfg(not(windows))]
+        let expected_glob = view.join("tests/**").to_string_lossy().into_owned();
         assert_eq!(
             value["overrides"][0]["include"][0].as_str(),
-            Some(view.join("tests/**").to_str().unwrap())
+            Some(expected_glob.as_str())
         );
         std::fs::write(
             root.join("ty.toml"),
