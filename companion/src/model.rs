@@ -89,13 +89,13 @@ pub struct CallSite {
 }
 impl CallSite {
     pub fn argument_key(&self, index: usize) -> String {
-        format!("{}:arg:{index}", self.span.start)
+        format!("{}:{}:arg:{index}", self.span.start, self.span.end)
     }
     pub fn return_key(&self) -> String {
-        format!("{}:default", self.span.start)
+        format!("{}:{}:default", self.span.start, self.span.end)
     }
     pub fn receiver_key(&self) -> String {
-        format!("{}:receiver", self.span.start)
+        format!("{}:{}:receiver", self.span.start, self.span.end)
     }
 }
 #[derive(Clone)]
@@ -113,7 +113,9 @@ pub struct Analysis {
     pub classes: BTreeMap<String, ClassInfo>,
     pub intrinsics: BTreeSet<String>,
     pub calls: BTreeMap<Span, CallSite>,
+    pub constructor_calls: BTreeMap<Span, String>,
     pub unbound_calls: BTreeSet<Span>,
+    pub annotated_casts: BTreeMap<Span, Value>,
     pub edits: Edits,
     pub helpers: BTreeMap<String, String>,
     pub expression_probes: BTreeMap<Span, String>,
@@ -291,6 +293,26 @@ pub fn pattern_bindings(pattern: &ruff_python_ast::Pattern) -> BTreeSet<String> 
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn fluent_calls_have_distinct_oracle_keys() {
+        let parsed = ruff_python_parser::parse_expression("factory().method()").unwrap();
+        let ruff_python_ast::Expr::Call(outer) = parsed.syntax().body.as_ref() else {
+            panic!()
+        };
+        let ruff_python_ast::Expr::Attribute(method) = outer.func.as_ref() else {
+            panic!()
+        };
+        let ruff_python_ast::Expr::Call(inner) = method.value.as_ref() else {
+            panic!()
+        };
+        let outer = call_site(outer, "factory().method".into());
+        let inner = call_site(inner, "factory".into());
+        assert_eq!(outer.span.start, inner.span.start);
+        assert_ne!(outer.return_key(), inner.return_key());
+        assert_ne!(outer.receiver_key(), inner.receiver_key());
+        assert_ne!(outer.argument_key(0), inner.argument_key(0));
+    }
 
     #[test]
     fn argument_symbols_match_the_sdk_literal_contract() {

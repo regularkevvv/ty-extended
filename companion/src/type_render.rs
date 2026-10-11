@@ -21,8 +21,18 @@ pub struct Types {
     import_bindings: BTreeMap<String, String>,
     imported_symbols: BTreeMap<(String, String), String>,
     imported_modules: BTreeMap<String, String>,
+    virtual_modules: BTreeMap<String, String>,
+    virtual_types: BTreeSet<String>,
+    imported_virtual_modules: BTreeMap<String, String>,
     unavailable_modules: BTreeSet<String>,
     unresolved_bindings: BTreeSet<String>,
+    self_context: Option<Value>,
+    snapshots: BTreeMap<String, String>,
+    protocol_types: BTreeMap<String, Value>,
+    nominal_candidates: BTreeSet<String>,
+    nominal_resolution: BTreeMap<String, Option<usize>>,
+    annotation_candidates: BTreeSet<String>,
+    annotation_resolution: BTreeMap<String, bool>,
 }
 impl Types {
     pub fn new(prefix: &str, module: &str) -> Self {
@@ -37,8 +47,18 @@ impl Types {
             import_bindings: BTreeMap::new(),
             imported_symbols: BTreeMap::new(),
             imported_modules: BTreeMap::new(),
+            virtual_modules: BTreeMap::new(),
+            virtual_types: BTreeSet::new(),
+            imported_virtual_modules: BTreeMap::new(),
             unavailable_modules: BTreeSet::new(),
             unresolved_bindings: BTreeSet::new(),
+            self_context: None,
+            snapshots: BTreeMap::new(),
+            protocol_types: BTreeMap::new(),
+            nominal_candidates: BTreeSet::new(),
+            nominal_resolution: BTreeMap::new(),
+            annotation_candidates: BTreeSet::new(),
+            annotation_resolution: BTreeMap::new(),
         }
     }
     pub fn with_project(prefix: &str, module: &str, project: &Project) -> Self {
@@ -49,11 +69,15 @@ impl Types {
             .is_some_and(|module| module.source.protocol_module.is_some());
         renderer.modules.extend(project.modules.keys().cloned());
         renderer.unavailable_modules = project.unavailable_modules.clone();
+        renderer.virtual_modules = project.virtual_modules.clone();
+        renderer.nominal_resolution = project.snapshot_nominals.clone();
+        renderer.annotation_resolution = project.snapshot_symbols.clone();
         for (qualified, summary) in &project.classes {
             if summary["virtual"] == true
                 && let Some((module, _)) = qualified.rsplit_once('.')
             {
                 renderer.modules.insert(module.to_owned());
+                renderer.virtual_types.insert(qualified.to_owned());
             }
         }
         renderer
@@ -64,6 +88,7 @@ impl Types {
     pub fn display_names(&self) -> BTreeMap<String, String> {
         self.imported_modules
             .iter()
+            .chain(self.imported_virtual_modules.iter())
             .map(|(module, alias)| (alias.clone(), module.clone()))
             .chain(
                 self.imported_symbols
@@ -75,7 +100,55 @@ impl Types {
                     .iter()
                     .map(|(expression, alias)| (alias.clone(), expression.clone())),
             )
+            .chain(self.protocol_types.iter().filter_map(|(alias, value)| {
+                Some((alias.clone(), value["expression"].as_str()?.to_owned()))
+            }))
             .collect()
+    }
+    /// Preserve structural declarations through the checker's short hover names.
+    pub fn register_protocol_types(&self, runtime: &mut crate::runtime::Runtime) {
+        runtime.register_protocol_types(&self.module, &self.prefix, self.protocol_types.clone());
+        runtime
+            .nominal_candidates
+            .extend(self.nominal_candidates.iter().cloned());
+        runtime
+            .annotation_candidates
+            .extend(self.annotation_candidates.iter().cloned());
+    }
+    fn protocol_annotation(&self, rendered: &str) -> String {
+        let names: BTreeMap<_, _> = self
+            .imported_modules
+            .iter()
+            .chain(self.imported_virtual_modules.iter())
+            .map(|(module, alias)| (alias.clone(), module.clone()))
+            .chain(
+                self.imported_symbols
+                    .iter()
+                    .map(|((module, symbol), alias)| (alias.clone(), format!("{module}.{symbol}"))),
+            )
+            .collect();
+        crate::project::rewrite_names(rendered, |name| {
+            let (head, tail) = name.split_once('.').unwrap_or((name, ""));
+            names.get(head).map_or_else(
+                || name.to_owned(),
+                |origin| {
+                    if tail.is_empty() {
+                        origin.clone()
+                    } else {
+                        format!("{origin}.{tail}")
+                    }
+                },
+            )
+        })
+    }
+    fn protocol_snapshot(&self, rendered: &str) -> Value {
+        let qualified = self.protocol_annotation(rendered);
+        crate::type_snapshot::from_annotation(&qualified, &|name| {
+            self.protocol_types
+                .get(name)
+                .and_then(|value| value.get("snapshot"))
+                .cloned()
+        })
     }
     pub fn typing_alias(&mut self) -> String {
         self.module_alias("typing")
@@ -85,6 +158,9 @@ impl Types {
     }
     pub fn builtins_alias(&mut self) -> String {
         self.module_alias("builtins")
+    }
+    pub fn set_self_context(&mut self, context: Option<Value>) -> Option<Value> {
+        std::mem::replace(&mut self.self_context, context)
     }
     /// Direct member hooks use the instance-get type even for a class lookup.
     /// This follows plugin_member_access_to_type_with_virtual_types in ty; the
@@ -112,6 +188,14 @@ impl Types {
         }
     }
     pub fn render(&mut self, value: &Value) -> Result<String> {
+        // The protocol's structural representation takes precedence over its
+        // display spelling. The latter is a fallback only when ty cannot resolve
+        // a nominal/plugin/Self snapshot in the current context.
+        if let Some(snapshot) = value.get("snapshot").filter(|value| !value.is_null())
+            && let Some(rendered) = self.snapshot(snapshot)?
+        {
+            return Ok(rendered);
+        }
         let previous_bindings = std::mem::take(&mut self.import_bindings);
         let previous_unresolved = std::mem::take(&mut self.unresolved_bindings);
         for import in value["imports"].as_array().into_iter().flatten() {
@@ -122,6 +206,10 @@ impl Types {
                 module == unresolved || module.starts_with(&format!("{unresolved}."))
             }) {
                 self.unresolved_bindings.insert(alias.to_owned());
+                continue;
+            }
+            if let Some(generated) = self.virtual_symbol(&format!("{module}.{name}")) {
+                self.import_bindings.insert(alias.to_owned(), generated);
                 continue;
             }
             if module == self.module {
@@ -155,9 +243,200 @@ impl Types {
         self.unresolved_bindings = previous_unresolved;
         rendered
     }
+    fn snapshot_or_unknown(&mut self, value: &Value) -> Result<String> {
+        Ok(self.snapshot(value)?.unwrap_or_else(|| self.unknown()))
+    }
+    fn snapshot(&mut self, value: &Value) -> Result<Option<String>> {
+        let result = match value["kind"].as_str().context("type snapshot kind")? {
+            "expression" => self.render(value)?,
+            "nominal" => {
+                let name = value["qualified-name"]
+                    .as_str()
+                    .context("nominal snapshot name")?;
+                if self.unresolved(name) || !name.split('.').all(identifier) {
+                    return Ok(None);
+                }
+                let arguments = value["arguments"]
+                    .as_array()
+                    .map(Vec::as_slice)
+                    .unwrap_or(&[]);
+                if let Some(resolution) = self.nominal_resolution.get(name) {
+                    if resolution
+                        .is_none_or(|arity| !arguments.is_empty() && arity != arguments.len())
+                    {
+                        return Ok(None);
+                    }
+                } else {
+                    self.nominal_candidates.insert(name.to_owned());
+                }
+                let base = self.text(name)?;
+                if arguments.is_empty() {
+                    base
+                } else {
+                    let arguments = arguments
+                        .iter()
+                        .map(|argument| self.snapshot_or_unknown(argument))
+                        .collect::<Result<Vec<_>>>()?;
+                    if name == "builtins.tuple" && arguments.len() == 1 {
+                        // The pinned decoder's nominal tuple constructor
+                        // yields its default tuple shape; structural element
+                        // types are represented by the dedicated tuple variant.
+                        base
+                    } else {
+                        format!("{base}[{}]", arguments.join(", "))
+                    }
+                }
+            }
+            "tuple" => {
+                let mut elements = value["prefix"]
+                    .as_array()
+                    .into_iter()
+                    .flatten()
+                    .map(|element| self.snapshot_or_unknown(element))
+                    .collect::<Result<Vec<_>>>()?;
+                let tuple = format!("{}.tuple", self.builtins_alias());
+                if let Some(variadic) = value.get("variadic").filter(|value| !value.is_null()) {
+                    let element = self.snapshot_or_unknown(variadic)?;
+                    elements.push(format!("*{tuple}[{element}, ...]"));
+                }
+                elements.extend(
+                    value["suffix"]
+                        .as_array()
+                        .into_iter()
+                        .flatten()
+                        .map(|element| self.snapshot_or_unknown(element))
+                        .collect::<Result<Vec<_>>>()?,
+                );
+                format!(
+                    "{tuple}[{}]",
+                    if elements.is_empty() {
+                        "()".into()
+                    } else {
+                        elements.join(", ")
+                    }
+                )
+            }
+            "union" => {
+                let elements = value["elements"]
+                    .as_array()
+                    .context("union snapshot elements")?
+                    .iter()
+                    .map(|element| self.snapshot_or_unknown(element))
+                    .collect::<Result<Vec<_>>>()?;
+                if elements.is_empty() {
+                    format!("{}.Never", self.typing_extensions_alias())
+                } else {
+                    format!("({})", elements.join(" | "))
+                }
+            }
+            "typed-dict" => {
+                let key = serde_json::to_string(value)?;
+                if let Some(alias) = self.snapshots.get(&key) {
+                    return Ok(Some(alias.clone()));
+                }
+                let alias = format!("{}snapshot_{}", self.prefix, self.snapshots.len());
+                self.snapshots.insert(key, alias.clone());
+                let typing = self.typing_extensions_alias();
+                let mut fields = Vec::new();
+                let mut wire_fields = Vec::new();
+                for field in value["fields"].as_array().into_iter().flatten() {
+                    let name = field["name"].as_str().context("snapshot field name")?;
+                    let mut annotation = self.snapshot_or_unknown(&field["type-snapshot"])?;
+                    wire_fields.push(serde_json::json!({"name":name,
+                        "type-snapshot":self.protocol_snapshot(&annotation),
+                        "required":field["required"] != false,"read-only":field["read-only"] == true}));
+                    if field["read-only"] == true {
+                        annotation = format!("{typing}.ReadOnly[{annotation}]");
+                    }
+                    if field["required"] == false {
+                        annotation = format!("{typing}.NotRequired[{annotation}]");
+                    }
+                    fields.push(format!("{}: {annotation}", serde_json::to_string(name)?));
+                }
+                let mut wire_snapshot = serde_json::json!({"kind":"typed-dict","fields":wire_fields,"closed":value["closed"] == true});
+                let openness = if let Some(extra) =
+                    value.get("extra-items").filter(|value| !value.is_null())
+                {
+                    let mut annotation = self.snapshot_or_unknown(&extra["type-snapshot"])?;
+                    wire_snapshot["closed"] = Value::Bool(false);
+                    wire_snapshot["extra-items"] = serde_json::json!({"name":"","type-snapshot":self.protocol_snapshot(&annotation),"required":false,"read-only":extra["read-only"] == true});
+                    if extra["read-only"] == true {
+                        annotation = format!("{typing}.ReadOnly[{annotation}]");
+                    }
+                    format!(", extra_items={annotation}")
+                } else if value["closed"] == true {
+                    ", closed=True".into()
+                } else {
+                    String::new()
+                };
+                self.definitions.push_str(&format!(
+                    "{alias} = {typing}.TypedDict(\"{alias}\", {{{}}}{openness})\n",
+                    fields.join(", ")
+                ));
+                let names = wire_fields_names(&wire_snapshot);
+                self.protocol_types.insert(
+                    alias.clone(),
+                    serde_json::json!({
+                        "expression":format!("<TypedDict with items {}>",names.join(", ")),
+                        "mode":"annotation","snapshot":wire_snapshot
+                    }),
+                );
+                alias
+            }
+            "plugin-class" => {
+                let identity = value["identity"]
+                    .as_str()
+                    .context("plugin class snapshot identity")?;
+                if self.unresolved(identity) {
+                    return Ok(None);
+                }
+                if identity.split('.').all(identifier) {
+                    return self.snapshot(&serde_json::json!({"kind":"nominal","qualified-name":identity,"arguments":[]}));
+                }
+                self.text(identity)?
+            }
+            "self-type" => {
+                if let Some(context) = self.self_context.clone() {
+                    let previous = self.set_self_context(None);
+                    let rendered = self.render(&context);
+                    self.set_self_context(previous);
+                    rendered?
+                } else if let Some(bound) = value.get("bound").filter(|value| !value.is_null()) {
+                    return self.snapshot(bound);
+                } else {
+                    return Ok(None);
+                }
+            }
+            // The pinned checker deliberately lowers snapshot Annotated to its
+            // base. Result metadata travels through the separate SDK field.
+            "annotated" => return self.snapshot(&value["base"]),
+            kind => bail!("unsupported type snapshot {kind}"),
+        };
+        Ok(Some(result))
+    }
     pub fn text(&mut self, text: &str) -> Result<String> {
-        let parsed = ruff_python_parser::parse_expression(text)
-            .with_context(|| format!("plugin type expression {text}"))?;
+        // Native decoding falls back to Unknown when a display spelling is not
+        // a valid annotation expression (structural display strings included).
+        let Ok(parsed) = ruff_python_parser::parse_expression(text) else {
+            let parts = split_top_level(text, '|');
+            if parts.len() > 1 {
+                return Ok(parts
+                    .into_iter()
+                    .map(|part| self.text(part))
+                    .collect::<Result<Vec<_>>>()?
+                    .join(" | "));
+            }
+            let (origin, arguments) = crate::runtime::generic_parts(text);
+            if !arguments.is_empty() && ruff_python_parser::parse_expression(origin).is_ok() {
+                let origin = self.text(origin)?;
+                let arguments = arguments
+                    .into_iter()
+                    .map(|arg| self.text(arg))
+                    .collect::<Result<Vec<_>>>()?;
+                return Ok(format!("{origin}[{}]", arguments.join(", ")));
+            }
+            return Ok(self.unknown());
+        };
         self.node(text, &parsed.syntax().body)
     }
     fn node(&mut self, source: &str, node: &Expr) -> Result<String> {
@@ -220,6 +499,60 @@ impl Types {
                     }
                 }
             };
+            let structural = if name == "TypedDict" {
+                let fields = members.iter().map(|(name, annotation)| serde_json::json!({
+                    "name":name,"type-snapshot":self.protocol_snapshot(annotation),"required":true,"read-only":false
+                })).collect::<Vec<_>>();
+                let snapshot =
+                    serde_json::json!({"kind":"typed-dict","fields":fields,"closed":true});
+                Some(
+                    serde_json::json!({"expression":format!("<TypedDict with items {}>",wire_fields_names(&snapshot).join(", ")),"mode":"annotation","snapshot":snapshot}),
+                )
+            } else {
+                let original_name = call
+                    .arguments
+                    .args
+                    .first()
+                    .and_then(|arg| {
+                        if let Expr::StringLiteral(name) = arg {
+                            Some(name.value.to_str())
+                        } else {
+                            None
+                        }
+                    })
+                    .unwrap_or("Row");
+                let fields = members
+                    .iter()
+                    .map(|(name, annotation)| {
+                        Ok(format!(
+                            "{}: {}",
+                            serde_json::to_string(name)?,
+                            self.protocol_annotation(annotation)
+                        ))
+                    })
+                    .collect::<Result<Vec<_>>>()?
+                    .join(", ");
+                let expression = if name == "NamedTuple" {
+                    format!(
+                        "NamedTuple({}, {{{fields}}})",
+                        serde_json::to_string(original_name)?
+                    )
+                } else {
+                    format!(
+                        "Class({}, {{{fields}}}, {})",
+                        serde_json::to_string(original_name)?,
+                        self.protocol_annotation(&base)
+                    )
+                };
+                let snapshot = if name == "NamedTuple" {
+                    serde_json::json!({"kind":"plugin-class","identity":expression})
+                } else {
+                    crate::type_snapshot::expression(&expression)
+                };
+                Some(
+                    serde_json::json!({"expression":original_name,"mode":"annotation","snapshot":snapshot}),
+                )
+            };
             if name == "TypedDict" && members.iter().any(|(name, _)| !identifier(name)) {
                 let fields = members
                     .iter()
@@ -241,11 +574,26 @@ impl Types {
                     self.definitions.push_str(&format!("    {name}: {ty}\n"));
                 }
             }
+            if let Some(value) = structural {
+                self.protocol_types.insert(alias.clone(), value);
+            }
             return Ok(alias);
         }
         // Resolve the complete qualified name before traversing Attribute's
         // shorter children. Strings are never edited, including Literal values.
         if let Some(name) = qualified_name(node) {
+            if matches!(
+                name.as_str(),
+                "Self" | "typing.Self" | "typing_extensions.Self"
+            ) && let Some(context) = self.self_context.clone()
+            {
+                // Resolve against the modeled class/receiver, never against a
+                // generated descriptor or Protocol helper's own Self.
+                let previous = self.set_self_context(None);
+                let result = self.render(&context);
+                self.set_self_context(previous);
+                return result;
+            }
             if self.unimportable_module
                 && let Some(local) = name.strip_prefix(&format!("{}.", self.module))
             {
@@ -255,7 +603,12 @@ impl Types {
                 return Ok(self.unknown());
             }
             let head = name.split('.').next().unwrap();
-            if let Some(generated) = self.import_bindings.get(head) {
+            if let Some(generated) = self.import_bindings.get(head).cloned() {
+                let qualified =
+                    self.protocol_annotation(&format!("{generated}{}", &name[head.len()..]));
+                if self.annotation_missing(&qualified) {
+                    return Ok(self.unknown());
+                }
                 return Ok(format!("{generated}{}", &name[head.len()..]));
             }
             if matches!(
@@ -299,7 +652,13 @@ impl Types {
             ) {
                 return Ok(format!("{}.{name}", self.typing_extensions_alias()));
             }
+            if let Some(generated) = self.virtual_symbol(&name) {
+                return Ok(generated);
+            }
             if name.contains('.') {
+                if self.annotation_missing(&name) {
+                    return Ok(self.unknown());
+                }
                 if let Some(module) = self
                     .modules
                     .iter()
@@ -356,6 +715,19 @@ impl Types {
             );
         }
         Ok(result)
+    }
+
+    fn annotation_missing(&mut self, name: &str) -> bool {
+        if let Some(available) = self.annotation_resolution.get(name) {
+            return !available;
+        }
+        if name.contains('.')
+            && !name.starts_with("typing.")
+            && !name.starts_with("typing_extensions.")
+        {
+            self.annotation_candidates.insert(name.to_owned());
+        }
+        false
     }
     pub fn parameter_list(&mut self, parameters: &[Value], receiver: bool) -> Result<String> {
         let mut output = if receiver {
@@ -417,12 +789,44 @@ impl Types {
         )
     }
     fn unresolved(&self, name: &str) -> bool {
-        self.unresolved_bindings
-            .contains(name.split('.').next().unwrap_or(name))
+        let head = name.split('.').next().unwrap_or(name);
+        let qualified = self.import_bindings.get(head).map(|generated| {
+            self.protocol_annotation(&format!("{generated}{}", &name[head.len()..]))
+        });
+        self.annotation_resolution
+            .get(qualified.as_deref().unwrap_or(name))
+            == Some(&false)
+            || self
+                .unresolved_bindings
+                .contains(name.split('.').next().unwrap_or(name))
             || self
                 .unavailable_modules
                 .iter()
                 .any(|module| name == module || name.starts_with(&format!("{module}.")))
+    }
+    /// Only a registered virtual class is redirected. Ordinary classes can
+    /// share its logical module and must still resolve through the real module.
+    fn virtual_symbol(&mut self, name: &str) -> Option<String> {
+        let mut qualified = name;
+        while !self.virtual_types.contains(qualified) {
+            qualified = qualified.rsplit_once('.')?.0;
+        }
+        let (module, symbol) = qualified.rsplit_once('.')?;
+        let physical = self.virtual_modules.get(module)?;
+        let alias = if let Some(alias) = self.imported_virtual_modules.get(module) {
+            alias.clone()
+        } else {
+            let alias = format!(
+                "{}virtual_module_{}",
+                self.prefix,
+                self.imported_virtual_modules.len()
+            );
+            self.imports.insert(format!("import {physical} as {alias}"));
+            self.imported_virtual_modules
+                .insert(module.to_owned(), alias.clone());
+            alias
+        };
+        Some(format!("{alias}.{symbol}{}", &name[qualified.len()..]))
     }
     fn module_alias(&mut self, module: &str) -> String {
         if let Some(alias) = self.imported_modules.get(module) {
@@ -437,6 +841,54 @@ impl Types {
     fn unknown(&mut self) -> String {
         format!("{}.Unknown", self.module_alias("ty_extensions._internal"))
     }
+}
+
+fn wire_fields_names(value: &Value) -> Vec<String> {
+    value["fields"]
+        .as_array()
+        .into_iter()
+        .flatten()
+        .filter_map(|field| field["name"].as_str())
+        .collect::<BTreeSet<_>>()
+        .into_iter()
+        .map(|name| format!("'{name}'"))
+        .collect()
+}
+
+// Same quote/bracket boundaries as the pinned protocol expression decoder.
+fn split_top_level(expression: &str, delimiter: char) -> Vec<&str> {
+    let mut parts = Vec::new();
+    let mut depth = 0usize;
+    let mut start = 0usize;
+    let mut quote = None;
+    let mut escaped = false;
+
+    for (offset, character) in expression.char_indices() {
+        if let Some(active_quote) = quote {
+            if escaped {
+                escaped = false;
+            } else if character == '\\' {
+                escaped = true;
+            } else if character == active_quote {
+                quote = None;
+            }
+            continue;
+        }
+
+        match character {
+            '\'' | '"' => quote = Some(character),
+            '[' | '(' | '{' => depth += 1,
+            ']' | ')' | '}' => depth = depth.saturating_sub(1),
+            character if character == delimiter && depth == 0 => {
+                parts.push(expression[start..offset].trim());
+                start = offset + character.len_utf8();
+            }
+            _ => {}
+        }
+    }
+
+    parts.push(expression[start..].trim());
+    parts
 }
 
 fn qualified_name(node: &Expr) -> Option<String> {

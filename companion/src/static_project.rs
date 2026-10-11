@@ -459,8 +459,12 @@ pub fn analyze(source: &Source, suite: &[Stmt], runtime: &mut Runtime) -> Result
     collector.visit_body(suite);
     let mut helpers = BTreeMap::new();
     let mut definitions = String::new();
+    let mut diagnostics = Vec::new();
     for call in collector.calls.values() {
         let response = call_request(runtime, source, "adjust-call-signature", call, None, None)?;
+        for diagnostic in response["diagnostics"].as_array().into_iter().flatten() {
+            diagnostics.push(json!({"diagnostic":diagnostic,"source":source.location(call.span)}));
+        }
         if response["kind"] != "call-signature-patch" {
             continue;
         }
@@ -517,10 +521,12 @@ pub fn analyze(source: &Source, suite: &[Stmt], runtime: &mut Runtime) -> Result
         intrinsics: validation.intrinsics,
         calls: collector.calls,
         unbound_calls: BTreeSet::new(),
+        annotated_casts: BTreeMap::new(),
+        constructor_calls: BTreeMap::new(),
         edits,
         helpers,
         expression_probes: BTreeMap::new(),
-        plugin_diagnostics: Vec::new(),
+        plugin_diagnostics: diagnostics,
         generated_declarations: Default::default(),
     })
 }

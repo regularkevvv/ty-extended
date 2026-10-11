@@ -27,7 +27,35 @@ fn phase(phases: &mut BTreeMap<&'static str, f64>, name: &'static str, previous:
     *previous = now;
 }
 
+/// The first native hover section is the inferred type; subsequent sections
+/// contain documentation. Preserve signatures and literals inside that section.
+fn hover_type(hover: &Value) -> Option<&str> {
+    let contents = hover.get("contents")?;
+    let text = contents
+        .get("value")
+        .and_then(Value::as_str)
+        .or_else(|| contents.as_str())?;
+    if contents["kind"] == "markdown" {
+        let (opening, rest) = text.split_once('\n')?;
+        let fence_len = opening.bytes().take_while(|byte| *byte == b'`').count();
+        if fence_len < 3 {
+            return None;
+        }
+        let fence = &opening[..fence_len];
+        rest.split_once(&format!("\n{fence}")).map(|(ty, _)| ty)
+    } else {
+        Some(
+            text.split("\n---------------------------------------------\n")
+                .next()?
+                .trim(),
+        )
+    }
+}
+
 fn files(root: &Path, out: &mut Vec<PathBuf>) -> Result<()> {
+    copyable_files(root, out, false)
+}
+fn copyable_files(root: &Path, out: &mut Vec<PathBuf>, metadata: bool) -> Result<()> {
     for entry in std::fs::read_dir(root)? {
         let entry = entry?;
         let path = entry.path();
@@ -40,11 +68,12 @@ fn files(root: &Path, out: &mut Vec<PathBuf>) -> Result<()> {
                     "target" | "dist" | "__pycache__" | "node_modules"
                 )
             {
-                files(&path, out)?;
+                copyable_files(&path, out, metadata)?;
             }
         } else if path
             .extension()
             .is_some_and(|x| x == "py" || x == "pyi" || x == "ipynb")
+            || metadata && path.file_name().is_some_and(|name| name == "py.typed")
         {
             out.push(path);
         }
@@ -63,7 +92,10 @@ fn write(path: &Path, text: &str) -> Result<()> {
 }
 fn copy_python(root: &Path, target: &Path) -> Result<()> {
     let mut paths = Vec::new();
-    files(root, &mut paths)?;
+    copyable_files(root, &mut paths, true)?;
+    copy_python_paths(root, target, paths)
+}
+fn copy_python_paths(root: &Path, target: &Path, paths: Vec<PathBuf>) -> Result<()> {
     for path in paths {
         let dst = target.join(path.strip_prefix(root)?);
         if !dst.exists() {
@@ -98,6 +130,135 @@ fn copy_python(root: &Path, target: &Path) -> Result<()> {
     }
     Ok(())
 }
+// Resolve overlay names using the stock checker's own target-dependent stdlib.
+// Navigation alone is insufficient: an uncached vendored file has no LSP URI
+// when the user's global cache is read-only. An isolated import check needs no
+// extraction and also honors custom typeshed VERSIONS/platform restrictions.
+fn stdlib_overlay_modules(
+    config: &project_config::Config,
+    options: &BTreeMap<String, String>,
+    out: &Path,
+) -> Result<BTreeSet<String>> {
+    let mut candidates = BTreeSet::new();
+    for root in &config.stub_roots {
+        let mut paths = Vec::new();
+        files(root, &mut paths)?;
+        for path in paths {
+            let relative = path.strip_prefix(root)?;
+            let Some(module) = overlay_top_level(relative) else {
+                continue;
+            };
+            if ruff_python_parser::parse_module(&format!("import {module}\n")).is_ok() {
+                candidates.insert(module);
+            }
+        }
+    }
+    if candidates.is_empty() {
+        return Ok(BTreeSet::new());
+    }
+    let probe_root = out.join("overlay-resolution");
+    let empty_environment = probe_root.join("empty-python");
+    std::fs::create_dir_all(empty_environment.join("Lib/site-packages"))?;
+    std::fs::create_dir_all(
+        empty_environment.join(format!("lib/python{}/site-packages", config.python_version)),
+    )?;
+    write(
+        &empty_environment.join("pyvenv.cfg"),
+        &format!(
+            "home = .\nversion_info = {}.0\ninclude-system-site-packages = false\n",
+            config.python_version
+        ),
+    )?;
+    let mut probe_config = json!({
+        "environment": {
+            "python": empty_environment,
+            "python-version": config.python_version,
+            "python-platform": config.platform,
+            "root": [probe_root],
+            "extra-paths": []
+        },
+        "rules": {"unresolved-import": "error"}
+    });
+    if let Some(typeshed) = &config.typeshed {
+        probe_config["environment"]["typeshed"] = json!(typeshed);
+    }
+    let probe_config_path = probe_root.join("ty.toml");
+    write(
+        &probe_config_path,
+        &toml::to_string(&toml::Value::try_from(probe_config)?)?,
+    )?;
+    let candidates = candidates.into_iter().collect::<Vec<_>>();
+    let probe = probe_root.join("stdlib-probe.py");
+    write(
+        &probe,
+        &candidates
+            .iter()
+            .map(|module| format!("import {module}\n"))
+            .collect::<String>(),
+    )?;
+    let diagnostics = check(
+        Path::new(options.get("ty").context("missing --ty")?),
+        &probe_root,
+        &probe_config_path,
+        &[probe],
+    )
+    .context("resolve plugin overlay precedence against the official standard library")?;
+    write(
+        &probe_root.join("diagnostics.json"),
+        &serde_json::to_string_pretty(&diagnostics)?,
+    )?;
+    let mut available = candidates.iter().cloned().collect::<BTreeSet<_>>();
+    for diagnostic in diagnostics {
+        if diagnostic["check_name"] == "unresolved-import" {
+            let line = diagnostic
+                .pointer("/location/positions/begin/line")
+                .and_then(Value::as_u64)
+                .context("stdlib resolution diagnostic is missing its source line")?;
+            let module = candidates
+                .get(line.saturating_sub(1) as usize)
+                .context("stdlib resolution diagnostic is outside the probe")?;
+            available.remove(module);
+        }
+    }
+    write(
+        &probe_root.join("stdlib-modules.json"),
+        &serde_json::to_string_pretty(&available)?,
+    )?;
+    Ok(available)
+}
+
+fn overlay_top_level(relative: &Path) -> Option<String> {
+    let first = relative.components().next()?.as_os_str().to_str()?;
+    let top = if relative.components().count() == 1 {
+        Path::new(first).file_stem()?.to_str()?
+    } else {
+        first
+    };
+    Some(top.strip_suffix("-stubs").unwrap_or(top).to_owned())
+}
+fn include_overlay(relative: &Path, stdlib: &BTreeSet<String>) -> bool {
+    overlay_top_level(relative).is_none_or(|module| !stdlib.contains(&module))
+}
+fn copy_overlays(
+    roots: &[PathBuf],
+    target: &Path,
+    stdlib: &BTreeSet<String>,
+) -> Result<BTreeSet<PathBuf>> {
+    let mut copied = BTreeSet::new();
+    for root in roots.iter().rev() {
+        let mut paths = Vec::new();
+        copyable_files(root, &mut paths, true)?;
+        paths.retain(|path| include_overlay(path.strip_prefix(root).unwrap(), stdlib));
+        copied.extend(
+            paths
+                .iter()
+                .map(|path| target.join(path.strip_prefix(root).unwrap())),
+        );
+        copy_python_paths(root, target, paths)?;
+    }
+    Ok(copied)
+}
+
 fn projected_source_path(root: &Path, view: &Path, original: &Path) -> PathBuf {
     original
         .strip_prefix(root)
@@ -257,6 +418,7 @@ fn diagnostic_origins(
     unit: &File,
     project: &Project,
     generated: &GeneratedDeclarations,
+    virtual_scope: Option<&str>,
 ) -> DiagnosticOrigins {
     use crate::model::{expression_key, span};
     use ruff_python_ast::{
@@ -265,12 +427,25 @@ fn diagnostic_origins(
     };
     let mut origins = DiagnosticOrigins {
         virtual_names: project.virtual_identities.clone(),
+        virtual_scope: virtual_scope.map(str::to_owned),
         ..DiagnosticOrigins::default()
     };
-    for call in unit.analysis.calls.values() {
-        let class = project.canonical_name(&unit.source.module, &call.callee);
-        if generated.constructors.contains(&class) {
-            origins.constructor_calls.insert(call.span, class);
+    let mut nominal_names: BTreeMap<&str, Vec<&str>> = BTreeMap::new();
+    for (qualified, class) in &project.classes {
+        if class["virtual"] != true
+            && let Some(short) = qualified.rsplit('.').next()
+        {
+            nominal_names.entry(short).or_default().push(qualified);
+        }
+    }
+    origins.nominal_names = nominal_names
+        .into_iter()
+        .filter(|(_, names)| names.len() == 1)
+        .map(|(short, names)| (short.to_owned(), names[0].to_owned()))
+        .collect();
+    for (span, class) in &unit.analysis.constructor_calls {
+        if generated.constructors.contains(class) {
+            origins.constructor_calls.insert(*span, class.clone());
         }
     }
     struct Assignments<'a> {
@@ -278,6 +453,7 @@ fn diagnostic_origins(
         project: &'a Project,
         generated: &'a GeneratedDeclarations,
         sites: Vec<DescriptorAssignment>,
+        annotated_owners: BTreeMap<String, String>,
     }
     impl Assignments<'_> {
         fn owner(&self, expression: &Expr) -> Option<String> {
@@ -285,12 +461,24 @@ fn diagnostic_origins(
                 // The call collector has already resolved imports and rejected
                 // shadowed constructor names. Its full callee identity proves
                 // this constructor creates the projected class.
-                let call = self.unit.analysis.calls.get(&span(call))?;
                 let owner = self
-                    .project
-                    .canonical_name(&self.unit.source.module, &call.callee);
+                    .unit
+                    .analysis
+                    .constructor_calls
+                    .get(&span(call))?
+                    .clone();
                 if self.project.classes.contains_key(&owner) {
                     return Some(owner);
+                }
+            }
+            if let Expr::Name(name) = expression
+                && let Some(owner) = self.annotated_owners.get(name.id.as_str())
+            {
+                let inferred = self.unit.oracle.get(&expression_key(span(expression)));
+                if inferred.is_none_or(|inferred| {
+                    inferred == owner || owner.rsplit('.').next() == Some(inferred)
+                }) {
+                    return Some(owner.clone());
                 }
             }
             // Never guess a class from an unqualified printed name: another
@@ -304,6 +492,16 @@ fn diagnostic_origins(
                 .classes
                 .contains_key(value)
                 .then(|| value.clone())
+        }
+        fn annotation(&self, expression: &Expr) -> Option<String> {
+            if !matches!(expression, Expr::Name(_) | Expr::Attribute(_)) {
+                return None;
+            }
+            let owner = self.project.canonical_name(
+                &self.unit.source.module,
+                self.unit.source.slice(span(expression)),
+            );
+            self.project.classes.contains_key(&owner).then_some(owner)
         }
         fn assignment(&mut self, target: &Expr, value: &Expr) {
             let Expr::Attribute(attribute) = target else {
@@ -330,14 +528,40 @@ fn diagnostic_origins(
     impl<'a> Visitor<'a> for Assignments<'_> {
         fn visit_stmt(&mut self, statement: &'a Stmt) {
             match statement {
+                Stmt::FunctionDef(function) => {
+                    let previous = std::mem::take(&mut self.annotated_owners);
+                    for parameter in function.parameters.iter_non_variadic_params() {
+                        if let Some(owner) = parameter
+                            .parameter
+                            .annotation
+                            .as_ref()
+                            .and_then(|annotation| self.annotation(annotation))
+                        {
+                            self.annotated_owners
+                                .insert(parameter.parameter.name.to_string(), owner);
+                        }
+                    }
+                    self.visit_body(&function.body);
+                    self.annotated_owners = previous;
+                    return;
+                }
                 Stmt::Assign(assignment) => {
                     for target in &assignment.targets {
                         self.assignment(target, &assignment.value);
+                        if let Expr::Name(name) = target {
+                            self.annotated_owners.remove(name.id.as_str());
+                        }
                     }
                 }
                 Stmt::AnnAssign(assignment) => {
                     if let Some(value) = &assignment.value {
                         self.assignment(&assignment.target, value);
+                    }
+                    if let Expr::Name(name) = assignment.target.as_ref() {
+                        self.annotated_owners.remove(name.id.as_str());
+                        if let Some(owner) = self.annotation(&assignment.annotation) {
+                            self.annotated_owners.insert(name.id.to_string(), owner);
+                        }
                     }
                 }
                 _ => {}
@@ -350,6 +574,7 @@ fn diagnostic_origins(
         project,
         generated,
         sites: Vec::new(),
+        annotated_owners: BTreeMap::new(),
     };
     assignments.visit_body(&unit.suite);
     origins.descriptor_assignments = assignments.sites;
@@ -427,6 +652,7 @@ pub struct Session {
     view: PathBuf,
     stubs: PathBuf,
     stub_roots: Vec<PathBuf>,
+    overlay_files: BTreeSet<PathBuf>,
     options: BTreeMap<String, String>,
     mode: String,
     runtime: Runtime,
@@ -442,6 +668,7 @@ pub struct Session {
     last_result: Option<Value>,
     revisions: usize,
     config_source: Option<PathBuf>,
+    config_diagnostics: Vec<Value>,
     invalidated: bool,
     names: BTreeMap<String, String>,
     selection: project_config::Selection,
@@ -462,6 +689,7 @@ pub struct Session {
     cached_context: Option<Value>,
     plugin_files: Vec<PathBuf>,
     dependency_roots: Vec<PathBuf>,
+    index_files: Option<BTreeSet<PathBuf>>,
 }
 
 #[derive(Clone)]
@@ -517,9 +745,8 @@ impl Session {
         let checker_config_path = out.join("checker.toml");
         write(&checker_config_path, &checker_config.text)?;
         let mut runtime = Runtime::from_plugins(&checker_config.plugins)?;
-        for root in checker_config.stub_roots.iter().rev() {
-            copy_python(root, &stubs)?;
-        }
+        let stdlib = stdlib_overlay_modules(&checker_config, options, &out)?;
+        let overlay_files = copy_overlays(&checker_config.stub_roots, &stubs, &stdlib)?;
         runtime.python_version = checker_config.python_version;
         runtime.platform = checker_config.platform;
         let capabilities: Option<Value> = options
@@ -589,7 +816,8 @@ impl Session {
         base_project.set_source_roots(checker_config.source_roots)?;
         base_project.add_source_paths(explicit_paths.clone());
         for root in checker_config.stub_roots.iter().rev() {
-            base_project.add_source_tree(root)?;
+            base_project
+                .add_source_tree_filtered(root, |relative| include_overlay(relative, &stdlib))?;
         }
         let server = if let Some(mut checker) = checker {
             checker.set_workspace_configuration(editor_backend_configuration(
@@ -618,17 +846,14 @@ impl Session {
         } else {
             None
         };
-        let plugin_files = checker_config
-            .plugins
-            .iter()
-            .flat_map(|(manifest, artifact, _)| [manifest.clone(), artifact.clone()])
-            .collect();
+        let plugin_files = checker_config.plugin_watch_paths;
         Ok(Self {
             root,
             out,
             view,
             stubs,
             stub_roots: checker_config.stub_roots,
+            overlay_files,
             options: options.clone(),
             mode: mode.into(),
             runtime,
@@ -644,6 +869,7 @@ impl Session {
             last_result: None,
             revisions: 0,
             config_source: checker_config.source,
+            config_diagnostics: checker_config.plugin_diagnostics,
             invalidated: false,
             names: BTreeMap::new(),
             ignored,
@@ -668,6 +894,7 @@ impl Session {
             cached_context: None,
             plugin_files,
             dependency_roots: checker_config.dependency_roots,
+            index_files: None,
         })
     }
 
@@ -822,12 +1049,23 @@ impl Session {
     }
 
     pub fn set_editor_configuration(&mut self, configuration: Value) -> Result<bool> {
-        let previous = editor_configuration(&self.options)?;
+        let mut previous = editor_configuration(&self.options)?;
         self.options.insert(
             "lsp-workspace-configuration".into(),
             configuration.to_string(),
         );
-        if previous == editor_configuration(&self.options)? {
+        let mut current = editor_configuration(&self.options)?;
+        // These restrictions belong to the outer editor; the native oracle
+        // always keeps diagnostics and language services enabled for inference.
+        for key in [
+            "diagnosticMode",
+            "showSyntaxErrors",
+            "disableLanguageServices",
+        ] {
+            previous.as_object_mut().unwrap().remove(key);
+            current.as_object_mut().unwrap().remove(key);
+        }
+        if previous == current {
             return Ok(false);
         }
         self.invalidate();
@@ -836,6 +1074,17 @@ impl Session {
         // checker; unchanged replies retain the process and semantic caches.
         self.server = None;
         Ok(true)
+    }
+
+    /// Update the native editor's checked-file set without discarding closed
+    /// modules needed for imports, inheritance, settings and later openings.
+    pub fn set_index_files(&mut self, files: Option<BTreeSet<PathBuf>>) {
+        if self.index_files != files {
+            self.index_files = files;
+            self.last_result = None;
+            self.rich_result = None;
+            self.cached_context = None;
+        }
     }
 
     pub fn names(&self) -> BTreeMap<String, String> {
@@ -854,6 +1103,13 @@ impl Session {
 
     fn reload_dependencies(&mut self) -> Result<()> {
         let config = project_config::load(&self.root, &self.view, &self.stubs, &self.options)?;
+        let stdlib = stdlib_overlay_modules(&config, &self.options, &self.out)?;
+        if !self.stub_roots.is_empty() || !config.stub_roots.is_empty() {
+            // Package markers and new/removed overlay directories alter resolver
+            // search state, not just document text. Rebuild only on explicit
+            // dependency invalidation; normal editor revisions retain the child.
+            self.server = None;
+        }
         let configuration_changed =
             std::fs::read_to_string(&self.checker_config_path)? != config.text;
         if configuration_changed || (self.capabilities.is_some() && self.server.is_none()) {
@@ -882,17 +1138,14 @@ impl Session {
         }
         self.terminal = config.terminal;
         self.config_source = config.source;
+        self.config_diagnostics = config.plugin_diagnostics;
         self.config = if let Some(path) = self.options.get("config") {
             serde_json::from_slice(&std::fs::read(path)?)?
         } else {
             json!({})
         };
         self.runtime = Runtime::from_plugins(&config.plugins)?;
-        self.plugin_files = config
-            .plugins
-            .iter()
-            .flat_map(|(manifest, artifact, _)| [manifest.clone(), artifact.clone()])
-            .collect();
+        self.plugin_files = config.plugin_watch_paths;
         self.has_plugins = !config.plugins.is_empty();
         if !self.has_plugins {
             for path in std::mem::take(&mut self.virtual_files) {
@@ -922,7 +1175,8 @@ impl Session {
         self.base_project
             .retain_external_roots(&config.stub_roots)?;
         for root in config.stub_roots.iter().rev() {
-            self.base_project.add_source_tree(root)?;
+            self.base_project
+                .add_source_tree_filtered(root, |relative| include_overlay(relative, &stdlib))?;
         }
         let current: BTreeSet<_> = self
             .base_project
@@ -940,9 +1194,14 @@ impl Session {
         }
         self.stub_roots = config.stub_roots;
         self.dependency_roots = config.dependency_roots;
-        for root in self.stub_roots.iter().rev() {
-            copy_python(root, &self.stubs)?;
+        // Markers matter too: deleting py.typed must remove partial-package
+        // fallback instead of leaving yesterday's copied marker behind.
+        for previous in std::mem::take(&mut self.overlay_files) {
+            if previous.is_file() {
+                std::fs::remove_file(previous)?;
+            }
         }
+        self.overlay_files = copy_overlays(&self.stub_roots, &self.stubs, &stdlib)?;
         self.resolved_imports.clear();
         self.resolved_paths.clear();
         self.invalidated = false;
@@ -1192,6 +1451,8 @@ impl Session {
         let mut documents = Vec::new();
         let mut sources = BTreeMap::new();
         let mut paths = Vec::new();
+        self.runtime
+            .attach_project(Arc::new(self.base_project.clone()), self.config.clone());
         for module in self.base_project.modules.values() {
             let path = if module.external {
                 projected_stub_path(
@@ -1203,7 +1464,13 @@ impl Session {
             } else {
                 projected_source_path(&self.root, &self.view, Path::new(&module.source.path))
             };
-            let rendered = render(&module.source, &crate::mapping::Edits::default())?;
+            let mut edits = crate::mapping::Edits::default();
+            for span in
+                crate::lower::annotated_cast_spans(&module.source, &module.suite, &self.runtime)
+            {
+                edits.suppress_diagnostic(span, "redundant-cast".into());
+            }
+            let rendered = render(&module.source, &edits)?;
             if path.starts_with(&self.out) {
                 write(&path, &rendered.text)?;
             }
@@ -1262,7 +1529,7 @@ impl Session {
                 raw.extend(native);
             }
         }
-        let mut diagnostics = Vec::new();
+        let mut diagnostics = self.config_diagnostics.clone();
         for document in &documents {
             let local = raw
                 .iter()
@@ -1295,6 +1562,90 @@ impl Session {
         )?;
         self.last_result = Some(result.clone());
         Ok(result)
+    }
+
+    fn infer_index_functions(&mut self) -> Result<()> {
+        if self.runtime.manifest.pointer("/capabilities/project-index") != Some(&Value::Bool(true))
+        {
+            return Ok(());
+        }
+        let queries = self.base_project.index_function_queries();
+        if queries.is_empty() {
+            return Ok(());
+        }
+        let mut sources = BTreeMap::new();
+        for module in self
+            .base_project
+            .modules
+            .values()
+            .filter(|module| !module.external)
+        {
+            let path =
+                projected_source_path(&self.root, &self.view, Path::new(&module.source.path));
+            if path.starts_with(&self.out) {
+                write(&path, &module.source.text)?;
+            }
+            sources.insert(path, module.source.text.clone());
+        }
+        if self.server.is_none() {
+            self.server = Some(crate::checker::ProjectChecker::new(
+                Path::new(self.options.get("ty").context("missing --ty")?),
+                &self.out,
+                &self.checker_config_path,
+            )?);
+        }
+        self.register_checker_notebooks()?;
+        let server = self.server.as_mut().unwrap();
+        for path in sources.keys().filter(|path| !path.starts_with(&self.out)) {
+            server.register_external_source(path)?;
+        }
+        server.sync_documents(&sources)?;
+        self.runtime
+            .attach_project(Arc::new(self.base_project.clone()), self.config.clone());
+        let mut types = BTreeMap::new();
+        for (index, source, offset) in queries {
+            let path = projected_source_path(&self.root, &self.view, Path::new(&source.path));
+            let position = source.position(offset);
+            let params = json!({"textDocument":{"uri":crate::checker::file_uri(&path)?},"position":{"line":position["line"].as_u64().unwrap()-1,"character":position["column"].as_u64().unwrap()-1}});
+            let hover = server.request("textDocument/hover", params.clone())?;
+            if let Some(ty) = hover_type(&hover).filter(|ty| !ty.is_empty()) {
+                let mut value = self.runtime.type_expr(&source, ty);
+                // A decorator can replace a function with an instance whose
+                // class is not imported in this module. Ask ty for its identity
+                // instead of resolving a display name against lexical imports.
+                if value.pointer("/snapshot/kind").and_then(Value::as_str) == Some("nominal") {
+                    let definitions = server.request("textDocument/typeDefinition", params)?;
+                    if let Some([definition]) = definitions.as_array().map(Vec::as_slice) {
+                        let uri = definition["targetUri"]
+                            .as_str()
+                            .or_else(|| definition["uri"].as_str());
+                        let range = definition
+                            .get("targetSelectionRange")
+                            .unwrap_or(&definition["range"]);
+                        if let Some(uri) = uri
+                            && let Some(target) = crate::lsp_mapping::decode_file_uri(uri)?
+                        {
+                            let original = target.strip_prefix(&self.view).map_or_else(
+                                |_| target.clone(),
+                                |relative| self.root.join(relative),
+                            );
+                            if let (Some(line), Some(character)) = (
+                                range["start"]["line"].as_u64(),
+                                range["start"]["character"].as_u64(),
+                            ) && let Some(name) = self
+                                .base_project
+                                .class_identity_at(&original, line, character)
+                            {
+                                value["snapshot"]["qualified-name"] = json!(name);
+                            }
+                        }
+                    }
+                }
+                types.insert(index, value);
+            }
+        }
+        self.base_project.set_index_function_types(types);
+        Ok(())
     }
 
     pub fn check(&mut self, overlays: &BTreeMap<PathBuf, String>) -> Result<Value> {
@@ -1366,6 +1717,8 @@ impl Session {
         self.last_result = None;
         self.resolve_external_imports(&BTreeSet::new())?;
         phase(&mut phases, "external_resolution", &mut phase_started);
+        self.infer_index_functions()?;
+        phase(&mut phases, "function_summaries", &mut phase_started);
         let root = self.root.clone();
         let out = self.out.clone();
         let view = self.view.clone();
@@ -1373,13 +1726,40 @@ impl Session {
         let stub_roots = self.stub_roots.clone();
         let config = self.config.clone();
         let mut project = self.base_project.clone();
+        let selected = selected_paths(
+            &project,
+            &root,
+            &self.options,
+            &self.selection,
+            &self.ignored,
+            overlays,
+        )?;
+        self.runtime.selected_virtual_scope = project
+            .modules
+            .values()
+            .filter(|module| selected.contains(Path::new(&module.source.path)))
+            .filter(|module| module.source.protocol_module.is_none())
+            .filter(|module| {
+                self.index_files
+                    .as_ref()
+                    .is_none_or(|files| files.contains(Path::new(&module.source.path)))
+            })
+            .min_by_key(|module| &module.source.path)
+            .map(|module| {
+                module
+                    .source
+                    .protocol_module
+                    .as_deref()
+                    .unwrap_or(&module.source.module)
+                    .to_owned()
+            });
         let index = {
             let runtime = &mut self.runtime;
             runtime.project_patches.clear();
             runtime.project_contributions.clear();
             runtime.project_index = None;
             runtime.attach_project(Arc::new(project.clone()), config.clone());
-            let mut request = project.build_request();
+            let mut request = project.build_request_for_files(self.index_files.as_ref());
             request["context"]["python-version"] = json!(runtime.python_version);
             request["context"]["platform"] = json!(runtime.platform);
             write(
@@ -1427,14 +1807,12 @@ impl Session {
         let runtime = &mut self.runtime;
         let server = &mut self.server;
         let checker_config_path = self.checker_config_path.clone();
-        let mut project_diagnostics = project.settings_diagnostics();
-        project_diagnostics.extend(
-            index["diagnostics"]
-                .as_array()
-                .into_iter()
-                .flatten()
-                .cloned(),
-        );
+        let project_diagnostics: Vec<_> = index["diagnostics"]
+            .as_array()
+            .into_iter()
+            .flatten()
+            .cloned()
+            .collect();
         write(
             &out.join("project-response.json"),
             &serde_json::to_string_pretty(&index)?,
@@ -1457,6 +1835,15 @@ impl Session {
             .as_array()
             .cloned()
             .unwrap_or_default();
+        runtime.virtual_shapes = definitions
+            .iter()
+            .filter_map(|definition| {
+                Some((
+                    definition["name"].as_str()?.to_owned(),
+                    definition["shape"].clone(),
+                ))
+            })
+            .collect();
         let virtual_sources = project.register_virtual_types(&definitions)?;
         let next_virtual_files: BTreeSet<_> =
             virtual_sources.keys().map(|p| stubs.join(p)).collect();
@@ -1511,14 +1898,6 @@ impl Session {
             }
         }
         phase(&mut phases, "class_projection", &mut phase_started);
-        let selected = selected_paths(
-            &project,
-            &root,
-            options,
-            &self.selection,
-            &self.ignored,
-            overlays,
-        )?;
         let external_targets: BTreeSet<_> = runtime
             .project_contributions
             .iter()
@@ -1536,7 +1915,7 @@ impl Session {
         // Every plugin can inspect the complete index and class snapshots.
         // Reuse only if those complete responses remain identical, and the
         // module set is unchanged (new/deleted modules can alter resolution).
-        let context = json!({"plugin-index-generations":runtime.index_generations(),"index":index,"classes":project.classes,"patches":runtime.project_patches,"virtual-identities":project.virtual_identities});
+        let context = json!({"plugin-index-generations":runtime.index_generations(),"index":index,"classes":project.classes,"patches":runtime.project_patches,"virtual-identities":project.virtual_identities,"virtual-scope":runtime.selected_virtual_scope});
         let module_set_unchanged = self.cached_sources.keys().eq(project.modules.keys());
         let mut dirty = if module_set_unchanged && self.cached_context.as_ref() == Some(&context) {
             project
@@ -1567,6 +1946,26 @@ impl Session {
             }
             dirty.extend(next);
         }
+        if !module_set_unchanged || self.cached_context.as_ref() != Some(&context) {
+            project.snapshot_nominals.clear();
+            project.snapshot_symbols.clear();
+        } else {
+            project.snapshot_nominals.retain(|name, _| {
+                !dirty.iter().any(|module| {
+                    name.strip_prefix(module)
+                        .is_some_and(|tail| tail.starts_with('.'))
+                })
+            });
+            project.snapshot_symbols.retain(|name, _| {
+                !dirty.iter().any(|module| {
+                    name.strip_prefix(module)
+                        .is_some_and(|tail| tail.starts_with('.'))
+                })
+            });
+        }
+        runtime.nominal_candidates.clear();
+        runtime.annotation_candidates.clear();
+        runtime.attach_project(Arc::new(project.clone()), runtime.config.clone());
         let mut previous = std::mem::take(&mut self.cached_units);
         let mut units = BTreeMap::new();
         for (name, module) in &project.modules {
@@ -1838,6 +2237,179 @@ impl Session {
                     continue;
                 }
             }
+            // A TypeSnapshot nominal must resolve to a class literal and use
+            // its exact generic context arity. Ask the native checker once per
+            // name; arbitrary constructors or display-name guesses are not an
+            // authoritative class schema.
+            let mut nominal_candidates: Vec<_> = runtime
+                .nominal_candidates
+                .iter()
+                .filter(|name| !project.snapshot_nominals.contains_key(*name))
+                .cloned()
+                .chain(
+                    runtime
+                        .annotation_candidates
+                        .iter()
+                        .filter(|name| !project.snapshot_symbols.contains_key(*name))
+                        .cloned(),
+                )
+                .collect::<BTreeSet<_>>()
+                .into_iter()
+                .collect();
+            if !nominal_candidates.is_empty() {
+                // Later hook responses commonly introduce builtin snapshots.
+                // Establish these in the same native request instead of
+                // restarting all inference for each newly encountered builtin.
+                // Their class identities and arities still come from ty.
+                for name in [
+                    "bool",
+                    "int",
+                    "str",
+                    "bytes",
+                    "bytearray",
+                    "memoryview",
+                    "float",
+                    "complex",
+                    "object",
+                    "tuple",
+                    "list",
+                    "dict",
+                    "set",
+                    "frozenset",
+                    "type",
+                ] {
+                    let name = format!("builtins.{name}");
+                    if !project.snapshot_nominals.contains_key(&name) {
+                        nominal_candidates.push(name);
+                    }
+                }
+                nominal_candidates.sort();
+                nominal_candidates.dedup();
+            }
+            if !nominal_candidates.is_empty() {
+                let preflight = out.join("nominal-snapshots.py");
+                let mut probe_types =
+                    Types::with_project("_ty_nominal_", "__snapshot_probe__", &project);
+                let expressions = nominal_candidates
+                    .iter()
+                    .map(|name| probe_types.text(name))
+                    .collect::<Result<Vec<_>>>()?;
+                let mut code = format!(
+                    "from typing import reveal_type as _ty_snapshot_reveal\n{}",
+                    probe_types.prelude()
+                );
+                let mut lines = BTreeMap::new();
+                for (index, expression) in expressions.iter().enumerate() {
+                    let line = code.lines().count() + 1;
+                    lines.insert(line, (index, true));
+                    lines.insert(line + 2, (index, false));
+                    code.push_str(&format!("_ty_snapshot_reveal({expression})\ndef _ty_snapshot_probe_{index}(_value: {expression}):\n    _ty_snapshot_reveal(_value)\n"));
+                }
+                write(&preflight, &code)?;
+                let diagnostics = if mode == "push" {
+                    if server.is_none() {
+                        *server = Some(crate::checker::ProjectChecker::new(
+                            &binary,
+                            &out,
+                            &checker_config_path,
+                        )?);
+                    }
+                    let mut sources: BTreeMap<_, _> = units
+                        .iter()
+                        .map(|(path, unit)| {
+                            (path.clone(), unit.rendered.as_ref().unwrap().text.clone())
+                        })
+                        .collect();
+                    sources.insert(preflight.clone(), code);
+                    server
+                        .as_mut()
+                        .unwrap()
+                        .check(&sources, std::slice::from_ref(&preflight))?
+                } else {
+                    check(
+                        &binary,
+                        &view,
+                        &checker_config_path,
+                        std::slice::from_ref(&preflight),
+                    )?
+                };
+                write(
+                    &out.join(format!("nominal-snapshots-{iteration}.json")),
+                    &serde_json::to_string_pretty(&diagnostics)?,
+                )?;
+                let mut class_literals = BTreeSet::new();
+                let mut arities = BTreeMap::new();
+                let mut missing_symbols = BTreeSet::new();
+                for diagnostic in &diagnostics {
+                    if path_of(diagnostic, &view) != preflight {
+                        continue;
+                    }
+                    let line = diagnostic
+                        .pointer("/location/positions/begin/line")
+                        .and_then(Value::as_u64)
+                        .context("nominal reveal source line")?
+                        as usize;
+                    let Some((index, class_object)) = lines.get(&line) else {
+                        continue;
+                    };
+                    if *class_object
+                        && matches!(
+                            diagnostic["check_name"].as_str(),
+                            Some("unresolved-attribute" | "unresolved-reference")
+                        )
+                    {
+                        missing_symbols.insert(*index);
+                    }
+                    if diagnostic["check_name"] != "revealed-type" {
+                        continue;
+                    }
+                    let description = diagnostic["description"]
+                        .as_str()
+                        .context("nominal reveal description")?;
+                    let Some(start) = description.find("Revealed type: `") else {
+                        continue;
+                    };
+                    let display = &description[start + "Revealed type: `".len()
+                        ..description.rfind('`').context("nominal reveal end")?];
+                    if *class_object {
+                        if display.starts_with("<class '") {
+                            class_literals.insert(*index);
+                        }
+                    } else {
+                        let (_, arguments) = crate::runtime::generic_parts(display);
+                        arities.insert(
+                            *index,
+                            if nominal_candidates[*index] == "builtins.tuple" {
+                                1
+                            } else {
+                                arguments.len()
+                            },
+                        );
+                    }
+                }
+                for (index, name) in nominal_candidates.into_iter().enumerate() {
+                    let arity = class_literals
+                        .contains(&index)
+                        .then(|| arities.get(&index).copied())
+                        .flatten();
+                    project
+                        .snapshot_symbols
+                        .insert(name.clone(), !missing_symbols.contains(&index));
+                    project.snapshot_nominals.insert(name, arity);
+                }
+                runtime.attach_project(Arc::new(project.clone()), runtime.config.clone());
+                for unit in units.values_mut().filter(|unit| unit.dirty) {
+                    unit.oracle.clear();
+                    unit.patches.clear();
+                    unit.return_types.clear();
+                    unit.types = Types::with_project(
+                        &format!("{}result_", unit.source.prefix),
+                        &unit.source.module,
+                        &project,
+                    );
+                }
+                continue;
+            }
             phase(&mut phases, "import_preflight", &mut phase_started);
             let query_paths: Vec<_> = units
                 .values()
@@ -1940,7 +2512,21 @@ impl Session {
                             response["return-type"] == runtime.type_expr(&unit.source, expression)
                         });
                     if response["kind"] == "call-return-patch" && !unchanged {
-                        next.insert(call.span, types.render(&response["return-type"])?);
+                        let native_self = unit
+                            .oracle
+                            .get(&call.receiver_key())
+                            .filter(|value| value.as_str() == "Self" || value.starts_with("Self@"));
+                        let receiver = native_self
+                            .map(String::as_str)
+                            .or(call.flow_receiver_type.as_deref())
+                            .or(call.receiver_type.as_deref())
+                            .or_else(|| unit.oracle.get(&call.receiver_key()).map(String::as_str));
+                        let previous = types.set_self_context(
+                            receiver.map(|receiver| runtime.type_expr(&unit.source, receiver)),
+                        );
+                        let rendered = types.render(&response["return-type"])?;
+                        types.set_self_context(previous);
+                        next.insert(call.span, rendered);
                         return_types.insert(call.span, response["return-type"].clone());
                     }
                     for d in response["diagnostics"].as_array().into_iter().flatten() {
@@ -1951,6 +2537,7 @@ impl Session {
                 stable &= next == unit.patches && old_oracles.get(&unit.path) == Some(&unit.oracle);
                 unit.patches = next;
                 unit.return_types = return_types;
+                types.register_protocol_types(runtime);
                 unit.types = types;
                 unit.diagnostics = diagnostics;
             }
@@ -1961,6 +2548,11 @@ impl Session {
             }
             use sha2::{Digest, Sha256};
             let mut state = Sha256::new();
+            // A native nominal preflight can produce the same provisional
+            // source while advancing class/arity knowledge. That is progress,
+            // not a cycle in the complete inference state.
+            state.update(serde_json::to_vec(&project.snapshot_nominals)?);
+            state.update(serde_json::to_vec(&project.snapshot_symbols)?);
             for unit in units.values().filter(|unit| unit.dirty) {
                 state.update(serde_json::to_vec(&(
                     &unit.path,
@@ -2066,7 +2658,7 @@ impl Session {
             &out.join("raw-diagnostics.json"),
             &serde_json::to_string_pretty(&raw)?,
         )?;
-        let mut diagnostics = Vec::new();
+        let mut diagnostics = self.config_diagnostics.clone();
         let mut suppressed = Vec::new();
         let mut generated_declarations = GeneratedDeclarations::default();
         for definition in &definitions {
@@ -2094,6 +2686,7 @@ impl Session {
         for unit in units.values() {
             generated_declarations.extend(&unit.analysis.generated_declarations);
         }
+        let virtual_scope = runtime.selected_virtual_scope.as_deref();
         for unit in units.values().filter(|u| u.selected) {
             let local: Vec<_> = raw
                 .iter()
@@ -2109,12 +2702,16 @@ impl Session {
                     .filter(|d| d["location"]["file-path"] == unit.source.path)
                     .map(|d| json!({"diagnostic":d,"source":d["location"]})),
             );
-            let origins = diagnostic_origins(unit, &project, &generated_declarations);
+            let origins =
+                diagnostic_origins(unit, &project, &generated_declarations, virtual_scope);
+            let mut display_names = unit.analysis.helpers.clone();
+            display_names.extend(unit.names.clone());
+            display_names.extend(unit.types.display_names());
             let (mapped, hidden) = map_diagnostics_with_origins(
                 &unit.source,
                 unit.rendered.as_ref().unwrap(),
                 &local,
-                &unit.analysis.helpers,
+                &display_names,
                 &plugin,
                 &origins,
             )
@@ -2138,11 +2735,30 @@ impl Session {
             .map(|(key, value)| {
                 (
                     key.clone(),
-                    virtual_names.get(value).unwrap_or(value).clone(),
+                    virtual_names
+                        .get(value)
+                        .unwrap_or(value)
+                        .rsplit('.')
+                        .next()
+                        .unwrap_or(value)
+                        .to_owned(),
                 )
             })
             .collect();
-        self.names.extend(virtual_names);
+        for (generated, original) in virtual_names {
+            let short = original.rsplit('.').next().unwrap_or(&original).to_owned();
+            self.names.insert(generated, short.clone());
+            self.names.insert(original, short);
+        }
+        // Direct type metadata may retain a logical virtual identity without
+        // passing through the generated identifier. Both presentations use the
+        // native declared class name; protocol identities remain qualified.
+        for logical in project.virtual_identities.values() {
+            self.names.insert(
+                logical.clone(),
+                logical.rsplit('.').next().unwrap_or(logical).to_owned(),
+            );
+        }
         for unit in units.values_mut() {
             unit.names.extend(unit.analysis.helpers.clone());
             unit.names.extend(unit.types.display_names());
@@ -2203,6 +2819,8 @@ impl Session {
             .collect();
         self.cached_context = Some(context);
         self.base_project.unavailable_modules = project.unavailable_modules.clone();
+        self.base_project.snapshot_nominals = project.snapshot_nominals.clone();
+        self.base_project.snapshot_symbols = project.snapshot_symbols.clone();
         self.cached_units = units;
         result["checker_mode_effective"] = json!(mode);
         result["phases"] = json!(phases);
@@ -2231,7 +2849,348 @@ pub fn run(input: &Path, options: &BTreeMap<String, String>) -> Result<Value> {
 
 #[cfg(test)]
 mod tests {
+
+    #[test]
+    fn nominal_snapshot_cache_tracks_equal_length_generic_header_edits() -> Result<()> {
+        let binary = std::env::var_os("TY_COMPANION_TEST_OFFICIAL").expect("official checker");
+        let directory = std::env::temp_dir().join(format!(
+            "ty-nominal-snapshot-revision-{}",
+            std::process::id()
+        ));
+        let root = directory.join("project");
+        let first = "class Model[T, U]: pass\n";
+        let second = "class Model[TYPE]: pass\n";
+        assert_eq!(first.len(), second.len());
+        write(&root.join("model.py"), first)?;
+        write(
+            &root.join("demo.py"),
+            "from typing import assert_type\nfrom model import Model\ndef load() -> object: return object()\nassert_type(load(), bytes)\n",
+        )?;
+        let plugin = directory.join("plugin.py");
+        write(
+            &plugin,
+            "@on_call_return\ndef returns(request):\n    return {'kind':'call-return-patch','return-type':{'expression':'bytes','mode':'annotation','snapshot':{'kind':'nominal','qualified-name':'model.Model','arguments':[{'kind':'nominal','qualified-name':'builtins.str'}]}}}\n",
+        )?;
+        let manifest = directory.join("plugin.json");
+        write(&manifest,&json!({"id":"snapshot.revision","name":"Snapshot revision","version":"0.0.0","protocol-version":{"major":0,"minor":7},"ty-compatibility":{"requirement":">=0.86.0,<0.87.0"},"runtime":{"kind":"monty","artifact":"plugin.py"},"capabilities":{"call-return":true},"claims":{"functions":[{"qualified-name":"demo.load"}]}}).to_string())?;
+        let options = BTreeMap::from([
+            (
+                "out".into(),
+                directory.join("output").to_string_lossy().into_owned(),
+            ),
+            (
+                "ty".into(),
+                PathBuf::from(binary).to_string_lossy().into_owned(),
+            ),
+            ("plugin".into(), plugin.to_string_lossy().into_owned()),
+            ("manifest".into(), manifest.to_string_lossy().into_owned()),
+            ("checker-mode".into(), "push".into()),
+            ("python-version".into(), "3.13".into()),
+        ]);
+        let mut session = Session::new(&root, &options)?;
+        assert_eq!(session.check(&BTreeMap::new())?["diagnostics"], json!([]));
+        let first_preflight = std::fs::read_dir(directory.join("output"))?
+            .filter_map(|entry| entry.ok())
+            .filter_map(|entry| {
+                let name = entry.file_name();
+                let round = name
+                    .to_str()?
+                    .strip_prefix("nominal-snapshots-")?
+                    .strip_suffix(".json")?
+                    .parse::<usize>()
+                    .ok()?;
+                Some((round, entry.path()))
+            })
+            .min_by_key(|(round, _)| *round)
+            .context("native nominal preflight")?
+            .1;
+        let preflight: Value = serde_json::from_slice(&std::fs::read(first_preflight)?)?;
+        assert!(
+            preflight.as_array().unwrap().iter().any(|diagnostic| {
+                diagnostic["description"]
+                    .as_str()
+                    .is_some_and(|description| description.contains("<class 'int'>"))
+            }),
+            "first native preflight must establish common builtins before later hook snapshots need them"
+        );
+        assert_eq!(
+            session.base_project.snapshot_nominals.get("builtins.int"),
+            Some(&Some(0))
+        );
+        let path = root.join("model.py").canonicalize()?;
+        let changed = session.check(&BTreeMap::from([(path.clone(), second.to_owned())]))?;
+        let diagnostics = changed["diagnostics"].as_array().context("diagnostics")?;
+        assert_eq!(diagnostics.len(), 1, "{changed:#}");
+        assert_eq!(diagnostics[0]["check_name"], "type-assertion-failure");
+        assert!(
+            diagnostics[0]["description"]
+                .as_str()
+                .unwrap()
+                .contains("Model[str]")
+        );
+        assert_eq!(
+            session.check(&BTreeMap::from([(path, first.to_owned())]))?["diagnostics"],
+            json!([])
+        );
+        drop(session);
+        std::fs::remove_dir_all(directory)?;
+        Ok(())
+    }
     use super::*;
+
+    #[test]
+    fn descriptor_origins_use_annotated_aliases_without_guessing_short_names() -> Result<()> {
+        let directory =
+            std::env::temp_dir().join(format!("ty-descriptor-origins-{}", std::process::id()));
+        write(&directory.join("owner.py"), "class Target: pass\n")?;
+        let text = "from owner import Target as Alias\ndef check(target: Alias, unknown):\n    target.field = 'bad'\n    unknown.field = 'bad'\n    target = unknown\n    target.field = 'bad'\n";
+        write(&directory.join("demo.py"), text)?;
+        let project = Project::load(&directory, &[], &json!({}), json!({}))?;
+        let module = &project.modules["demo"];
+        let unit = File {
+            source: module.source.clone(),
+            suite: module.suite.clone(),
+            analysis: Analysis::default(),
+            path: directory.join("demo.py"),
+            oracle: Oracle::new(),
+            patches: ReturnPatches::new(),
+            return_types: BTreeMap::new(),
+            types: Types::with_project("_test_", "demo", &project),
+            diagnostics: vec![],
+            rendered: None,
+            selected: true,
+            valid: true,
+            names: BTreeMap::new(),
+            final_edits: None,
+            dirty: true,
+            raw_diagnostics: vec![],
+            flow_diagnostics: vec![],
+        };
+        let generated = GeneratedDeclarations {
+            descriptors: BTreeMap::from([(
+                "owner.Target".into(),
+                BTreeSet::from(["field".into()]),
+            )]),
+            ..Default::default()
+        };
+        let origins = diagnostic_origins(&unit, &project, &generated, None);
+        assert_eq!(origins.descriptor_assignments.len(), 1);
+        let found = &origins.descriptor_assignments[0];
+        assert_eq!(found.owner, "owner.Target");
+        assert_eq!(found.target.start, text.find("target.field").unwrap());
+        std::fs::remove_dir_all(directory)?;
+        Ok(())
+    }
+
+    #[test]
+    fn function_hover_metadata_excludes_documentation_and_preserves_embedded_fences() {
+        let plain = json!({"contents":{"kind":"plaintext","value":"def load() -> int\n---------------------------------------------\nDocumentation"}});
+        assert_eq!(hover_type(&plain), Some("def load() -> int"));
+        let markdown = json!({"contents":{"kind":"markdown","value":"````python\nLiteral[\"```\"]\n````\n---\nDocumentation"}});
+        assert_eq!(hover_type(&markdown), Some("Literal[\"```\"]"));
+        assert_eq!(hover_type(&Value::Null), None);
+        assert_eq!(
+            hover_type(&json!({"contents":{"kind":"markdown","value":"Documentation only"}})),
+            None
+        );
+    }
+
+    #[test]
+    fn overlay_precedence_and_partial_markers_survive_editor_reloads() -> Result<()> {
+        let binary = std::env::var_os("TY_COMPANION_TEST_OFFICIAL").expect("official checker");
+        let directory = std::env::temp_dir().join(format!(
+            "ty-overlay-precedence-{}-{}",
+            std::process::id(),
+            std::time::SystemTime::now()
+                .duration_since(std::time::UNIX_EPOCH)?
+                .as_nanos()
+        ));
+        let root = directory.join("project");
+        let stubs = directory.join("overlays");
+        let site = directory.join("environment/lib/python3.13/site-packages");
+        let windows_site = directory.join("environment/Lib/site-packages");
+        let file_extra = directory.join("file-extra");
+        let inline_extra = directory.join("inline-extra");
+        for (path, text) in [
+            (root.join("first.py"), "value: int = 1\n"),
+            (stubs.join("first.pyi"), "value: str\n"),
+            (
+                stubs.join("json/__init__.pyi"),
+                "def dumps(value: object) -> int: ...\n",
+            ),
+            (stubs.join("partial/__init__.pyi"), ""),
+            (stubs.join("partial/py.typed"), "partial\n"),
+            (stubs.join("partial/overlay.pyi"), "value: str\n"),
+            (site.join("partial/__init__.py"), ""),
+            (site.join("partial/runtime.py"), "value: bytes = b''\n"),
+            (windows_site.join("partial/__init__.py"), ""),
+            (
+                windows_site.join("partial/runtime.py"),
+                "value: bytes = b''\n",
+            ),
+            (stubs.join("file_priority.pyi"), "value: int\n"),
+            (stubs.join("inline_priority.pyi"), "value: int\n"),
+            (root.join("inline_priority.py"), "value: int = 1\n"),
+            (file_extra.join("file_priority.pyi"), "value: bytes\n"),
+            (inline_extra.join("file_priority.pyi"), "value: str\n"),
+            (inline_extra.join("inline_priority.pyi"), "value: str\n"),
+            (
+                directory.join("environment/pyvenv.cfg"),
+                "home = .\nversion_info = 3.13.0\ninclude-system-site-packages = false\n",
+            ),
+            (directory.join("plugin.py"), "# Overlay-only plugin.\n"),
+        ] {
+            write(&path, text)?;
+        }
+        let source = "from typing import assert_type\nimport first, json, file_priority, inline_priority\nfrom partial import overlay, runtime\nassert_type(first.value, int)\nassert_type(json.dumps(1), str)\nassert_type(overlay.value, str)\nassert_type(runtime.value, bytes)\nassert_type(file_priority.value, bytes)\nassert_type(inline_priority.value, str)\n";
+        write(&root.join("main.py"), source)?;
+        write(
+            &root.join("ty.toml"),
+            &format!(
+                "[environment]\npython-version='3.13'\npython={}\nextra-paths=[{}]\n",
+                serde_json::to_string(&directory.join("environment"))?,
+                serde_json::to_string(&file_extra)?
+            ),
+        )?;
+        write(&directory.join("plugin.json"), &json!({"id":"research.overlays","name":"Overlays","version":"0.0.1","protocol-version":{"major":0,"minor":7},"ty-compatibility":{"requirement":">=0.86.0,<0.87.0"},"runtime":{"kind":"monty","artifact":"plugin.py"},"capabilities":{"stub-overlays":true}}).to_string())?;
+        let options = BTreeMap::from([
+            (
+                "out".into(),
+                directory.join("output").to_string_lossy().into_owned(),
+            ),
+            (
+                "ty".into(),
+                PathBuf::from(binary).to_string_lossy().into_owned(),
+            ),
+            (
+                "manifest".into(),
+                directory.join("plugin.json").to_string_lossy().into_owned(),
+            ),
+            (
+                "plugin".into(),
+                directory.join("plugin.py").to_string_lossy().into_owned(),
+            ),
+            ("stubs".into(), stubs.to_string_lossy().into_owned()),
+            ("checker-mode".into(), "push".into()),
+            ("lsp-capabilities".into(), "{}".into()),
+            (
+                "lsp-workspace-configuration".into(),
+                json!({"configuration":{"environment":{"extra-paths":[inline_extra]}}}).to_string(),
+            ),
+        ]);
+        let mut session = Session::new(&root, &options)?;
+        let result = session.check(&BTreeMap::new())?;
+        assert_eq!(result["diagnostics"], json!([]), "{result:#}");
+        assert!(!session.stubs.join("json").exists());
+        assert!(!session.base_project.modules.contains_key("json"));
+        assert_eq!(
+            std::fs::read_to_string(session.stubs.join("partial/py.typed"))?,
+            "partial\n"
+        );
+        // A changed overlay invalidates its inferred type without touching the
+        // original document. Restoring it restores the original diagnostic set.
+        write(&stubs.join("partial/overlay.pyi"), "value: int\n")?;
+        session.invalidate();
+        let result = session.check(&BTreeMap::new())?;
+        assert_eq!(
+            result["diagnostics"].as_array().unwrap().len(),
+            1,
+            "{result:#}"
+        );
+        write(&stubs.join("partial/overlay.pyi"), "value: str\n")?;
+        std::fs::remove_file(stubs.join("partial/py.typed"))?;
+        session.invalidate();
+        let result = session.check(&BTreeMap::new())?;
+        assert!(
+            result["diagnostics"]
+                .as_array()
+                .unwrap()
+                .iter()
+                .any(|d| d["check_name"] == "unresolved-import"),
+            "{result:#}"
+        );
+        assert!(!session.stubs.join("partial/py.typed").exists());
+        write(&stubs.join("partial/py.typed"), "partial\n")?;
+        session.invalidate();
+        let result = session.check(&BTreeMap::new())?;
+        assert_eq!(result["diagnostics"], json!([]), "{result:#}");
+        assert_eq!(std::fs::read_to_string(root.join("main.py"))?, source);
+        drop(session);
+        std::fs::remove_dir_all(directory)?;
+        Ok(())
+    }
+
+    #[test]
+    fn overlay_stdlib_probe_honors_custom_typeshed_version_ranges() -> Result<()> {
+        let binary = std::env::var_os("TY_COMPANION_TEST_OFFICIAL").expect("official checker");
+        let directory =
+            std::env::temp_dir().join(format!("ty-overlay-stdlib-{}", std::process::id()));
+        let root = directory.join("project");
+        let stubs = directory.join("overlays");
+        let typeshed = directory.join("typeshed");
+        let out = directory.join("output");
+        write(&stubs.join("future_module.pyi"), "value: str\n")?;
+        write(
+            &typeshed.join("stdlib/VERSIONS"),
+            "builtins: 3.0-\nfuture_module: 3.13-\n",
+        )?;
+        write(&typeshed.join("stdlib/builtins.pyi"), "class object: ...\n")?;
+        write(&typeshed.join("stdlib/future_module.pyi"), "value: int\n")?;
+        write(
+            &root.join("ty.toml"),
+            &format!(
+                "[environment]\ntypeshed={}\npython-version='3.12'\n",
+                serde_json::to_string(&typeshed)?
+            ),
+        )?;
+        let mut options = BTreeMap::from([
+            (
+                "ty".into(),
+                PathBuf::from(binary).to_string_lossy().into_owned(),
+            ),
+            ("stubs".into(), stubs.to_string_lossy().into_owned()),
+        ]);
+        // Explicit legacy stubs are accepted only alongside a plugin registration.
+        let fixtures = Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures/generic");
+        options.insert(
+            "plugin".into(),
+            fixtures.join("plugin.py").to_string_lossy().into_owned(),
+        );
+        options.insert(
+            "manifest".into(),
+            fixtures
+                .join("plugin.plugin.json")
+                .to_string_lossy()
+                .into_owned(),
+        );
+        let config =
+            project_config::load(&root, &out.join("project"), &out.join("stubs"), &options)?;
+        assert!(stdlib_overlay_modules(&config, &options, &out)?.is_empty());
+        options.insert("python-version".into(), "3.13".into());
+        let config =
+            project_config::load(&root, &out.join("project"), &out.join("stubs"), &options)?;
+        assert_eq!(
+            stdlib_overlay_modules(&config, &options, &out)?,
+            BTreeSet::from(["future_module".into()])
+        );
+        options.insert("out".into(), out.to_string_lossy().into_owned());
+        let mut session = Session::new(&root, &options)?;
+        let versions = typeshed.join("stdlib/VERSIONS").canonicalize()?;
+        assert!(session.watch_paths().contains(&typeshed.canonicalize()?));
+        assert!(session.path_requires_reload(&versions));
+        assert!(!session.stubs.join("future_module.pyi").exists());
+        write(&versions, "builtins: 3.0-\nfuture_module: 3.14-\n")?;
+        session.invalidate();
+        session.reload_dependencies()?;
+        assert!(session.stubs.join("future_module.pyi").exists());
+        write(&versions, "builtins: 3.0-\nfuture_module: 3.13-\n")?;
+        session.invalidate();
+        session.reload_dependencies()?;
+        assert!(!session.stubs.join("future_module.pyi").exists());
+        drop(session);
+        std::fs::remove_dir_all(directory)?;
+        Ok(())
+    }
 
     #[test]
     fn resolved_import_uris_restore_originals_and_reject_generated_dependencies() -> Result<()> {
@@ -2554,13 +3513,24 @@ mod tests {
         assert_eq!(removed["diagnostics"], index_changed["diagnostics"]);
         let failing = BTreeMap::from([(
             root.join("demo.py").canonicalize()?,
-            "class Resource:\n    broken: int\n".into(),
+            "class Resource:\n    broken: int\nitem = Resource()\nlabel: str = item.label\n".into(),
         )]);
-        assert!(session.check(&failing).is_err());
-        assert!(
-            session.check(&failing).is_err(),
-            "failed revision must not reuse old diagnostics on retry"
+        let fallback = session.check(&failing)?;
+        assert_eq!(
+            fallback["diagnostics"].as_array().unwrap().len(),
+            1,
+            "{fallback:#}"
         );
+        assert_eq!(
+            fallback["diagnostics"][0]["check_name"],
+            "unresolved-attribute"
+        );
+        assert_eq!(
+            session.check(&failing)?["diagnostics"],
+            fallback["diagnostics"],
+            "recoverable hook failure must not reuse the former successful patch"
+        );
+        assert_eq!(session.check(&BTreeMap::new())?["diagnostics"], json!([]));
         drop(session);
         std::fs::remove_dir_all(directory)?;
         Ok(())

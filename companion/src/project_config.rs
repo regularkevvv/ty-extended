@@ -19,7 +19,10 @@ pub struct Config {
     pub dependency_roots: Vec<PathBuf>,
     pub selection: Selection,
     pub plugins: Vec<PluginRegistration>,
+    pub plugin_diagnostics: Vec<serde_json::Value>,
+    pub plugin_watch_paths: Vec<PathBuf>,
     pub stub_roots: Vec<PathBuf>,
+    pub typeshed: Option<PathBuf>,
     pub terminal: serde_json::Value,
 }
 
@@ -790,13 +793,161 @@ fn preserve_negated_globs(value: &mut Value, checker_root: &Path) -> Result<()> 
     Ok(())
 }
 
+#[derive(Default)]
+struct PluginRegistrations {
+    plugins: Vec<PluginRegistration>,
+    roots: Vec<PathBuf>,
+    diagnostics: Vec<serde_json::Value>,
+    watch_paths: Vec<PathBuf>,
+}
+
+// Parse value spans through TOML's own deserializer, including quoted keys,
+// inline tables, multiline strings and pyproject's [tool.ty] nesting.
+#[derive(Default, serde::Deserialize)]
+struct SpannedPlugins {
+    #[serde(default)]
+    plugin: Vec<BTreeMap<String, toml::Spanned<Value>>>,
+}
+#[derive(Default, serde::Deserialize)]
+struct SpannedOptions {
+    #[serde(default)]
+    plugins: SpannedPlugins,
+}
+#[derive(Default, serde::Deserialize)]
+struct SpannedTool {
+    #[serde(default)]
+    ty: SpannedOptions,
+}
+#[derive(Default, serde::Deserialize)]
+struct SpannedConfig {
+    #[serde(default)]
+    plugins: SpannedPlugins,
+    #[serde(default)]
+    tool: SpannedTool,
+}
+
+struct PluginOrigin {
+    source: Option<PathBuf>,
+    text: String,
+    entries: Vec<BTreeMap<String, toml::Spanned<Value>>>,
+    inline: &'static str,
+}
+impl PluginOrigin {
+    fn new(source: Option<&Path>, options: &BTreeMap<String, String>) -> Result<Self> {
+        let mut inline = None;
+        if editor_options(options)?
+            .pointer("/configuration/plugins/plugin")
+            .is_some()
+        {
+            inline = Some("editor settings");
+        }
+        if let Some(overrides) = options.get("cli-config") {
+            for text in serde_json::from_str::<Vec<String>>(overrides)? {
+                let table: Table = toml::from_str(&text)?;
+                if table.get("plugins").and_then(|p| p.get("plugin")).is_some() {
+                    inline = Some("CLI");
+                }
+            }
+        }
+        let source = source.filter(|_| inline.is_none()).map(Path::to_owned);
+        let text = source
+            .as_ref()
+            .map(std::fs::read_to_string)
+            .transpose()?
+            .unwrap_or_default();
+        let parsed: SpannedConfig = toml::from_str(&text)?;
+        let entries = if source
+            .as_ref()
+            .is_some_and(|p| p.file_name().is_some_and(|n| n == "pyproject.toml"))
+        {
+            parsed.tool.ty.plugins.plugin
+        } else {
+            parsed.plugins.plugin
+        };
+        Ok(Self {
+            source,
+            text,
+            entries,
+            inline: inline.unwrap_or("CLI"),
+        })
+    }
+
+    fn diagnostic(
+        &self,
+        index: usize,
+        key: &str,
+        message: String,
+        label: &str,
+        warning: bool,
+        info: Option<&str>,
+    ) -> serde_json::Value {
+        let span = self
+            .entries
+            .get(index)
+            .and_then(|entry| entry.get(key))
+            .map(toml::Spanned::span);
+        let position = |offset: usize| {
+            let before = &self.text[..offset.min(self.text.len())];
+            serde_json::json!({"line":before.bytes().filter(|&b| b == b'\n').count() + 1,"column":before.rsplit('\n').next().unwrap_or("").chars().count() + 1})
+        };
+        let mut notes = Vec::new();
+        if self.source.is_none() {
+            notes.push(if label == "plugin configuration" {
+                format!(
+                    "info: The plugin option was specified {}{}.",
+                    if self.inline == "CLI" {
+                        "on the "
+                    } else {
+                        "in the "
+                    },
+                    self.inline
+                )
+            } else {
+                format!(
+                    "info: The plugin path was specified {}{}: {label}",
+                    if self.inline == "CLI" {
+                        "on the "
+                    } else {
+                        "in the "
+                    },
+                    self.inline
+                )
+            });
+        }
+        if let Some(info) = info {
+            notes.push(format!("info: {info}"));
+        }
+        serde_json::json!({
+            "check_name":"plugin-configuration", "severity":if warning {"minor"} else {"major"},
+            "description":format!("plugin-configuration: {message}{}", if self.source.is_some() {format!(": {label}")} else {String::new()}),
+            "location":{"path":self.source.as_ref().map(|p| p.to_string_lossy().into_owned()).unwrap_or_default(),"positions":{
+                "begin":position(span.as_ref().map_or(0, |r| r.start)),"end":position(span.as_ref().map_or(0, |r| r.end))}},
+            "details":notes.join("\n"), "configuration-diagnostic":true,
+        })
+    }
+}
+
+fn plugin_path_display(path: &Path) -> String {
+    // Canonical Windows paths carry a \\?\ prefix internally. URI identity
+    // serialization removes that implementation prefix while preserving drive,
+    // UNC, Unicode and percent characters in user-visible diagnostic labels.
+    crate::checker::file_uri(path)
+        .ok()
+        .and_then(|uri| crate::lsp_mapping::decode_file_uri(&uri).ok().flatten())
+        .unwrap_or_else(|| path.to_owned())
+        .display()
+        .to_string()
+}
+
 fn plugin_registrations(
     table: &Table,
     base: &Path,
     root: &Path,
     options: &BTreeMap<String, String>,
-) -> Result<(Vec<PluginRegistration>, Vec<PathBuf>)> {
-    let mut roots = Vec::new();
+    source: Option<&Path>,
+) -> Result<PluginRegistrations> {
+    let mut result = PluginRegistrations::default();
+    let roots = &mut result.roots;
     if let Some(stubs) = options.get("stubs") {
         roots.push(PathBuf::from(stubs).canonicalize()?);
     }
@@ -810,12 +961,17 @@ fn plugin_registrations(
         } else {
             serde_json::json!({})
         };
-        return Ok((vec![(manifest, artifact, config)], roots));
+        result
+            .watch_paths
+            .extend([manifest.clone(), artifact.clone()]);
+        result.plugins.push((manifest, artifact, config));
+        return Ok(result);
     }
     let Some(plugins) = table.get("plugins").and_then(Value::as_table) else {
-        return Ok((Vec::new(), roots));
+        return Ok(result);
     };
-    let mut registrations = Vec::new();
+    let origin = PluginOrigin::new(source, options)?;
+    let registrations = &mut result.plugins;
     let configured = plugins
         .get("plugin")
         .and_then(Value::as_array)
@@ -826,69 +982,187 @@ fn plugin_registrations(
         .filter_map(|v| v.get("id").and_then(Value::as_str))
         .map(str::to_owned)
         .collect();
-    if plugins
+    let enabled = plugins
         .get("enabled")
         .and_then(Value::as_bool)
-        .unwrap_or(false)
-    {
-        for entry in &configured {
-            let id = entry
-                .get("id")
+        .unwrap_or(false);
+    for (index, entry) in configured.iter().enumerate() {
+        let id = entry
+            .get("id")
+            .and_then(Value::as_str)
+            .context("plugin entry requires id")?;
+        let artifact = PathBuf::from(relocated(
+            entry
+                .get("path")
                 .and_then(Value::as_str)
-                .context("plugin entry requires id")?;
-            ensure!(
-                entry
-                    .get("trusted")
-                    .and_then(Value::as_bool)
-                    .unwrap_or(false),
-                "Plugin `{id}` is not trusted to execute locally; set trusted=true for this plugin"
+                .context("plugin requires path")?,
+            base,
+            root,
+            root,
+        ));
+        let manifest = entry
+            .get("manifest-path")
+            .and_then(Value::as_str)
+            .map(|p| PathBuf::from(relocated(p, base, root, root)))
+            .unwrap_or_else(|| artifact.clone());
+        let overlay = entry
+            .get("stub-overlay-path")
+            .and_then(Value::as_str)
+            .map(|p| PathBuf::from(relocated(p, base, root, root)));
+        result
+            .watch_paths
+            .extend([artifact.clone(), manifest.clone()]);
+        result.watch_paths.extend(overlay.iter().cloned());
+        let mut report =
+            |key: &str, message: String, label: &str, warning: bool, info: Option<&str>| {
+                result
+                    .diagnostics
+                    .push(origin.diagnostic(index, key, message, label, warning, info));
+            };
+        if !enabled {
+            report(
+                "id",
+                format!("Plugin `{id}` is configured but plugins are disabled"),
+                "plugin configuration",
+                true,
+                Some("Set `plugins.enabled = true` to enable configured plugins."),
             );
-            let runtime = entry
-                .get("runtime")
-                .and_then(Value::as_str)
-                .unwrap_or("wasm");
-            ensure!(
-                runtime == "monty",
-                "Plugin `{id}` uses {runtime}; this companion requires a Monty artifact and runtime='monty'"
-            );
-            let artifact = PathBuf::from(relocated(
-                entry
-                    .get("path")
-                    .and_then(Value::as_str)
-                    .context("plugin requires path")?,
-                base,
-                root,
-                root,
-            ))
-            .canonicalize()?;
-            let manifest = entry
-                .get("manifest-path")
-                .and_then(Value::as_str)
-                .map(|p| PathBuf::from(relocated(p, base, root, root)))
-                .unwrap_or_else(|| artifact.clone())
-                .canonicalize()?;
-            let parsed: serde_json::Value = serde_json::from_slice(&std::fs::read(&manifest)?)?;
-            ensure!(
-                parsed["id"].as_str() == Some(id),
-                "Configured plugin id `{id}` differs from its manifest"
-            );
-            if let Some(stubs) = entry.get("stub-overlay-path").and_then(Value::as_str) {
-                ensure!(
-                    parsed
-                        .pointer("/capabilities/stub-overlays")
-                        .and_then(serde_json::Value::as_bool)
-                        .unwrap_or(false),
-                    "Plugin `{id}` configures stubs without stub-overlays capability"
-                );
-                roots.push(PathBuf::from(relocated(stubs, base, root, root)).canonicalize()?);
-            }
-            let config = entry
-                .get("config")
-                .map(serde_json::to_value)
-                .transpose()?
-                .unwrap_or_else(|| serde_json::json!({}));
-            registrations.push((manifest, artifact, config));
+            continue;
         }
+        if !artifact.is_file() {
+            report(
+                "path",
+                format!(
+                    "Plugin `{id}` points to an artifact path that does not exist or is not a file"
+                ),
+                &format!(
+                    "`{}` does not exist or is not a file",
+                    plugin_path_display(&artifact)
+                ),
+                false,
+                None,
+            );
+            continue;
+        }
+        if !entry
+            .get("trusted")
+            .and_then(Value::as_bool)
+            .unwrap_or(false)
+        {
+            report(
+                "id",
+                format!("Plugin `{id}` is not trusted to execute local code"),
+                "plugin configuration",
+                false,
+                Some("Set `trusted = true` for this plugin only if you trust the artifact."),
+            );
+            continue;
+        }
+        let runtime = entry
+            .get("runtime")
+            .and_then(Value::as_str)
+            .unwrap_or("wasm");
+        ensure!(
+            runtime == "monty",
+            "Plugin `{id}` uses {runtime}; this companion requires a Monty artifact and runtime='monty'"
+        );
+        if let Some(overlay) = &overlay
+            && !overlay.is_dir()
+        {
+            report(
+                "stub-overlay-path",
+                format!(
+                    "Plugin `{id}` points to a stub overlay path that does not exist or is not a directory"
+                ),
+                &format!(
+                    "`{}` does not exist or is not a directory",
+                    plugin_path_display(overlay)
+                ),
+                false,
+                None,
+            );
+            continue;
+        }
+        let manifest_key = if entry.get("manifest-path").is_some() {
+            "manifest-path"
+        } else {
+            "path"
+        };
+        if !manifest.is_file() {
+            report(
+                manifest_key,
+                format!(
+                    "Plugin `{id}` points to a manifest path that does not exist or is not a file"
+                ),
+                &format!(
+                    "`{}` does not exist or is not a file",
+                    plugin_path_display(&manifest)
+                ),
+                false,
+                None,
+            );
+            continue;
+        }
+        let content = match std::fs::read_to_string(&manifest) {
+            Ok(content) => content,
+            Err(error) => {
+                report(
+                    manifest_key,
+                    format!("Failed to read manifest for plugin `{id}`"),
+                    &error.to_string(),
+                    false,
+                    None,
+                );
+                continue;
+            }
+        };
+        let parsed: ty_plugin_protocol::PluginManifest = match serde_json::from_str(&content) {
+            Ok(parsed) => parsed,
+            Err(error) => {
+                report(
+                    manifest_key,
+                    format!("Failed to parse manifest for plugin `{id}`"),
+                    &error.to_string(),
+                    false,
+                    None,
+                );
+                continue;
+            }
+        };
+        if parsed.id != id {
+            report(
+                "id",
+                format!(
+                    "Configured plugin id `{id}` does not match manifest id `{}`",
+                    parsed.id
+                ),
+                "plugin configuration",
+                false,
+                None,
+            );
+            continue;
+        }
+        if overlay.is_some() && !parsed.capabilities.stub_overlays {
+            report(
+                "stub-overlay-path",
+                format!(
+                    "Plugin `{id}` configures a stub overlay path but the manifest does not declare the stub-overlays capability"
+                ),
+                "manifest must set `capabilities.stub-overlays = true`",
+                false,
+                None,
+            );
+            continue;
+        }
+        if let Some(overlay) = overlay {
+            roots.push(overlay.canonicalize()?);
+        }
+        let config = entry
+            .get("config")
+            .map(serde_json::to_value)
+            .transpose()?
+            .unwrap_or_else(|| serde_json::json!({}));
+        registrations.push((manifest.canonicalize()?, artifact.canonicalize()?, config));
     }
     if plugins
         .get("auto-discover")
@@ -957,10 +1231,17 @@ fn plugin_registrations(
                 else {
                     continue;
                 };
+                // Installed package discovery silently skips malformed manifests,
+                // unlike explicit entries, which produce ranged diagnostics.
+                if serde_json::from_value::<ty_plugin_protocol::PluginManifest>(parsed.clone())
+                    .is_err()
+                {
+                    continue;
+                }
                 let Some(id) = parsed["id"].as_str().filter(|id| !id.is_empty()) else {
                     continue;
                 };
-                if !seen.insert(id.to_owned()) {
+                if seen.contains(id) {
                     continue;
                 }
                 let runtime = parsed
@@ -977,22 +1258,27 @@ fn plugin_registrations(
                         .and_then(serde_json::Value::as_str)
                         .context("installed Monty plugin requires artifact")?,
                 );
-                ensure!(
-                    artifact.is_file(),
-                    "Installed plugin `{id}` artifact does not exist: {}",
-                    artifact.display()
-                );
+                result
+                    .watch_paths
+                    .extend([manifest.clone(), artifact.clone()]);
+                if !artifact.is_file() {
+                    continue;
+                }
                 if parsed["stub-overlays"]
                     .as_array()
                     .is_some_and(|v| !v.is_empty())
                 {
                     let stubs = package.join("stubs");
-                    ensure!(
-                        stubs.is_dir(),
-                        "Installed plugin `{id}` stub overlay is missing"
-                    );
+                    result.watch_paths.push(stubs.clone());
+                    if !stubs.is_dir()
+                        || parsed.pointer("/capabilities/stub-overlays")
+                            != Some(&serde_json::Value::Bool(true))
+                    {
+                        continue;
+                    }
                     roots.push(stubs.canonicalize()?);
                 }
+                seen.insert(id.to_owned());
                 let config = plugins
                     .get("config")
                     .and_then(|c| c.get(id))
@@ -1013,7 +1299,65 @@ fn plugin_registrations(
             "This companion embeds Monty; plugins.monty-mode=worker is not supported. Select in-process or use ty-extended's worker runtime."
         );
     }
-    Ok((registrations, roots))
+    // Manifest host validation is atomic upstream: a malformed environment
+    // disables all semantic registrations, while per-entry path/trust errors
+    // above only skip that entry.
+    let manifests = registrations
+        .iter()
+        .map(|(path, _, _)| {
+            Ok(
+                serde_json::from_slice::<ty_plugin_protocol::PluginManifest>(&std::fs::read(
+                    path,
+                )?)?,
+            )
+        })
+        .collect::<Result<Vec<_>>>()?;
+    if let Err(error) = ty_plugin_host::PluginEnvironment::from_manifests(manifests.clone()) {
+        let (id, message) = match &error {
+            ty_plugin_host::HostError::DuplicatePluginId(id) => (
+                id.clone(),
+                format!("Plugin id `{id}` is declared by multiple plugin manifests"),
+            ),
+            ty_plugin_host::HostError::UnsupportedProtocolVersion {
+                plugin_id,
+                major,
+                minor,
+                supported_major,
+                supported_minor,
+            } => (
+                plugin_id.clone(),
+                format!(
+                    "Plugin `{plugin_id}` uses unsupported protocol version {major}.{minor}; ty supports {supported_major}.{supported_minor}"
+                ),
+            ),
+            _ => {
+                let text = error.to_string();
+                let id = text.split('`').nth(1).unwrap_or("").to_owned();
+                let message = format!("{}{}", text[..1].to_uppercase(), &text[1..]);
+                (id, message)
+            }
+        };
+        let path = manifests
+            .iter()
+            .position(|manifest| manifest.id == id)
+            .map(|i| registrations[i].0.clone());
+        result.diagnostics.push(serde_json::json!({"check_name":"plugin-configuration","severity":"major","description":format!("plugin-configuration: {message}{}",if path.is_some() {": plugin manifest"} else {""}),"location":{"path":path,"positions":{"begin":{"line":1,"column":1},"end":{"line":1,"column":1}}},"configuration-diagnostic":true}));
+        registrations.clear();
+        roots.clear();
+    }
+    result.watch_paths.extend(
+        registrations
+            .iter()
+            .flat_map(|(manifest, artifact, _)| [manifest.clone(), artifact.clone()]),
+    );
+    for path in &mut result.watch_paths {
+        // Match the canonical identities used by didChangeWatchedFiles, even
+        // when the configured file is missing beneath a symlinked directory.
+        *path = crate::lsp_server::uri_path(&crate::checker::file_uri(path)?)?;
+    }
+    result.watch_paths.sort();
+    result.watch_paths.dedup();
+    Ok(result)
 }
 
 /// Ask the unchanged checker to resolve its own Python-version policy. This
@@ -1218,7 +1562,9 @@ pub fn load(
     }
     let terminal = serde_json::to_value(table.get("terminal"))?;
     let selection = Selection::new(&table, &base, root)?;
-    let (plugins, stub_roots) = plugin_registrations(&table, &base, root, options)?;
+    let registration = plugin_registrations(&table, &base, root, options, source.as_deref())?;
+    let plugins = registration.plugins;
+    let stub_roots = registration.roots;
     // Plugins belong to this frontend, not to the stock checker configuration.
     table.remove("plugins");
     let environment = table
@@ -1358,8 +1704,17 @@ pub fn load(
         .or_insert_with(|| Value::Array(vec![]))
         .as_array_mut()
         .context("environment.extra-paths must be an array")?;
-    extras.insert(0, Value::String(view.to_string_lossy().into_owned()));
-    extras.insert(0, Value::String(stubs.to_string_lossy().into_owned()));
+    // Native plugin overlays follow user extras and all first-party roots.
+    // The stock checker has no overlay slot, so Session filters stdlib shadows
+    // before placing the remaining overlay after these explicit search roots.
+    extras.extend(source_roots.iter().map(|path| {
+        Value::String(if path == root {
+            view.to_string_lossy().into_owned()
+        } else {
+            relocated(&path.to_string_lossy(), root, root, view)
+        })
+    }));
+    extras.push(Value::String(stubs.to_string_lossy().into_owned()));
     // Explicit root paths prevent ty's temporary workspace from discovering unrelated sources.
     environment.entry("root").or_insert_with(|| {
         Value::Array(
@@ -1453,6 +1808,10 @@ pub fn load(
     if editor_version_fallback {
         environment.remove("python-version");
     }
+    let typeshed = environment
+        .get("typeshed")
+        .and_then(Value::as_str)
+        .map(PathBuf::from);
     let editor_configuration = if is_editor {
         // Keep native configuration layers separate. Re-serializing the merged
         // options as a file loses editor provenance and forwarding inline arrays
@@ -1490,13 +1849,7 @@ pub fn load(
                 Value::String(root.join(".venv").to_string_lossy().into_owned()),
             );
         }
-        let extras = native_environment
-            .entry("extra-paths")
-            .or_insert_with(|| Value::Array(vec![]))
-            .as_array_mut()
-            .context("environment.extra-paths must be an array")?;
-        extras.insert(0, Value::String(view.to_string_lossy().into_owned()));
-        extras.insert(0, Value::String(stubs.to_string_lossy().into_owned()));
+
         let inline_has_root = native_inline
             .as_ref()
             .and_then(|inline| inline.get("environment"))
@@ -1507,7 +1860,11 @@ pub fn load(
                     source_roots
                         .iter()
                         .map(|path| {
-                            Value::String(relocated(&path.to_string_lossy(), root, root, view))
+                            Value::String(if path == root {
+                                view.to_string_lossy().into_owned()
+                            } else {
+                                relocated(&path.to_string_lossy(), root, root, view)
+                            })
                         })
                         .collect(),
                 )
@@ -1526,6 +1883,26 @@ pub fn load(
                 .unwrap()
                 .insert("python-version".into(), Value::String(version));
         }
+        // ty concatenates file extras before inline extras. Append generated
+        // roots to the last valid layer, after every user-configured extra.
+        let final_layer = native_inline.as_mut().unwrap_or(&mut native_base);
+        let extras = final_layer
+            .entry("environment")
+            .or_insert_with(|| Value::Table(Table::new()))
+            .as_table_mut()
+            .context("environment must be a table")?
+            .entry("extra-paths")
+            .or_insert_with(|| Value::Array(vec![]))
+            .as_array_mut()
+            .context("environment.extra-paths must be an array")?;
+        extras.extend(source_roots.iter().map(|path| {
+            Value::String(if path == root {
+                view.to_string_lossy().into_owned()
+            } else {
+                relocated(&path.to_string_lossy(), root, root, view)
+            })
+        }));
+        extras.push(Value::String(stubs.to_string_lossy().into_owned()));
         table = native_base;
         invalid_inline.or(native_inline.map(serde_json::to_value).transpose()?)
     } else {
@@ -1541,7 +1918,10 @@ pub fn load(
         dependency_roots,
         selection,
         plugins,
+        plugin_diagnostics: registration.diagnostics,
+        plugin_watch_paths: registration.watch_paths,
         stub_roots,
+        typeshed,
         terminal,
     })
 }
@@ -1607,7 +1987,9 @@ mod tests {
         assert!(base["environment"].get("python-version").is_none());
         assert_eq!(
             config.editor_configuration,
-            Some(serde_json::json!({"environment": {}, "src": {}}))
+            Some(
+                serde_json::json!({"environment": {"extra-paths": [root.join("generated/project"), root.join("generated/stubs")]}, "src": {}})
+            )
         );
         std::fs::remove_dir_all(root)?;
         Ok(())
@@ -1700,7 +2082,7 @@ mod tests {
                 .as_array()
                 .unwrap()
                 .len(),
-            3
+            1
         );
         assert!(table["environment"].get("root").is_none());
         assert_eq!(table["overrides"].as_array().unwrap().len(), 1);
@@ -1711,7 +2093,7 @@ mod tests {
                 .as_array()
                 .unwrap()
                 .len(),
-            1
+            4
         );
         assert_eq!(
             inline["environment"]["root"][0].as_str(),
@@ -1724,9 +2106,12 @@ mod tests {
         // workspace settings, even though ty options merge with the file layer.
         assert!(table["rules"].get("unresolved-reference").is_none());
         let extras = table["environment"]["extra-paths"].as_array().unwrap();
-        assert_eq!(extras.len(), 4);
-        assert_eq!(extras[2].as_str(), view.join("file-shared").to_str());
-        assert_eq!(extras[3].as_str(), view.join("inline-shared").to_str());
+        assert_eq!(extras.len(), 5);
+        assert_eq!(extras[0].as_str(), view.join("file-shared").to_str());
+        assert_eq!(extras[1].as_str(), view.join("inline-shared").to_str());
+        assert_eq!(extras[2].as_str(), view.join("inline-root").to_str());
+        assert_eq!(extras[3].as_str(), view.to_str());
+        assert_eq!(extras[4].as_str(), stubs.to_str());
         assert_eq!(table["overrides"].as_array().unwrap().len(), 2);
         assert!(config.selection.includes(&root.join("file-src/a.py"), ""));
         assert!(config.selection.includes(&root.join("inline-src/a.py"), ""));
@@ -1776,7 +2161,7 @@ mod tests {
         assert_eq!(config.python_version, "3.13");
         let table: Table = toml::from_str(&config.text)?;
         assert_eq!(
-            table["environment"]["extra-paths"][2].as_str(),
+            table["environment"]["extra-paths"][0].as_str(),
             view.join("shared").to_str()
         );
         assert!(table["environment"].get("python-version").is_none());
@@ -1803,7 +2188,7 @@ mod tests {
         std::fs::create_dir_all(&package)?;
         std::fs::write(
             package.join("ty-plugin.json"),
-            r#"{"id":"example","runtime":{"kind":"monty","artifact":"plugin.py"},"stub-overlays":[]}"#,
+            r#"{"id":"example","name":"example","version":"0.1.0","protocol-version":{"major":0,"minor":7},"ty-compatibility":{"requirement":">=0.86.0"},"runtime":{"kind":"monty","artifact":"plugin.py"},"capabilities":{},"claims":{},"stub-overlays":[]}"#,
         )?;
         std::fs::write(package.join("plugin.py"), "pass")?;
         std::fs::write(root.join("ty.toml"), "[plugins]\nauto-discover=true\n")?;
@@ -1963,44 +2348,172 @@ mod tests {
     }
 
     #[test]
+    fn plugin_diagnostic_origins_use_parsed_spans_and_override_provenance() -> Result<()> {
+        let root =
+            std::env::temp_dir().join(format!("ty-plugin-config-origins-{}", std::process::id()));
+        std::fs::create_dir_all(&root)?;
+        let path = root.join("pyproject.toml");
+        let text = "# café 😀\n[tool.ty.plugins]\nenabled=false\nplugin=[{id='café', path='missing.py',runtime='monty'}]\n";
+        std::fs::write(&path, text)?;
+        let origin = PluginOrigin::new(Some(&path), &BTreeMap::new())?;
+        let diagnostic = origin.diagnostic(
+            0,
+            "id",
+            "disabled".into(),
+            "plugin configuration",
+            true,
+            None,
+        );
+        let start = text.find("'café'").unwrap();
+        assert_eq!(
+            origin.entries[0]["id"].span(),
+            start..start + "'café'".len()
+        );
+        assert_eq!(
+            diagnostic["location"]["positions"]["begin"],
+            serde_json::json!({"line":4,"column":13})
+        );
+        assert_eq!(
+            diagnostic["location"]["positions"]["end"],
+            serde_json::json!({"line":4,"column":19})
+        );
+        let options = BTreeMap::from([(
+            "cli-config".into(),
+            serde_json::to_string(&["plugins.plugin=[{id='café',path='missing.py'}]"])?,
+        )]);
+        let overridden = PluginOrigin::new(Some(&path), &options)?.diagnostic(
+            0,
+            "id",
+            "disabled".into(),
+            "plugin configuration",
+            true,
+            None,
+        );
+        assert_eq!(overridden["location"]["path"], "");
+        assert_eq!(overridden["description"], "plugin-configuration: disabled");
+        assert_eq!(
+            overridden["details"],
+            "info: The plugin option was specified on the CLI."
+        );
+        std::fs::remove_dir_all(root)?;
+        Ok(())
+    }
+
+    #[test]
+    fn invalid_configured_plugin_paths_remain_watched_for_recovery() -> Result<()> {
+        let root =
+            std::env::temp_dir().join(format!("ty-plugin-config-recovery-{}", std::process::id()));
+        std::fs::create_dir_all(&root)?;
+        let root = root.canonicalize()?;
+        let table: Table = toml::from_str(
+            "[plugins]\nenabled=true\n[[plugins.plugin]]\nid='missing'\npath='missing.py'\nmanifest-path='missing.json'\nruntime='monty'\ntrusted=true\n",
+        )?;
+        let result = plugin_registrations(&table, &root, &root, &BTreeMap::new(), None)?;
+        assert!(result.plugins.is_empty());
+        assert_eq!(result.diagnostics.len(), 1);
+        assert!(
+            result.diagnostics[0]["description"]
+                .as_str()
+                .unwrap()
+                .contains("artifact path")
+        );
+        assert!(result.watch_paths.contains(&root.join("missing.py")));
+        assert!(result.watch_paths.contains(&root.join("missing.json")));
+        std::fs::remove_dir_all(root)?;
+        Ok(())
+    }
+
+    #[test]
     fn installed_plugins_require_opt_in_and_preserve_configuration() -> Result<()> {
         let root = std::env::temp_dir().join(format!("ty-plugin-discovery-{}", std::process::id()));
         let package = root.join(".venv/lib/python3.13/site-packages/example");
         std::fs::create_dir_all(&package)?;
         std::fs::write(
             package.join("ty-plugin.json"),
-            r#"{"id":"example","runtime":{"kind":"monty","artifact":"plugin.py"},"stub-overlays":[]}"#,
+            r#"{"id":"example","name":"example","version":"0.1.0","protocol-version":{"major":0,"minor":7},"ty-compatibility":{"requirement":">=0.86.0"},"runtime":{"kind":"monty","artifact":"plugin.py"},"capabilities":{},"claims":{},"stub-overlays":[]}"#,
         )?;
         std::fs::write(package.join("plugin.py"), "pass")?;
         let table: Table = toml::from_str(
             "[plugins]\nauto-discover=true\n[plugins.config.example]\nmode='strict'\n",
         )?;
-        let (plugins, _) = plugin_registrations(&table, &root, &root, &BTreeMap::new())?;
+        let plugins = plugin_registrations(&table, &root, &root, &BTreeMap::new(), None)?.plugins;
         assert_eq!(plugins.len(), 1);
         assert_eq!(plugins[0].2["mode"], "strict");
+        let omitted = Table::new();
+        assert!(
+            plugin_registrations(&omitted, &root, &root, &BTreeMap::new(), None)?
+                .plugins
+                .is_empty()
+        );
         let disabled: Table = toml::from_str("[plugins]\nauto-discover=false\n")?;
         assert!(
-            plugin_registrations(&disabled, &root, &root, &BTreeMap::new())?
-                .0
+            plugin_registrations(&disabled, &root, &root, &BTreeMap::new(), None)?
+                .plugins
                 .is_empty()
         );
         let disabled_worker: Table = toml::from_str(
             "[plugins]\nenabled=false\nauto-discover=false\nmonty-mode='worker'\n[[plugins.plugin]]\nid='obsolete'\nruntime='wasm'\npath='missing.wasm'\n",
         )?;
         assert!(
-            plugin_registrations(&disabled_worker, &root, &root, &BTreeMap::new())?
-                .0
+            plugin_registrations(&disabled_worker, &root, &root, &BTreeMap::new(), None)?
+                .plugins
                 .is_empty()
         );
         let untrusted: Table = toml::from_str(
             "[plugins]\nenabled=true\n[[plugins.plugin]]\nid='example'\nruntime='monty'\npath='missing.py'\n",
         )?;
         assert!(
-            plugin_registrations(&untrusted, &root, &root, &BTreeMap::new())
-                .unwrap_err()
-                .to_string()
-                .contains("not trusted")
+            plugin_registrations(&untrusted, &root, &root, &BTreeMap::new(), None)?.diagnostics[0]
+                ["description"]
+                .as_str()
+                .unwrap()
+                .contains("artifact path")
         );
+        std::fs::remove_dir_all(root)?;
+        Ok(())
+    }
+
+    #[test]
+    fn installed_overlay_discovery_respects_explicit_plugin_override() -> Result<()> {
+        let root = editor_fixture("discovery-precedence")?;
+        let package = root.join(".venv/lib/python3.13/site-packages/example");
+        std::fs::create_dir_all(package.join("stubs"))?;
+        let mut manifest = serde_json::json!({
+            "id":"example", "name":"example", "version":"0.1.0",
+            "protocol-version":{"major":0,"minor":7},
+            "ty-compatibility":{"requirement":">=0.86.0"},
+            "runtime":{"kind":"monty","artifact":"plugin.py"},
+            "capabilities":{"stub-overlays":true},
+            "stub-overlays":[{"module":"external","path":"stubs/external.pyi"}]
+        });
+        std::fs::write(
+            package.join("ty-plugin.json"),
+            serde_json::to_vec(&manifest)?,
+        )?;
+        std::fs::write(package.join("plugin.py"), "pass")?;
+        std::fs::write(package.join("stubs/external.pyi"), "value: int\n")?;
+        let table: Table = toml::from_str("[plugins]\nauto-discover=true\n")?;
+        let discovered = plugin_registrations(&table, &root, &root, &BTreeMap::new(), None)?;
+        assert!(discovered.diagnostics.is_empty());
+        assert_eq!(discovered.plugins.len(), 1);
+        assert_eq!(discovered.roots, [package.join("stubs").canonicalize()?]);
+        assert!(discovered.watch_paths.contains(&package.join("stubs")));
+        manifest["stub-overlays"] = serde_json::json!([]);
+        std::fs::write(root.join("explicit.json"), serde_json::to_vec(&manifest)?)?;
+        std::fs::write(root.join("explicit.py"), "pass")?;
+        let table: Table = toml::from_str(
+            "[plugins]\nenabled=true\nauto-discover=true\n[[plugins.plugin]]\nid='example'\nruntime='monty'\ntrusted=true\npath='explicit.py'\nmanifest-path='explicit.json'\nconfig={mode='explicit'}\n",
+        )?;
+        let explicit = plugin_registrations(&table, &root, &root, &BTreeMap::new(), None)?;
+        assert!(
+            explicit.diagnostics.is_empty(),
+            "{:?}",
+            explicit.diagnostics
+        );
+        assert_eq!(explicit.plugins.len(), 1);
+        assert_eq!(explicit.plugins[0].1, root.join("explicit.py"));
+        assert_eq!(explicit.plugins[0].2["mode"], "explicit");
+        assert!(explicit.roots.is_empty());
         std::fs::remove_dir_all(root)?;
         Ok(())
     }
@@ -2076,7 +2589,7 @@ mod tests {
         assert!(config.dependency_roots.contains(&root.join(".venv")));
         assert_eq!(value["rules"]["invalid-assignment"].as_str(), Some("warn"));
         assert_eq!(
-            value["environment"]["extra-paths"][2].as_str(),
+            value["environment"]["extra-paths"][0].as_str(),
             Some(view.join("shared").to_str().unwrap())
         );
         assert_eq!(

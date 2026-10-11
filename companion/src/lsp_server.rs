@@ -93,9 +93,11 @@ struct Workspace {
     dirty: bool,
     revision: u64,
     diagnostics: BTreeMap<String, Vec<Value>>,
+    configuration_uris: BTreeSet<String>,
     raw_diagnostics: Vec<(String, Value, Value)>,
     error: Option<String>,
     statistics: Value,
+    index_all_files: bool,
 }
 
 struct Editor {
@@ -319,9 +321,17 @@ impl Editor {
             dirty: true,
             revision: 0,
             diagnostics: BTreeMap::new(),
+            configuration_uris: BTreeSet::new(),
             raw_diagnostics: vec![],
             error: None,
             statistics: Value::Null,
+            // A pending native workspace still has its default AllFiles mode.
+            // Configuration later selects OpenFiles unless diagnostics is off.
+            index_all_files: configuration_pending
+                || matches!(
+                    self.global_settings["diagnosticMode"].as_str(),
+                    Some("workspace" | "off")
+                ),
         });
         Ok(())
     }
@@ -401,8 +411,16 @@ impl Editor {
         {
             for workspace in &mut self.workspaces {
                 workspace.revision += 1;
+                workspace.dirty = true;
             }
             self.publications_pending = true;
+        }
+        for workspace in &mut self.workspaces {
+            match settings["diagnosticMode"].as_str() {
+                Some("workspace") => workspace.index_all_files = true,
+                Some("off") => {} // Native Off preserves the previous CheckMode.
+                _ => workspace.index_all_files = false,
+            }
         }
         self.global_settings = settings;
     }
@@ -693,12 +711,14 @@ impl Editor {
                     .register_notebook_source(notebook.path())?;
                 overlays.insert(notebook.path().to_owned(), notebook.combined());
             }
-            let result = match workspace
+            let session = workspace
                 .session
                 .as_mut()
-                .context("workspace configuration unavailable")?
-                .check(&overlays)
-            {
+                .context("workspace configuration unavailable")?;
+            session.set_index_files(
+                (!workspace.index_all_files).then(|| overlays.keys().cloned().collect()),
+            );
+            let result = match session.check(&overlays) {
                 Ok(result) => result,
                 Err(error) => {
                     workspace.dirty = false;
@@ -743,6 +763,7 @@ impl Editor {
                     .entry(original_uri(Path::new(&document.source.path))?)
                     .or_default();
             }
+            let mut configuration_diagnostics = BTreeMap::<String, Vec<Value>>::new();
             for diagnostic in result["diagnostics"]
                 .as_array()
                 .context("project result diagnostics")?
@@ -752,6 +773,11 @@ impl Editor {
                         .as_str()
                         .context("diagnostic source path")?,
                 );
+                // Native LSP diagnostics require a primary source annotation;
+                // CLI/editor-inline option diagnostics have no URI to publish.
+                if path.as_os_str().is_empty() {
+                    continue;
+                }
                 // Native cell diagnostics are collected after splitting the
                 // final projection. They retain cell-local action data.
                 if path.extension().is_some_and(|ext| ext == "ipynb")
@@ -793,14 +819,32 @@ impl Editor {
                 };
                 let code = diagnostic["check_name"].as_str().unwrap_or("plugin");
                 let description = diagnostic["description"].as_str().unwrap_or("");
-                let message = description
+                let mut message = description
                     .strip_prefix(&format!("{code}: "))
-                    .unwrap_or(description);
+                    .unwrap_or(description)
+                    .to_owned();
+                if let Some(hint) = diagnostic["runtime-error"]["hint"].as_str() {
+                    message.push_str("\n\ninfo: ");
+                    message.push_str(hint);
+                }
+                if diagnostic["configuration-diagnostic"] == true
+                    && let Some(details) = diagnostic["details"].as_str().filter(|s| !s.is_empty())
+                {
+                    message.push_str("\n\n");
+                    message.push_str(details);
+                }
                 let presented = json!({
                     "range":{"start":position(&diagnostic["location"]["positions"]["begin"])? ,"end":position(&diagnostic["location"]["positions"]["end"])?},
                     "message":message,"code":code,"source":"ty",
                     "severity":match diagnostic["severity"].as_str() { Some("info")=>3,Some("minor")=>2,_=>1 }
                 });
+                if diagnostic["configuration-diagnostic"] == true {
+                    configuration_diagnostics
+                        .entry(uri)
+                        .or_default()
+                        .push(presented);
+                    continue;
+                }
                 if let Some(raw) = diagnostic.get("lsp_diagnostic") {
                     workspace
                         .raw_diagnostics
@@ -812,6 +856,11 @@ impl Editor {
                     .or_default()
                     .push(presented);
             }
+            let current: BTreeSet<_> = configuration_diagnostics.keys().cloned().collect();
+            for uri in workspace.configuration_uris.union(&current) {
+                self.notifications.push(json!({"jsonrpc":"2.0","method":"textDocument/publishDiagnostics","params":{"uri":uri,"diagnostics":configuration_diagnostics.get(uri).cloned().unwrap_or_default()}}));
+            }
+            workspace.configuration_uris = current;
             workspace.dirty = false;
             changed = true;
         }
@@ -1611,6 +1660,14 @@ impl Editor {
                     for uri in removed {
                         self.buffers.remove(&uri);
                         if !self.pull {
+                            send(
+                                output,
+                                &json!({"jsonrpc":"2.0","method":"textDocument/publishDiagnostics","params":{"uri":uri,"diagnostics":[]}}),
+                            )?;
+                        }
+                    }
+                    for workspace in self.workspaces.iter().filter(|w| w.root == root) {
+                        for uri in &workspace.configuration_uris {
                             send(
                                 output,
                                 &json!({"jsonrpc":"2.0","method":"textDocument/publishDiagnostics","params":{"uri":uri,"diagnostics":[]}}),

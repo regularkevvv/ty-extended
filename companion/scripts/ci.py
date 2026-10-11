@@ -317,10 +317,33 @@ def main() -> int:
             ],
             env=env,
         )
+        gates.run(
+            "original-sdk-monty",
+            [
+                *cargo,
+                "test",
+                "--locked",
+                "--manifest-path",
+                "ruff/Cargo.toml",
+                "-p",
+                "ty_plugin_protocol",
+                "-p",
+                "ty_plugin_sdk",
+                "-p",
+                "ty_plugin_examples",
+                "-p",
+                "ty_plugin_host",
+                "--no-default-features",
+                "--features",
+                "ty_plugin_host/plugins-monty,ty_plugin_host/mock",
+            ],
+            env=env,
+        )
         for test in (
             "generic_project_semantics",
             "sdk_extended_semantics",
             "sdk_multi_semantics",
+            "sdk_snapshots",
             "cli_acceptance",
             "cli_edits",
             "cli_watch",
@@ -338,7 +361,10 @@ def main() -> int:
                     "--",
                     "--ignored",
                 ],
-                env=env,
+                env={
+                    **env,
+                    "TY_COMPANION_SNAPSHOTS_OUTPUT": str(output / "sdk-snapshots"),
+                },
             )
         run(
             [
@@ -398,6 +424,34 @@ def main() -> int:
             if script in {"lsp_differential", "lsp_notebook_differential"}:
                 command += ["--fork", str(fork)]
             gates.run(script, command, env=env)
+        for script in (
+            "plugin_error_differential",
+            "plugin_configuration_differential",
+            "sdk_state_inventory",
+            "sdk_function_inventory",
+            "sdk_overlay_inventory",
+            "sdk_cli_inventory",
+            "sdk_class_inventory",
+            "sdk_method_inventory",
+            "sdk_class_summary_inventory",
+            "sdk_minidjango_inventory",
+        ):
+            gates.run(
+                script,
+                [
+                    sys.executable,
+                    f"companion/scripts/{script}.py",
+                    "--companion",
+                    str(binary),
+                    "--official",
+                    str(official),
+                    "--fork",
+                    str(fork),
+                    "--output",
+                    str(output / script),
+                ],
+                env=env,
+            )
         if sys.platform == "linux":
             django_gate(output, binary, env, gates)
     except Exception as error:

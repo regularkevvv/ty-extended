@@ -35,6 +35,8 @@ pub struct DiagnosticOrigins {
     pub constructor_calls: BTreeMap<Span, String>,
     pub descriptor_assignments: Vec<DescriptorAssignment>,
     pub virtual_names: BTreeMap<String, String>,
+    pub virtual_scope: Option<String>,
+    pub nominal_names: BTreeMap<String, String>,
 }
 
 pub struct DescriptorAssignment {
@@ -45,9 +47,60 @@ pub struct DescriptorAssignment {
 }
 
 impl DiagnosticOrigins {
+    fn display_names(&self, description: &str, helpers: &BTreeMap<String, String>) -> String {
+        // Native virtual classes have their declared short name, anchored in
+        // the first checked module. The checker qualifies two same-named types
+        // appearing in one diagnostic; generated unique class names otherwise
+        // hide that collision from its formatter.
+        let mut tokens = BTreeSet::new();
+        crate::project::rewrite_names(description, |name| {
+            tokens.insert(name.to_owned());
+            name.to_owned()
+        });
+        let ambiguous: BTreeSet<_> = self
+            .virtual_names
+            .iter()
+            .filter_map(|(internal, qualified)| {
+                let short = qualified.rsplit('.').next()?;
+                (tokens.contains(internal)
+                    && tokens.contains(short)
+                    && self.nominal_names.contains_key(short))
+                .then_some(short)
+            })
+            .collect();
+        crate::project::rewrite_names(description, |name| {
+            if let Some(qualified) = self.virtual_names.get(name) {
+                let short = qualified.rsplit('.').next().unwrap_or(qualified);
+                if ambiguous.contains(short)
+                    && let Some(scope) = self
+                        .virtual_scope
+                        .as_deref()
+                        .filter(|scope| !scope.is_empty())
+                {
+                    return format!("{scope}.{short}");
+                }
+                return short.to_owned();
+            }
+            if ambiguous.contains(name)
+                && let Some(qualified) = self.nominal_names.get(name)
+            {
+                return qualified.clone();
+            }
+            helpers
+                .get(name)
+                .cloned()
+                .unwrap_or_else(|| name.to_owned())
+        })
+    }
     fn normalize(&self, code: &str, original: Span, description: &str) -> (Span, String) {
         let contains = |outer: Span| outer.start <= original.start && original.end <= outer.end;
-        if matches!(code, "invalid-argument-type" | "unknown-argument") {
+        if matches!(
+            code,
+            "invalid-argument-type"
+                | "unknown-argument"
+                | "missing-argument"
+                | "too-many-positional-arguments"
+        ) {
             let constructor = self
                 .constructor_calls
                 .iter()
@@ -63,6 +116,25 @@ impl DiagnosticOrigins {
                             return (
                                 original,
                                 format!("invalid-argument-type: Argument is incorrect{detail}"),
+                            );
+                        }
+                    } else if code == "too-many-positional-arguments" {
+                        let prefix = format!(
+                            "too-many-positional-arguments: Too many positional arguments to `{printed}`: expected "
+                        );
+                        if let Some((expected, actual)) = description
+                            .strip_prefix(&prefix)
+                            .and_then(|rest| rest.split_once(", got "))
+                            && let (Ok(expected), Ok(actual)) =
+                                (expected.parse::<usize>(), actual.parse::<usize>())
+                            && let (Some(expected), Some(actual)) =
+                                (expected.checked_sub(1), actual.checked_sub(1))
+                        {
+                            return (
+                                original,
+                                format!(
+                                    "too-many-positional-arguments: Too many positional arguments: expected {expected}, got {actual}"
+                                ),
                             );
                         }
                     } else if let Some(message) =
@@ -136,6 +208,10 @@ enum Operation {
         span: Span,
         expression: String,
     },
+    SuppressDiagnostic {
+        span: Span,
+        code: String,
+    },
 }
 
 impl Edits {
@@ -171,6 +247,12 @@ impl Edits {
     pub fn annotate_type(&mut self, span: Span, expression: String) {
         self.operations
             .push(Operation::TypeHint { span, expression });
+    }
+    /// Record an exact source-level diagnostic exception established by the
+    /// native semantic contract, never a blanket rule disable.
+    pub fn suppress_diagnostic(&mut self, span: Span, code: String) {
+        self.operations
+            .push(Operation::SuppressDiagnostic { span, code });
     }
     pub fn wrap_with_type(
         &mut self,
@@ -243,9 +325,15 @@ pub struct Rendered {
     callable_hovers: Vec<(Span, Span)>,
     synthetic_argument_positions: BTreeSet<usize>,
     signature_masks: Vec<Span>,
+    suppressed_diagnostics: Vec<(Span, String)>,
 }
 
 impl Rendered {
+    pub fn suppresses_diagnostic(&self, code: &str, original: Span) -> bool {
+        self.suppressed_diagnostics
+            .iter()
+            .any(|(span, expected)| *span == original && expected == code)
+    }
     /// Split the combined notebook projection back into its code cells. Each
     /// source span excludes the one newline separator appended by ty between
     /// cells. Generated preludes belong to the first cell; trailing generated
@@ -402,6 +490,12 @@ impl Rendered {
                 .iter()
                 .filter(|span| contains(generated, **span))
                 .map(|span| shift(*span, generated.start))
+                .collect(),
+            suppressed_diagnostics: self
+                .suppressed_diagnostics
+                .iter()
+                .filter(|(span, _)| contains(original, *span))
+                .map(|(span, code)| (shift(*span, original.start), code.clone()))
                 .collect(),
         };
         for (&(line, column), key) in &self.probes {
@@ -648,8 +742,19 @@ pub fn render(source: &Source, edits: &Edits) -> Result<Rendered> {
     let mut grouped = BTreeMap::<Span, Node>::new();
     let mut insertions = BTreeMap::<usize, Vec<(String, Option<Span>)>>::new();
     let mut type_hints = Vec::new();
+    let mut suppressed_diagnostics = Vec::new();
     for operation in &edits.operations {
         let span = match operation {
+            Operation::SuppressDiagnostic { span, code } => {
+                validate_offset(source, span.start)?;
+                validate_offset(source, span.end)?;
+                ensure!(
+                    span.start < span.end,
+                    "empty/inverted diagnostic exception origin"
+                );
+                suppressed_diagnostics.push((*span, code.clone()));
+                continue;
+            }
             Operation::TypeHint { span, expression } => {
                 validate_offset(source, span.start)?;
                 validate_offset(source, span.end)?;
@@ -706,7 +811,9 @@ pub fn render(source: &Source, edits: &Edits) -> Result<Rendered> {
                 probe: probe.clone(),
                 callable: callable.clone(),
             }),
-            Operation::Insert { .. } | Operation::TypeHint { .. } => unreachable!(),
+            Operation::Insert { .. }
+            | Operation::TypeHint { .. }
+            | Operation::SuppressDiagnostic { .. } => unreachable!(),
         }
     }
     let root_span = Span {
@@ -775,6 +882,7 @@ pub fn render(source: &Source, edits: &Edits) -> Result<Rendered> {
             callable_hovers: Vec::new(),
             synthetic_argument_positions: BTreeSet::new(),
             signature_masks: Vec::new(),
+            suppressed_diagnostics,
         },
     };
     writer.node(0)?;
@@ -1106,6 +1214,11 @@ pub fn map_diagnostics_with_origins(
         }
         let original = map_range(rendered, Span { start: begin, end })
             .ok_or_else(|| anyhow!("unmapped generated diagnostic: {diagnostic}"))?;
+        if rendered.suppresses_diagnostic(diagnostic["check_name"].as_str().unwrap_or(""), original)
+        {
+            suppressed.push(diagnostic.clone());
+            continue;
+        }
         let mut output = diagnostic.clone();
         let mut description = diagnostic["description"]
             .as_str()
@@ -1124,15 +1237,19 @@ pub fn map_diagnostics_with_origins(
                 }
             }
         }
-        for (helper, original) in helpers {
-            description = description.replace(&format!("`{helper}`"), &format!("`{original}`"));
+        if diagnostic["check_name"] == "missing-argument" {
+            for helper in helpers
+                .keys()
+                .filter(|name| name.starts_with(&format!("{}call_", source.prefix)))
+            {
+                if let Some(message) = description.strip_suffix(&format!(" of function `{helper}`"))
+                {
+                    description = message.to_owned();
+                    break;
+                }
+            }
         }
-        description = crate::project::rewrite_names(&description, |name| {
-            origins.virtual_names.get(name).map_or_else(
-                || name.to_owned(),
-                |qualified| qualified.rsplit('.').next().unwrap_or(qualified).to_owned(),
-            )
-        });
+        description = origins.display_names(&description, helpers);
         let (original, description) = origins.normalize(
             diagnostic["check_name"].as_str().unwrap_or(""),
             original,
@@ -1168,12 +1285,25 @@ pub fn map_diagnostics_with_origins(
                 && location["end"].is_object(),
             "plugin diagnostic missing source location: {item}"
         );
-        mapped.push(json!({
+        let mut output = json!({
             "check_name":"plugin-configuration", "description":format!("plugin-configuration: {message}: {id}"),
             "severity":severity, "location":{"path":location["file-path"], "positions":{
                 "begin":location["start"],"end":location["end"],
             }},
-        }));
+        });
+        if let Some(error) = diagnostic.get("runtime-error") {
+            let plugin_id = error["plugin-id"]
+                .as_str()
+                .context("runtime error plugin id")?;
+            let failure = error["message"].as_str().context("runtime error message")?;
+            let hint = error["hint"].as_str().context("runtime error hint")?;
+            output["description"] = json!(format!(
+                "plugin-configuration: Plugin `{plugin_id}` failed while handling a semantic hook: {failure}"
+            ));
+            output["runtime-error"] = error.clone();
+            output["details"] = json!(format!("info: {hint}"));
+        }
+        mapped.push(output);
     }
     Ok((mapped, suppressed))
 }
@@ -1291,6 +1421,33 @@ mod tests {
             )]),
             ..Default::default()
         };
+        for (code, message, expected) in [
+            (
+                "missing-argument",
+                "missing-argument: No argument provided for required parameter `title` of `Record.__init__`",
+                "missing-argument: No argument provided for required parameter `title`",
+            ),
+            (
+                "too-many-positional-arguments",
+                "too-many-positional-arguments: Too many positional arguments to `Record.__init__`: expected 1, got 2",
+                "too-many-positional-arguments: Too many positional arguments: expected 0, got 1",
+            ),
+        ] {
+            let mut generated = diagnostic(&rendered, code, first_argument, first_argument + 8);
+            generated["description"] = json!(message);
+            let mut ordinary = diagnostic(&rendered, code, second_argument, second_argument + 8);
+            ordinary["description"] = json!(message);
+            let (mapped, _) = map_diagnostics_with_origins(
+                &source,
+                &rendered,
+                &[generated, ordinary],
+                &BTreeMap::new(),
+                &[],
+                &origins,
+            )?;
+            assert_eq!(mapped[0]["description"], expected);
+            assert_eq!(mapped[1]["description"], message);
+        }
         let (mapped, _) = map_diagnostics_with_origins(
             &source,
             &rendered,
@@ -1340,10 +1497,17 @@ mod tests {
         let mut original = diagnostic(&rendered, "invalid-argument-type", second, second + 2);
         let original_message = "invalid-argument-type: Argument to function `original` is incorrect: Expected `str`, found `Literal[42]`";
         original["description"] = json!(original_message);
+        let mut missing = diagnostic(&rendered, "missing-argument", first, first + 2);
+        missing["description"] = json!(format!(
+            "missing-argument: No argument provided for required parameter `token` of function `{helper}`"
+        ));
+        let mut original_missing = diagnostic(&rendered, "missing-argument", second, second + 2);
+        let original_missing_message = "missing-argument: No argument provided for required parameter `token` of function `original`";
+        original_missing["description"] = json!(original_missing_message);
         let (mapped, _) = map_diagnostics(
             &source,
             &rendered,
-            &[generated, original],
+            &[generated, original, missing, original_missing],
             &BTreeMap::from([(helper, "demo.decode".into())]),
             &[],
         )?;
@@ -1352,6 +1516,83 @@ mod tests {
             "invalid-argument-type: Argument is incorrect: Expected `str`, found `Literal[42]`"
         );
         assert_eq!(mapped[1]["description"], original_message);
+        assert_eq!(
+            mapped[2]["description"],
+            "missing-argument: No argument provided for required parameter `token`"
+        );
+        assert_eq!(mapped[3]["description"], original_missing_message);
+        Ok(())
+    }
+
+    #[test]
+    fn native_diagnostic_exceptions_require_exact_original_span_and_rule() -> Result<()> {
+        let source = source("cast(int, x)\ncast(int, x)\n");
+        let first = Span { start: 0, end: 12 };
+        let second = Span { start: 13, end: 25 };
+        let mut edits = Edits::default();
+        edits.insert(0, "# generated\n".into());
+        edits.suppress_diagnostic(first, "redundant-cast".into());
+        let rendered = render(&source, &edits)?;
+        let shift = "# generated\n".len();
+        let raw = [
+            diagnostic(
+                &rendered,
+                "redundant-cast",
+                first.start + shift,
+                first.end + shift,
+            ),
+            diagnostic(
+                &rendered,
+                "redundant-cast",
+                second.start + shift,
+                second.end + shift,
+            ),
+            diagnostic(
+                &rendered,
+                "invalid-argument-type",
+                first.start + shift,
+                first.end + shift,
+            ),
+            diagnostic(
+                &rendered,
+                "redundant-cast",
+                first.start + shift,
+                first.end - 1 + shift,
+            ),
+        ];
+        let (mapped, suppressed) =
+            map_diagnostics(&source, &rendered, &raw, &BTreeMap::new(), &[])?;
+        assert_eq!(mapped.len(), 3);
+        assert_eq!(suppressed, vec![raw[0].clone()]);
+        let cells = rendered.split_cells(&source.text, &[first, second])?;
+        assert!(cells[0].suppresses_diagnostic("redundant-cast", first));
+        assert!(!cells[1].suppresses_diagnostic("redundant-cast", first));
+        Ok(())
+    }
+
+    #[test]
+    fn generated_type_names_are_restored_inside_types_but_not_literal_strings() -> Result<()> {
+        let source = source("value\n");
+        let rendered = render(&source, &Edits::default())?;
+        let helper = format!("{}result_snapshot_0", source.prefix);
+        let display = "<TypedDict with items 'name': str>";
+        let mut raw = diagnostic(&rendered, "revealed-type", 0, 5);
+        raw["description"] = json!(format!(
+            "revealed-type: Revealed type is `tuple[list[{helper}], Literal[\"{helper}\"], {helper}_other]`"
+        ));
+        let (mapped, _) = map_diagnostics(
+            &source,
+            &rendered,
+            &[raw],
+            &BTreeMap::from([(helper.clone(), display.into())]),
+            &[],
+        )?;
+        assert_eq!(
+            mapped[0]["description"],
+            format!(
+                "revealed-type: Revealed type is `tuple[list[{display}], Literal[\"{helper}\"], {helper}_other]`"
+            )
+        );
         Ok(())
     }
 
@@ -1410,6 +1651,39 @@ mod tests {
             source.position(second_value)
         );
         Ok(())
+    }
+
+    #[test]
+    fn virtual_type_names_disambiguate_only_proven_collisions() {
+        let origins = DiagnosticOrigins {
+            virtual_names: BTreeMap::from([(
+                "_virtual_manager".into(),
+                "plugin.models.Manager".into(),
+            )]),
+            virtual_scope: Some("accounts".into()),
+            nominal_names: BTreeMap::from([("Manager".into(), "framework.Manager".into())]),
+            ..Default::default()
+        };
+        let helpers = BTreeMap::new();
+        assert_eq!(
+            origins.display_names(
+                "Object of type `_virtual_manager` is not assignable to `Manager[Author]`",
+                &helpers
+            ),
+            "Object of type `accounts.Manager` is not assignable to `framework.Manager[Author]`"
+        );
+        assert_eq!(
+            origins.display_names("Revealed type: `_virtual_manager`", &helpers),
+            "Revealed type: `Manager`"
+        );
+        assert_eq!(
+            origins.display_names("`_virtual_manager | Literal['Manager']`", &helpers),
+            "`Manager | Literal['Manager']`"
+        );
+        assert_eq!(
+            origins.display_names("`_virtual_manager_extra | Manager`", &helpers),
+            "`_virtual_manager_extra | Manager`"
+        );
     }
 
     #[test]
@@ -1692,6 +1966,24 @@ mod tests {
             mapped[0]["description"],
             "plugin-configuration: bad config: sample"
         );
+        Ok(())
+    }
+    #[test]
+    fn runtime_hook_warnings_match_native_primary_and_keep_recovery_hint() -> Result<()> {
+        let source = source("record.fail()\n");
+        let rendered = render(&source, &Edits::default())?;
+        let error = json!({"plugin-id":"sample", "message":"invalid response", "hint":"Use the supported protocol."});
+        let plugin = json!({"diagnostic":{"id":"internal-id-must-not-be-rendered","message":"ignored wrapper label","severity":"warning","runtime-error":error},
+            "source":{"file-path":source.path,"start":{"line":1,"column":1},"end":{"line":1,"column":14}}});
+        let (mapped, _) = map_diagnostics(&source, &rendered, &[], &BTreeMap::new(), &[plugin])?;
+        assert_eq!(mapped[0]["severity"], "minor");
+        assert_eq!(
+            mapped[0]["description"],
+            "plugin-configuration: Plugin `sample` failed while handling a semantic hook: invalid response"
+        );
+        assert_eq!(mapped[0]["details"], "info: Use the supported protocol.");
+        assert_eq!(mapped[0]["runtime-error"], error);
+        assert_eq!(mapped[0]["location"]["positions"]["end"]["column"], 14);
         Ok(())
     }
     #[test]

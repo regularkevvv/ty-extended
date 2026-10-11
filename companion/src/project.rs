@@ -26,6 +26,12 @@ pub struct Module {
 }
 
 #[derive(Clone)]
+struct IndexFunction {
+    summary: Value,
+    name_offset: usize,
+}
+
+#[derive(Clone)]
 pub struct Project {
     pub root: PathBuf,
     source_roots: Vec<PathBuf>,
@@ -35,16 +41,21 @@ pub struct Project {
     pub manifest: Value,
     /// Hygienic generated declaration name -> public protocol identity.
     pub virtual_identities: BTreeMap<String, String>,
+    /// Public SDK module -> isolated physical module, independent of user imports.
+    pub virtual_modules: BTreeMap<String, String>,
     /// Modules proven unavailable by the official checker's environment. Absence
     /// from the syntax index alone must never populate this set.
     pub unavailable_modules: BTreeSet<String>,
+    /// Native-checker evidence for TypeSnapshot::Nominal resolution and arity.
+    pub snapshot_nominals: BTreeMap<String, Option<usize>>,
+    pub snapshot_symbols: BTreeMap<String, bool>,
     /// Modules with incomplete editor buffers are checked unchanged by ty.
     pub syntax_errors: BTreeSet<String>,
     allow_invalid: bool,
     notebook_sources: BTreeSet<PathBuf>,
     additional_sources: BTreeSet<PathBuf>,
     assignments: Vec<Value>,
-    functions: Vec<Value>,
+    functions: Vec<IndexFunction>,
     settings: Vec<Value>,
 }
 
@@ -57,6 +68,44 @@ pub fn parse_source(
         bail!("{error}");
     }
     Ok(parsed)
+}
+
+fn collect_module_functions<'a>(suite: &'a [Stmt], functions: &mut Vec<&'a ast::StmtFunctionDef>) {
+    for statement in suite {
+        match statement {
+            Stmt::FunctionDef(function) => functions.push(function),
+            Stmt::If(branch) => {
+                collect_module_functions(&branch.body, functions);
+                for clause in &branch.elif_else_clauses {
+                    collect_module_functions(&clause.body, functions);
+                }
+            }
+            Stmt::While(loop_) => {
+                collect_module_functions(&loop_.body, functions);
+                collect_module_functions(&loop_.orelse, functions);
+            }
+            Stmt::For(loop_) => {
+                collect_module_functions(&loop_.body, functions);
+                collect_module_functions(&loop_.orelse, functions);
+            }
+            Stmt::With(with) => collect_module_functions(&with.body, functions),
+            Stmt::Try(try_) => {
+                collect_module_functions(&try_.body, functions);
+                for ast::ExceptHandler::ExceptHandler(handler) in &try_.handlers {
+                    collect_module_functions(&handler.body, functions);
+                }
+                collect_module_functions(&try_.orelse, functions);
+                collect_module_functions(&try_.finalbody, functions);
+            }
+            Stmt::Match(match_) => {
+                for case in &match_.cases {
+                    collect_module_functions(&case.body, functions);
+                }
+            }
+            // Do not descend into class bodies or function-local definitions.
+            _ => {}
+        }
+    }
 }
 
 impl Project {
@@ -104,7 +153,10 @@ impl Project {
             config,
             manifest: manifest.clone(),
             virtual_identities: BTreeMap::new(),
+            virtual_modules: BTreeMap::new(),
             unavailable_modules: BTreeSet::new(),
+            snapshot_nominals: BTreeMap::new(),
+            snapshot_symbols: BTreeMap::new(),
             syntax_errors: BTreeSet::new(),
             allow_invalid,
             notebook_sources: BTreeSet::new(),
@@ -352,9 +404,14 @@ impl Project {
 
     /// Add a stub/source overlay's import graph. External classes participate in
     /// name and ancestry resolution but are not sent as user model declarations.
-    pub fn add_source_tree(&mut self, root: &Path) -> Result<()> {
+    pub fn add_source_tree_filtered(
+        &mut self,
+        root: &Path,
+        include: impl Fn(&Path) -> bool,
+    ) -> Result<()> {
         let mut paths = vec![];
         collect_python(root, &mut paths)?;
+        paths.retain(|path| include(path.strip_prefix(root).unwrap()));
         let current: BTreeSet<_> = paths.iter().cloned().collect();
         self.modules.retain(|_, module| {
             !module.external
@@ -614,14 +671,8 @@ impl Project {
         let mut assignments = vec![];
         let mut functions = vec![];
         for (name, module) in &self.modules {
-            self.summarize_body(
-                name,
-                module,
-                &module.suite,
-                &mut classes,
-                &mut assignments,
-                &mut functions,
-            )?;
+            self.summarize_body(name, module, &module.suite, &mut classes, &mut assignments)?;
+            functions.extend(self.summarize_functions(name, module));
         }
         self.classes = classes;
         self.assignments = assignments;
@@ -644,7 +695,7 @@ impl Project {
         };
         self.classes.retain(|_, summary| retain(summary));
         self.assignments.retain(retain);
-        self.functions.retain(retain);
+        self.functions.retain(|function| retain(&function.summary));
         for name in affected {
             if let Some(module) = self.modules.get(name) {
                 register_class_names(&module.suite, name, &module.imports, &mut self.classes);
@@ -655,14 +706,8 @@ impl Project {
         let mut functions = Vec::new();
         for name in affected {
             if let Some(module) = self.modules.get(name) {
-                self.summarize_body(
-                    name,
-                    module,
-                    &module.suite,
-                    &mut classes,
-                    &mut assignments,
-                    &mut functions,
-                )?;
+                self.summarize_body(name, module, &module.suite, &mut classes, &mut assignments)?;
+                functions.extend(self.summarize_functions(name, module));
             }
         }
         self.classes.extend(classes);
@@ -691,7 +736,8 @@ impl Project {
             )
         };
         self.assignments.sort_by_key(key);
-        self.functions.sort_by_key(key);
+        self.functions
+            .sort_by_key(|function| key(&function.summary));
         self.rebuild_settings();
         Ok(())
     }
@@ -775,19 +821,6 @@ impl Project {
         } else {
             "warning"
         }
-    }
-
-    pub fn settings_diagnostics(&self) -> Vec<Value> {
-        self.settings
-            .iter()
-            .flat_map(|setting| {
-                setting["diagnostics"]
-                    .as_array()
-                    .into_iter()
-                    .flatten()
-                    .cloned()
-            })
-            .collect()
     }
 
     pub fn class_summary(&self, qualified: &str) -> Option<&Value> {
@@ -1088,15 +1121,89 @@ impl Project {
         Some(class.to_owned())
     }
 
+    pub fn index_function_queries(&self) -> Vec<(usize, Arc<Source>, usize)> {
+        self.functions
+            .iter()
+            .enumerate()
+            .filter_map(|(index, function)| {
+                let name = function.summary["qualified-name"].as_str()?;
+                let (module, _) = name.rsplit_once('.')?;
+                let module = self
+                    .modules
+                    .get(module)
+                    .filter(|module| module.source.protocol_module.is_none())?;
+                Some((index, module.source.clone(), function.name_offset))
+            })
+            .collect()
+    }
+
+    pub fn set_index_function_types(&mut self, types: BTreeMap<usize, Value>) {
+        for (index, ty) in types {
+            if let Some(function) = self.functions.get_mut(index) {
+                function.summary["inferred-type"] = ty;
+            }
+        }
+    }
+
+    pub fn class_identity_at(&self, path: &Path, line: u64, character: u64) -> Option<String> {
+        fn find(
+            suite: &[Stmt],
+            parent: &str,
+            source: &Source,
+            line: u64,
+            character: u64,
+        ) -> Option<String> {
+            for statement in suite {
+                if let Stmt::ClassDef(class) = statement {
+                    let name = format!("{parent}.{}", class.name);
+                    let position = source.position(span(&class.name).start);
+                    if position["line"].as_u64()? == line + 1
+                        && position["column"].as_u64()? == character + 1
+                    {
+                        return Some(name);
+                    }
+                    if let Some(found) = find(&class.body, &name, source, line, character) {
+                        return Some(found);
+                    }
+                } else if let Stmt::If(branch) = statement {
+                    for body in std::iter::once(&branch.body)
+                        .chain(branch.elif_else_clauses.iter().map(|clause| &clause.body))
+                    {
+                        if let Some(found) = find(body, parent, source, line, character) {
+                            return Some(found);
+                        }
+                    }
+                }
+            }
+            None
+        }
+        let (name, module) = self
+            .modules
+            .iter()
+            .find(|(_, module)| Path::new(&module.source.path) == path)?;
+        find(&module.suite, name, &module.source, line, character)
+    }
+
+    #[cfg(test)]
     pub fn build_request(&self) -> Value {
+        self.build_request_for_files(None)
+    }
+
+    /// Native project-index summaries use should_check_file, while settings
+    /// claims and the semantic module graph remain independent of that scope.
+    pub fn build_request_for_files(&self, checked: Option<&BTreeSet<PathBuf>>) -> Value {
+        let in_checked_file =
+            |path: &str| checked.is_none_or(|files| files.contains(Path::new(path)));
         let classes: Vec<_> = self
             .classes
             .values()
             .filter(|c| {
                 let module = c["source"]["module"].as_str().unwrap_or("");
-                self.modules
-                    .get(module)
-                    .is_some_and(|m| !m.external && m.source.protocol_module.is_none())
+                self.modules.get(module).is_some_and(|m| {
+                    !m.external
+                        && m.source.protocol_module.is_none()
+                        && in_checked_file(&m.source.path)
+                })
             })
             .cloned()
             .collect();
@@ -1105,10 +1212,12 @@ impl Project {
                 .pointer("/source/file-path")
                 .and_then(Value::as_str)
                 .is_none_or(|path| {
-                    self.modules
-                        .values()
-                        .find(|m| m.source.path == path)
-                        .is_none_or(|m| m.source.protocol_module.is_none())
+                    in_checked_file(path)
+                        && self
+                            .modules
+                            .values()
+                            .find(|m| m.source.path == path)
+                            .is_none_or(|m| m.source.protocol_module.is_none())
                 })
         };
         let assignments = self
@@ -1119,6 +1228,7 @@ impl Project {
         let functions = self
             .functions
             .iter()
+            .map(|function| &function.summary)
             .filter(in_regular_module)
             .collect::<Vec<_>>();
         json!({"kind":"build-project-index","context":{"root":"","python-version":"3.13","platform":std::env::consts::OS.replace("macos","darwin"),"config":self.config},
@@ -1130,23 +1240,33 @@ impl Project {
         definitions: &[Value],
     ) -> Result<BTreeMap<PathBuf, String>> {
         let mut prefix = String::from("_ty_ext_virtual_");
-        while self
-            .modules
-            .values()
-            .any(|module| module.source.text.contains(&prefix))
-            || definitions.iter().any(|definition| {
-                definition["name"]
-                    .as_str()
-                    .is_some_and(|name| name.contains(&prefix))
-            })
-        {
+        while self.modules.values().any(|module| {
+            module.source.text.contains(&prefix)
+                || module
+                    .source
+                    .module
+                    .split('.')
+                    .any(|part| part.starts_with(&prefix))
+        }) || definitions.iter().any(|definition| {
+            definition["name"]
+                .as_str()
+                .is_some_and(|name| name.contains(&prefix))
+        }) {
             prefix.push('_');
         }
+        self.virtual_modules.clear();
         let mut names = BTreeMap::new();
         for definition in definitions {
             let name = definition["name"]
                 .as_str()
                 .context("virtual type without name")?;
+            let module = name
+                .rsplit_once('.')
+                .map_or("_ty_ext_virtual", |(module, _)| module);
+            use sha2::Digest as _;
+            let digest = sha2::Sha256::digest(module.as_bytes());
+            self.virtual_modules
+                .insert(module.to_owned(), format!("{prefix}module_{digest:x}"));
             let internal = virtual_internal_name_with_prefix(name, &prefix);
             self.virtual_identities
                 .insert(internal.clone(), name.to_owned());
@@ -1191,15 +1311,11 @@ impl Project {
         suite: &[Stmt],
         classes: &mut BTreeMap<String, Value>,
         assignments: &mut Vec<Value>,
-        functions: &mut Vec<Value>,
     ) -> Result<()> {
         for stmt in suite {
             match stmt {
                 Stmt::ClassDef(class) => {
                     self.summarize_class(name, module, class, classes)?;
-                }
-                Stmt::FunctionDef(function) if !module.external => {
-                    functions.push(json!({"qualified-name":format!("{name}.{}",function.name),"decorators":function.decorator_list.iter().map(|d|self.decorator(name,module,&d.expression)).collect::<Vec<_>>(),"source":module.source.location(span(function))}));
                 }
                 Stmt::Assign(assignment) if !module.external => {
                     for target in &assignment.targets {
@@ -1217,13 +1333,30 @@ impl Project {
                 }
                 Stmt::If(branch) => {
                     for body in branch_suites(branch, &module.imports) {
-                        self.summarize_body(name, module, body, classes, assignments, functions)?;
+                        self.summarize_body(name, module, body, classes, assignments)?;
                     }
                 }
                 _ => {}
             }
         }
         Ok(())
+    }
+
+    fn summarize_functions(&self, name: &str, module: &Module) -> Vec<IndexFunction> {
+        if module.external {
+            return Vec::new();
+        }
+        let mut definitions = Vec::new();
+        collect_module_functions(&module.suite, &mut definitions);
+        definitions.into_iter().map(|function| {
+            let qualified = format!("{name}.{}",function.name);
+            let mut source = module.source.location(span(function));
+            source["qualified-name"] = json!(qualified);
+            IndexFunction {
+                summary: json!({"qualified-name":qualified,"decorators":function.decorator_list.iter().map(|d|self.function_decorator(name,module,&d.expression)).collect::<Vec<_>>(),"source":source}),
+                name_offset: span(&function.name).start,
+            }
+        }).collect()
     }
 
     fn summarize_class(
@@ -1245,8 +1378,7 @@ impl Project {
                     for target in &assignment.targets {
                         if let Expr::Name(target) = target {
                             fields.push(json!({"name":target.id.as_str(),"assigned-value":self.assigned(module_name,module,&assignment.value),"has-default":true,"source":module.source.location(span(target))}));
-                            let value =
-                                self.value(module_name, &assignment.value, &mut BTreeSet::new());
+                            let value = syntactic_literal(&assignment.value);
                             if value["kind"] != "unknown" {
                                 constants.push(json!({"name":target.id.as_str(),"value":value,"source":module.source.location(span(target))}));
                             }
@@ -1258,7 +1390,7 @@ impl Project {
                         let mut field = json!({"name":target.id.as_str(),"annotation":self.annotation(module_name,module,&assignment.annotation),"has-default":assignment.value.is_some(),"source":module.source.location(span(target))});
                         if let Some(value) = &assignment.value {
                             field["assigned-value"] = self.assigned(module_name, module, value);
-                            let value = self.value(module_name, value, &mut BTreeSet::new());
+                            let value = syntactic_literal(value);
                             if value["kind"] != "unknown" {
                                 constants.push(json!({"name":target.id.as_str(),"value":value,"source":module.source.location(span(target))}));
                             }
@@ -1384,21 +1516,22 @@ impl Project {
     fn decorator(&self, name: &str, module: &Module, expr: &Expr) -> Value {
         if let Expr::Call(call) = expr {
             self.call(name, module, call)
-        } else if let Some(symbol) = self.symbol(name, expr) {
+        } else if let Some(symbol) = syntactic_symbol(expr) {
             json!({"kind":"symbol","qualified-name":symbol})
         } else {
             json!({"kind":"other"})
         }
     }
 
+    fn function_decorator(&self, name: &str, module: &Module, expr: &Expr) -> Value {
+        self.decorator(name, module, expr)
+    }
+
     pub fn assigned(&self, name: &str, module: &Module, expr: &Expr) -> Value {
         match expr {
             Expr::Call(call) => self.call(name, module, call),
-            Expr::Name(_) | Expr::Attribute(_) => {
-                json!({"kind":if matches!(expr,Expr::Name(_)){"name"}else{"attribute"},"qualified-name":self.symbol(name,expr).unwrap_or_default()})
-            }
             _ => {
-                let value = self.value(name, expr, &mut BTreeSet::new());
+                let value = syntactic_literal(expr);
                 if value["kind"] == "unknown" {
                     json!({"kind":"other"})
                 } else {
@@ -1409,9 +1542,8 @@ impl Project {
     }
 
     fn call(&self, name: &str, module: &Module, call: &ast::ExprCall) -> Value {
-        let callee = self.symbol(name, &call.func).unwrap_or_else(|| {
-            self.canonical_name(name, module.source.slice(span(call.func.as_ref())))
-        });
+        let callee = syntactic_symbol(&call.func)
+            .unwrap_or_else(|| module.source.slice(span(call.func.as_ref())).to_owned());
         let mut arguments = vec![];
         for expression in &call.arguments.args {
             let (kind, expression) = if let Expr::Starred(star) = expression {
@@ -1437,7 +1569,7 @@ impl Project {
         let mut result =
             json!({"kind":"call","callee":{"qualified-name":callee},"arguments":arguments});
         if let Expr::Attribute(attribute) = call.func.as_ref()
-            && let Some(receiver) = self.symbol(name, &attribute.value)
+            && let Some(receiver) = syntactic_symbol(&attribute.value)
         {
             result["receiver"] = json!({"symbol":{"qualified-name":receiver}});
         }
@@ -1452,7 +1584,11 @@ impl Project {
         kind: &str,
         key: Option<&str>,
     ) -> Value {
-        let mut argument = json!({"kind":kind,"value":self.value(name,expr,&mut BTreeSet::new()),"source":module.source.location(span(expr))});
+        // The SDK distinguishes lexical values from separately inferred types.
+        // Resolving constants here loses enum-ref/name identity (for example,
+        // `models.CASCADE` must remain an enum-ref even when its value is a str).
+
+        let mut argument = json!({"kind":kind,"value":syntactic_literal(expr),"source":module.source.location(span(expr))});
         if let Some(key) = key {
             argument["name"] = json!(key);
         }
@@ -2178,8 +2314,11 @@ fn render_virtual_types_with_names(
         let mut prelude = format!("from __future__ import annotations\n{}\n", types.prelude());
         prelude.push_str(&body);
         ruff_python_parser::parse_module(&prelude).context("invalid generated virtual stub")?;
+        let physical = project
+            .and_then(|project| project.virtual_modules.get(&module))
+            .unwrap_or(&module);
         files.insert(
-            PathBuf::from(module.replace('.', "/")).with_extension("pyi"),
+            PathBuf::from(physical.replace('.', "/")).with_extension("pyi"),
             prelude,
         );
     }
@@ -2256,6 +2395,37 @@ fn virtual_internal_name_with_prefix(qualified: &str, prefix: &str) -> String {
     name
 }
 
+fn syntactic_literal(expr: &Expr) -> Value {
+    match expr {
+        Expr::BinOp(binary) if binary.op == ast::Operator::Add => add_literals(
+            syntactic_literal(&binary.left),
+            syntactic_literal(&binary.right),
+        ),
+        Expr::Tuple(values) => {
+            json!({"kind":"tuple","items":values.elts.iter().map(syntactic_literal).collect::<Vec<_>>()})
+        }
+        Expr::List(values) => {
+            json!({"kind":"list","items":values.elts.iter().map(syntactic_literal).collect::<Vec<_>>()})
+        }
+        Expr::Dict(values) => {
+            json!({"kind":"dict","entries":values.items.iter().filter_map(|item|Some(json!({"key":syntactic_literal(item.key.as_ref()?),"value":syntactic_literal(&item.value)}))).collect::<Vec<_>>()})
+        }
+        _ => crate::model::literal(expr),
+    }
+}
+
+fn syntactic_symbol(expr: &Expr) -> Option<String> {
+    match expr {
+        Expr::Name(name) => Some(name.id.to_string()),
+        Expr::Attribute(attribute) => Some(format!(
+            "{}.{}",
+            syntactic_symbol(&attribute.value)?,
+            attribute.attr
+        )),
+        _ => None,
+    }
+}
+
 fn valid_identifier(name: &str) -> bool {
     crate::type_render::identifier(name)
 }
@@ -2267,12 +2437,14 @@ mod tests {
     struct Fixture(PathBuf);
     impl Fixture {
         fn new(files: &[(&str, &str)]) -> Self {
+            static NEXT: std::sync::atomic::AtomicU64 = std::sync::atomic::AtomicU64::new(0);
+            let sequence = NEXT.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
             let nonce = std::time::SystemTime::now()
                 .duration_since(std::time::UNIX_EPOCH)
                 .unwrap()
                 .as_nanos();
             let root = std::env::temp_dir().join(format!(
-                "ty-companion-project-{}-{nonce}",
+                "ty-companion-project-{}-{nonce}-{sequence}",
                 std::process::id()
             ));
             for (name, text) in files {
@@ -2290,6 +2462,45 @@ mod tests {
         fn drop(&mut self) {
             let _ = std::fs::remove_dir_all(&self.0);
         }
+    }
+
+    #[test]
+    fn class_call_arguments_preserve_lexical_symbols_and_nested_literal_addition() {
+        let fixture = Fixture::new(&[(
+            "models.py",
+            "TOKEN = 'resolved'\nclass Constants:\n    CASCADE = 'cascade'\nclass Book:\n    value = Field(TOKEN, mode=Constants.CASCADE, options=[TOKEN, {'x': Constants.CASCADE}, 'a' + 'b'])\n    copied = TOKEN\n    mode = Constants.CASCADE\n",
+        )]);
+        let project = fixture.project(json!({}), json!({}));
+        let summary = project.class_summary("models.Book").unwrap();
+        assert_eq!(
+            summary["fields"][1]["assigned-value"],
+            json!({"kind":"literal", "value":{"kind":"symbol-ref", "qualified-name":"TOKEN"}})
+        );
+        assert_eq!(
+            summary["fields"][2]["assigned-value"],
+            json!({"kind":"literal", "value":{"kind":"enum-ref", "qualified-name":"Constants.CASCADE"}})
+        );
+        assert_eq!(
+            summary["class-constants"][0]["value"],
+            json!({"kind":"symbol-ref", "qualified-name":"TOKEN"})
+        );
+        let args = &summary["fields"][0]["assigned-value"]["arguments"];
+        assert_eq!(
+            args[0]["value"],
+            json!({"kind":"symbol-ref","qualified-name":"TOKEN"})
+        );
+        assert_eq!(
+            args[1]["value"],
+            json!({"kind":"enum-ref","qualified-name":"Constants.CASCADE"})
+        );
+        assert_eq!(
+            args[2]["value"],
+            json!({"kind":"list","items":[
+                {"kind":"symbol-ref","qualified-name":"TOKEN"},
+                {"kind":"dict","entries":[{"key":{"kind":"str","value":"x"},"value":{"kind":"enum-ref","qualified-name":"Constants.CASCADE"}}]},
+                {"kind":"str","value":"ab"}
+            ]})
+        );
     }
 
     #[test]
@@ -2376,7 +2587,7 @@ mod tests {
         assert_eq!(summary["bases"][0]["expression"], "base.Entity");
         assert_eq!(
             summary["fields"][0]["assigned-value"]["callee"]["qualified-name"],
-            "base.Field"
+            "Field"
         );
         assert_eq!(
             summary["fields"][0]["assigned-value"]["arguments"][0]["value"],
@@ -2403,9 +2614,55 @@ mod tests {
             .unwrap();
         assert_eq!(
             event["decorators"][0]["arguments"][0]["value"]["qualified-name"],
-            "models.Child"
+            "Child"
         );
         serde_json::from_value::<ty_plugin_protocol::PluginRequest>(request).unwrap();
+    }
+
+    #[test]
+    fn checked_file_scope_filters_index_without_removing_resolution_or_settings() {
+        let fixture = Fixture::new(&[
+            (
+                "models.py",
+                "from closed import Closed\nclass Open(Closed): pass\nOPEN = 1\ndef opened(): pass\n",
+            ),
+            (
+                "closed.py",
+                "class Closed: pass\nCLOSED = 2\ndef closed(): pass\n",
+            ),
+            ("settings.py", "VALUE = 'available while closed'\n"),
+        ]);
+        let project = fixture.project(
+            json!({"claims":{"settings":[{"module":"settings"}]}}),
+            json!({}),
+        );
+        let open = BTreeSet::from([fixture.0.join("models.py").canonicalize().unwrap()]);
+        let request = project.build_request_for_files(Some(&open));
+        for key in ["classes", "assignments", "functions"] {
+            let values = request[key].as_array().unwrap();
+            assert!(!values.is_empty(), "{key}: {request:#}");
+            assert!(
+                values
+                    .iter()
+                    .all(|value| value["source"]["module"] == "models"),
+                "{key}: {request:#}"
+            );
+        }
+        assert_eq!(request["settings"][0]["values"][0]["name"], "VALUE");
+        assert!(project.class_summary("closed.Closed").is_some());
+        assert!(project.modules.contains_key("closed"));
+        let closed = project.build_request_for_files(Some(&BTreeSet::new()));
+        assert_eq!(closed["classes"], json!([]));
+        assert_eq!(closed["assignments"], json!([]));
+        assert_eq!(closed["functions"], json!([]));
+        assert_eq!(closed["settings"], request["settings"]);
+        assert!(
+            project.build_request()["classes"]
+                .as_array()
+                .unwrap()
+                .iter()
+                .any(|class| class["qualified-name"] == "closed.Closed")
+        );
     }
 
     #[test]
@@ -2493,7 +2750,10 @@ mod tests {
         let left = virtual_internal_name("left.Manager");
         let right = virtual_internal_name("right.Manager");
         assert_ne!(left, right);
-        assert!(rendered[&PathBuf::from("left.pyi")].contains(&format!("Manager = {left}")));
+        assert!(
+            rendered[&PathBuf::from(&project.virtual_modules["left"]).with_extension("pyi")]
+                .contains(&format!("Manager = {left}"))
+        );
         assert_eq!(
             project.canonical_name("models", &format!("tuple[{left}, {right}]")),
             "tuple[left.Manager, right.Manager]"
@@ -2569,6 +2829,82 @@ mod tests {
     }
 
     #[test]
+    fn virtual_modules_do_not_shadow_real_modules_or_lose_cross_references() -> Result<()> {
+        let checker = std::env::var("TY_COMPANION_TEST_OFFICIAL")?;
+        let fixture = Fixture::new(&[
+            ("library.py", "class Real: pass\n"),
+            ("models.py", "# original module\n"),
+        ]);
+        let original = std::fs::read(fixture.0.join("library.py"))?;
+        let mut project = fixture.project(json!({}), json!({}));
+        let definitions = vec![
+            json!({"name":"library.Manager","shape":{"kind":"class","members":[{"name":"count","access":{"kind":"value","type-expr":typ("int")}}, {"name":"other","access":{"kind":"value","type-expr":typ("library.virtual.nested.Other")}}, {"name":"real","access":{"kind":"value","type-expr":typ("library.Real")}}, {"name":"peer","access":{"kind":"value","type-expr":typ("library.Peer")}}]}}),
+            json!({"name":"library.Peer","shape":{"kind":"class","members":[{"name":"label","access":{"kind":"value","type-expr":typ("str")}}]}}),
+            json!({"name":"library.virtual.nested.Other","shape":{"kind":"class","members":[{"name":"label","access":{"kind":"value","type-expr":typ("str")}}]}}),
+        ];
+        for (path, text) in project.register_virtual_types(&definitions)? {
+            assert!(!path.starts_with("library"));
+            std::fs::write(fixture.0.join(path), text)?;
+        }
+        let mut types = crate::type_render::Types::with_project("_test_", "models", &project);
+        let manager = types.render(&typ("library.Manager"))?;
+        let real = types.render(&typ("library.Real"))?;
+        let imported_manager = types.render(&json!({"expression":"M", "imports":[{"module":"library","name":"Manager","alias":"M"}]}))?;
+        let imported_real = types.render(
+            &json!({"expression":"R", "imports":[{"module":"library","name":"Real","alias":"R"}]}),
+        )?;
+        let text = format!(
+            "from typing import assert_type, reveal_type\nimport library\n{}\ndef check(value: {manager}, real: {real}, imported: {imported_manager}, imported_real: {imported_real}) -> None:\n    assert_type(value.count, int)\n    assert_type(value.other.label, str)\n    assert_type(value.real, library.Real)\n    assert_type(value.peer.label, str)\n    assert_type(real, library.Real)\n    assert_type(imported_real, library.Real)\n    assert_type(imported.count, int)\n    assert_type(library.Real(), library.Real)\n    wrong: str = value.count\n    reveal_type(value)\n",
+            types.prelude()
+        );
+        std::fs::write(fixture.0.join("models.py"), text)?;
+        let result = std::process::Command::new(checker)
+            .args([
+                "check",
+                "--python-version",
+                "3.13",
+                "--output-format",
+                "gitlab",
+                "models.py",
+            ])
+            .current_dir(&fixture.0)
+            .env("TY_UV", "0")
+            .output()?;
+        assert_eq!(
+            result.status.code(),
+            Some(1),
+            "{}",
+            String::from_utf8_lossy(&result.stderr)
+        );
+        let diagnostics: Vec<Value> = serde_json::from_slice(&result.stdout)?;
+        assert_eq!(
+            diagnostics
+                .iter()
+                .map(|d| d["check_name"].as_str().unwrap())
+                .collect::<Vec<_>>(),
+            vec!["invalid-assignment", "revealed-type"],
+            "{diagnostics:#?}"
+        );
+        assert_eq!(std::fs::read(fixture.0.join("library.py"))?, original);
+        let internal = project
+            .virtual_identities
+            .iter()
+            .find_map(|(internal, public)| (public == "library.Manager").then_some(internal))
+            .unwrap();
+        assert!(
+            diagnostics[1]["description"]
+                .as_str()
+                .unwrap()
+                .contains(internal)
+        );
+        assert_eq!(
+            project.rewrite_virtual_identities(internal),
+            "library.Manager"
+        );
+        Ok(())
+    }
+
+    #[test]
     fn virtual_identity_prefix_escapes_existing_project_identifiers() {
         let colliding = virtual_internal_name("left.Manager");
         let source = format!("class {colliding}: pass\n");
@@ -2583,7 +2919,10 @@ mod tests {
             .find_map(|(key, value)| (value == "left.Manager").then_some(key))
             .unwrap();
         assert_ne!(internal, &colliding);
-        assert!(output[&PathBuf::from("left.pyi")].contains(&format!("Manager = {internal}")));
+        assert!(
+            output[&PathBuf::from(&project.virtual_modules["left"]).with_extension("pyi")]
+                .contains(&format!("Manager = {internal}"))
+        );
         assert_eq!(project.canonical_name("models", internal), "left.Manager");
         assert_eq!(
             project.canonical_name("models", &colliding),

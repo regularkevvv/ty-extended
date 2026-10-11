@@ -27,6 +27,100 @@ pub struct FlowResult {
 type Object = usize;
 type Facts = BTreeMap<String, Value>;
 
+/// Find outer bindings that a newly created nested function can replace.
+/// Intervening function locals shadow outer cells; class namespaces do not.
+fn captured_nonlocals(function: &StmtFunctionDef, outer: &BTreeSet<String>) -> BTreeSet<String> {
+    use ruff_python_ast::visitor::{self, Visitor};
+    #[derive(Default)]
+    struct Bindings {
+        locals: BTreeSet<String>,
+        nonlocals: BTreeSet<String>,
+        globals: BTreeSet<String>,
+    }
+    impl<'a> Visitor<'a> for Bindings {
+        fn visit_stmt(&mut self, stmt: &'a Stmt) {
+            match stmt {
+                Stmt::Nonlocal(stmt) => self
+                    .nonlocals
+                    .extend(stmt.names.iter().map(ToString::to_string)),
+                Stmt::Global(stmt) => self
+                    .globals
+                    .extend(stmt.names.iter().map(ToString::to_string)),
+                Stmt::FunctionDef(stmt) => {
+                    self.locals.insert(stmt.name.to_string());
+                }
+                Stmt::ClassDef(stmt) => {
+                    self.locals.insert(stmt.name.to_string());
+                }
+                _ => visitor::walk_stmt(self, stmt),
+            }
+        }
+        fn visit_expr(&mut self, expr: &'a Expr) {
+            match expr {
+                Expr::Name(name) if name.ctx == ExprContext::Store => {
+                    self.locals.insert(name.id.to_string());
+                }
+                Expr::Lambda(_) => {}
+                _ if crate::model::comprehension(expr).is_some() => {
+                    self.locals
+                        .extend(crate::model::comprehension_outer_bindings(expr));
+                }
+                _ => visitor::walk_expr(self, expr),
+            }
+        }
+        fn visit_pattern(&mut self, pattern: &'a Pattern) {
+            self.locals.extend(crate::model::pattern_bindings(pattern));
+        }
+    }
+    struct Captures<'a> {
+        outer: &'a BTreeSet<String>,
+        shadowed: BTreeSet<String>,
+        captured: BTreeSet<String>,
+    }
+    impl Captures<'_> {
+        fn function(&mut self, function: &StmtFunctionDef) {
+            let mut bindings = Bindings::default();
+            bindings.visit_body(&function.body);
+            bindings
+                .locals
+                .extend(function.parameters.iter().map(|p| p.name().to_string()));
+            self.captured.extend(
+                bindings
+                    .nonlocals
+                    .iter()
+                    .filter(|name| self.outer.contains(*name) && !self.shadowed.contains(*name))
+                    .cloned(),
+            );
+            let previous = self.shadowed.clone();
+            self.shadowed.extend(
+                bindings
+                    .locals
+                    .difference(&bindings.nonlocals)
+                    .filter(|name| !bindings.globals.contains(*name))
+                    .cloned(),
+            );
+            self.visit_body(&function.body);
+            self.shadowed = previous;
+        }
+    }
+    impl<'a> Visitor<'a> for Captures<'_> {
+        fn visit_stmt(&mut self, stmt: &'a Stmt) {
+            if let Stmt::FunctionDef(function) = stmt {
+                self.function(function);
+            } else {
+                visitor::walk_stmt(self, stmt);
+            }
+        }
+    }
+    let mut captures = Captures {
+        outer,
+        shadowed: BTreeSet::new(),
+        captured: BTreeSet::new(),
+    };
+    captures.function(function);
+    captures.captured
+}
+
 #[derive(Clone, Default)]
 struct Scope {
     names: BTreeMap<String, Object>,
@@ -40,9 +134,18 @@ struct Scope {
     truths: BTreeMap<String, bool>,
     external_names: BTreeSet<String>,
     class_owner: Option<String>,
+    protocol_names: BTreeMap<String, Value>,
+    protocol_values: BTreeMap<Span, Value>,
 }
 
 impl Scope {
+    fn protocol_type(&self, expr: &Expr) -> Option<&Value> {
+        if let Expr::Name(name) = expr {
+            self.protocol_names.get(name.id.as_str())
+        } else {
+            self.protocol_values.get(&span(expr))
+        }
+    }
     fn identity(&self, expr: &Expr) -> Option<Object> {
         if let Expr::Name(name) = expr {
             self.names.get(name.id.as_str()).copied()
@@ -60,10 +163,13 @@ impl Scope {
         if self.module {
             self.names.clear();
             self.truths.clear();
+            self.protocol_names.clear();
         } else {
             self.names
                 .retain(|name, _| !self.external_names.contains(name));
             self.truths
+                .retain(|name, _| !self.external_names.contains(name));
+            self.protocol_names
                 .retain(|name, _| !self.external_names.contains(name));
         }
     }
@@ -159,6 +265,7 @@ pub fn project_with_return_types(
     project.body(&mut scope, suite)?;
     project.result.type_prelude = project.types.prelude();
     project.result.type_names = project.types.display_names();
+    project.types.register_protocol_types(project.runtime);
     Ok(project.result)
 }
 
@@ -323,6 +430,9 @@ impl Project<'_> {
                         self.expr(scope, default)?;
                     }
                 }
+                scope
+                    .external_names
+                    .extend(captured_nonlocals(function, &scope.shadowed));
                 self.function(function, scope.class_owner.as_deref())?;
                 scope.truths.remove(function.name.as_str());
             }
@@ -660,6 +770,11 @@ impl Project<'_> {
     ) -> Result<()> {
         match target {
             Expr::Name(name) => {
+                let protocol = value.and_then(|value| scope.protocol_type(value)).cloned();
+                scope.protocol_names.remove(name.id.as_str());
+                if let Some(protocol) = protocol {
+                    scope.protocol_names.insert(name.id.to_string(), protocol);
+                }
                 let truthy = value.and_then(|value| self.truthiness(scope, value));
                 scope.truths.remove(name.id.as_str());
                 if let Some(truthy) = truthy {
@@ -682,6 +797,44 @@ impl Project<'_> {
             }
             Expr::Attribute(target) => {
                 self.expr(scope, &target.value)?;
+                if let Some(identity) = self.identity(scope, &target.value) {
+                    let owner = scope.types[&identity].clone();
+                    let class = crate::runtime::generic_parts(&owner).0;
+                    let setter = self
+                        .runtime
+                        .project_patches
+                        .get(class)
+                        .and_then(|patch| patch["fields"].as_array())
+                        .and_then(|fields| {
+                            fields
+                                .iter()
+                                .find(|field| field["name"] == target.attr.as_str())
+                        })
+                        .and_then(|field| field.get("instance-set-type"))
+                        .cloned();
+                    if let Some(setter) = setter {
+                        // Native class-transform setters are checked on the
+                        // receiver's own class before ordinary assignment.
+                        // They do not turn into inherited Python descriptors.
+                        let previous = self
+                            .types
+                            .set_self_context(Some(self.runtime.qualified_type_expr(&owner)));
+                        let setter = self.types.render(&setter)?;
+                        self.types.set_self_context(previous);
+                        let helper = format!("{}setter_{}", self.source.prefix, span(target).start);
+                        let typing = self.types.typing_alias();
+                        self.types.definitions.push_str(&format!(
+                            "class {helper}({typing}.Protocol):\n    {}: {setter}\n",
+                            target.attr
+                        ));
+                        self.result.edits.wrap(
+                            span(target.value.as_ref()),
+                            format!("{}({helper}, ", self.source.cast_name()),
+                            ")".into(),
+                            None,
+                        );
+                    }
+                }
                 scope.invalidate();
             }
             Expr::Tuple(tuple) if self.runtime.project.is_some() => {
@@ -731,7 +884,7 @@ impl Project<'_> {
         Ok(())
     }
 
-    fn join(&self, scope: &mut Scope, left: Scope, right: Scope) {
+    fn join(&mut self, scope: &mut Scope, mut left: Scope, mut right: Scope) {
         if left.terminated {
             *scope = right;
             return;
@@ -740,12 +893,49 @@ impl Project<'_> {
             *scope = left;
             return;
         }
+        // Different allocations on the two branches can still establish the
+        // same facts and alias relationship. Pair identities, rather than
+        // dropping every name whose allocation site differs. As in ty's
+        // ObjectState::join these merged identities are external, not fresh:
+        // pairs with only partial overlap may alias and must invalidate safely.
+        let mut pairs = BTreeMap::new();
+        for name in left.names.keys().cloned().collect::<Vec<_>>() {
+            let first = left.names[&name];
+            let Some(second) = right.names.get(&name).copied() else {
+                continue;
+            };
+            if first == second || left.types.get(&first) != right.types.get(&second) {
+                continue;
+            }
+            let identity = *pairs.entry((first, second)).or_insert_with(|| {
+                self.next_object += 1;
+                self.next_object
+            });
+            let owner = left.types[&first].clone();
+            left.types.insert(identity, owner.clone());
+            right.types.insert(identity, owner);
+            if let Some(facts) = left.facts.get(&first).cloned() {
+                left.facts.insert(identity, facts);
+            }
+            if let Some(facts) = right.facts.get(&second).cloned() {
+                right.facts.insert(identity, facts);
+            }
+            left.names.insert(name.clone(), identity);
+            right.names.insert(name, identity);
+        }
         scope.shadowed = left.shadowed.union(&right.shadowed).cloned().collect();
         scope.truths = left
             .truths
             .into_iter()
             .filter(|(name, truthy)| right.truths.get(name) == Some(truthy))
             .collect();
+        scope.protocol_names = left
+            .protocol_names
+            .into_iter()
+            .filter(|(name, value)| right.protocol_names.get(name) == Some(value))
+            .collect();
+        scope.protocol_values = left.protocol_values;
+        scope.protocol_values.extend(right.protocol_values);
         scope.external_names = left
             .external_names
             .union(&right.external_names)
@@ -883,6 +1073,20 @@ impl Project<'_> {
     }
 
     fn call(&mut self, scope: &mut Scope, call: &ruff_python_ast::ExprCall) -> Result<()> {
+        if let Some(value) = self.analysis.annotated_casts.get(&span(call)).cloned() {
+            for argument in &call.arguments.args {
+                self.expr(scope, argument)?;
+            }
+            // Annotated is a static view, not a new object. Keep the runtime
+            // identity of cast's value separately from its protocol metadata.
+            if let Some(argument) = call.arguments.args.get(1)
+                && let Some(identity) = self.identity(scope, argument)
+            {
+                scope.objects.insert(span(call), identity);
+            }
+            scope.protocol_values.insert(span(call), value);
+            return Ok(());
+        }
         if let Expr::Name(name) = call.func.as_ref()
             && self.analysis.intrinsics.contains(name.id.as_str())
         {
@@ -893,11 +1097,25 @@ impl Project<'_> {
         }
 
         self.expr(scope, &call.func)?;
+        // Python binds the method before evaluating its arguments. A walrus
+        // expression or nested call may subsequently rebind the receiver name.
+        let bound_receiver = if let Expr::Attribute(attribute) = call.func.as_ref() {
+            self.identity(scope, &attribute.value)
+        } else {
+            None
+        };
+        let mut argument_types = BTreeMap::new();
         for argument in &call.arguments.args {
             self.expr(scope, argument)?;
+            if let Some(value) = scope.protocol_type(argument) {
+                argument_types.insert(span(argument), value.clone());
+            }
         }
         for keyword in &call.arguments.keywords {
             self.expr(scope, &keyword.value)?;
+            if let Some(value) = scope.protocol_type(&keyword.value) {
+                argument_types.insert(span(&keyword.value), value.clone());
+            }
         }
         if self.analysis.unbound_calls.contains(&span(call)) {
             scope.invalidate();
@@ -907,7 +1125,7 @@ impl Project<'_> {
         // A display such as `Record` cannot distinguish two imported models
         // with that name. Keep the precise type already established for a
         // parameter, local alias, or returned object alongside its display.
-        let argument_types: BTreeMap<_, _> = call
+        let nominal_arguments: BTreeMap<_, _> = call
             .arguments
             .args
             .iter()
@@ -918,6 +1136,9 @@ impl Project<'_> {
                 Some((span(argument), self.runtime.qualified_type_expr(owner)))
             })
             .collect();
+        for (span, value) in nominal_arguments {
+            argument_types.entry(span).or_insert(value);
+        }
         if let Some(site) = self.analysis.calls.get_mut(&span(call)) {
             for argument in &mut site.arguments {
                 argument.inferred_type = argument_types.get(&argument.span).cloned();
@@ -934,7 +1155,7 @@ impl Project<'_> {
         let receiver = if constructor {
             None
         } else if let Expr::Attribute(attribute) = call.func.as_ref() {
-            self.identity(scope, &attribute.value).or_else(|| {
+            bound_receiver.or_else(|| {
                 let inferred = site.as_ref()?.receiver_type.clone().or_else(|| {
                     self.oracle
                         .and_then(|oracle| oracle.get(&site.as_ref()?.receiver_key()))
@@ -1003,6 +1224,19 @@ impl Project<'_> {
             json!({"kind":"no-change"})
         };
 
+        for diagnostic in patch["diagnostics"].as_array().into_iter().flatten() {
+            self.result.diagnostics.push(json!({
+                "diagnostic":diagnostic,
+                "source":self.source.location(span(call)),
+            }));
+        }
+        let receiver_name_still_bound = match (receiver, call.func.as_ref()) {
+            (Some(receiver), Expr::Attribute(attribute)) => {
+                matches!(attribute.value.as_ref(), Expr::Name(name) if scope.names.get(name.id.as_str()) == Some(&receiver))
+            }
+            _ => false,
+        };
+
         if patch["kind"] != "call-state-patch"
             || !patch["preserves-other-objects"].as_bool().unwrap_or(false)
         {
@@ -1028,6 +1262,7 @@ impl Project<'_> {
             // whose successful postcondition this very call just established.
             if let Expr::Attribute(attribute) = call.func.as_ref()
                 && let Expr::Name(name) = attribute.value.as_ref()
+                && receiver_name_still_bound
             {
                 scope.names.insert(name.id.to_string(), receiver);
             }
@@ -1230,9 +1465,13 @@ impl Project<'_> {
                         self.runtime
                             .projected_receivers
                             .insert(format!("{}.{}", self.source.module, helper), owner.clone());
+                        let previous_self = self
+                            .types
+                            .set_self_context(Some(self.runtime.qualified_type_expr(&owner)));
                         let resolved = self
                             .types
                             .member_access(&response["access"], &format!("{helper}_callable"))?;
+                        self.types.set_self_context(previous_self);
                         let typing = self.types.typing_alias();
                         // A receiver view also handles imported classes: adding
                         // only a cast around the result would retain ty's
@@ -1250,7 +1489,11 @@ impl Project<'_> {
                     }
                 }
                 if let Some(expression) = expression {
+                    let previous_self = self
+                        .types
+                        .set_self_context(Some(self.runtime.qualified_type_expr(&owner)));
                     let expression = self.types.render(&expression)?;
+                    self.types.set_self_context(previous_self);
                     self.result.edits.wrap_with_type(
                         span(attribute),
                         format!("{}({}, ", self.source.cast_name(), expression),
@@ -1523,6 +1766,7 @@ impl Project<'_> {
             let captured = self.fresh(&mut inner, &scope.types[identity], false);
             inner.names.insert(name.clone(), captured);
         }
+        inner.protocol_names = scope.protocol_names.clone();
         self.assignment(&mut inner, &first.target, None, None)?;
         for condition in &first.ifs {
             self.expr(&mut inner, condition)?;
@@ -1638,6 +1882,196 @@ mod tests {
         fn drop(&mut self) {
             let _ = std::fs::remove_dir_all(&self.directory);
         }
+    }
+
+    #[test]
+    fn failed_state_hooks_report_and_discard_receiver_alias_and_other_facts() {
+        let manifest = json!({
+            "id":"native.failed-state","name":"Failed state","version":"0.0.0",
+            "protocol-version":{"major":0,"minor":7},
+            "ty-compatibility":{"requirement":">=0.86.0,<0.87.0"},
+            "runtime":{"kind":"monty","artifact":"plugin.py"},
+            "capabilities":{"call-state":true},
+            "claims":{"constructors":[{"kind":"exact","qualified-name":"demo.Item"}],"methods":[
+                {"kind":"exact","class-qualified-name":"demo.Item","method-name":"touch"},
+                {"kind":"exact","class-qualified-name":"demo.Item","method-name":"restore"}
+            ]}
+        });
+        let text = "class Item:\n    id: int | None\n    def touch(self) -> None: pass\n    def restore(self) -> None: pass\ndef example() -> None:\n    first = Item()\n    second = Item()\n    alias = first\n    before_alias = alias.id\n    before_other = second.id\n    alias.touch()\n    after_first = first.id\n    after_alias = alias.id\n    after_other = second.id\n    first.restore()\n    restored = first.id\n";
+        for failure in [
+            "return {'kind': 'invalid-response-kind'}",
+            "raise ValueError('caught by the SDK into a protocol Error')",
+        ] {
+            let plugin = format!(
+                "@on_call_state\ndef state(request):\n    name = request['callee']['expression']\n    if name == 'demo.Item':\n        return call_state_patch(result_members={{'id':type_annotation('int')}}, fresh_result=True, preserves_other_objects=True)\n    if name.endswith('.touch'):\n        {failure}\n    return call_state_patch(receiver_members={{'id':type_annotation('int')}}, preserves_other_objects=True)\n"
+            );
+            let mut fixture = Fixture::from_parts(text.into(), manifest.clone(), &plugin);
+            let flow = project(
+                &fixture.source,
+                &fixture.suite,
+                &mut fixture.analysis,
+                &mut fixture.runtime,
+            )
+            .unwrap();
+            let rendered = crate::mapping::render(&fixture.source, &flow.edits).unwrap();
+            for statement in [
+                "before_alias = alias.id",
+                "before_other = second.id",
+                "restored = first.id",
+            ] {
+                assert!(
+                    !rendered.text.contains(statement),
+                    "successful facts must project: {}",
+                    rendered.text
+                );
+            }
+            for statement in [
+                "after_first = first.id",
+                "after_alias = alias.id",
+                "after_other = second.id",
+            ] {
+                assert!(
+                    rendered.text.contains(statement),
+                    "failed state retained stale facts: {}",
+                    rendered.text
+                );
+            }
+            let is_host_failure = failure.starts_with("return");
+            assert_eq!(flow.diagnostics.len(), usize::from(is_host_failure));
+            if is_host_failure {
+                let diagnostic = &flow.diagnostics[0];
+                assert_eq!(diagnostic["diagnostic"]["severity"], "warning");
+                assert_eq!(
+                    diagnostic["diagnostic"]["runtime-error"]["plugin-id"],
+                    "native.failed-state"
+                );
+                let start = text.find("alias.touch()").unwrap();
+                assert_eq!(
+                    diagnostic["source"],
+                    fixture.source.location(Span {
+                        start,
+                        end: start + "alias.touch()".len()
+                    })
+                );
+            }
+        }
+    }
+
+    fn alias_fixture(body: &str) -> Fixture {
+        let manifest = json!({
+            "id":"native.alias-state","name":"Alias state","version":"0.0.0",
+            "protocol-version":{"major":0,"minor":7},
+            "ty-compatibility":{"requirement":">=0.86.0,<0.87.0"},
+            "runtime":{"kind":"monty","artifact":"plugin.py"},"capabilities":{"call-state":true},
+            "claims":{"constructors":[{"kind":"exact","qualified-name":"demo.Item"}],"methods":[
+                {"kind":"exact","class-qualified-name":"demo.Item","method-name":"set_key"},
+                {"kind":"exact","class-qualified-name":"demo.Item","method-name":"clear_key"}
+            ]}
+        });
+        Fixture::from_parts(
+            format!(
+                "class Item:\n    key: int | None\n    def set_key(self, *args: object) -> None: pass\n    def clear_key(self) -> None: pass\ndef unknown() -> Item: raise NotImplementedError\n{body}"
+            ),
+            manifest,
+            "@on_call_state\ndef state(request):\n    name = request['callee']['expression']\n    if name == 'demo.Item':\n        return call_state_patch(result_members={'key':type_annotation('None')}, fresh_result=True, preserves_other_objects=True)\n    annotation = 'int' if name.endswith('.set_key') else 'None'\n    return call_state_patch(receiver_members={'key':type_annotation(annotation)}, preserves_other_objects=True)\n",
+        )
+    }
+
+    #[test]
+    fn branch_allocations_keep_shared_aliases_and_member_facts() {
+        let mut fixture = alias_fixture(
+            "def example(condition: bool) -> None:\n    if condition:\n        record = Item()\n        alias = record\n        record.set_key()\n    else:\n        record = Item()\n        alias = record\n        record.set_key()\n    before = record.key\n    alias.clear_key()\n    after = record.key\n",
+        );
+        let flow = project(
+            &fixture.source,
+            &fixture.suite,
+            &mut fixture.analysis,
+            &mut fixture.runtime,
+        )
+        .unwrap();
+        let rendered = crate::mapping::render(&fixture.source, &flow.edits).unwrap();
+        assert!(
+            !rendered.text.contains("before = record.key"),
+            "{}",
+            rendered.text
+        );
+        assert!(
+            rendered.text.contains("None, record.key)"),
+            "{}",
+            rendered.text
+        );
+    }
+
+    #[test]
+    fn call_arguments_rebind_names_after_the_receiver_was_bound() {
+        let mut fixture = alias_fixture(
+            "record = Item()\nalias = record\nother = Item()\nrecord.set_key(record := other)\nafter_alias = alias.key\nafter_record = record.key\n",
+        );
+        let flow = project(
+            &fixture.source,
+            &fixture.suite,
+            &mut fixture.analysis,
+            &mut fixture.runtime,
+        )
+        .unwrap();
+        let rendered = crate::mapping::render(&fixture.source, &flow.edits).unwrap();
+        assert!(
+            rendered.text.contains(".int, alias.key)"),
+            "{}",
+            rendered.text
+        );
+        assert!(
+            rendered.text.contains("None, record.key)"),
+            "{}",
+            rendered.text
+        );
+    }
+
+    #[test]
+    fn unknown_call_results_keep_multi_assignment_identity() {
+        let mut fixture = alias_fixture(
+            "first = second = unknown()\nfirst.set_key()\nsecond.clear_key()\nafter = first.key\n",
+        );
+        let start = fixture.source.text.find("unknown()\nfirst").unwrap();
+        let range = Span {
+            start,
+            end: start + "unknown()".len(),
+        };
+        assert_eq!(
+            fixture.analysis.expression_probes.get(&range),
+            Some(&expression_key(range))
+        );
+        let oracle = Oracle::from([(expression_key(range), "demo.Item".into())]);
+        let flow = project_with_oracle(
+            &fixture.source,
+            &fixture.suite,
+            &mut fixture.analysis,
+            &mut fixture.runtime,
+            Some(&oracle),
+            &ReturnPatches::new(),
+        )
+        .unwrap();
+        let rendered = crate::mapping::render(&fixture.source, &flow.edits).unwrap();
+        assert!(
+            rendered.text.contains("None, first.key)"),
+            "{}",
+            rendered.text
+        );
+    }
+
+    #[test]
+    fn nested_nonlocal_writes_invalidate_only_the_referenced_outer_cells() {
+        let parsed = ruff_python_parser::parse_module("def replace():\n    nonlocal record\n    record = None\n    local = None\n    def inner():\n        nonlocal local, shared\n        local = shared = None\n").unwrap();
+        let Stmt::FunctionDef(function) = &parsed.syntax().body[0] else {
+            panic!("function")
+        };
+        assert_eq!(
+            captured_nonlocals(
+                function,
+                &BTreeSet::from(["record".into(), "local".into(), "shared".into()])
+            ),
+            BTreeSet::from(["record".into(), "shared".into()])
+        );
     }
 
     #[test]

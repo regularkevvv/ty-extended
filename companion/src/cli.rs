@@ -431,15 +431,15 @@ fn render(
                     let column = diagnostic["location"]["positions"]["begin"]["column"]
                         .as_u64()
                         .unwrap_or(1);
-                    let (coordinates, description) = if diagnostic["location"].get("cell").is_some()
-                    {
-                        (String::new(), message(diagnostic).to_owned())
-                    } else {
-                        (
-                            format!(" line=\"{line}\" column=\"{column}\""),
-                            format!("line {line}, col {column}, {}", message(diagnostic)),
-                        )
-                    };
+                    let (coordinates, description) =
+                        if path.is_empty() || diagnostic["location"].get("cell").is_some() {
+                            (String::new(), message(diagnostic).to_owned())
+                        } else {
+                            (
+                                format!(" line=\"{line}\" column=\"{column}\""),
+                                format!("line {line}, col {column}, {}", message(diagnostic)),
+                            )
+                        };
                     output.push_str(&format!("    <testcase name=\"org.ty.{}\" classname=\"{}\"{coordinates}><properties><property name=\"severity\" value=\"{}\"/></properties><failure message=\"{}\">{}</failure></testcase>\n", xml(code), xml(&Path::new(path).with_extension("").to_string_lossy()), severity(diagnostic), xml(message(diagnostic)), xml(&description)));
                 }
                 output.push_str("  </testsuite>\n");
@@ -476,6 +476,34 @@ fn render(
         };
         let code = diagnostic["check_name"].as_str().unwrap_or("");
         let level = severity(diagnostic);
+        if path.is_empty() {
+            // Option diagnostics supplied by CLI/editor settings have no
+            // primary source. Preserve that absence in every public format.
+            if format == "github" {
+                let level = if level == "info" { "notice" } else { level };
+                let mut body = format!("{code}: {}", message(diagnostic));
+                if let Some(details) = diagnostic["details"].as_str() {
+                    for line in details.lines() {
+                        body.push_str(&format!("\n  {line}"));
+                    }
+                }
+                output.push_str(&format!(
+                    "::{level} title=ty ({})::{}\n",
+                    annotation(code, true),
+                    annotation(&body, false)
+                ));
+            } else if format == "concise" {
+                output.push_str(&format!("{level}[{code}] {}\n", message(diagnostic)));
+            } else {
+                output.push_str(&format!("{level}[{code}]: {}\n", message(diagnostic)));
+                if let Some(details) = diagnostic["details"].as_str().filter(|s| !s.is_empty()) {
+                    output.push_str(details);
+                    output.push('\n');
+                }
+                output.push('\n');
+            }
+            continue;
+        }
         if format == "github" {
             let level = if level == "info" { "notice" } else { level };
             let end_line = positions["end"]["line"].as_u64().unwrap_or(line);

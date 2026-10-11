@@ -1181,6 +1181,14 @@ impl LspSourceMaps {
         let Some(range) = self.out_range(uri, &value["range"], false)? else {
             return Ok(None);
         };
+        if let Some(document) = self.document(uri)
+            && document.rendered.suppresses_diagnostic(
+                value["code"].as_str().unwrap_or(""),
+                document.span(&range, true, self.client_encoding)?,
+            )
+        {
+            return Ok(None);
+        }
         let mut out = value.clone();
         out["range"] = range;
         if let Some(message) = value["message"].as_str() {
@@ -2633,6 +2641,35 @@ mod tests {
         assert!(maps.workspace_edit(&json!({"changes":{"file:///analysis/book.py":[{"range":range(3,0,3,2),"newText":"pk"}]}})).is_err());
         Ok(())
     }
+    #[test]
+    fn editor_diagnostic_exceptions_preserve_other_rules_and_other_calls() -> Result<()> {
+        let source = Source::new(
+            "cast(int, x)\ncast(int, x)\n".into(),
+            "/source/demo.py".into(),
+            "demo".into(),
+        );
+        let mut edits = Edits::default();
+        edits.insert(0, "# generated\n".into());
+        edits.suppress_diagnostic(Span { start: 0, end: 12 }, "redundant-cast".into());
+        let rendered = render(&source, &edits)?;
+        let mut maps = LspSourceMaps::new(PositionEncoding::Utf16, PositionEncoding::Utf32);
+        maps.insert(DocumentMap::new(
+            "file:///source/demo.py".into(),
+            "file:///analysis/demo.py".into(),
+            source.text,
+            rendered,
+        ));
+        let mapped = maps.diagnostics(&json!({"uri":"file:///analysis/demo.py","diagnostics":[
+            {"range":range(1,0,1,12),"code":"redundant-cast","message":"redundant"},
+            {"range":range(2,0,2,12),"code":"redundant-cast","message":"other call"},
+            {"range":range(1,0,1,12),"code":"invalid-argument-type","message":"other rule"}
+        ]}))?;
+        assert_eq!(mapped["diagnostics"].as_array().unwrap().len(), 2);
+        assert_eq!(mapped["diagnostics"][0]["range"], range(1, 0, 1, 12));
+        assert_eq!(mapped["diagnostics"][1]["range"], range(0, 0, 0, 12));
+        Ok(())
+    }
+
     #[test]
     fn unsafe_workspace_edit_rejects_whole_transaction() -> Result<()> {
         let maps = fixture()?;

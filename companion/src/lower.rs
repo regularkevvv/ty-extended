@@ -154,6 +154,7 @@ fn class_patch(
         }
     }
     let (insertion, indent) = crate::static_project::class_insertion(source, class, edits)?;
+    let previous_self = types.set_self_context(Some(crate::model::typ(qualified)));
     let mut declared = BTreeMap::new();
     let mut methods = BTreeSet::new();
     for stmt in &class.body {
@@ -182,33 +183,66 @@ fn class_patch(
     let mut params = Vec::new();
     let mut patched_names = BTreeSet::new();
     for (index, (name, field)) in fields.iter().enumerate() {
-        if field["mode"] != "replace-existing" && declared.contains_key(name) {
-            continue;
-        }
+        let class_type =
+            field
+                .get("descriptor")
+                .and_then(|descriptor| match descriptor["kind"].as_str() {
+                    Some("value") => descriptor.get("type-expr"),
+                    Some("callable") => descriptor.get("fallback-type"),
+                    Some("descriptor") => descriptor.get("class-type"),
+                    _ => None,
+                });
         let ty = types.render(&field["instance-get-type"])?;
         field_types.insert(name.clone(), ty.clone());
-        let helper = format!("{}field_{}_{}", source.prefix, span(class).start, index);
-        let mut access = field
-            .get("descriptor")
-            .cloned()
-            .unwrap_or(json!({"kind":"descriptor","instance-get-type":field["instance-get-type"]}));
-        if let Some(set) = field.get("instance-set-type") {
-            access["instance-set-type"] = set.clone();
+        // A native class-transform descriptor supplies a class *value*. Its
+        // ordinary instance lookup takes precedence over the instance fallback;
+        // it is not a Python descriptor with an inherited __set__ method.
+        let class_transform = response["fields"]
+            .as_array()
+            .into_iter()
+            .flatten()
+            .any(|candidate| candidate["name"] == *name);
+        if class_transform && let Some(class_type) = class_type {
+            let class_type = types.render(class_type)?;
+            class_code.push_str(&format!(
+                "{name}: {class_type} = {}({class_type}, None)\n",
+                source.cast_name()
+            ));
+            patched_names.insert(name.clone());
+        } else if field["mode"] == "replace-existing" || !declared.contains_key(name) {
+            // Returning the member through __get__ prevents a plugin value
+            // which itself implements __get__ (for example a manager) from
+            // accidentally binding as a class-body descriptor. The ordinary
+            // write domain is the read type; exact class-transform setters are
+            // projected separately at their receiver's assignment sites.
+            let helper = format!("{}field_{}_{}", source.prefix, span(class).start, index);
+            let access = json!({"kind":"descriptor","instance-get-type":field["instance-get-type"],"instance-set-type":field["instance-get-type"]});
+            helper_code.push_str(&descriptor(types, &helper, &access)?);
+            class_code.push_str(&format!("{name}: {helper} = {helper}()\n"));
+            generated
+                .descriptors
+                .entry(qualified.to_owned())
+                .or_default()
+                .insert(name.clone());
+            patched_names.insert(name.clone());
         }
-        helper_code.push_str(&descriptor(types, &helper, &access)?);
-        class_code.push_str(&format!("{name}: {helper} = {helper}()\n"));
-        generated
-            .descriptors
-            .entry(qualified.to_owned())
-            .or_default()
-            .insert(name.clone());
-        patched_names.insert(name.clone());
         if let Some(param) = field.get("constructor-parameter") {
-            params.push(param.clone());
+            let mut param = param.clone();
+            if param.get("type-expr").is_none_or(Value::is_null) {
+                param["type-expr"] = field
+                    .get("instance-set-type")
+                    .unwrap_or(&field["instance-get-type"])
+                    .clone();
+            }
+            if field["has-default"] == true {
+                param["required"] = json!(false);
+            }
+            params.push(param);
         }
     }
     for (index, (name, (patch, class_scope))) in members.iter().enumerate() {
-        if patch["mode"] != "replace-existing"
+        if !*class_scope
+            && patch["mode"] != "replace-existing"
             && (declared.contains_key(name) || methods.contains(name))
         {
             continue;
@@ -264,6 +298,7 @@ fn class_patch(
     for diagnostic in response["diagnostics"].as_array().into_iter().flatten() {
         diagnostics.push(json!({"diagnostic":diagnostic,"source":source.location(span(class))}));
     }
+    types.set_self_context(previous_self);
     Ok(ClassInfo {
         origin: span(&class.name),
         fields: field_types.clone(),
@@ -332,12 +367,36 @@ struct Calls<'a> {
     source: &'a Source,
     runtime: &'a Runtime,
     calls: BTreeMap<Span, crate::model::CallSite>,
+    constructor_calls: BTreeMap<Span, String>,
     probes: BTreeMap<Span, String>,
     intrinsics: BTreeSet<String>,
     shadowed: BTreeSet<String>,
     available_imports: BTreeSet<String>,
     deferred: bool,
     unbound: BTreeSet<Span>,
+    annotated_casts: BTreeMap<Span, Value>,
+    cast_metadata: BTreeMap<Span, Vec<Span>>,
+}
+
+/// The plugin-free path still implements the fork's transparent Annotated
+/// casts. Reuse lexical call resolution without dispatching any hook.
+pub fn annotated_cast_spans(source: &Source, suite: &[Stmt], runtime: &Runtime) -> BTreeSet<Span> {
+    let mut collector = Calls {
+        source,
+        runtime,
+        calls: BTreeMap::new(),
+        probes: BTreeMap::new(),
+        intrinsics: BTreeSet::new(),
+        shadowed: BTreeSet::new(),
+        available_imports: BTreeSet::new(),
+        deferred: false,
+        unbound: BTreeSet::new(),
+        annotated_casts: BTreeMap::new(),
+        cast_metadata: BTreeMap::new(),
+        constructor_calls: BTreeMap::new(),
+    };
+    collector.visit_body(suite);
+    collector.annotated_casts.into_keys().collect()
 }
 impl<'a> Visitor<'a> for Calls<'_> {
     fn visit_annotation(&mut self, _node: &'a Expr) {}
@@ -420,6 +479,15 @@ impl<'a> Visitor<'a> for Calls<'_> {
             }
             let shadowed = self.shadowed.contains(root);
             if !shadowed
+                && self
+                    .runtime
+                    .project
+                    .as_ref()
+                    .is_some_and(|project| project.classes.contains_key(&canonical))
+            {
+                self.constructor_calls.insert(span(call), canonical.clone());
+            }
+            if !shadowed
                 && matches!(
                     canonical.as_str(),
                     "typing.assert_type"
@@ -434,6 +502,24 @@ impl<'a> Visitor<'a> for Calls<'_> {
                 return;
             }
             if !shadowed && matches!(canonical.as_str(), "typing.cast" | "typing_extensions.cast") {
+                if let Some(target) = call.arguments.args.first() {
+                    let ty = self
+                        .runtime
+                        .type_expr(self.source, self.source.slice(span(target)));
+                    if ty["snapshot"]["kind"] == "annotated" {
+                        self.annotated_casts.insert(span(call), ty);
+                        if let Expr::Subscript(target) = target
+                            && let Expr::Tuple(arguments) = target.slice.as_ref()
+                        {
+                            let metadata: Vec<_> =
+                                arguments.elts.iter().skip(1).map(span).collect();
+                            for span in &metadata {
+                                self.probes.insert(*span, expression_key(*span));
+                            }
+                            self.cast_metadata.insert(span(call), metadata);
+                        }
+                    }
+                }
                 if let Some(value) = call.arguments.args.get(1) {
                     self.visit_expr(value);
                 }
@@ -441,12 +527,24 @@ impl<'a> Visitor<'a> for Calls<'_> {
             }
             let claims = &self.runtime.manifest["claims"];
             let method = matches!(call.func.as_ref(), Expr::Attribute(_))
-                && claims["methods"].as_array().into_iter().flatten().any(|c| {
+                && (claims["methods"].as_array().into_iter().flatten().any(|c| {
                     c["method-name"] == last
                         || c["method-name-pattern"].as_str().is_some_and(|pattern| {
                             ty_plugin_protocol::method_name_pattern_matches(pattern, last)
                         })
-                });
+                }) || claims["functions"]
+                    .as_array()
+                    .into_iter()
+                    .flatten()
+                    .any(|c| {
+                        // Exact function claims can name a bound method too. Its
+                        // receiver may need the oracle (e.g. factory().method()),
+                        // so defer the full identity check to runtime dispatch.
+                        c["qualified-name"].as_str().is_some_and(|name| {
+                            name.rsplit_once('.')
+                                .is_some_and(|(_, method)| method == last)
+                        })
+                    }));
             let exact = !shadowed
                 && claims["functions"]
                     .as_array()
@@ -558,10 +656,27 @@ impl<'a> Visitor<'a> for Calls<'_> {
                 self.visit_body(&class.body);
                 self.available_imports = imports;
             }
+            Stmt::Assign(assignment) => {
+                visitor::walk_stmt(self, node);
+                if matches!(assignment.value.as_ref(), Expr::Call(_))
+                    && self.runtime.manifest["capabilities"]["call-state"] == true
+                    && !self.calls.contains_key(&span(assignment.value.as_ref()))
+                {
+                    let range = span(assignment.value.as_ref());
+                    self.probes.insert(range, expression_key(range));
+                }
+            }
             Stmt::AnnAssign(assignment) => {
                 self.visit_expr(&assignment.target);
                 if let Some(value) = &assignment.value {
                     self.visit_expr(value);
+                    if matches!(value.as_ref(), Expr::Call(_))
+                        && self.runtime.manifest["capabilities"]["call-state"] == true
+                        && !self.calls.contains_key(&span(value.as_ref()))
+                    {
+                        let range = span(value.as_ref());
+                        self.probes.insert(range, expression_key(range));
+                    }
                 }
             }
             Stmt::TypeAlias(_) => {}
@@ -718,22 +833,60 @@ pub fn analyze_with_oracle(
         source,
         runtime,
         calls: BTreeMap::new(),
+        constructor_calls: BTreeMap::new(),
         probes: BTreeMap::new(),
         intrinsics: BTreeSet::new(),
         shadowed: BTreeSet::new(),
         available_imports: BTreeSet::new(),
         deferred: false,
         unbound: BTreeSet::new(),
+        annotated_casts: BTreeMap::new(),
+        cast_metadata: BTreeMap::new(),
     };
     collector.visit_body(suite);
     let calls = collector.calls;
+    let constructor_calls = collector.constructor_calls;
     let unbound_calls = collector.unbound;
+    let mut annotated_casts = collector.annotated_casts;
+    for (span, metadata) in collector.cast_metadata {
+        let Some(value) = annotated_casts.get_mut(&span) else {
+            continue;
+        };
+        for (index, source_span) in metadata.into_iter().enumerate() {
+            let Some(display) = oracle.and_then(|oracle| oracle.get(&expression_key(source_span)))
+            else {
+                continue;
+            };
+            let inferred = runtime.type_expr(source, display);
+            let snapshot = &inferred["snapshot"];
+            let metadata = if snapshot["kind"] == "nominal" {
+                json!({"qualified-name":snapshot["qualified-name"],"arguments":snapshot.get("arguments").cloned().unwrap_or_else(||json!([]))})
+            } else if display.starts_with("<class '") && source.slice(source_span).contains('[') {
+                let qualified = runtime.canonical_name(source, source.slice(source_span));
+                let (name, arguments) = crate::runtime::generic_parts(&qualified);
+                json!({"qualified-name":name,"arguments":arguments.iter().map(|argument| runtime.qualified_type_expr(argument)["snapshot"].clone()).collect::<Vec<_>>()})
+            } else {
+                json!({"qualified-name":display,"arguments":[]})
+            };
+            value["snapshot"]["metadata"][index] = metadata;
+        }
+    }
+    for span in annotated_casts.keys() {
+        edits.suppress_diagnostic(*span, "redundant-cast".into());
+    }
     let expression_probes = collector.probes;
     let intrinsics = collector.intrinsics;
     let mut helpers = BTreeMap::new();
     for call in calls.values() {
         let response = call_request(runtime, source, "adjust-call-signature", call, oracle, None)?;
         if response["kind"] == "call-signature-patch" {
+            let receiver = call
+                .flow_receiver_type
+                .as_ref()
+                .or(call.receiver_type.as_ref())
+                .or_else(|| oracle.and_then(|oracle| oracle.get(&call.receiver_key())));
+            let previous_self = types
+                .set_self_context(receiver.map(|receiver| runtime.type_expr(source, receiver)));
             let signature = &response["signature"];
             let parameters = types.parameter_list(
                 signature["parameters"]
@@ -743,7 +896,11 @@ pub fn analyze_with_oracle(
                 false,
             )?;
             let result = types.render(&signature["return-type"])?;
-            let helper = format!("{}call_{}", source.prefix, call.span.start);
+            types.set_self_context(previous_self);
+            let helper = format!(
+                "{}call_{}_{}",
+                source.prefix, call.span.start, call.span.end
+            );
             let builtins = types.builtins_alias();
             types.definitions.push_str(&format!(
                 "def {helper}({parameters}) -> {result}: raise {builtins}.NotImplementedError\n"
@@ -753,7 +910,14 @@ pub fn analyze_with_oracle(
             // nested probes while selecting the plugin's callable signature.
             edits.wrap_callable(call.function, "(".into(), format!(", {helper})[1]"), helper);
         }
-        for diagnostic in response["diagnostics"].as_array().into_iter().flatten() {
+        // The native signature hook consumes the callable shape only. Runtime
+        // failures are reported by the host; patch diagnostics are not emitted.
+        for diagnostic in response["diagnostics"]
+            .as_array()
+            .into_iter()
+            .flatten()
+            .filter(|diagnostic| diagnostic.get("runtime-error").is_some())
+        {
             diagnostics.push(json!({"diagnostic":diagnostic,"source":source.location(call.span)}));
         }
     }
@@ -766,12 +930,15 @@ pub fn analyze_with_oracle(
         ),
     );
     helpers.extend(types.display_names());
+    types.register_protocol_types(runtime);
     Ok(Analysis {
         prelude_offset: offset,
         classes,
         intrinsics,
         calls,
+        constructor_calls,
         unbound_calls,
+        annotated_casts,
         edits,
         helpers,
         expression_probes,

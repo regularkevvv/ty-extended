@@ -14,6 +14,7 @@ mod project_check;
 mod runtime;
 mod static_project;
 mod type_render;
+mod type_snapshot;
 mod verify;
 
 use anyhow::{Context, Result, bail};
@@ -161,6 +162,7 @@ fn check(input: &Path, options: &BTreeMap<String, String>) -> Result<Value> {
     let mut oracle_seconds = 0.0;
     let mut frontend_seconds = 0.0;
     let mut converged = false;
+    let mut return_diagnostics = Vec::new();
     for iteration in 0..8 {
         tick = Instant::now();
         analysis.classes = static_classes.clone();
@@ -207,6 +209,7 @@ fn check(input: &Path, options: &BTreeMap<String, String>) -> Result<Value> {
         }
         tick = Instant::now();
         let mut next = ReturnPatches::new();
+        return_diagnostics.clear();
         for call in analysis.calls.values() {
             let patch = call_request(
                 &mut runtime,
@@ -216,6 +219,10 @@ fn check(input: &Path, options: &BTreeMap<String, String>) -> Result<Value> {
                 Some(&oracle),
                 None,
             )?;
+            for diagnostic in patch["diagnostics"].as_array().into_iter().flatten() {
+                return_diagnostics
+                    .push(json!({"diagnostic":diagnostic,"source":source.location(call.span)}));
+            }
             if patch["kind"] == "call-return-patch" {
                 let expression = patch["return-type"]["expression"]
                     .as_str()
@@ -252,12 +259,15 @@ fn check(input: &Path, options: &BTreeMap<String, String>) -> Result<Value> {
     let raw = checker.check(&final_path, &generated.text)?;
     stages.insert("final_ty_check".into(), tick.elapsed().as_secs_f64());
     tick = Instant::now();
+    let mut plugin_diagnostics = analysis.plugin_diagnostics.clone();
+    plugin_diagnostics.extend(return_diagnostics);
+    plugin_diagnostics.extend(flow.diagnostics);
     let (diagnostics, suppressed) = map_diagnostics(
         &source,
         &generated,
         &raw,
         &analysis.helpers,
-        &flow.diagnostics,
+        &plugin_diagnostics,
     )?;
     stages.insert("diagnostic_mapping".into(), tick.elapsed().as_secs_f64());
     stages.insert("frontend_iterations".into(), frontend_seconds);

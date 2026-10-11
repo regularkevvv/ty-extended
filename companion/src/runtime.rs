@@ -9,11 +9,12 @@ use std::{
     sync::Arc,
     time::{Duration, Instant},
 };
-use ty_plugin_host::{MontyLimits, MontyRunner, PluginEnvironment, PluginHost};
+use ty_plugin_host::{HostError, MontyLimits, MontyRunner, PluginEnvironment, PluginHost};
 use ty_plugin_protocol::{PluginManifest, PluginRequest, method_name_pattern_matches};
 
 pub struct Runtime {
     host: PluginHost<MontyRunner>,
+    load_failures: BTreeMap<String, (String, String)>,
     plugins: Vec<Registration>,
     pub manifest: Value,
     pub project: Option<Arc<Project>>,
@@ -24,6 +25,11 @@ pub struct Runtime {
     pub project_patches: BTreeMap<String, Value>,
     pub project_contributions: Vec<Value>,
     pub projected_receivers: BTreeMap<String, String>,
+    protocol_types: BTreeMap<(String, String), BTreeMap<String, Value>>,
+    pub virtual_shapes: BTreeMap<String, Value>,
+    pub selected_virtual_scope: Option<String>,
+    pub nominal_candidates: BTreeSet<String>,
+    pub annotation_candidates: BTreeSet<String>,
     cache: RequestCache,
     pub executions: usize,
     pub hits: usize,
@@ -142,6 +148,7 @@ impl Runtime {
     pub fn from_plugins(paths: &[(PathBuf, PathBuf, Value)]) -> Result<Self> {
         let mut plugins = Vec::new();
         let mut manifests = Vec::new();
+        let mut load_failures = BTreeMap::new();
         let mut runner = MontyRunner::new(MontyLimits::default())?;
         for (manifest_path, plugin_path, overrides) in paths {
             let data = std::fs::read(manifest_path)?;
@@ -152,7 +159,28 @@ impl Runtime {
                 .cloned()
                 .unwrap_or(json!({}));
             merge_config(&mut config, overrides);
-            runner.add_plugin(&manifest.id, std::fs::read(plugin_path)?)?;
+            match std::fs::read(plugin_path) {
+                Ok(bytes) => {
+                    if let Err(error) = runner.add_plugin(&manifest.id, bytes) {
+                        load_failures.insert(
+                            manifest.id.clone(),
+                            (error.to_string(), error.hint().to_owned()),
+                        );
+                    }
+                }
+                Err(error) => {
+                    load_failures.insert(
+                        manifest.id.clone(),
+                        (
+                            format!(
+                                "failed to read artifact for plugin `{}`: {error}",
+                                manifest.id
+                            ),
+                            "Fix the plugin artifact path or remove the plugin.".to_owned(),
+                        ),
+                    );
+                }
+            }
             plugins.push(Registration {
                 id: manifest.id.clone(),
                 manifest: manifest_value,
@@ -220,6 +248,7 @@ impl Runtime {
         }
         Ok(Self {
             host: PluginHost::new(environment, runner),
+            load_failures,
             config: plugins
                 .first()
                 .map(|plugin| plugin.config.clone())
@@ -238,6 +267,11 @@ impl Runtime {
             project_patches: BTreeMap::new(),
             project_contributions: Vec::new(),
             projected_receivers: BTreeMap::new(),
+            protocol_types: BTreeMap::new(),
+            virtual_shapes: BTreeMap::new(),
+            selected_virtual_scope: None,
+            nominal_candidates: BTreeSet::new(),
+            annotation_candidates: BTreeSet::new(),
             cache: RequestCache::default(),
             executions: 0,
             hits: 0,
@@ -246,6 +280,8 @@ impl Runtime {
     }
 
     pub fn attach_project(&mut self, project: Arc<Project>, config: Value) {
+        self.protocol_types
+            .retain(|(module, _), _| project.modules.contains_key(module));
         self.project = Some(project);
         merge_config(&mut self.config, &config);
         // --config is the original single-plugin CLI override. Discovered
@@ -562,60 +598,139 @@ impl Runtime {
             |project| project.rewrite_virtual_identities(expression),
         );
         let qualified = self.canonical_name(source, expression);
-        self.type_expr_with_identity(display, &qualified)
+        self.type_expr_with_identity(display, &qualified, Some(&source.module))
     }
 
     /// Types obtained from protocol metadata and established flow identities
     /// are already qualified. Source aliases must not be applied a second time.
     pub fn qualified_type_expr(&self, expression: &str) -> Value {
-        self.type_expr_with_identity(expression.to_owned(), expression)
+        self.qualified_type_expr_in_module(expression, None)
     }
 
-    fn type_expr_with_identity(&self, display: String, qualified: &str) -> Value {
-        let mut value = typ(display);
-        let (nominal, arguments) = generic_parts(qualified);
-        let qualified_nominal = match nominal {
-            "str" | "int" | "bool" | "float" | "complex" | "bytes" | "bytearray" | "list"
-            | "dict" | "set" | "frozenset" | "object" => Some(format!("builtins.{nominal}")),
-            _ if nominal.contains('.')
-                && !nominal.starts_with("typing.")
-                && !nominal.starts_with("typing_extensions.")
-                && nominal.chars().all(|character| {
-                    character.is_alphanumeric() || matches!(character, '_' | '.')
-                }) =>
-            {
-                Some(nominal.to_owned())
-            }
-            _ => None,
-        };
-        if let Some(nominal) = qualified_nominal {
-            let snapshots = arguments
-                .into_iter()
-                .map(|argument| {
-                    let argument = self.qualified_type_expr(argument);
-                    argument.get("snapshot").cloned().unwrap_or_else(|| {
-                        json!({"kind":"expression","expression":argument["expression"],"mode":"annotation"})
-                    })
-                })
-                .collect::<Vec<_>>();
-            value["snapshot"] =
-                json!({"kind":"nominal","qualified-name":nominal,"arguments":snapshots});
+    fn qualified_type_expr_in_module(&self, expression: &str, module: Option<&str>) -> Value {
+        let mut value = self.type_expr_with_identity(expression.to_owned(), expression, module);
+        // Native virtual named tuples carry their protocol identity in the
+        // snapshot, but their displayed nominal name belongs to the first
+        // checked module. Keep that lossy display separate from the snapshot.
+        let mut displayed = value["snapshot"].clone();
+        self.qualify_virtual_display(&mut displayed);
+        value["expression"] = json!(crate::type_snapshot::qualified_expression(
+            &displayed,
+            value["expression"].as_str().unwrap_or(expression),
+            module
+        ));
+        value
+    }
+
+    fn qualify_virtual_display(&self, value: &mut Value) {
+        if value["kind"] == "plugin-class"
+            && let Some(identity) = value["identity"].as_str()
+            && self
+                .virtual_shapes
+                .get(identity)
+                .is_some_and(|shape| shape["kind"] == "named-tuple")
+            && let Some(module) = &self.selected_virtual_scope
+        {
+            let short = identity.rsplit('.').next().unwrap_or(identity);
+            value["identity"] = json!(if module.is_empty() {
+                short.to_owned()
+            } else {
+                format!("{module}.{short}")
+            });
+            return;
         }
+        match value {
+            Value::Array(values) => values
+                .iter_mut()
+                .for_each(|value| self.qualify_virtual_display(value)),
+            Value::Object(values) => values
+                .values_mut()
+                .for_each(|value| self.qualify_virtual_display(value)),
+            _ => {}
+        }
+    }
+
+    fn virtual_snapshot(&self, name: &str) -> Option<Value> {
+        let shape = self.virtual_shapes.get(name)?;
+        if shape["kind"] != "typed-dict" {
+            return Some(json!({"kind":"plugin-class","identity":name}));
+        }
+        // Native virtual TypedDict definitions decode field annotations without
+        // virtual-class context, and always produce a closed structural record.
+        let fields: Vec<_> = shape["fields"].as_array().into_iter().flatten().map(|field| {
+            let annotation = &field["type-expr"];
+            let snapshot = crate::type_snapshot::decoded_annotation(annotation);
+            json!({"name":field["name"],"type-snapshot":snapshot,
+                "required":shape["total"].as_bool().unwrap_or(true) && field["required"].as_bool().unwrap_or(true),
+                "read-only":field["read-only"].as_bool().unwrap_or(false)})
+        }).collect();
+        Some(json!({"kind":"typed-dict","fields":fields,"closed":true}))
+    }
+
+    pub fn register_protocol_types(
+        &mut self,
+        module: &str,
+        prefix: &str,
+        types: BTreeMap<String, Value>,
+    ) {
+        self.protocol_types
+            .insert((module.to_owned(), prefix.to_owned()), types);
+    }
+
+    fn protocol_type(&self, module: Option<&str>, name: &str) -> Option<&Value> {
+        self.protocol_types.iter().find_map(|((owner, _), types)| {
+            if module == Some(owner.as_str()) {
+                types.get(name)
+            } else {
+                None
+            }
+            .or_else(|| {
+                name.strip_prefix(&format!("{owner}."))
+                    .and_then(|name| types.get(name))
+            })
+        })
+    }
+
+    fn type_expr_with_identity(
+        &self,
+        display: String,
+        qualified: &str,
+        module: Option<&str>,
+    ) -> Value {
+        let display = crate::project::rewrite_names(&display, |name| {
+            self.protocol_type(module, name)
+                .and_then(|value| value["expression"].as_str())
+                .map_or_else(|| name.to_owned(), str::to_owned)
+        });
+        let mut value = typ(display);
+        value["snapshot"] = crate::type_snapshot::from_annotation(qualified, &|name| {
+            if let Some(value) = self.protocol_type(module, name) {
+                return value.get("snapshot").cloned();
+            }
+            if let Some(snapshot) = self.virtual_snapshot(name) {
+                return Some(snapshot);
+            }
+            if self.project.as_ref().is_some_and(|project| {
+                project
+                    .virtual_identities
+                    .values()
+                    .any(|identity| identity == name)
+            }) {
+                return Some(json!({"kind":"plugin-class","identity":name}));
+            }
+            if let Some(project) = &self.project {
+                return crate::type_snapshot::project_record(project, name, &mut BTreeSet::new());
+            }
+            None
+        });
         value
     }
 
     /// A Self result must retain its bound when it becomes the next receiver.
     /// The display expression is still Self and must not be used as a class key.
     pub fn receiver_identity(value: &Value) -> Option<String> {
-        let snapshot = &value["snapshot"];
-        if snapshot["kind"] == "self-type" {
-            let bound = &snapshot["bound"];
-            if let Some(expression) = crate::project::type_expression(bound) {
-                return Some(expression);
-            }
-            if let Some(nominal) = bound["qualified-name"].as_str() {
-                return Some(nominal.to_owned());
-            }
+        if let Some(identity) = crate::type_snapshot::receiver_annotation(&value["snapshot"]) {
+            return Some(identity);
         }
         crate::project::type_expression(value)
     }
@@ -688,16 +803,16 @@ impl Runtime {
             && let Some(project) = &self.project
             && let Some((base, args)) = generic_base(project, nominal, &mut BTreeSet::new())
         {
-            return json!({"type-expr":typ(qualified),"nominal-class":base,
-                        "generic-arguments":args.into_iter().map(typ).collect::<Vec<_>>(),"plugin-metadata":null});
+            return json!({"type-expr":self.qualified_type_expr_in_module(qualified,Some(&source.module)),"nominal-class":base,
+                        "generic-arguments":args.into_iter().map(|arg|self.qualified_type_expr_in_module(&arg,Some(&source.module))).collect::<Vec<_>>(),"plugin-metadata":null});
         }
         let nominal = if self.project.is_none() && !nominal.contains('.') {
             format!("{}.{}", source.module, nominal)
         } else {
             nominal.to_string()
         };
-        json!({"type-expr":typ(qualified),"nominal-class":nominal,
-            "generic-arguments":arguments.iter().map(|arg| typ(*arg)).collect::<Vec<_>>(),"plugin-metadata":null})
+        json!({"type-expr":self.qualified_type_expr_in_module(qualified,Some(&source.module)),"nominal-class":nominal,
+            "generic-arguments":arguments.iter().map(|arg| self.qualified_type_expr_in_module(arg,Some(&source.module))).collect::<Vec<_>>(),"plugin-metadata":null})
     }
 
     pub fn nominal_receiver(&self, source: &Source, expression: &str) -> bool {
@@ -837,9 +952,17 @@ impl Runtime {
             "analyze-class" => payload["class"]["qualified-name"]
                 .as_str()
                 .is_some_and(|name| {
-                    list("classes")
-                        .iter()
-                        .any(|claim| self.class_claim(source, claim, name))
+                    // The fork's semantic environment treats both class claim
+                    // variants as class-transform ancestry candidates. Exact
+                    // constructor/member claims keep their separate semantics.
+                    list("classes").iter().any(|claim| {
+                        claim["qualified-name"]
+                            .as_str()
+                            .or_else(|| claim["base-qualified-name"].as_str())
+                            .is_some_and(|base| {
+                                self.subclass(name, &self.internal_protocol_name(source, base))
+                            })
+                    })
                 }),
             "adjust-call-signature" | "adjust-call-return" | "adjust-call-state" => {
                 let callee = payload["callee"]["expression"].as_str().unwrap_or("");
@@ -945,15 +1068,29 @@ impl Runtime {
             self.hits += 1;
             return Ok(value.clone());
         }
+        let kind = payload["kind"].as_str().unwrap_or("").to_owned();
         let request: PluginRequest =
             serde_json::from_value(payload).context("invalid plugin request")?;
         let start = Instant::now();
-        let response = serde_json::to_value(self.host.execute(id, &request)?)?;
+        if let Some((message, hint)) = self.load_failures.get(id) {
+            let response = hook_failure_message(id, &kind, message, hint);
+            self.cache.insert(key, response.clone());
+            return Ok(response);
+        }
+        let result = self.host.execute(id, &request);
         self.execution_time += start.elapsed();
         self.executions += 1;
-        if response["kind"] == "error" {
-            bail!("plugin error: {response}");
-        }
+        let response = match result {
+            // The fork consumes only the response variant for the requested
+            // hook. An explicit protocol Error is an abstention, unlike a host
+            // failure (trap, execution limit or undecodable response).
+            Ok(ty_plugin_protocol::PluginResponse::Error(_)) => json!({"kind":"no-change"}),
+            Ok(response) => serde_json::to_value(response)?,
+            Err(error) => hook_failure_response(id, &kind, error),
+        };
+        // Like the checker's Salsa memo, cache failures for the exact request.
+        // Diagnostics remain in the response and are replayed at each current
+        // source location, never accumulated globally across editor revisions.
         self.cache.insert(key, response.clone());
         Ok(response)
     }
@@ -995,7 +1132,7 @@ impl Runtime {
             request["kind"] = json!(kind);
             if kind == "build-project-index" {
                 request["context"]["config"] = plugin.config.clone();
-                if self.plugins.len() > 1 {
+                {
                     let modules: BTreeSet<_> = plugin.manifest["claims"]["settings"]
                         .as_array()
                         .into_iter()
@@ -1015,13 +1152,56 @@ impl Runtime {
                                 .as_str()
                                 .is_some_and(|module| modules.contains(module))
                         });
+                        let severity = if plugin
+                            .config
+                            .get("strict-settings")
+                            .or_else(|| plugin.config.get("strict_settings"))
+                            .and_then(Value::as_bool)
+                            .unwrap_or(false)
+                        {
+                            "error"
+                        } else {
+                            "warning"
+                        };
+                        for setting in settings {
+                            for diagnostic in
+                                setting["diagnostics"].as_array_mut().into_iter().flatten()
+                            {
+                                diagnostic["severity"] = json!(severity);
+                            }
+                        }
                     }
                 }
             } else {
                 request["config"] = plugin.config.clone();
             }
             let id = plugin.id.clone();
+            let settings_diagnostics: Vec<_> = request["settings"]
+                .as_array()
+                .into_iter()
+                .flatten()
+                .flat_map(|setting| {
+                    setting["diagnostics"]
+                        .as_array()
+                        .into_iter()
+                        .flatten()
+                        .cloned()
+                })
+                .collect();
             let mut response = self.dispatch(&id, request)?;
+            if response["kind"] == "project-index" && !settings_diagnostics.is_empty() {
+                // Native project-index diagnostics belong to the successful
+                // plugin response, with that plugin's own strictness policy.
+                let mut diagnostics = settings_diagnostics;
+                diagnostics.extend(
+                    response["diagnostics"]
+                        .as_array()
+                        .into_iter()
+                        .flatten()
+                        .cloned(),
+                );
+                response["diagnostics"] = json!(diagnostics);
+            }
             if kind == "build-project-index" {
                 let next_index = response.get("plugin-index").cloned();
                 if self.plugins[index].index != next_index {
@@ -1180,6 +1360,39 @@ impl Runtime {
             merged["diagnostics"] = json!(diagnostics);
         }
         Ok(merged)
+    }
+}
+
+fn hook_failure_response(id: &str, kind: &str, error: HostError) -> Value {
+    let (message, hint) = match error {
+        HostError::Runtime { source, .. } => (source.to_string(), source.hint()),
+        error => (
+            error.to_string(),
+            "Fix the plugin manifest or remove the plugin.",
+        ),
+    };
+    hook_failure_message(id, kind, &message, hint)
+}
+
+fn hook_failure_message(id: &str, kind: &str, message: &str, hint: &str) -> Value {
+    if matches!(
+        kind,
+        "adjust-call-signature" | "adjust-call-return" | "adjust-call-state" | "validate-mutation"
+    ) {
+        // infer/builder.rs reports these failures at the original expression;
+        // returning no state patch also follows object_state.rs's invalidation
+        // path, discarding facts for receivers, aliases and other objects.
+        json!({"kind":"no-change","diagnostics":[{
+            "id":message,
+            "message":format!("Plugin `{id}` failed while handling a semantic hook"),
+            "severity":"warning",
+            "runtime-error":{"plugin-id":id,"message":message,"hint":hint}
+        }]})
+    } else {
+        // static_literal.rs's class/member/project-index hooks log failures and
+        // abstain without adding a source diagnostic or stopping other plugins.
+        eprintln!("warning: Plugin `{id}` {kind} hook failed: {message}. {hint}");
+        json!({"kind":"no-change"})
     }
 }
 
@@ -1500,6 +1713,175 @@ mod tests {
     use super::*;
 
     #[test]
+    fn virtual_record_wire_preserves_shape_and_named_tuple_identity() -> Result<()> {
+        let mut runtime = Runtime::from_plugins(&[])?;
+        runtime.selected_virtual_scope = Some("accounts".into());
+        runtime.virtual_shapes.insert("virtual.Row".into(), json!({"kind":"typed-dict","total":false,"fields":[
+            {"name":"title","type-expr":{"expression":"Alias","imports":[{"module":"builtins","name":"str","alias":"Alias"}]},"required":true,"read-only":true},
+            {"name":"pages","type-expr":{"expression":"int | None"},"required":true}
+        ]}));
+        runtime.virtual_shapes.insert(
+            "virtual.NamedRow".into(),
+            json!({"kind":"named-tuple","fields":[]}),
+        );
+        let record = runtime.qualified_type_expr("query.Rows[virtual.Row]");
+        assert_eq!(
+            record["expression"],
+            "query.Rows[<TypedDict with items 'pages', 'title'>]"
+        );
+        let snapshot = &record["snapshot"]["arguments"][0];
+        assert_eq!(snapshot["kind"], "typed-dict");
+        assert_eq!(snapshot["closed"], true);
+        assert_eq!(
+            snapshot["fields"][0]["type-snapshot"]["qualified-name"],
+            "builtins.str"
+        );
+        assert_eq!(snapshot["fields"][0]["required"], false);
+        assert_eq!(snapshot["fields"][0]["read-only"], true);
+        let named = runtime.qualified_type_expr("query.Rows[virtual.NamedRow]");
+        assert_eq!(named["expression"], "query.Rows[accounts.NamedRow]");
+        assert_eq!(
+            named["snapshot"]["arguments"][0],
+            json!({"kind":"plugin-class","identity":"virtual.NamedRow"})
+        );
+        runtime.selected_virtual_scope = Some("other".into());
+        assert_eq!(
+            runtime.qualified_type_expr("virtual.NamedRow")["expression"],
+            "other.NamedRow"
+        );
+        runtime.virtual_shapes.clear();
+        assert_eq!(
+            runtime.qualified_type_expr("virtual.Row")["snapshot"]["kind"],
+            "nominal"
+        );
+        Ok(())
+    }
+
+    #[test]
+    fn structural_aliases_are_scoped_and_replaced_on_rerender() -> Result<()> {
+        let mut runtime = Runtime::from_plugins(&[])?;
+        let source = |module: &str| Source::new("".into(), format!("{module}.py"), module.into());
+        for (module, field) in [("left", "a"), ("right", "b")] {
+            runtime.register_protocol_types(module,"_generated_",BTreeMap::from([("_record".into(),json!({"expression":"Record","mode":"annotation","snapshot":{"kind":"typed-dict","fields":[{"name":field,"type-snapshot":{"kind":"nominal","qualified-name":"builtins.int"}}]}}))]));
+        }
+        assert_eq!(
+            runtime.type_expr(&source("left"), "list[_record]")["snapshot"]["arguments"][0]["fields"]
+                [0]["name"],
+            "a"
+        );
+        assert_eq!(
+            runtime.type_expr(&source("right"), "_record")["snapshot"]["fields"][0]["name"],
+            "b"
+        );
+        runtime.register_protocol_types("left", "_generated_", BTreeMap::new());
+        assert_eq!(
+            runtime.type_expr(&source("left"), "_record")["snapshot"]["kind"],
+            "expression"
+        );
+        assert_eq!(
+            runtime.type_expr(&source("right"), "_record")["snapshot"]["kind"],
+            "typed-dict"
+        );
+        Ok(())
+    }
+
+    #[test]
+    fn host_hook_failures_warn_only_for_expression_hooks() {
+        for kind in [
+            "adjust-call-signature",
+            "adjust-call-return",
+            "adjust-call-state",
+            "validate-mutation",
+            "analyze-class",
+            "resolve-instance-member",
+            "resolve-class-member",
+            "build-project-index",
+        ] {
+            let response = hook_failure_response(
+                "failure",
+                kind,
+                HostError::Runtime {
+                    plugin_id: "failure".into(),
+                    source: ty_plugin_host::RuntimeError::Timeout,
+                },
+            );
+            assert_eq!(response["kind"], "no-change");
+            let warning = kind.starts_with("adjust-call-") || kind == "validate-mutation";
+            assert_eq!(response.get("diagnostics").is_some(), warning, "{kind}");
+            if warning {
+                assert_eq!(response["diagnostics"][0]["id"], "plugin timed out");
+                assert_eq!(
+                    response["diagnostics"][0]["runtime-error"]["hint"],
+                    ty_plugin_host::RuntimeError::Timeout.hint()
+                );
+            }
+        }
+    }
+
+    #[test]
+    fn malformed_monty_responses_are_cached_recoverable_warnings() -> Result<()> {
+        let directory =
+            std::env::temp_dir().join(format!("native-runtime-failure-{}", std::process::id()));
+        std::fs::create_dir_all(&directory)?;
+        let manifest = directory.join("plugin.json");
+        let plugin = directory.join("plugin.py");
+        std::fs::write(
+            &manifest,
+            serde_json::to_vec(&json!({
+                "id":"failure","name":"Failure","version":"0.0.0","protocol-version":{"major":0,"minor":7},
+                "ty-compatibility":{"requirement":">=0.86.0,<0.87.0"},"runtime":{"kind":"monty","artifact":"plugin.py"},
+                "capabilities":{"call-return":true},"claims":{"functions":[{"qualified-name":"demo.load"}]}
+            }))?,
+        )?;
+        let source = Source::new("load()".into(), "demo.py".into(), "demo".into());
+        let request =
+            json!({"callee":{"expression":"demo.load","mode":"expression"},"arguments":[]});
+        std::fs::write(
+            &plugin,
+            "@on_call_return\ndef returns(request):\n    return {'kind':'invalid-response-kind'}\n",
+        )?;
+        let mut runtime = Runtime::new(&manifest, &plugin)?;
+        let first = runtime.execute(&source, "adjust-call-return", request.clone())?;
+        assert_eq!(first["kind"], "no-change");
+        assert!(
+            first["diagnostics"][0]["id"]
+                .as_str()
+                .unwrap()
+                .starts_with("plugin returned an invalid response:")
+        );
+        assert_eq!(runtime.executions, 1);
+        assert_eq!(
+            runtime.execute(&source, "adjust-call-return", request.clone())?,
+            first
+        );
+        assert_eq!(runtime.executions, 1);
+        assert_eq!(runtime.hits, 1);
+        // Plugin/config reload creates a new Runtime, so cached failures cannot
+        // survive an edited artifact. Ordinary SDK exceptions are protocol
+        // Error responses and retain the fork's silent abstention behavior.
+        std::fs::write(
+            &plugin,
+            "@on_call_return\ndef returns(request):\n    raise ValueError('explicit failure')\n",
+        )?;
+        let mut runtime = Runtime::new(&manifest, &plugin)?;
+        assert_eq!(
+            runtime.execute(&source, "adjust-call-return", request.clone())?,
+            json!({"kind":"no-change"})
+        );
+        std::fs::write(
+            &plugin,
+            "@on_call_return\ndef returns(request):\n    return call_return_patch(type_annotation('int'))\n",
+        )?;
+        let mut runtime = Runtime::new(&manifest, &plugin)?;
+        assert_eq!(
+            runtime.execute(&source, "adjust-call-return", request)?["return-type"]["expression"],
+            "int"
+        );
+        std::fs::remove_dir_all(directory)?;
+        Ok(())
+    }
+
+    #[test]
     fn notebook_protocol_uses_local_names_without_sharing_internal_classes() -> Result<()> {
         let directory =
             std::env::temp_dir().join(format!("native-runtime-notebooks-{}", std::process::id()));
@@ -1753,6 +2135,59 @@ mod tests {
     }
 
     #[test]
+    fn settings_diagnostics_use_each_plugins_policy_and_successful_index() -> Result<()> {
+        let directory =
+            std::env::temp_dir().join(format!("native-settings-policy-{}", std::process::id()));
+        std::fs::create_dir_all(&directory)?;
+        let mut paths = Vec::new();
+        for (id, strict, module) in [("strict", true, "one"), ("loose", false, "two")] {
+            let manifest = json!({"id":id,"name":id,"version":"0.0.0","protocol-version":{"major":0,"minor":7},"ty-compatibility":{"requirement":">=0.86.0,<0.87.0"},"runtime":{"kind":"monty","artifact":format!("{id}.py")},"capabilities":{"project-index":true,"settings-data":true},"claims":{"settings":[{"module":module}]}});
+            let path = directory.join(format!("{id}.json"));
+            let artifact = directory.join(format!("{id}.py"));
+            std::fs::write(&path, serde_json::to_vec(&manifest)?)?;
+            std::fs::write(
+                &artifact,
+                "@on_project_index\ndef index(request):\n    return project_index(plugin_index={'settings':request['settings']})\n",
+            )?;
+            paths.push((path, artifact, json!({"strict_settings":strict})));
+        }
+        let mut runtime = Runtime::from_plugins(&paths)?;
+        let request = json!({"context":{"root":"","python-version":"3.13","platform":"darwin"},"settings":[{"module":"one","diagnostics":[{"id":"one","message":"unsupported","severity":"warning"}]},{"module":"two","diagnostics":[{"id":"two","message":"unsupported","severity":"error"}]}]});
+        let result = runtime.execute_project("build-project-index", request.clone())?;
+        assert_eq!(result["diagnostics"].as_array().unwrap().len(), 2);
+        for plugin in &runtime.plugins {
+            let settings = &plugin.index.as_ref().unwrap()["settings"];
+            assert_eq!(settings.as_array().unwrap().len(), 1);
+            let expected = if plugin.id == "strict" {
+                "error"
+            } else {
+                "warning"
+            };
+            assert_eq!(settings[0]["diagnostics"][0]["severity"], expected);
+            assert!(
+                result["diagnostics"]
+                    .as_array()
+                    .unwrap()
+                    .iter()
+                    .any(
+                        |diagnostic| diagnostic["id"] == settings[0]["diagnostics"][0]["id"]
+                            && diagnostic["severity"] == expected
+                    )
+            );
+        }
+        std::fs::write(
+            &paths[0].1,
+            "@on_project_index\ndef index(request):\n    return None\n",
+        )?;
+        let mut runtime = Runtime::from_plugins(&paths[..1])?;
+        let result = runtime.execute_project("build-project-index", request)?;
+        assert_eq!(result["kind"], "no-change");
+        assert!(result.get("diagnostics").is_none());
+        std::fs::remove_dir_all(directory)?;
+        Ok(())
+    }
+
+    #[test]
     fn request_cache_bounds_storage_and_retains_recent_results() {
         let mut cache = RequestCache::default();
         let first = request_key(&0).unwrap();
@@ -1989,6 +2424,79 @@ mod tests {
     }
 
     #[test]
+    fn exact_class_transform_claims_follow_ancestry_but_constructors_do_not() -> Result<()> {
+        let directory =
+            std::env::temp_dir().join(format!("ty-transform-ancestry-{}", std::process::id()));
+        std::fs::create_dir_all(&directory)?;
+        let manifest = json!({"id":"test.ancestry","name":"Class ancestry","version":"0.0.0",
+            "protocol-version":{"major":0,"minor":7},"ty-compatibility":{"requirement":">=0.86.0"},
+            "runtime":{"kind":"monty","artifact":"plugin.py"},
+            "capabilities":{"class-transform":true,"call-state":true},
+            "claims":{"classes":[{"kind":"exact","qualified-name":"demo.Base"}],
+                "constructors":[{"kind":"exact","qualified-name":"demo.Base"}]}});
+        std::fs::write(
+            directory.join("demo.py"),
+            "class Base: pass\nclass Child(Base): pass\nclass Unrelated: pass\n",
+        )?;
+        std::fs::write(directory.join("plugin.py"), "pass")?;
+        std::fs::write(
+            directory.join("plugin.json"),
+            serde_json::to_vec(&manifest)?,
+        )?;
+        let project = Project::load(
+            &directory,
+            &[directory.join("demo.py")],
+            &manifest,
+            json!({}),
+        )?;
+        let source = project.modules["demo"].source.clone();
+        let mut runtime =
+            Runtime::new(&directory.join("plugin.json"), &directory.join("plugin.py"))?;
+        runtime.attach_project(Arc::new(project), json!({}));
+        assert!(runtime.allowed(
+            &source,
+            "analyze-class",
+            &json!({"class":{"qualified-name":"demo.Child"}}),
+            &manifest
+        ));
+        assert!(!runtime.allowed(
+            &source,
+            "analyze-class",
+            &json!({"class":{"qualified-name":"demo.Unrelated"}}),
+            &manifest
+        ));
+        assert!(!runtime.allowed(
+            &source,
+            "adjust-call-state",
+            &json!({"callee":{"expression":"demo.Child"}}),
+            &manifest
+        ));
+        assert!(runtime.allowed(
+            &source,
+            "adjust-call-state",
+            &json!({"callee":{"expression":"demo.Base"}}),
+            &manifest
+        ));
+        let mut subclass_manifest = manifest.clone();
+        subclass_manifest["claims"]["classes"] =
+            json!([{"kind":"subclass-of","base-qualified-name":"demo.Base"}]);
+        assert!(runtime.allowed(
+            &source,
+            "analyze-class",
+            &json!({"class":{"qualified-name":"demo.Child"}}),
+            &subclass_manifest
+        ));
+        assert!(!runtime.allowed(
+            &source,
+            "analyze-class",
+            &json!({"class":{"qualified-name":"demo.Unrelated"}}),
+            &subclass_manifest
+        ));
+        std::fs::remove_dir_all(directory)?;
+        Ok(())
+    }
+
+    #[test]
     fn oracle_display_forms_do_not_capture_unrelated_project_classes() {
         let directory =
             std::env::temp_dir().join(format!("native-runtime-display-{}", std::process::id()));
@@ -2046,11 +2554,9 @@ mod tests {
             imported["snapshot"]["arguments"][0]["qualified-name"],
             "builtins.int"
         );
-        assert!(
-            runtime
-                .type_expr(&consumer, "Literal[1]")
-                .get("snapshot")
-                .is_none()
+        assert_eq!(
+            runtime.type_expr(&consumer, "Literal[1]")["snapshot"],
+            json!({"kind":"expression","expression":"Literal[1]","mode":"annotation"})
         );
         let protocol_type = runtime.qualified_type_expr("datetime.datetime");
         assert_eq!(

@@ -57,6 +57,13 @@ class RpcError(RuntimeError):
         super().__init__(f"{method}: {error}")
 
 
+class InitializationExit(RuntimeError):
+    def __init__(self, returncode, stderr):
+        self.returncode = returncode
+        self.stderr = stderr
+        super().__init__(f"server exited during initialize ({returncode}): {stderr}")
+
+
 class SettingsClient(Client):
     def __init__(self, command, root, stderr, settings):
         self.settings = settings
@@ -340,6 +347,21 @@ class Gate:
                 },
             )
             client.notify("initialized")
+        except EOFError as error:
+            # The native server rejects malformed initialization by exiting.
+            # Its asynchronous transport may close before flushing the optional
+            # JSON-RPC error frame; retain the actual process result as evidence.
+            try:
+                returncode = client.process.wait(timeout=5)
+            except subprocess.TimeoutExpired:
+                client.process.kill()
+                client.process.wait()
+                raise
+            finally:
+                client.log.close()
+            raise InitializationExit(
+                returncode, (case / "stderr.log").read_text(encoding="utf-8")
+            ) from error
         except BaseException:
             if client.process.poll() is None:
                 client.process.kill()
@@ -763,14 +785,27 @@ class Gate:
                     backend, [root], options={"untrustedWorkspace": "false"}
                 )
             except RpcError as error:
+                assert error.code == -32602, error.error
                 errors[backend] = error.error
+            except InitializationExit as error:
+                assert backend == "official", (backend, error)
+                assert error.returncode == 2, error
+                assert "Invalid `untrustedWorkspace` setting" in error.stderr, error
+                assert "expected a boolean" in error.stderr, error
+                errors[backend] = {
+                    "transport": "process-exit",
+                    "exit": error.returncode,
+                    "message": error.stderr,
+                }
             else:
                 client.close()
                 raise AssertionError(f"{backend} accepted malformed workspace trust")
         self.evidence["raw"]["malformed-trust"] = errors
-        assert errors["companion"]["code"] == errors["official"]["code"] == -32602, (
-            errors
-        )
+        assert errors["companion"]["code"] == -32602, errors
+        assert (
+            errors["official"].get("code") == -32602
+            or errors["official"].get("transport") == "process-exit"
+        ), errors
         assert all(
             "untrustedWorkspace" in error["message"] for error in errors.values()
         ), errors
