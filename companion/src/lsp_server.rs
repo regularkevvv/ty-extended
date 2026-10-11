@@ -113,6 +113,9 @@ struct Editor {
     watcher_registration: Option<String>,
     cancelled: Arc<Mutex<BTreeSet<String>>>,
     timings: Vec<Value>,
+    // Hints depend on semantic reachability, not only this file's text. Entries
+    // survive only a globally unchanged/trivia-only refresh, never type edits.
+    hint_cache: BTreeMap<(u32, String), Vec<Value>>,
     publications_pending: bool,
 }
 
@@ -232,6 +235,7 @@ impl Editor {
             watcher_registration: None,
             cancelled,
             timings: vec![],
+            hint_cache: BTreeMap::new(),
             publications_pending: false,
         }
     }
@@ -397,8 +401,22 @@ impl Editor {
     }
 
     fn refresh(&mut self) -> Result<bool> {
+        let result = self.refresh_inner();
+        if result.is_err() {
+            // A preceding workspace may already have committed a semantic
+            // revision before another workspace or response mapping fails.
+            // The next refresh must not reuse hints from before that revision.
+            self.hint_cache.clear();
+        }
+        result
+    }
+
+    fn refresh_inner(&mut self) -> Result<bool> {
         let started = Instant::now();
         let mut changed = false;
+        let mut reuse_native_hints = self.notebooks.is_empty();
+        let mut hint_requests = 0usize;
+        let mut hint_cache_hits = 0usize;
         let aliases = &self.aliases;
         let original_uri = |path: &Path| -> Result<String> {
             aliases
@@ -441,6 +459,11 @@ impl Editor {
                     return Err(error);
                 }
             };
+            reuse_native_hints &= result["reused_projection"] == true
+                && matches!(
+                    result["reuse_reason"].as_str(),
+                    Some("unchanged" | "trailing-trivia")
+                );
             workspace.error = None;
             workspace.statistics = result.clone();
             if let Some(object) = workspace.statistics.as_object_mut() {
@@ -542,6 +565,10 @@ impl Editor {
             changed = true;
         }
         if changed {
+            if !reuse_native_hints {
+                self.hint_cache.clear();
+            }
+            let mut active_hint_keys = BTreeSet::new();
             self.maps.clear_documents();
             let mut notebook_reports = Vec::new();
             let mut hint_reports = Vec::new();
@@ -586,15 +613,34 @@ impl Editor {
                     let uri = original_uri(Path::new(&document.source.path))?;
                     let generated_uri = file_uri(&document.path)?;
                     if self.buffers.contains_key(&uri) {
-                        let report = workspace
-                            .session
-                            .checker_mut()
-                            .context("editor checker")?
-                            .request(
+                        let checker = workspace.session.checker_mut().context("editor checker")?;
+                        let key = (checker.process_id(), generated_uri.clone());
+                        let hints = if let Some(hints) = self.hint_cache.get(&key) {
+                            hint_cache_hits += 1;
+                            hints.clone()
+                        } else {
+                            hint_requests += 1;
+                            let report = checker.request(
                                 "textDocument/diagnostic",
                                 json!({"textDocument":{"uri":generated_uri}}),
                             )?;
-                        hint_reports.push((index, uri.clone(), generated_uri.clone(), report));
+                            let hints = report["items"]
+                                .as_array()
+                                .context("editor diagnostics")?
+                                .iter()
+                                .filter(|diagnostic| diagnostic["code"].is_null())
+                                .cloned()
+                                .collect::<Vec<_>>();
+                            self.hint_cache.insert(key.clone(), hints.clone());
+                            hints
+                        };
+                        active_hint_keys.insert(key);
+                        hint_reports.push((
+                            index,
+                            uri.clone(),
+                            generated_uri.clone(),
+                            json!({"items":hints}),
+                        ));
                     }
                     self.maps.add_hidden_prefix(document.source.prefix.clone());
                     self.maps.insert(
@@ -609,6 +655,8 @@ impl Editor {
                     );
                 }
             }
+            self.hint_cache
+                .retain(|key, _| active_hint_keys.contains(key));
             // CLI normalization deliberately omits uncoded editor hints such
             // as unused parameters. Keep the native final projection's tags,
             // severity and ranges for open editor documents.
@@ -700,7 +748,7 @@ impl Editor {
                     self.maps.add_diagnostic(uri, presented, raw.clone());
                 }
             }
-            self.timings.push(json!({"seconds":started.elapsed().as_secs_f64(),"open_documents":self.buffers.len(),"projects":self.workspaces.iter().map(|w|w.statistics.clone()).collect::<Vec<_>>()}));
+            self.timings.push(json!({"seconds":started.elapsed().as_secs_f64(),"open_documents":self.buffers.len(),"hint_requests":hint_requests,"hint_cache_hits":hint_cache_hits,"projects":self.workspaces.iter().map(|w|w.statistics.clone()).collect::<Vec<_>>()}));
             if self.timings.len() > 1024 {
                 self.timings.remove(0);
             }

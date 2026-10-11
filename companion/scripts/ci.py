@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import argparse
+import gzip
 import hashlib
 import json
 import os
@@ -75,6 +76,26 @@ def django_gate(output: Path, binary: Path, env: dict[str, str]) -> None:
         env=env,
     )
     run(["git", "-C", str(source), "checkout", "--detach", "FETCH_HEAD"], env=env)
+    oracle = output / "django-oracle.jsonl"
+    with gzip.open("companion/evidence/protocol-inputs/oracle.jsonl.gz", "rb") as data:
+        oracle.write_bytes(data.read())
+    run(
+        [
+            "cargo",
+            "+1.98.0",
+            "test",
+            "--locked",
+            "--release",
+            "--manifest-path",
+            "companion/Cargo.toml",
+            "--test",
+            "django_monty_parity",
+            "--",
+            "--ignored",
+            "--nocapture",
+        ],
+        env={**env, "DJANGO_TY_SOURCE": str(source), "DJANGO_TY_ORACLE": str(oracle)},
+    )
     official = install(output / "official084", "ty==0.0.84", env)
     archive = output / "reference084.tar.gz"
     urllib.request.urlretrieve(
@@ -159,10 +180,18 @@ def main() -> None:
     args.output.mkdir(parents=True, exist_ok=False)
     output = args.output.resolve()
     env = {**os.environ, "TY_UV": "0", "TY_MAX_PARALLELISM": "1"}
-    official = install(output / "official", "ty==0.0.86", env)
-    fork = reference_checker(output, env)
-    env.update(
-        TY_COMPANION_TEST_OFFICIAL=str(official), TY_COMPANION_TEST_FORK=str(fork)
+    run(
+        [
+            sys.executable,
+            "-m",
+            "unittest",
+            "discover",
+            "-s",
+            "companion/tests",
+            "-p",
+            "test_*.py",
+        ],
+        env=env,
     )
     manifest = Path("companion/Cargo.toml").resolve()
     cargo = ["cargo", "+1.98.0"]
@@ -180,6 +209,11 @@ def main() -> None:
             "warnings",
         ],
         env=env,
+    )
+    official = install(output / "official", "ty==0.0.86", env)
+    fork = reference_checker(output, env)
+    env.update(
+        TY_COMPANION_TEST_OFFICIAL=str(official), TY_COMPANION_TEST_FORK=str(fork)
     )
     run([*cargo, "test", "--locked", "--manifest-path", str(manifest)], env=env)
     run(
@@ -228,6 +262,19 @@ def main() -> None:
         / "release"
         / ("ty-companion-rust.exe" if os.name == "nt" else "ty-companion-rust")
     ).resolve()
+    for mode in ("cli", "lsp", "push"):
+        run(
+            [
+                str(binary),
+                "suite",
+                str(Path("companion/tests/fixtures/generic").resolve()),
+                str(output / f"generic-{mode}"),
+                mode,
+                str(official),
+                str(fork),
+            ],
+            env=env,
+        )
     for script in (
         "lsp_acceptance",
         "lsp_differential",

@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 import sys
 import tempfile
 import unittest
@@ -62,6 +63,90 @@ class EvidenceTests(unittest.TestCase):
             path.write_text('{"passed":true,"status":"failed"}')
             with self.assertRaises(evidence.Failure):
                 evidence.supplemental_json(path)
+
+    def test_supplemental_binary_identity_is_required_and_all_claims_must_match(self):
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "gate.json"
+            for identity in (
+                {"companion_sha256": "old"},
+                {"binary_sha256": "old"},
+                {"artifact": "/binary", "sha256": "old"},
+                {"companion": {"sha256": "old"}},
+                {"companion_binary": {"sha256": "old"}},
+                {"binaries": {"companion": {"sha256": "old"}}},
+                {},
+                {"companion_sha256": "final", "binary_sha256": "old"},
+            ):
+                with self.subTest(identity=identity):
+                    path.write_text(json.dumps({"passed": True, **identity}))
+                    with self.assertRaises(evidence.Failure):
+                        evidence.supplemental_json(path, "final")
+
+    def test_companion_fingerprint_does_not_replace_other_artifact_identities(self):
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "gate.json"
+            report = {
+                "passed": True,
+                "companion_sha256": "final",
+                "binary_sha256": "final",
+                "artifact": "/binary",
+                "sha256": "final",
+                "source_sha256": "source",
+                "official_sha256": "official",
+                "fork_sha256": "fork",
+                "binaries": {
+                    "companion": {"sha256": "final"},
+                    "official": {"sha256": "official"},
+                    "fork": {"sha256": "fork"},
+                },
+            }
+            path.write_text(json.dumps(report))
+            self.assertEqual(evidence.supplemental_json(path, "final"), report)
+
+    def test_explicit_path_labels_do_not_cover_unrelated_siblings(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory).resolve()
+            labeled = root / "gate"
+            labeled.mkdir()
+            labels = {}
+            evidence.path_label(labels, f"editor={labeled}")
+            self.assertEqual(
+                evidence.portable(
+                    {
+                        "report": str(labeled / "summary.json"),
+                        "uri": f"file://{labeled}/demo.py:3",
+                    },
+                    labels,
+                ),
+                {
+                    "report": "artifact:editor/summary.json",
+                    "uri": "file://artifact:editor/demo.py:3",
+                },
+            )
+            for unknown in (root / "gate-other" / "summary.json", root / "elsewhere"):
+                with self.subTest(unknown=unknown), self.assertRaises(evidence.Failure):
+                    evidence.portable(str(unknown), labels)
+
+    def test_path_labels_reject_missing_paths_and_conflicting_identities(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory).resolve()
+            first, second = root / "first", root / "second"
+            first.mkdir()
+            second.mkdir()
+            labels = {}
+            evidence.path_label(labels, f"first={first}")
+            for specification in (
+                f"missing={root / 'missing'}",
+                f"other={first}",
+                f"first={second}",
+                f"Not_a_label={second}",
+                "empty=",
+            ):
+                with self.subTest(specification=specification), self.assertRaises(
+                    evidence.Failure
+                ):
+                    evidence.path_label(labels, specification)
+            self.assertEqual(labels, {str(first): "artifact:first"})
 
     def test_unknown_absolute_path_is_not_published(self):
         with self.assertRaises(evidence.Failure):

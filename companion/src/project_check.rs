@@ -85,6 +85,9 @@ fn copy_python(root: &Path, target: &Path) -> Result<()> {
                 }
             }
             #[cfg(not(unix))]
+            // This branch cannot widen Unix permissions; Windows clears only
+            // the copied file's read-only attribute. Unix sets owner-write above.
+            #[allow(clippy::permissions_set_readonly_false)]
             if permissions.readonly() {
                 permissions.set_readonly(false);
                 std::fs::set_permissions(&dst, permissions)?;
@@ -1069,6 +1072,7 @@ impl Session {
         result["reused_units"] = json!(self.cached_units.len());
         result["monty_executions_delta"] = json!(0);
         result["monty_cache_hits_delta"] = json!(0);
+        result["monty_seconds_delta"] = json!(0.0);
         result["seconds"] = json!(started.elapsed().as_secs_f64());
         result["phases"] = json!({"source_scan_and_trivia_update":started.elapsed().as_secs_f64()});
         self.last_result = Some(result.clone());
@@ -2244,6 +2248,7 @@ mod tests {
         let pid = session.checker_mut().unwrap().process_id();
         let first = session.check(&BTreeMap::new())?;
         assert_eq!(first["diagnostics"], json!([]), "{first:#}");
+        assert!(first["monty_seconds_delta"].as_f64().unwrap() > 0.0);
         let same = session.check(&BTreeMap::new())?;
         assert_eq!(same["reused_projection"], true);
         assert_eq!(same["monty_executions"], first["monty_executions"]);
@@ -2255,6 +2260,8 @@ mod tests {
             )]))?;
             assert_eq!(trivia["reuse_reason"], "trailing-trivia");
             assert_eq!(trivia["monty_executions_delta"], 0);
+            assert_eq!(trivia["monty_cache_hits_delta"], 0);
+            assert_eq!(trivia["monty_seconds_delta"], 0.0);
             assert_eq!(trivia["oracle_rounds"], 0);
             assert_eq!(trivia["diagnostics"], first["diagnostics"]);
         }

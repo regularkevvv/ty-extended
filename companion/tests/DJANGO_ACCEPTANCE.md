@@ -127,6 +127,13 @@ Optional repeated `--supplemental-json LABEL=PATH` or
 `--supplemental-log LABEL=PATH` arguments retain additional green gates without
 inventing their counts. JSON must state a green outcome; supplemental Rust logs
 must contain executed passing tests and no failed test/build result.
+Supplemental JSON must also identify the accepted companion binary using
+`companion_sha256`, `binary_sha256`, `artifact` plus `sha256`, or a
+`companion.sha256` / `binaries.companion.sha256` record. Other checker and source
+fingerprints remain separate. Referenced output directories and sibling logs
+need explicit `--path-label LABEL=PATH` arguments; registering a report does
+not register its parent directory. Labels must identify existing paths and
+cannot conflict with other artifact identities.
 
 The exporter rejects partial matrices, missing gates, binary/source/dependency
 mismatches and unverified benchmark samples. It retains complete normalized

@@ -55,6 +55,10 @@ def on_change(sender: object, **kwargs: object) -> None:
     pass
 
 assert_type(1, str)
+
+def unreachable(value: int) -> int:
+    return value
+    print(value)
 '''
 
 
@@ -456,6 +460,54 @@ def run(args, encoding):
                     continuation,
                     {backend: {"item": value[0]} for backend, value in items.items()},
                 )
+
+        def uncoded(items):
+            return [item for item in items if item.get("code") is None]
+
+        initial_hints = uncoded(diagnostics["companion"]["items"])
+        assert any("unreachable" in item["message"].lower() for item in initial_hints)
+
+        def changed_source(version, text, name):
+            for client in clients.values():
+                client.notify(
+                    "textDocument/didChange",
+                    {
+                        "textDocument": {"uri": uri, "version": version},
+                        "contentChanges": [{"text": text}],
+                    },
+                )
+            reports = check(name, "textDocument/diagnostic", document)
+            statistics = clients["companion"].request("tyCompanion/statistics")
+            update = statistics["updates"][-1]
+            evidence["raw"][name + "_statistics"] = update
+            return uncoded(reports["companion"]["items"]), update
+
+        commented = (
+            SOURCE + "\n# A trailing comment preserves all existing source positions.\n"
+        )
+        hints, update = changed_source(2, commented, "hints_after_comment")
+        assert hints == initial_hints, (
+            "comment-only updates must retain unused/unreachable hints"
+        )
+        assert update["hint_requests"] == 0 and update["hint_cache_hits"] >= 1, update
+
+        used = commented.replace(
+            "def on_change(sender: object, **kwargs: object) -> None:\n    pass",
+            "def on_change(sender: object, **kwargs: object) -> None:\n    print(sender, kwargs)",
+        ).replace(
+            "    return value\n    print(value)", "    print(value)\n    return value"
+        )
+        hints, update = changed_source(3, used, "hints_after_semantic_edit")
+        assert not any(
+            "unused" in item["message"].lower()
+            or "unreachable" in item["message"].lower()
+            for item in hints
+        ), hints
+        assert update["hint_requests"] >= 1, update
+        hints, update = changed_source(4, commented, "hints_after_semantic_restore")
+        assert hints == initial_hints, "restoring source must restore native hints"
+        assert update["hint_requests"] >= 1, update
+
         # Rebuilding source maps for a different workspace must neither append
         # explanatory notes again nor duplicate uncoded unused-parameter hints.
         other_root = case / "other-workspace"
@@ -517,6 +569,7 @@ def run(args, encoding):
                 message.count("info: `str` and `Literal[1]`") <= 1
                 for message in messages
             )
+            assert uncoded(refreshed["companion"]["items"]) == initial_hints
         after = {
             path.name: hashlib.sha256(path.read_bytes()).hexdigest()
             for path in root.glob("*.py")

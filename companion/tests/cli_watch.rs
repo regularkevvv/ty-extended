@@ -1,5 +1,5 @@
-//! Native-event watch mode must reuse analysis and clean up after interruption.
-#![cfg(unix)]
+//! Native-event watch mode must reuse analysis on every supported platform.
+//! Unix additionally verifies Ctrl-C exit status and automatic cleanup.
 use anyhow::{Context, Result, ensure};
 use std::{
     fs,
@@ -17,9 +17,63 @@ impl Drop for Running {
     }
 }
 
+/// stdout and stderr are independent pipes. A completed check's stderr timing
+/// can reach its reader before that check's stdout diagnostic, despite the CLI
+/// flushing stdout first. Await the whole check without discarding either half.
+fn wait_for(
+    receiver: &mpsc::Receiver<String>,
+    stage: &str,
+    expected: &[&str],
+) -> Result<Vec<String>> {
+    let deadline = Instant::now() + Duration::from_secs(20);
+    let mut pending = expected.to_vec();
+    let mut lines = Vec::new();
+    while !pending.is_empty() {
+        let line = receiver
+            .recv_timeout(deadline.saturating_duration_since(Instant::now()))
+            .with_context(|| {
+                format!("watch stage {stage:?} missing {pending:?}; received {lines:?}")
+            })?;
+        pending.retain(|needle| !line.contains(needle));
+        lines.push(line);
+    }
+    Ok(lines)
+}
+
+#[test]
+fn check_batches_accept_both_stdout_stderr_orders() -> Result<()> {
+    for timing_first in [false, true] {
+        let (sender, receiver) = mpsc::channel();
+        let timing = "Checked in 0.001s (0 Monty executions, 1 cache hits)";
+        if timing_first {
+            sender.send(timing.to_owned())?;
+        }
+        sender.send("demo.py:2:1: error[invalid-assignment] incompatible value".to_owned())?;
+        if !timing_first {
+            sender.send(timing.to_owned())?;
+        }
+        sender.send("Found 1 diagnostic".to_owned())?;
+        sender.send("next check".to_owned())?;
+        drop(sender);
+        let lines = wait_for(
+            &receiver,
+            "controlled stream reordering",
+            &[
+                "error[invalid-assignment]",
+                "Found 1 diagnostic",
+                "Checked in",
+            ],
+        )?;
+        assert_eq!(lines.len(), 3);
+        assert!(lines.iter().any(|line| line.contains("0 Monty executions")));
+        assert_eq!(receiver.try_recv()?, "next check");
+    }
+    Ok(())
+}
+
 #[test]
 #[ignore = "requires TY_COMPANION_TEST_OFFICIAL"]
-fn watch_rechecks_source_plugin_and_config_then_cleans_on_interrupt() -> Result<()> {
+fn watch_rechecks_source_plugin_config_and_dependencies() -> Result<()> {
     let temporary = std::env::temp_dir().canonicalize()?;
     let root = temporary.join(format!("ty-cli-watch-{}", std::process::id()));
     fs::create_dir_all(&root)?;
@@ -77,25 +131,18 @@ fn watch_rechecks_source_plugin_and_config_then_cleans_on_interrupt() -> Result<
         });
     }
     drop(sender);
-    let wait = |needle: &str| -> Result<Vec<String>> {
-        let deadline = Instant::now() + Duration::from_secs(20);
-        let mut lines = Vec::new();
-        while Instant::now() < deadline {
-            let line = receiver
-                .recv_timeout(deadline.saturating_duration_since(Instant::now()))
-                .with_context(|| format!("watch did not emit {needle:?}; received {lines:?}"))?;
-            let matched = line.contains(needle);
-            lines.push(line);
-            if matched {
-                return Ok(lines);
-            }
-        }
-        anyhow::bail!("watch timed out waiting for {needle}: {lines:?}")
-    };
-    wait("Watching for file changes")?;
+    let wait = |stage, expected: &[&str]| wait_for(&receiver, stage, expected);
+    wait(
+        "initial analysis and watcher ready",
+        &[
+            "All checks passed!",
+            "Checked in",
+            "Watching for file changes",
+        ],
+    )?;
     // A comment-only edit has identical semantic requests and reuses Monty state.
     fs::write(root.join("demo.py"), format!("{source}# comment\n"))?;
-    let trivia = wait("Checked in")?;
+    let trivia = wait("comment-only edit", &["All checks passed!", "Checked in"])?;
     ensure!(
         trivia
             .iter()
@@ -105,64 +152,123 @@ fn watch_rechecks_source_plugin_and_config_then_cleans_on_interrupt() -> Result<
     // Plugin source changes are configuration dependencies even when excluded
     // from checking as ordinary Python input.
     fs::write(root.join("plugin.py"), plugin.replace("'str'", "'int'"))?;
-    wait("error[invalid-assignment]")?;
-    wait("Checked in")?;
+    wait(
+        "plugin implementation changed",
+        &[
+            "error[invalid-assignment]",
+            "Found 1 diagnostic",
+            "Checked in",
+        ],
+    )?;
     fs::write(
         root.join("ty.toml"),
         format!("{configuration}\n[rules]\ninvalid-assignment='warn'\n"),
     )?;
-    wait("warning[invalid-assignment]")?;
-    wait("Checked in")?;
+    wait(
+        "configuration severity changed",
+        &[
+            "warning[invalid-assignment]",
+            "Found 1 diagnostic",
+            "Checked in",
+        ],
+    )?;
     fs::write(
         root.join("demo.py"),
         source.replace("value: str", "value: int"),
     )?;
-    wait("All checks passed!")?;
-    wait("Checked in")?;
+    wait(
+        "source annotation fixed",
+        &["All checks passed!", "Checked in"],
+    )?;
     // Atomic editor saves must remain observed after replacing the watched file.
     fs::write(root.join("next.py.tmp"), "new_error: int = 'bad'\n")?;
     fs::rename(root.join("next.py.tmp"), root.join("next.py"))?;
-    wait("next.py:1:")?;
-    wait("Checked in")?;
+    wait(
+        "new source installed by atomic rename",
+        &["next.py:1:", "Found 1 diagnostic", "Checked in"],
+    )?;
     fs::remove_file(root.join("next.py"))?;
-    wait("All checks passed!")?;
-    wait("Checked in")?;
+    wait("source file removed", &["All checks passed!", "Checked in"])?;
     fs::write(
         root.join("dependency.py"),
         "from installed_later import value\nother: int = value\n",
     )?;
-    wait("error[unresolved-import]")?;
-    wait("Checked in")?;
+    wait(
+        "missing dependency imported",
+        &[
+            "error[unresolved-import]",
+            "Found 1 diagnostic",
+            "Checked in",
+        ],
+    )?;
     fs::write(dependencies.join("installed_later.py"), "value = 1\n")?;
-    wait("All checks passed!")?;
-    wait("Checked in")?;
-    ensure!(
-        receiver.recv_timeout(Duration::from_millis(400)).is_err(),
-        "idle watcher reran analysis without a file change"
-    );
+    wait(
+        "dependency installed after negative lookup",
+        &["All checks passed!", "Checked in"],
+    )?;
+    let idle_until = Instant::now() + Duration::from_millis(400);
+    while let Ok(line) = receiver.recv_timeout(idle_until.saturating_duration_since(Instant::now()))
+    {
+        // Linux inotify reports our own reads as Access events. Debug logging
+        // such an event is expected; a new check without a mutation is not.
+        ensure!(
+            !line.contains("Checked in")
+                && !line.contains("All checks passed!")
+                && !line.starts_with("Found "),
+            "idle watcher reran analysis without a file change: {line}"
+        );
+    }
     let process_id = child.0.id();
-    ensure!(
-        Command::new("kill")
-            .args(["-INT", &process_id.to_string()])
-            .status()?
-            .success()
-    );
-    let deadline = Instant::now() + Duration::from_secs(5);
-    let status = loop {
-        if let Some(status) = child.0.try_wait()? {
-            break status;
-        }
-        ensure!(Instant::now() < deadline, "watch did not stop after Ctrl+C");
-        std::thread::sleep(Duration::from_millis(10));
-    };
-    ensure!(status.code() == Some(130), "watch exit status: {status}");
     let prefix = format!("ty-companion-check-{process_id}-");
-    ensure!(
-        !fs::read_dir(&temporary)?
-            .flatten()
-            .any(|entry| entry.file_name().to_string_lossy().starts_with(&prefix)),
-        "watch leaked its projection on Ctrl+C"
-    );
+    #[cfg(unix)]
+    {
+        ensure!(
+            Command::new("kill")
+                .args(["-INT", &process_id.to_string()])
+                .status()?
+                .success()
+        );
+        let deadline = Instant::now() + Duration::from_secs(5);
+        let status = loop {
+            if let Some(status) = child.0.try_wait()? {
+                break status;
+            }
+            ensure!(Instant::now() < deadline, "watch did not stop after Ctrl+C");
+            std::thread::sleep(Duration::from_millis(10));
+        };
+        ensure!(status.code() == Some(130), "watch exit status: {status}");
+        ensure!(
+            !fs::read_dir(&temporary)?
+                .flatten()
+                .any(|entry| entry.file_name().to_string_lossy().starts_with(&prefix)),
+            "watch leaked its projection on Ctrl+C"
+        );
+    }
+    #[cfg(not(unix))]
+    {
+        // Process termination is teardown, not evidence of Windows Ctrl-C
+        // handling. Every preceding native watch assertion still runs here.
+        child.0.kill()?;
+        child.0.wait()?;
+        for entry in fs::read_dir(&temporary)? {
+            let entry = entry?;
+            if entry.file_name().to_string_lossy().starts_with(&prefix) {
+                let deadline = Instant::now() + Duration::from_secs(5);
+                loop {
+                    match fs::remove_dir_all(entry.path()) {
+                        Ok(()) => break,
+                        Err(error) if error.kind() == std::io::ErrorKind::NotFound => break,
+                        Err(error) if Instant::now() >= deadline => {
+                            return Err(error).context("remove terminated watch test projection");
+                        }
+                        // Allow the checker child to observe closed stdio and
+                        // release Windows file handles after its parent exits.
+                        Err(_) => std::thread::sleep(Duration::from_millis(10)),
+                    }
+                }
+            }
+        }
+    }
     fs::remove_dir_all(root)?;
     fs::remove_dir_all(dependencies)?;
     Ok(())

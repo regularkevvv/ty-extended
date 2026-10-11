@@ -815,6 +815,33 @@ impl Project<'_> {
         }
     }
 
+    fn member_type(&self, owner: &str, member: &str, class_access: bool) -> Option<Value> {
+        let existing = self
+            .runtime
+            .member_type(self.source, owner, member, class_access);
+        if existing.is_some() || self.runtime.project.is_some() {
+            return existing;
+        }
+        // The retained single-file command stores declarations in Analysis
+        // instead of attaching a project. Those declarations still count as
+        // existing members for both the request and fill-on-miss dispatch.
+        let (nominal, arguments) = crate::runtime::generic_parts(owner);
+        let nominal = if matches!(nominal, "type" | "builtins.type") {
+            arguments.first().copied().unwrap_or(nominal)
+        } else {
+            nominal
+        };
+        let (nominal, _) = crate::runtime::generic_parts(nominal);
+        let nominal = nominal
+            .strip_prefix(&format!("{}.", self.source.module))
+            .unwrap_or(nominal);
+        self.analysis
+            .classes
+            .get(nominal)
+            .and_then(|class| class.fields.get(member))
+            .map(typ)
+    }
+
     fn identity(&mut self, scope: &mut Scope, expr: &Expr) -> Option<Object> {
         if let Some(identity) = scope.identity(expr) {
             return Some(identity);
@@ -823,8 +850,7 @@ impl Project<'_> {
             self.identity(scope, &attribute.value).and_then(|identity| {
                 let owner = &scope.types[&identity];
                 let (nominal, _) = crate::runtime::generic_parts(owner);
-                self.runtime.member_type(
-                    self.source,
+                self.member_type(
                     owner,
                     attribute.attr.as_str(),
                     matches!(nominal, "type" | "builtins.type"),
@@ -1180,9 +1206,7 @@ impl Project<'_> {
                     .and_then(|facts| facts.get(member))
                     .cloned();
                 if expression.is_none() {
-                    let existing =
-                        self.runtime
-                            .member_type(self.source, &owner, member, class_access);
+                    let existing = self.member_type(&owner, member, class_access);
                     // ty invokes dynamic class-member hooks only after normal
                     // class lookup misses, regardless of the response mode.
                     if class_access && existing.is_some() {
@@ -1613,6 +1637,53 @@ mod tests {
     impl Drop for Fixture {
         fn drop(&mut self) {
             let _ = std::fs::remove_dir_all(&self.directory);
+        }
+    }
+
+    #[test]
+    fn legacy_member_hooks_preserve_existing_declarations_unless_replaced() {
+        for mode in ["fill-on-miss", "replace-existing"] {
+            let manifest = json!({
+                "id":"native.member-contract","name":"Member contract","version":"0.0.0",
+                "protocol-version":{"major":0,"minor":7},"ty-compatibility":{"requirement":">=0.86.0,<0.87.0"},
+                "runtime":{"kind":"monty","artifact":"plugin.py"},"capabilities":{"instance-member":true},
+                "claims":{"attributes":[{"kind":"exact","owner-qualified-name":"demo.Resource","attribute-name":"token","scope":"instance"}]}
+            });
+            let plugin = format!(
+                "@on_instance_member\ndef token(request):\n    assert request['existing-member']['access']['type-expr']['expression'] == 'int'\n    return member_response(member('token', type_annotation('bytes'), mode='{mode}'))\n"
+            );
+            let mut fixture = Fixture::from_parts(
+                "class Resource:\n    token: int\ndef example(resource: Resource) -> bytes:\n    return resource.token\n".into(),
+                manifest,
+                &plugin,
+            );
+            // The retained single-file research command has no project index.
+            fixture.runtime = Runtime::new(
+                &fixture.directory.join("plugin.json"),
+                &fixture.directory.join("plugin.py"),
+            )
+            .unwrap();
+            fixture.analysis = crate::static_project::analyze(
+                &fixture.source,
+                &fixture.suite,
+                &mut fixture.runtime,
+            )
+            .unwrap();
+            let flow = project(
+                &fixture.source,
+                &fixture.suite,
+                &mut fixture.analysis,
+                &mut fixture.runtime,
+            )
+            .unwrap();
+            assert_eq!(fixture.runtime.executions, 1, "member hook was skipped");
+            let rendered = crate::mapping::render(&fixture.source, &flow.edits).unwrap();
+            assert_eq!(
+                rendered.text.contains("    return resource.token\n"),
+                mode == "fill-on-miss",
+                "incorrect {mode} behavior: {}",
+                rendered.text
+            );
         }
     }
 

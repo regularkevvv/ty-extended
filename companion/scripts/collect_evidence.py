@@ -545,7 +545,7 @@ def rust_log(path: Path, expected: int, protocol: bool = False) -> dict:
     return result
 
 
-def supplemental_json(path: Path) -> dict:
+def supplemental_json(path: Path, companion_sha256: str | None = None) -> dict:
     value = read(path)
     require(
         value.get("passed") is True
@@ -561,7 +561,56 @@ def supplemental_json(path: Path) -> dict:
         and value.get("status") not in {"failed", "running"},
         f"supplemental JSON has a failed/incomplete outcome: {path}",
     )
+    if companion_sha256 is not None:
+        identities = {
+            key: value[key]
+            for key in ("companion_sha256", "binary_sha256")
+            if key in value
+        }
+        if "artifact" in value and "sha256" in value:
+            identities["artifact.sha256"] = value["sha256"]
+        for key in ("companion", "companion_binary"):
+            record = value.get(key)
+            if isinstance(record, dict) and "sha256" in record:
+                identities[f"{key}.sha256"] = record["sha256"]
+        records = value.get("binaries")
+        if isinstance(records, dict):
+            record = records.get("companion")
+            if isinstance(record, dict) and "sha256" in record:
+                identities["binaries.companion.sha256"] = record["sha256"]
+        require(
+            identities,
+            f"supplemental JSON has no companion binary fingerprint: {path}",
+        )
+        for key, fingerprint in identities.items():
+            require(
+                fingerprint == companion_sha256,
+                f"supplemental {key} differs from accepted companion: {path}",
+            )
     return value
+
+
+def path_label(labels: dict[str, str], specification: str) -> None:
+    name, separator, value = specification.partition("=")
+    require(
+        separator and value and re.fullmatch(r"[a-z0-9_-]+", name),
+        "path labels require lowercase LABEL=PATH",
+    )
+    path = Path(value).resolve()
+    require(path.exists(), f"path label does not exist: {path}")
+    label = f"artifact:{name}"
+    require(
+        str(path) not in labels or labels[str(path)] == label,
+        f"path already has another evidence label: {path}",
+    )
+    require(
+        all(
+            existing != label or original == str(path)
+            for original, existing in labels.items()
+        ),
+        f"evidence label already identifies another path: {label}",
+    )
+    labels[str(path)] = label
 
 
 def portable(value: Any, labels: dict[str, str]) -> Any:
@@ -575,7 +624,13 @@ def portable(value: Any, labels: dict[str, str]) -> Any:
         for path, label in sorted(
             labels.items(), key=lambda item: len(item[0]), reverse=True
         ):
-            value = value.replace(path, label)
+            # A labeled directory must not also label an unrelated sibling
+            # whose name merely starts with the same bytes.
+            value = re.sub(
+                re.escape(path) + r"(?=$|[/\\\s\"'<>),;:\]?#])",
+                lambda _match, replacement=label: replacement,
+                value,
+            )
         require(
             not value.startswith("/")
             and "/private/tmp/" not in value
@@ -744,7 +799,7 @@ def collect(args: Any) -> None:
             )
             path = Path(value).resolve()
             if kind == "json":
-                value = supplemental_json(path)
+                value = supplemental_json(path, binaries["companion"]["sha256"])
             else:
                 counts = re.findall(
                     r"test result: ok\. (\d+) passed;", path.read_text()
@@ -756,8 +811,9 @@ def collect(args: Any) -> None:
                 )
                 value = rust_log(path, count)
             artifact_record = artifact(path, f"artifact:supplemental-{label}")
-            labels[str(path.parent)] = f"artifact:supplemental-{label}-directory"
             supplemental[label] = {"original_report": artifact_record, "result": value}
+    for specification in args.path_label:
+        path_label(labels, specification)
     documents = {
         "provenance.json": {
             "schema": 1,
@@ -852,6 +908,13 @@ def main() -> int:
     )
     exporter.add_argument(
         "--supplemental-log", action="append", default=[], metavar="LABEL=PATH"
+    )
+    exporter.add_argument(
+        "--path-label",
+        action="append",
+        default=[],
+        metavar="LABEL=PATH",
+        help="Label an existing artifact path explicitly; supplemental reports never label their parents",
     )
     exporter.add_argument(
         "--output", type=Path, default=Path(__file__).resolve().parents[1] / "evidence"
