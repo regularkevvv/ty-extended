@@ -1,10 +1,19 @@
 # Companion evidence
 
-Validated source: `a4753158c11354d7042ac8d701d162981815369f`. Executable SHA-256:
-`54a5c41f3b595b2a053f1d5d676cff72c0a73e03639bb6d38a52aaafa9dedbe0`.
-The macOS arm64 executable is 14,948,064 bytes, or 6,576,170 bytes with gzip.
+Final source: `b054f63bc4229f7da44d6b4262337ec1e8e87f40`. Executable SHA-256:
+`2bd50e242456d56e0dd0ff7a04edcf3cc4e13d073666bc91699d7deae16d650d`.
+The macOS arm64 executable is 14,948,064 bytes, or 6,576,246 bytes with gzip.
 Including separately installed official ty, executables total 41,284,016 bytes,
 versus 37,518,400 bytes for the fork. These are executable sizes, not wheel sizes.
+
+[`windows-path-followup/`](windows-path-followup/) records the final configuration
+path correction: 173 Rust tests, two live-checker tests, 55 exact configuration
+comparisons, a complete Django 6.1.1/Python 3.13 CLI/push pair, five public formats,
+and fresh public/editor/internal timings. Its provenance pins all raw reports and
+the unchanged base evidence. Native platform CI is recorded separately below.
+
+The base corpus files retain source `a4753158c11354d7042ac8d701d162981815369f`
+and executable `54a5c41f3b595b2a053f1d5d676cff72c0a73e03639bb6d38a52aaafa9dedbe0`:
 
 - `artifact.json`, `size-comparison.json` and `provenance.json`: binary, source,
     checker and dependency identities.
@@ -32,7 +41,7 @@ retains 60 calls across conformance and both e2e workloads, alternating executio
 order with three warmups and seven measured pairs per workload. Every invocation
 must match accepted output; artifact and input hashes are checked throughout.
 
-All final samples were retained, with other task tests/builds/scans paused.
+All samples in both recorded builds were retained, with other task tests/builds/scans paused.
 Measurements use an ordinary desktop session and may reuse OS caches. Fresh CLI,
 internal `project`, and persistent-editor timings remain separate; none establishes
 cold-disk timing or universal performance. See [results](../STATUS.md).
