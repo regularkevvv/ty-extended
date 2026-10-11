@@ -2257,7 +2257,7 @@ impl Session {
                 .into_iter()
                 .collect();
             if !nominal_candidates.is_empty() {
-                // Later hook responses commonly introduce builtin snapshots.
+                // Later hook responses commonly introduce builtin and None snapshots.
                 // Establish these in the same native request instead of
                 // restarting all inference for each newly encountered builtin.
                 // Their class identities and arities still come from ty.
@@ -2277,8 +2277,11 @@ impl Session {
                     "set",
                     "frozenset",
                     "type",
-                ] {
-                    let name = format!("builtins.{name}");
+                ]
+                .into_iter()
+                .map(|name| format!("builtins.{name}"))
+                .chain(["types.NoneType".to_owned()])
+                {
                     if !project.snapshot_nominals.contains_key(&name) {
                         nominal_candidates.push(name);
                     }
@@ -2910,15 +2913,15 @@ mod tests {
         write(&root.join("model.py"), first)?;
         write(
             &root.join("demo.py"),
-            "from typing import assert_type\nfrom model import Model\ndef load() -> object: return object()\nassert_type(load(), bytes)\n",
+            "from typing import assert_type\nfrom model import Model\ndef load() -> object: return object()\ndef later(value: object) -> object: return object()\nassert_type(load(), bytes)\nassert_type(later(load()), None)\n",
         )?;
         let plugin = directory.join("plugin.py");
         write(
             &plugin,
-            "@on_call_return\ndef returns(request):\n    return {'kind':'call-return-patch','return-type':{'expression':'bytes','mode':'annotation','snapshot':{'kind':'nominal','qualified-name':'model.Model','arguments':[{'kind':'nominal','qualified-name':'builtins.str'}]}}}\n",
+            "@on_call_return\ndef returns(request):\n    if request['callee']['expression'] == 'demo.later':\n        argument = request['arguments'][0].get('type-expr', {}).get('expression', 'Unknown')\n        if argument in ('object', 'Unknown'):\n            return {'kind':'no-change'}\n        return {'kind':'call-return-patch','return-type':{'expression':'None','mode':'annotation','snapshot':{'kind':'nominal','qualified-name':'types.NoneType','arguments':[]}}}\n    return {'kind':'call-return-patch','return-type':{'expression':'bytes','mode':'annotation','snapshot':{'kind':'nominal','qualified-name':'model.Model','arguments':[{'kind':'nominal','qualified-name':'builtins.str'}]}}}\n",
         )?;
         let manifest = directory.join("plugin.json");
-        write(&manifest,&json!({"id":"snapshot.revision","name":"Snapshot revision","version":"0.0.0","protocol-version":{"major":0,"minor":7},"ty-compatibility":{"requirement":">=0.86.0,<0.87.0"},"runtime":{"kind":"monty","artifact":"plugin.py"},"capabilities":{"call-return":true},"claims":{"functions":[{"qualified-name":"demo.load"}]}}).to_string())?;
+        write(&manifest,&json!({"id":"snapshot.revision","name":"Snapshot revision","version":"0.0.0","protocol-version":{"major":0,"minor":7},"ty-compatibility":{"requirement":">=0.86.0,<0.87.0"},"runtime":{"kind":"monty","artifact":"plugin.py"},"capabilities":{"call-return":true},"claims":{"functions":[{"qualified-name":"demo.load"},{"qualified-name":"demo.later"}]}}).to_string())?;
         let options = BTreeMap::from([
             (
                 "out".into(),
@@ -2935,7 +2938,7 @@ mod tests {
         ]);
         let mut session = Session::new(&root, &options)?;
         assert_eq!(session.check(&BTreeMap::new())?["diagnostics"], json!([]));
-        let first_preflight = std::fs::read_dir(directory.join("output"))?
+        let preflights = std::fs::read_dir(directory.join("output"))?
             .filter_map(|entry| entry.ok())
             .filter_map(|entry| {
                 let name = entry.file_name();
@@ -2947,7 +2950,9 @@ mod tests {
                     .ok()?;
                 Some((round, entry.path()))
             })
-            .min_by_key(|(round, _)| *round)
+            .collect::<BTreeMap<_, _>>();
+        let first_preflight = preflights
+            .first_key_value()
             .context("native nominal preflight")?
             .1;
         let preflight: Value = serde_json::from_slice(&std::fs::read(first_preflight)?)?;
@@ -2962,6 +2967,23 @@ mod tests {
         assert_eq!(
             session.base_project.snapshot_nominals.get("builtins.int"),
             Some(&Some(0))
+        );
+        assert!(
+            preflight.as_array().unwrap().iter().any(|diagnostic| {
+                diagnostic["description"]
+                    .as_str()
+                    .is_some_and(|description| description.contains("<class 'NoneType'>"))
+            }),
+            "the first native preflight must establish NoneType before the later hook can return its snapshot"
+        );
+        assert_eq!(
+            session.base_project.snapshot_nominals.get("types.NoneType"),
+            Some(&Some(0))
+        );
+        assert_eq!(
+            preflights.len(),
+            1,
+            "the later NoneType response must reuse native proof without another preflight"
         );
         let path = root.join("model.py").canonicalize()?;
         let changed = session.check(&BTreeMap::from([(path.clone(), second.to_owned())]))?;
