@@ -114,6 +114,8 @@ def run(args, encoding):
             str(stubs),
             "--ty",
             str(args.official),
+            "--python-version",
+            "3.13",
             "--out",
             str(case / "analysis"),
         ],

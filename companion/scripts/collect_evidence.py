@@ -626,13 +626,40 @@ def portable(value: Any, labels: dict[str, str]) -> Any:
         ):
             # A labeled directory must not also label an unrelated sibling
             # whose name merely starts with the same bytes.
+            path_pattern = re.escape(path)
+            if path.startswith("\\\\") or re.match(r"^[A-Za-z]:", path):
+                path_pattern = r"[/\\]".join(
+                    re.escape(part) for part in re.split(r"[/\\]", path)
+                )
+            boundary = r"(?=$|[/\\\s\"'<>),;:\]?#])"
+            # Whole path values can contain spaces in child names. Restrict
+            # this broader suffix to a leading registered path or file URI;
+            # embedded paths below stop at whitespace and leave prose intact.
             value = re.sub(
-                re.escape(path) + r"(?=$|[/\\\s\"'<>),;:\]?#])",
-                lambda _match, replacement=label: replacement,
+                r"^(?P<uri>file:///?|)"
+                + path_pattern
+                + boundary
+                + r"(?P<suffix>(?:[/\\][^/\\\r\n\"'<>),;:\]?#]+)*[/\\]?)",
+                lambda match, replacement=label: (
+                    ("file://" if match["uri"] else "")
+                    + replacement
+                    + match["suffix"].replace("\\", "/")
+                ),
                 value,
             )
+            value = re.sub(
+                path_pattern
+                + boundary
+                + r"(?P<suffix>(?:[/\\][^/\\\s\"'<>),;:\]?#]+)*[/\\]?)",
+                lambda match, replacement=label: (
+                    replacement + match["suffix"].replace("\\", "/")
+                ),
+                value,
+            )
+        path_value = value.removeprefix("file://")
         require(
-            not value.startswith("/")
+            not path_value.startswith(("/", "\\"))
+            and not re.match(r"^[A-Za-z]:\S", path_value)
             and "/private/tmp/" not in value
             and "/Users/" not in value,
             f"unlabeled local path in portable evidence: {value[:160]}",

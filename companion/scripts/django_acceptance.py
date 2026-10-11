@@ -18,7 +18,7 @@ import subprocess
 import sys
 import time
 from collections import Counter, defaultdict
-from pathlib import Path
+from pathlib import Path, PurePath
 from typing import Any
 
 try:
@@ -157,15 +157,21 @@ def stage(repository: Path, output: Path, suite: str) -> Path:
     return destination
 
 
-def normalize(items: Any, project: Path) -> list[dict]:
+def normalize(items: Any, project: PurePath) -> list[dict]:
     if not isinstance(items, list):
         raise Failure("checker did not return a diagnostic array")
     result = []
     for item in items:
         try:
             location = item["location"]
-            path = Path(location["path"])
-            if path.is_absolute():
+            # Use the project's path flavor so containment also works for
+            # Windows rooted paths (\file.py), which are not is_absolute().
+            path = type(project)(location["path"])
+            if path.drive and not path.root:
+                raise ValueError("drive-relative diagnostic path is ambiguous")
+            if path.root and not path.drive and project.drive:
+                path = type(project)(project.drive + str(path))
+            if path.anchor:
                 path = path.relative_to(project)
             if ".." in path.parts:
                 raise ValueError("diagnostic outside project")

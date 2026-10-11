@@ -152,6 +152,47 @@ class EvidenceTests(unittest.TestCase):
         with self.assertRaises(evidence.Failure):
             evidence.portable({"artifact": "/private/tmp/unregistered/output"}, {})
 
+    def test_windows_labels_have_portable_separators_without_rewriting_prose(self):
+        labels = {r"C:\runner\evidence": "artifact:windows"}
+        for path in (
+            r"C:\runner\evidence\nested\summary.json",
+            "C:/runner/evidence/nested/summary.json",
+        ):
+            with self.subTest(path=path):
+                self.assertEqual(
+                    evidence.portable(path, labels),
+                    "artifact:windows/nested/summary.json",
+                )
+        self.assertEqual(
+            evidence.portable(r"C:\runner\evidence\sub dir\a file.json", labels),
+            "artifact:windows/sub dir/a file.json",
+        )
+        self.assertEqual(
+            evidence.portable("file:///C:/runner/evidence/nested/summary.json", labels),
+            "file://artifact:windows/nested/summary.json",
+        )
+        text = r"Report C:\runner\evidence\summary.json; expected Literal['a\nb']"
+        self.assertEqual(
+            evidence.portable(text, labels),
+            r"Report artifact:windows/summary.json; expected Literal['a\nb']",
+        )
+        literal = r"Expected Literal['C:\unregistered\file.py'] and regex \w+"
+        self.assertEqual(evidence.portable(literal, {}), literal)
+
+    def test_unlabeled_windows_anchors_cannot_bypass_path_rejection(self):
+        labels = {r"C:\runner\evidence": "artifact:windows"}
+        for path in (
+            r"C:\unregistered\file.json",
+            "C:/unregistered/file.json",
+            r"\\server\share\file.json",
+            r"\unregistered\file.json",
+            r"C:relative\file.json",
+            "file:///C:/unregistered/file.json",
+            r"C:\runner\evidence-other\file.json",
+        ):
+            with self.subTest(path=path), self.assertRaises(evidence.Failure):
+                evidence.portable(path, labels)
+
 
 if __name__ == "__main__":
     unittest.main()

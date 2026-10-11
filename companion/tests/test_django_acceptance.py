@@ -5,7 +5,7 @@ from __future__ import annotations
 import importlib.util
 import tempfile
 import unittest
-from pathlib import Path
+from pathlib import Path, PureWindowsPath
 from types import SimpleNamespace
 
 SCRIPT = Path(__file__).resolve().parents[1] / "scripts/django_acceptance.py"
@@ -79,6 +79,52 @@ class AcceptanceTests(unittest.TestCase):
         }
         with self.assertRaises(ACCEPTANCE.Failure):
             ACCEPTANCE.normalize([diagnostic], Path("/project"))
+
+    def test_windows_diagnostic_paths_must_belong_to_the_project(self):
+        diagnostic = {
+            "location": {
+                "path": "case.py",
+                "positions": {
+                    "begin": {"line": 3, "column": 1},
+                    "end": {"line": 3, "column": 4},
+                },
+            },
+            "check_name": "invalid-type",
+            "severity": "major",
+            "description": r"Expected Literal['a\nb']",
+        }
+        project = PureWindowsPath(r"C:\project")
+        for path in (
+            r"C:\project\case.py",
+            r"\project\case.py",
+            "/project/case.py",
+            "case.py",
+        ):
+            with self.subTest(path=path):
+                diagnostic["location"]["path"] = path
+                actual = ACCEPTANCE.normalize([diagnostic], project)
+                self.assertEqual(actual[0]["path"], "case.py")
+                self.assertEqual(actual[0]["message"], diagnostic["description"])
+        for path in (
+            "/outside/case.py",
+            r"\outside\case.py",
+            r"D:\project\case.py",
+            r"C:project\case.py",
+            r"C:case.py",
+            r"..\outside\case.py",
+            r"\\server\share\case.py",
+            r"C:\project-other\case.py",
+        ):
+            diagnostic["location"]["path"] = path
+            with self.subTest(path=path), self.assertRaises(ACCEPTANCE.Failure):
+                ACCEPTANCE.normalize([diagnostic], project)
+        diagnostic["location"]["path"] = r"\\server\share\project\case.py"
+        self.assertEqual(
+            ACCEPTANCE.normalize(
+                [diagnostic], PureWindowsPath(r"\\server\share\project")
+            )[0]["path"],
+            "case.py",
+        )
 
     def test_additional_staged_source_cannot_be_silently_injected(self):
         with tempfile.TemporaryDirectory() as temporary:
