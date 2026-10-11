@@ -1,11 +1,11 @@
 {
-  "source_commit": "4ce52071c8901e06b5c4e30a22b03487cfe416ed",
+  "source_commit": "5e4b65cd9081b1281d05ae2035bfd75120eda326",
   "bytes": 13972912,
-  "sha256": "75b7804e9c0e49efa9f0ff3f1e21f20ee3ffe310b824e9b2609618fb0a132110",
+  "sha256": "9cc9b5aecb5df2fff1bc5e709383a5d193eee8536fe362586d6f0e1b82b75e05",
   "gzip_bytes": 6221558,
-  "gzip_sha256": "7cbe5b70f22b28be9bc989bd423e106b72fd81054d3e89c60d80b54daa9e6e65",
+  "gzip_sha256": "f3ba9d32b442282aa640eb57e3fceaeb4a3931e2747843c85751fe76cbb355a8",
   "target": "aarch64-apple-darwin",
   "upstream_checker_included": false,
-  "validation_source_commit": "0e9dd965b08ed34e81234825f2d0fa911d9efc3a",
+  "validation_source_commit": "5e4b65cd9081b1281d05ae2035bfd75120eda326",
   "production_inputs_unchanged_since_build": true
 }

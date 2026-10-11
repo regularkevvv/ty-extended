@@ -2,17 +2,17 @@
   "acceptance": {
     "cli": {
       "path": "artifact:cli-django-6.1.1-python-3.13",
-      "sha256": "249f378e68cf2069ecf2e69d054c4783631c5c700eb5b355ada916caf4511e01"
+      "sha256": "5cd64ad184e23323a89d0c0d2b7385034b7c482fb00bf70cf192a4e78d31ba0d"
     },
     "push": {
       "path": "artifact:push-django-6.1.1-python-3.13",
-      "sha256": "6c9f685e08ae0572323cebe55d7c651fabaa36fceae209b4c4a63ef309d29d55"
+      "sha256": "a0eb6a1168f0a9e2788fb7eea2b01fb5ab93cd82fe038fe8530a38b3a9f99445"
     }
   },
   "binaries": {
     "companion": {
       "path": "binary:companion",
-      "sha256": "75b7804e9c0e49efa9f0ff3f1e21f20ee3ffe310b824e9b2609618fb0a132110"
+      "sha256": "9cc9b5aecb5df2fff1bc5e709383a5d193eee8536fe362586d6f0e1b82b75e05"
     },
     "fork": {
       "path": "binary:django-fork",
@@ -100,7 +100,7 @@
   },
   "original_report": {
     "artifact": "artifact:django-benchmark",
-    "sha256": "d320534ebc46e87ea94a109a08fcaf523f9255e5e7d4bd7118e8bb06ca011e05"
+    "sha256": "a98440966d89ab17abe8b6a8173508d0626364317a0515f2db478040701c9d52"
   },
   "records": [
     {
@@ -111,19 +111,19 @@
       "evidence": "artifact:django-benchmark-runs/runs/first-observed-00/conformance-fork",
       "exit": 1,
       "load_average_after": [
-        4.96044921875,
-        8.412109375,
-        8.125
+        6.255859375,
+        8.33984375,
+        9.5986328125
       ],
       "load_average_before": [
-        4.96044921875,
-        8.412109375,
-        8.125
+        6.255859375,
+        8.33984375,
+        9.5986328125
       ],
       "native_metrics": {},
       "phase": "first-observed",
       "repetition": 0,
-      "seconds": 0.733473124972079,
+      "seconds": 0.7155243749730289,
       "suite": "conformance",
       "verified": true
     },
@@ -141,14 +141,14 @@
       "evidence": "artifact:django-benchmark-runs/runs/first-observed-00/conformance-cli",
       "exit": 1,
       "load_average_after": [
-        4.88330078125,
-        8.33837890625,
-        8.1005859375
+        6.0751953125,
+        8.267578125,
+        9.5654296875
       ],
       "load_average_before": [
-        4.96044921875,
-        8.412109375,
-        8.125
+        6.255859375,
+        8.33984375,
+        9.5986328125
       ],
       "native_metrics": {
         "checker": "binary:django-official",
@@ -161,23 +161,23 @@
         "monty_cache_hits_delta": 1315,
         "monty_executions": 622,
         "monty_executions_delta": 622,
-        "monty_seconds": 0.172110795,
-        "monty_seconds_delta": 0.172110795,
+        "monty_seconds": 0.171404114,
+        "monty_seconds_delta": 0.171404114,
         "oracle_rounds": 4,
         "phases": {
-          "class_projection": 0.056262125,
-          "diagnostic_mapping": 0.005162708,
-          "external_resolution": 0.20242458400000002,
-          "final_check": 0.10531125,
-          "final_render": 0.085434584,
-          "flow_and_render": 0.658928709,
-          "hook_responses": 0.465930874,
-          "import_preflight": 0.033443457,
-          "initial_lowering": 0.0840605,
-          "oracle_check": 0.514608293,
-          "project_index": 0.042412708,
-          "source_maps": 0.013909542,
-          "source_scan": 0.002300333
+          "class_projection": 0.063134875,
+          "diagnostic_mapping": 0.005174291,
+          "external_resolution": 0.21578054200000002,
+          "final_check": 0.109215667,
+          "final_render": 0.089942958,
+          "flow_and_render": 0.656025249,
+          "hook_responses": 0.46247458500000005,
+          "import_preflight": 0.034406293,
+          "initial_lowering": 0.083249291,
+          "oracle_check": 0.5074500820000001,
+          "project_index": 0.048175042,
+          "source_maps": 0.014254334,
+          "source_scan": 0.002345333
         },
         "plugin_runtime": "embedded-monty",
         "project": "artifact:django-benchmark-runs/inputs/conformance",
@@ -185,7 +185,7 @@
         "projection_rounds": 4,
         "reused_units": 0,
         "revision": 1,
-        "seconds": 2.270244417,
+        "seconds": 2.29168625,
         "suppressed_generated": [
           {
             "check_name": "redundant-cast",
@@ -1749,7 +1749,7 @@
       },
       "phase": "first-observed",
       "repetition": 0,
-      "seconds": 2.624623833980877,
+      "seconds": 2.79946883401135,
       "suite": "conformance",
       "verified": true
     },
@@ -1767,14 +1767,14 @@
       "evidence": "artifact:django-benchmark-runs/runs/first-observed-00/conformance-push",
       "exit": 1,
       "load_average_after": [
-        4.88330078125,
-        8.33837890625,
-        8.1005859375
+        6.0751953125,
+        8.267578125,
+        9.5654296875
       ],
       "load_average_before": [
-        4.88330078125,
-        8.33837890625,
-        8.1005859375
+        6.0751953125,
+        8.267578125,
+        9.5654296875
       ],
       "native_metrics": {
         "checker": "binary:django-official",
@@ -1787,23 +1787,23 @@
         "monty_cache_hits_delta": 1315,
         "monty_executions": 622,
         "monty_executions_delta": 622,
-        "monty_seconds": 0.173907832,
-        "monty_seconds_delta": 0.173907832,
+        "monty_seconds": 0.171116998,
+        "monty_seconds_delta": 0.171116998,
         "oracle_rounds": 4,
         "phases": {
-          "class_projection": 0.056466958,
-          "diagnostic_mapping": 0.005566625,
-          "external_resolution": 0.20292016699999998,
-          "final_check": 0.102056125,
-          "final_render": 0.084648042,
-          "flow_and_render": 0.665573624,
-          "hook_responses": 0.46720008199999996,
-          "import_preflight": 0.174298042,
-          "initial_lowering": 0.084304209,
-          "oracle_check": 0.262786293,
-          "project_index": 0.041749375,
-          "source_maps": 0.01411975,
-          "source_scan": 0.002549
+          "class_projection": 0.0554095,
+          "diagnostic_mapping": 0.008942333,
+          "external_resolution": 0.200779375,
+          "final_check": 0.106008083,
+          "final_render": 0.109242209,
+          "flow_and_render": 0.675747877,
+          "hook_responses": 0.464152373,
+          "import_preflight": 0.17725824900000003,
+          "initial_lowering": 0.078848083,
+          "oracle_check": 0.271917084,
+          "project_index": 0.042386917,
+          "source_maps": 0.014001292,
+          "source_scan": 0.002183083
         },
         "plugin_runtime": "embedded-monty",
         "project": "artifact:django-benchmark-runs/inputs/conformance",
@@ -1811,7 +1811,7 @@
         "projection_rounds": 4,
         "reused_units": 0,
         "revision": 1,
-        "seconds": 2.164293459,
+        "seconds": 2.206925916,
         "suppressed_generated": [
           {
             "check_name": "redundant-cast",
@@ -6655,7 +6655,7 @@
       },
       "phase": "first-observed",
       "repetition": 0,
-      "seconds": 2.5275300000212155,
+      "seconds": 2.5930383329978213,
       "suite": "conformance",
       "verified": true
     },
@@ -6673,14 +6673,14 @@
       "evidence": "artifact:django-benchmark-runs/runs/first-observed-00/e2e-positive-cli",
       "exit": 0,
       "load_average_after": [
-        5.212890625,
-        8.34912109375,
-        8.10546875
+        6.0751953125,
+        8.267578125,
+        9.5654296875
       ],
       "load_average_before": [
-        4.88330078125,
-        8.33837890625,
-        8.1005859375
+        6.0751953125,
+        8.267578125,
+        9.5654296875
       ],
       "native_metrics": {
         "checker": "binary:django-official",
@@ -6693,23 +6693,23 @@
         "monty_cache_hits_delta": 391,
         "monty_executions": 242,
         "monty_executions_delta": 242,
-        "monty_seconds": 0.070035252,
-        "monty_seconds_delta": 0.070035252,
+        "monty_seconds": 0.07051408,
+        "monty_seconds_delta": 0.07051408,
         "oracle_rounds": 3,
         "phases": {
-          "class_projection": 0.051037333,
-          "diagnostic_mapping": 0.005874042,
-          "external_resolution": 0.181553,
-          "final_check": 0.095150041,
-          "final_render": 0.069782917,
-          "flow_and_render": 0.5101415410000001,
-          "hook_responses": 0.210523166,
-          "import_preflight": 0.028913959,
-          "initial_lowering": 0.074342125,
-          "oracle_check": 0.359261584,
-          "project_index": 0.04250825,
-          "source_maps": 0.014783417,
-          "source_scan": 0.003246875
+          "class_projection": 0.061260292,
+          "diagnostic_mapping": 0.0091645,
+          "external_resolution": 0.184008333,
+          "final_check": 0.092024083,
+          "final_render": 0.091118292,
+          "flow_and_render": 0.524506834,
+          "hook_responses": 0.215358,
+          "import_preflight": 0.034119375,
+          "initial_lowering": 0.073995458,
+          "oracle_check": 0.366456333,
+          "project_index": 0.046800375,
+          "source_maps": 0.014732583,
+          "source_scan": 0.003400792
         },
         "plugin_runtime": "embedded-monty",
         "project": "artifact:django-benchmark-runs/inputs/e2e",
@@ -6717,7 +6717,7 @@
         "projection_rounds": 4,
         "reused_units": 0,
         "revision": 1,
-        "seconds": 1.647178125,
+        "seconds": 1.717000875,
         "suppressed_generated": [
           {
             "check_name": "redundant-cast",
@@ -7445,7 +7445,7 @@
       },
       "phase": "first-observed",
       "repetition": 0,
-      "seconds": 2.002897749945987,
+      "seconds": 2.1591758750146255,
       "suite": "e2e-positive",
       "verified": true
     },
@@ -7463,14 +7463,14 @@
       "evidence": "artifact:django-benchmark-runs/runs/first-observed-00/e2e-positive-push",
       "exit": 0,
       "load_average_after": [
-        5.212890625,
-        8.34912109375,
-        8.10546875
+        6.22900390625,
+        8.2626953125,
+        9.55615234375
       ],
       "load_average_before": [
-        5.212890625,
-        8.34912109375,
-        8.10546875
+        6.0751953125,
+        8.267578125,
+        9.5654296875
       ],
       "native_metrics": {
         "checker": "binary:django-official",
@@ -7483,23 +7483,23 @@
         "monty_cache_hits_delta": 391,
         "monty_executions": 242,
         "monty_executions_delta": 242,
-        "monty_seconds": 0.070717212,
-        "monty_seconds_delta": 0.070717212,
+        "monty_seconds": 0.071413373,
+        "monty_seconds_delta": 0.071413373,
         "oracle_rounds": 3,
         "phases": {
-          "class_projection": 0.051623,
-          "diagnostic_mapping": 0.005940459,
-          "external_resolution": 0.182247083,
-          "final_check": 0.088569166,
-          "final_render": 0.068565959,
-          "flow_and_render": 0.585008666,
-          "hook_responses": 0.21532854099999998,
-          "import_preflight": 0.204651084,
-          "initial_lowering": 0.074602208,
-          "oracle_check": 0.164941042,
-          "project_index": 0.042391542,
-          "source_maps": 0.014997791,
-          "source_scan": 0.003578542
+          "class_projection": 0.0533595,
+          "diagnostic_mapping": 0.006019125,
+          "external_resolution": 0.189507584,
+          "final_check": 0.086983583,
+          "final_render": 0.06835975,
+          "flow_and_render": 0.685215791,
+          "hook_responses": 0.2183585,
+          "import_preflight": 0.220795375,
+          "initial_lowering": 0.070831625,
+          "oracle_check": 0.16320995900000002,
+          "project_index": 0.045640875,
+          "source_maps": 0.014672708,
+          "source_scan": 0.003294208
         },
         "plugin_runtime": "embedded-monty",
         "project": "artifact:django-benchmark-runs/inputs/e2e",
@@ -7507,7 +7507,7 @@
         "projection_rounds": 4,
         "reused_units": 0,
         "revision": 1,
-        "seconds": 1.702510875,
+        "seconds": 1.826308542,
         "suppressed_generated": [
           {
             "check_name": "redundant-cast",
@@ -9755,7 +9755,7 @@
       },
       "phase": "first-observed",
       "repetition": 0,
-      "seconds": 2.063912542012986,
+      "seconds": 2.262454791984055,
       "suite": "e2e-positive",
       "verified": true
     },
@@ -9767,19 +9767,19 @@
       "evidence": "artifact:django-benchmark-runs/runs/first-observed-00/e2e-positive-fork",
       "exit": 0,
       "load_average_after": [
-        5.212890625,
-        8.34912109375,
-        8.10546875
+        6.22900390625,
+        8.2626953125,
+        9.55615234375
       ],
       "load_average_before": [
-        5.212890625,
-        8.34912109375,
-        8.10546875
+        6.22900390625,
+        8.2626953125,
+        9.55615234375
       ],
       "native_metrics": {},
       "phase": "first-observed",
       "repetition": 0,
-      "seconds": 0.7141071659862064,
+      "seconds": 0.7119990829960443,
       "suite": "e2e-positive",
       "verified": true
     },
@@ -9797,14 +9797,14 @@
       "evidence": "artifact:django-benchmark-runs/runs/first-observed-00/e2e-negative-push",
       "exit": 1,
       "load_average_after": [
-        5.03564453125,
-        8.26025390625,
-        8.0751953125
+        5.97021484375,
+        8.17529296875,
+        9.517578125
       ],
       "load_average_before": [
-        5.212890625,
-        8.34912109375,
-        8.10546875
+        6.22900390625,
+        8.2626953125,
+        9.55615234375
       ],
       "native_metrics": {
         "checker": "binary:django-official",
@@ -9817,23 +9817,23 @@
         "monty_cache_hits_delta": 391,
         "monty_executions": 242,
         "monty_executions_delta": 242,
-        "monty_seconds": 0.070293956,
-        "monty_seconds_delta": 0.070293956,
+        "monty_seconds": 0.071252797,
+        "monty_seconds_delta": 0.071252797,
         "oracle_rounds": 3,
         "phases": {
-          "class_projection": 0.052201708,
-          "diagnostic_mapping": 0.001135167,
-          "external_resolution": 0.184282458,
-          "final_check": 0.087117666,
-          "final_render": 0.069783,
-          "flow_and_render": 0.584320042,
-          "hook_responses": 0.21328400000000003,
-          "import_preflight": 0.201491458,
-          "initial_lowering": 0.074871334,
-          "oracle_check": 0.16596999999999998,
-          "project_index": 0.041878875,
-          "source_maps": 0.014853875,
-          "source_scan": 0.003464292
+          "class_projection": 0.053253625,
+          "diagnostic_mapping": 0.001970458,
+          "external_resolution": 0.188008041,
+          "final_check": 0.080663417,
+          "final_render": 0.095567083,
+          "flow_and_render": 0.665693125,
+          "hook_responses": 0.21752837600000002,
+          "import_preflight": 0.21531470800000002,
+          "initial_lowering": 0.0747565,
+          "oracle_check": 0.16401725,
+          "project_index": 0.049512625,
+          "source_maps": 0.014820875,
+          "source_scan": 0.00339825
         },
         "plugin_runtime": "embedded-monty",
         "project": "artifact:django-benchmark-runs/inputs/e2e",
@@ -9841,7 +9841,7 @@
         "projection_rounds": 4,
         "reused_units": 0,
         "revision": 1,
-        "seconds": 1.694713792,
+        "seconds": 1.82456525,
         "suppressed_generated": [
           {
             "check_name": "redundant-cast",
@@ -10083,7 +10083,7 @@
       },
       "phase": "first-observed",
       "repetition": 0,
-      "seconds": 2.061692084011156,
+      "seconds": 2.2235294590354897,
       "suite": "e2e-negative",
       "verified": true
     },
@@ -10095,19 +10095,19 @@
       "evidence": "artifact:django-benchmark-runs/runs/first-observed-00/e2e-negative-fork",
       "exit": 1,
       "load_average_after": [
-        5.03564453125,
-        8.26025390625,
-        8.0751953125
+        5.97021484375,
+        8.17529296875,
+        9.517578125
       ],
       "load_average_before": [
-        5.03564453125,
-        8.26025390625,
-        8.0751953125
+        5.97021484375,
+        8.17529296875,
+        9.517578125
       ],
       "native_metrics": {},
       "phase": "first-observed",
       "repetition": 0,
-      "seconds": 0.30418562499107793,
+      "seconds": 0.3152319170185365,
       "suite": "e2e-negative",
       "verified": true
     },
@@ -10125,14 +10125,14 @@
       "evidence": "artifact:django-benchmark-runs/runs/first-observed-00/e2e-negative-cli",
       "exit": 1,
       "load_average_after": [
-        5.03564453125,
-        8.26025390625,
-        8.0751953125
+        5.97021484375,
+        8.17529296875,
+        9.517578125
       ],
       "load_average_before": [
-        5.03564453125,
-        8.26025390625,
-        8.0751953125
+        5.97021484375,
+        8.17529296875,
+        9.517578125
       ],
       "native_metrics": {
         "checker": "binary:django-official",
@@ -10145,23 +10145,23 @@
         "monty_cache_hits_delta": 391,
         "monty_executions": 242,
         "monty_executions_delta": 242,
-        "monty_seconds": 0.070199115,
-        "monty_seconds_delta": 0.070199115,
+        "monty_seconds": 0.069771502,
+        "monty_seconds_delta": 0.069771502,
         "oracle_rounds": 3,
         "phases": {
-          "class_projection": 0.051779292,
-          "diagnostic_mapping": 0.001039083,
-          "external_resolution": 0.1807695,
-          "final_check": 0.073187958,
-          "final_render": 0.069364375,
-          "flow_and_render": 0.5123657509999999,
-          "hook_responses": 0.20889100100000002,
-          "import_preflight": 0.029469999999999996,
-          "initial_lowering": 0.077289916,
-          "oracle_check": 0.358006957,
-          "project_index": 0.041927708,
-          "source_maps": 0.014798417,
-          "source_scan": 0.003362375
+          "class_projection": 0.056419625,
+          "diagnostic_mapping": 0.001003208,
+          "external_resolution": 0.190595375,
+          "final_check": 0.074537792,
+          "final_render": 0.084214667,
+          "flow_and_render": 0.531348084,
+          "hook_responses": 0.214198499,
+          "import_preflight": 0.029152125000000004,
+          "initial_lowering": 0.071469083,
+          "oracle_check": 0.355827792,
+          "project_index": 0.044301458,
+          "source_maps": 0.014618667,
+          "source_scan": 0.003372625
         },
         "plugin_runtime": "embedded-monty",
         "project": "artifact:django-benchmark-runs/inputs/e2e",
@@ -10169,7 +10169,7 @@
         "projection_rounds": 4,
         "reused_units": 0,
         "revision": 1,
-        "seconds": 1.622325958,
+        "seconds": 1.671109166,
         "suppressed_generated": [
           {
             "check_name": "redundant-cast",
@@ -10251,7 +10251,7 @@
       },
       "phase": "first-observed",
       "repetition": 0,
-      "seconds": 1.96994891599752,
+      "seconds": 2.3551485419739038,
       "suite": "e2e-negative",
       "verified": true
     },
@@ -10269,14 +10269,14 @@
       "evidence": "artifact:django-benchmark-runs/runs/warmup-00/conformance-cli",
       "exit": 1,
       "load_average_after": [
-        4.87255859375,
-        8.1728515625,
-        8.04541015625
+        6.29248046875,
+        8.20556640625,
+        9.52001953125
       ],
       "load_average_before": [
-        5.03564453125,
-        8.26025390625,
-        8.0751953125
+        5.97021484375,
+        8.17529296875,
+        9.517578125
       ],
       "native_metrics": {
         "checker": "binary:django-official",
@@ -10289,23 +10289,23 @@
         "monty_cache_hits_delta": 1315,
         "monty_executions": 622,
         "monty_executions_delta": 622,
-        "monty_seconds": 0.173856837,
-        "monty_seconds_delta": 0.173856837,
+        "monty_seconds": 0.176455186,
+        "monty_seconds_delta": 0.176455186,
         "oracle_rounds": 4,
         "phases": {
-          "class_projection": 0.058701708,
-          "diagnostic_mapping": 0.00509225,
-          "external_resolution": 0.204038959,
-          "final_check": 0.107056459,
-          "final_render": 0.086153541,
-          "flow_and_render": 0.665465916,
-          "hook_responses": 0.46795116800000003,
-          "import_preflight": 0.034310999999999994,
-          "initial_lowering": 0.083828,
-          "oracle_check": 0.513626375,
-          "project_index": 0.043136958,
-          "source_maps": 0.013901291,
-          "source_scan": 0.0022785
+          "class_projection": 0.060220458,
+          "diagnostic_mapping": 0.005066625,
+          "external_resolution": 0.228494167,
+          "final_check": 0.103210125,
+          "final_render": 0.084076583,
+          "flow_and_render": 0.6701607509999999,
+          "hook_responses": 0.46812475000000003,
+          "import_preflight": 0.037195708,
+          "initial_lowering": 0.080081458,
+          "oracle_check": 0.501175833,
+          "project_index": 0.0450675,
+          "source_maps": 0.014175959,
+          "source_scan": 0.002261958
         },
         "plugin_runtime": "embedded-monty",
         "project": "artifact:django-benchmark-runs/inputs/conformance",
@@ -10313,7 +10313,7 @@
         "projection_rounds": 4,
         "reused_units": 0,
         "revision": 1,
-        "seconds": 2.285598625,
+        "seconds": 2.29937575,
         "suppressed_generated": [
           {
             "check_name": "redundant-cast",
@@ -11877,7 +11877,7 @@
       },
       "phase": "warmup",
       "repetition": 0,
-      "seconds": 2.647916875022929,
+      "seconds": 2.6571854999638163,
       "suite": "conformance",
       "verified": true
     },
@@ -11895,14 +11895,14 @@
       "evidence": "artifact:django-benchmark-runs/runs/warmup-00/conformance-push",
       "exit": 1,
       "load_average_after": [
-        4.87255859375,
-        8.1728515625,
-        8.04541015625
+        6.29248046875,
+        8.20556640625,
+        9.52001953125
       ],
       "load_average_before": [
-        4.87255859375,
-        8.1728515625,
-        8.04541015625
+        6.29248046875,
+        8.20556640625,
+        9.52001953125
       ],
       "native_metrics": {
         "checker": "binary:django-official",
@@ -11915,23 +11915,23 @@
         "monty_cache_hits_delta": 1315,
         "monty_executions": 622,
         "monty_executions_delta": 622,
-        "monty_seconds": 0.173090626,
-        "monty_seconds_delta": 0.173090626,
+        "monty_seconds": 0.173522371,
+        "monty_seconds_delta": 0.173522371,
         "oracle_rounds": 4,
         "phases": {
-          "class_projection": 0.056631833,
-          "diagnostic_mapping": 0.005506584,
-          "external_resolution": 0.202103124,
-          "final_check": 0.101529333,
-          "final_render": 0.084535375,
-          "flow_and_render": 0.660937375,
-          "hook_responses": 0.46797504199999995,
-          "import_preflight": 0.17475512399999998,
-          "initial_lowering": 0.084373959,
-          "oracle_check": 0.257980667,
-          "project_index": 0.042240334,
-          "source_maps": 0.014002708,
-          "source_scan": 0.002310792
+          "class_projection": 0.061268417,
+          "diagnostic_mapping": 0.006666667,
+          "external_resolution": 0.21328975,
+          "final_check": 0.099051583,
+          "final_render": 0.097423667,
+          "flow_and_render": 0.690787,
+          "hook_responses": 0.477863208,
+          "import_preflight": 0.186006417,
+          "initial_lowering": 0.078478542,
+          "oracle_check": 0.257292666,
+          "project_index": 0.0434955,
+          "source_maps": 0.013987625,
+          "source_scan": 0.002404541
         },
         "plugin_runtime": "embedded-monty",
         "project": "artifact:django-benchmark-runs/inputs/conformance",
@@ -11939,7 +11939,7 @@
         "projection_rounds": 4,
         "reused_units": 0,
         "revision": 1,
-        "seconds": 2.15493775,
+        "seconds": 2.228067791,
         "suppressed_generated": [
           {
             "check_name": "redundant-cast",
@@ -16783,7 +16783,7 @@
       },
       "phase": "warmup",
       "repetition": 0,
-      "seconds": 2.5093244580202736,
+      "seconds": 2.9547154580359347,
       "suite": "conformance",
       "verified": true
     },
@@ -16795,19 +16795,19 @@
       "evidence": "artifact:django-benchmark-runs/runs/warmup-00/conformance-fork",
       "exit": 1,
       "load_average_after": [
-        4.87255859375,
-        8.1728515625,
-        8.04541015625
+        6.29248046875,
+        8.20556640625,
+        9.52001953125
       ],
       "load_average_before": [
-        4.87255859375,
-        8.1728515625,
-        8.04541015625
+        6.29248046875,
+        8.20556640625,
+        9.52001953125
       ],
       "native_metrics": {},
       "phase": "warmup",
       "repetition": 0,
-      "seconds": 0.7123060839949176,
+      "seconds": 0.7309241669718176,
       "suite": "conformance",
       "verified": true
     },
@@ -16825,14 +16825,14 @@
       "evidence": "artifact:django-benchmark-runs/runs/warmup-00/e2e-positive-push",
       "exit": 0,
       "load_average_after": [
-        4.80224609375,
-        8.103515625,
-        8.021484375
+        6.34912109375,
+        8.185546875,
+        9.5048828125
       ],
       "load_average_before": [
-        4.87255859375,
-        8.1728515625,
-        8.04541015625
+        6.29248046875,
+        8.20556640625,
+        9.52001953125
       ],
       "native_metrics": {
         "checker": "binary:django-official",
@@ -16845,23 +16845,23 @@
         "monty_cache_hits_delta": 391,
         "monty_executions": 242,
         "monty_executions_delta": 242,
-        "monty_seconds": 0.069991004,
-        "monty_seconds_delta": 0.069991004,
+        "monty_seconds": 0.071551952,
+        "monty_seconds_delta": 0.071551952,
         "oracle_rounds": 3,
         "phases": {
-          "class_projection": 0.0509795,
-          "diagnostic_mapping": 0.006025208,
-          "external_resolution": 0.181227375,
-          "final_check": 0.089616875,
-          "final_render": 0.068658917,
-          "flow_and_render": 0.578192959,
-          "hook_responses": 0.211169125,
-          "import_preflight": 0.204908166,
-          "initial_lowering": 0.074031291,
-          "oracle_check": 0.16552375,
-          "project_index": 0.042103125,
-          "source_maps": 0.014877209,
-          "source_scan": 0.003380917
+          "class_projection": 0.06421225,
+          "diagnostic_mapping": 0.005869958,
+          "external_resolution": 0.205138,
+          "final_check": 0.0849225,
+          "final_render": 0.067964834,
+          "flow_and_render": 0.672906209,
+          "hook_responses": 0.218863458,
+          "import_preflight": 0.206493124,
+          "initial_lowering": 0.07229975,
+          "oracle_check": 0.16925725,
+          "project_index": 0.042738292,
+          "source_maps": 0.014864958,
+          "source_scan": 0.003339625
         },
         "plugin_runtime": "embedded-monty",
         "project": "artifact:django-benchmark-runs/inputs/e2e",
@@ -16869,7 +16869,7 @@
         "projection_rounds": 4,
         "reused_units": 0,
         "revision": 1,
-        "seconds": 1.690756167,
+        "seconds": 1.828943,
         "suppressed_generated": [
           {
             "check_name": "redundant-cast",
@@ -19117,7 +19117,7 @@
       },
       "phase": "warmup",
       "repetition": 0,
-      "seconds": 2.0550332909915596,
+      "seconds": 2.2749113750178367,
       "suite": "e2e-positive",
       "verified": true
     },
@@ -19129,19 +19129,19 @@
       "evidence": "artifact:django-benchmark-runs/runs/warmup-00/e2e-positive-fork",
       "exit": 0,
       "load_average_after": [
-        4.80224609375,
-        8.103515625,
-        8.021484375
+        6.34912109375,
+        8.185546875,
+        9.5048828125
       ],
       "load_average_before": [
-        4.80224609375,
-        8.103515625,
-        8.021484375
+        6.34912109375,
+        8.185546875,
+        9.5048828125
       ],
       "native_metrics": {},
       "phase": "warmup",
       "repetition": 0,
-      "seconds": 0.7068509160308167,
+      "seconds": 0.7137431669980288,
       "suite": "e2e-positive",
       "verified": true
     },
@@ -19159,14 +19159,14 @@
       "evidence": "artifact:django-benchmark-runs/runs/warmup-00/e2e-positive-cli",
       "exit": 0,
       "load_average_after": [
-        4.80224609375,
-        8.103515625,
-        8.021484375
+        6.34912109375,
+        8.185546875,
+        9.5048828125
       ],
       "load_average_before": [
-        4.80224609375,
-        8.103515625,
-        8.021484375
+        6.34912109375,
+        8.185546875,
+        9.5048828125
       ],
       "native_metrics": {
         "checker": "binary:django-official",
@@ -19179,23 +19179,23 @@
         "monty_cache_hits_delta": 391,
         "monty_executions": 242,
         "monty_executions_delta": 242,
-        "monty_seconds": 0.069783491,
-        "monty_seconds_delta": 0.069783491,
+        "monty_seconds": 0.071004422,
+        "monty_seconds_delta": 0.071004422,
         "oracle_rounds": 3,
         "phases": {
-          "class_projection": 0.051945625,
-          "diagnostic_mapping": 0.005878584,
-          "external_resolution": 0.182847042,
-          "final_check": 0.096761166,
-          "final_render": 0.068962959,
-          "flow_and_render": 0.506445042,
-          "hook_responses": 0.209945541,
-          "import_preflight": 0.029196625,
-          "initial_lowering": 0.07329575,
-          "oracle_check": 0.36365775,
-          "project_index": 0.041720125,
-          "source_maps": 0.014641083,
-          "source_scan": 0.003375666
+          "class_projection": 0.052129084,
+          "diagnostic_mapping": 0.006254375,
+          "external_resolution": 0.193003625,
+          "final_check": 0.091618958,
+          "final_render": 0.076010959,
+          "flow_and_render": 0.5929946660000001,
+          "hook_responses": 0.22378691699999997,
+          "import_preflight": 0.030502042,
+          "initial_lowering": 0.070461875,
+          "oracle_check": 0.36907879099999996,
+          "project_index": 0.0428175,
+          "source_maps": 0.014771125,
+          "source_scan": 0.0035645
         },
         "plugin_runtime": "embedded-monty",
         "project": "artifact:django-benchmark-runs/inputs/e2e",
@@ -19203,7 +19203,7 @@
         "projection_rounds": 4,
         "reused_units": 0,
         "revision": 1,
-        "seconds": 1.648732833,
+        "seconds": 1.767045375,
         "suppressed_generated": [
           {
             "check_name": "redundant-cast",
@@ -19931,7 +19931,7 @@
       },
       "phase": "warmup",
       "repetition": 0,
-      "seconds": 1.997240166994743,
+      "seconds": 2.587873416952789,
       "suite": "e2e-positive",
       "verified": true
     },
@@ -19943,19 +19943,19 @@
       "evidence": "artifact:django-benchmark-runs/runs/warmup-00/e2e-negative-fork",
       "exit": 1,
       "load_average_after": [
-        4.80224609375,
-        8.103515625,
-        8.021484375
+        6.34912109375,
+        8.185546875,
+        9.5048828125
       ],
       "load_average_before": [
-        4.80224609375,
-        8.103515625,
-        8.021484375
+        6.34912109375,
+        8.185546875,
+        9.5048828125
       ],
       "native_metrics": {},
       "phase": "warmup",
       "repetition": 0,
-      "seconds": 0.3049624999985099,
+      "seconds": 0.29818495898507535,
       "suite": "e2e-negative",
       "verified": true
     },
@@ -19973,14 +19973,14 @@
       "evidence": "artifact:django-benchmark-runs/runs/warmup-00/e2e-negative-cli",
       "exit": 1,
       "load_average_after": [
-        4.65771484375,
-        8.0185546875,
-        7.99169921875
+        6.08056640625,
+        8.09912109375,
+        9.46630859375
       ],
       "load_average_before": [
-        4.80224609375,
-        8.103515625,
-        8.021484375
+        6.34912109375,
+        8.185546875,
+        9.5048828125
       ],
       "native_metrics": {
         "checker": "binary:django-official",
@@ -19993,23 +19993,23 @@
         "monty_cache_hits_delta": 391,
         "monty_executions": 242,
         "monty_executions_delta": 242,
-        "monty_seconds": 0.069411747,
-        "monty_seconds_delta": 0.069411747,
+        "monty_seconds": 0.069981917,
+        "monty_seconds_delta": 0.069981917,
         "oracle_rounds": 3,
         "phases": {
-          "class_projection": 0.050775167,
-          "diagnostic_mapping": 0.001063917,
-          "external_resolution": 0.184527125,
-          "final_check": 0.0728185,
-          "final_render": 0.071055792,
-          "flow_and_render": 0.508458209,
-          "hook_responses": 0.210705541,
-          "import_preflight": 0.028728833,
-          "initial_lowering": 0.076993416,
-          "oracle_check": 0.36638241699999996,
-          "project_index": 0.041755833,
-          "source_maps": 0.014571875,
-          "source_scan": 0.003465417
+          "class_projection": 0.064431334,
+          "diagnostic_mapping": 0.000989125,
+          "external_resolution": 0.192305833,
+          "final_check": 0.070975959,
+          "final_render": 0.079500916,
+          "flow_and_render": 0.5876641260000001,
+          "hook_responses": 0.217318999,
+          "import_preflight": 0.030941292,
+          "initial_lowering": 0.072294791,
+          "oracle_check": 0.371495792,
+          "project_index": 0.043556958,
+          "source_maps": 0.014667666,
+          "source_scan": 0.003418292
         },
         "plugin_runtime": "embedded-monty",
         "project": "artifact:django-benchmark-runs/inputs/e2e",
@@ -20017,7 +20017,7 @@
         "projection_rounds": 4,
         "reused_units": 0,
         "revision": 1,
-        "seconds": 1.6313555,
+        "seconds": 1.749621708,
         "suppressed_generated": [
           {
             "check_name": "redundant-cast",
@@ -20099,7 +20099,7 @@
       },
       "phase": "warmup",
       "repetition": 0,
-      "seconds": 1.9840457079699263,
+      "seconds": 2.162722791021224,
       "suite": "e2e-negative",
       "verified": true
     },
@@ -20117,14 +20117,14 @@
       "evidence": "artifact:django-benchmark-runs/runs/warmup-00/e2e-negative-push",
       "exit": 1,
       "load_average_after": [
-        4.65771484375,
-        8.0185546875,
-        7.99169921875
+        6.08056640625,
+        8.09912109375,
+        9.46630859375
       ],
       "load_average_before": [
-        4.65771484375,
-        8.0185546875,
-        7.99169921875
+        6.08056640625,
+        8.09912109375,
+        9.46630859375
       ],
       "native_metrics": {
         "checker": "binary:django-official",
@@ -20137,23 +20137,23 @@
         "monty_cache_hits_delta": 391,
         "monty_executions": 242,
         "monty_executions_delta": 242,
-        "monty_seconds": 0.069573586,
-        "monty_seconds_delta": 0.069573586,
+        "monty_seconds": 0.072165119,
+        "monty_seconds_delta": 0.072165119,
         "oracle_rounds": 3,
         "phases": {
-          "class_projection": 0.051414792,
-          "diagnostic_mapping": 0.001146834,
-          "external_resolution": 0.179913417,
-          "final_check": 0.083842541,
-          "final_render": 0.069183084,
-          "flow_and_render": 0.585687375,
-          "hook_responses": 0.21107049900000002,
-          "import_preflight": 0.20536987499999998,
-          "initial_lowering": 0.072920916,
-          "oracle_check": 0.166583001,
-          "project_index": 0.041036583,
-          "source_maps": 0.014698416,
-          "source_scan": 0.003447958
+          "class_projection": 0.052252083,
+          "diagnostic_mapping": 0.00160625,
+          "external_resolution": 0.19685875,
+          "final_check": 0.079384,
+          "final_render": 0.090991125,
+          "flow_and_render": 0.6682242079999999,
+          "hook_responses": 0.217234751,
+          "import_preflight": 0.203371875,
+          "initial_lowering": 0.070200667,
+          "oracle_check": 0.17715620799999998,
+          "project_index": 0.041734958,
+          "source_maps": 0.014815833,
+          "source_scan": 0.003417709
         },
         "plugin_runtime": "embedded-monty",
         "project": "artifact:django-benchmark-runs/inputs/e2e",
@@ -20161,7 +20161,7 @@
         "projection_rounds": 4,
         "reused_units": 0,
         "revision": 1,
-        "seconds": 1.686372625,
+        "seconds": 1.817300334,
         "suppressed_generated": [
           {
             "check_name": "redundant-cast",
@@ -20403,7 +20403,7 @@
       },
       "phase": "warmup",
       "repetition": 0,
-      "seconds": 2.046443832980003,
+      "seconds": 2.541029541986063,
       "suite": "e2e-negative",
       "verified": true
     },
@@ -20421,14 +20421,14 @@
       "evidence": "artifact:django-benchmark-runs/runs/warmup-01/conformance-push",
       "exit": 1,
       "load_average_after": [
-        4.68505859375,
-        7.96826171875,
-        7.97412109375
+        6.23388671875,
+        8.09716796875,
+        9.45751953125
       ],
       "load_average_before": [
-        4.65771484375,
-        8.0185546875,
-        7.99169921875
+        6.08056640625,
+        8.09912109375,
+        9.46630859375
       ],
       "native_metrics": {
         "checker": "binary:django-official",
@@ -20441,23 +20441,23 @@
         "monty_cache_hits_delta": 1315,
         "monty_executions": 622,
         "monty_executions_delta": 622,
-        "monty_seconds": 0.174827684,
-        "monty_seconds_delta": 0.174827684,
+        "monty_seconds": 0.175239089,
+        "monty_seconds_delta": 0.175239089,
         "oracle_rounds": 4,
         "phases": {
-          "class_projection": 0.058005709,
-          "diagnostic_mapping": 0.005585208,
-          "external_resolution": 0.19770675000000001,
-          "final_check": 0.111050167,
-          "final_render": 0.086384583,
-          "flow_and_render": 0.666972334,
-          "hook_responses": 0.47223775,
-          "import_preflight": 0.18050587399999998,
-          "initial_lowering": 0.085837208,
-          "oracle_check": 0.273330417,
-          "project_index": 0.040433291,
-          "source_maps": 0.014162125,
-          "source_scan": 0.002348334
+          "class_projection": 0.055912916,
+          "diagnostic_mapping": 0.005438292,
+          "external_resolution": 0.209441959,
+          "final_check": 0.101541375,
+          "final_render": 0.085496375,
+          "flow_and_render": 0.6967766259999999,
+          "hook_responses": 0.46921116500000004,
+          "import_preflight": 0.18033479200000002,
+          "initial_lowering": 0.082220167,
+          "oracle_check": 0.261686,
+          "project_index": 0.045120333,
+          "source_maps": 0.014001417,
+          "source_scan": 0.002290042
         },
         "plugin_runtime": "embedded-monty",
         "project": "artifact:django-benchmark-runs/inputs/conformance",
@@ -20465,7 +20465,7 @@
         "projection_rounds": 4,
         "reused_units": 0,
         "revision": 1,
-        "seconds": 2.194629292,
+        "seconds": 2.209520209,
         "suppressed_generated": [
           {
             "check_name": "redundant-cast",
@@ -25309,7 +25309,7 @@
       },
       "phase": "warmup",
       "repetition": 1,
-      "seconds": 2.546865832991898,
+      "seconds": 2.8520551249966957,
       "suite": "conformance",
       "verified": true
     },
@@ -25321,19 +25321,19 @@
       "evidence": "artifact:django-benchmark-runs/runs/warmup-01/conformance-fork",
       "exit": 1,
       "load_average_after": [
-        4.68505859375,
-        7.96826171875,
-        7.97412109375
+        6.23388671875,
+        8.09716796875,
+        9.45751953125
       ],
       "load_average_before": [
-        4.68505859375,
-        7.96826171875,
-        7.97412109375
+        6.23388671875,
+        8.09716796875,
+        9.45751953125
       ],
       "native_metrics": {},
       "phase": "warmup",
       "repetition": 1,
-      "seconds": 0.7158818329917267,
+      "seconds": 0.7045430829748511,
       "suite": "conformance",
       "verified": true
     },
@@ -25351,14 +25351,14 @@
       "evidence": "artifact:django-benchmark-runs/runs/warmup-01/conformance-cli",
       "exit": 1,
       "load_average_after": [
-        4.68505859375,
-        7.96826171875,
-        7.97412109375
+        6.0546875,
+        8.02880859375,
+        9.42529296875
       ],
       "load_average_before": [
-        4.68505859375,
-        7.96826171875,
-        7.97412109375
+        6.23388671875,
+        8.09716796875,
+        9.45751953125
       ],
       "native_metrics": {
         "checker": "binary:django-official",
@@ -25371,23 +25371,23 @@
         "monty_cache_hits_delta": 1315,
         "monty_executions": 622,
         "monty_executions_delta": 622,
-        "monty_seconds": 0.172995674,
-        "monty_seconds_delta": 0.172995674,
+        "monty_seconds": 0.17010783,
+        "monty_seconds_delta": 0.17010783,
         "oracle_rounds": 4,
         "phases": {
-          "class_projection": 0.05786725,
-          "diagnostic_mapping": 0.005106416,
-          "external_resolution": 0.198739166,
-          "final_check": 0.104050667,
-          "final_render": 0.085199458,
-          "flow_and_render": 0.662496084,
-          "hook_responses": 0.463001666,
-          "import_preflight": 0.034514042,
-          "initial_lowering": 0.084897292,
-          "oracle_check": 0.504389,
-          "project_index": 0.040490375,
-          "source_maps": 0.013939584,
-          "source_scan": 0.002127417
+          "class_projection": 0.056593292,
+          "diagnostic_mapping": 0.005106791,
+          "external_resolution": 0.197792499,
+          "final_check": 0.105194709,
+          "final_render": 0.084133375,
+          "flow_and_render": 0.6501620419999999,
+          "hook_responses": 0.45436983200000003,
+          "import_preflight": 0.032603,
+          "initial_lowering": 0.078282917,
+          "oracle_check": 0.47971429200000004,
+          "project_index": 0.039881292,
+          "source_maps": 0.014433,
+          "source_scan": 0.002280625
         },
         "plugin_runtime": "embedded-monty",
         "project": "artifact:django-benchmark-runs/inputs/conformance",
@@ -25395,7 +25395,7 @@
         "projection_rounds": 4,
         "reused_units": 0,
         "revision": 1,
-        "seconds": 2.256872667,
+        "seconds": 2.200613458,
         "suppressed_generated": [
           {
             "check_name": "redundant-cast",
@@ -26959,7 +26959,7 @@
       },
       "phase": "warmup",
       "repetition": 1,
-      "seconds": 2.60810437501641,
+      "seconds": 2.5543923749937676,
       "suite": "conformance",
       "verified": true
     },
@@ -26971,19 +26971,19 @@
       "evidence": "artifact:django-benchmark-runs/runs/warmup-01/e2e-positive-fork",
       "exit": 0,
       "load_average_after": [
-        4.68505859375,
-        7.96826171875,
-        7.97412109375
+        6.0546875,
+        8.02880859375,
+        9.42529296875
       ],
       "load_average_before": [
-        4.68505859375,
-        7.96826171875,
-        7.97412109375
+        6.0546875,
+        8.02880859375,
+        9.42529296875
       ],
       "native_metrics": {},
       "phase": "warmup",
       "repetition": 1,
-      "seconds": 0.720662750012707,
+      "seconds": 0.6949396249838173,
       "suite": "e2e-positive",
       "verified": true
     },
@@ -27001,14 +27001,14 @@
       "evidence": "artifact:django-benchmark-runs/runs/warmup-01/e2e-positive-cli",
       "exit": 0,
       "load_average_after": [
-        5.4306640625,
-        8.068359375,
-        8.00927734375
+        6.0546875,
+        8.02880859375,
+        9.42529296875
       ],
       "load_average_before": [
-        4.68505859375,
-        7.96826171875,
-        7.97412109375
+        6.0546875,
+        8.02880859375,
+        9.42529296875
       ],
       "native_metrics": {
         "checker": "binary:django-official",
@@ -27021,23 +27021,23 @@
         "monty_cache_hits_delta": 391,
         "monty_executions": 242,
         "monty_executions_delta": 242,
-        "monty_seconds": 0.06992401,
-        "monty_seconds_delta": 0.06992401,
+        "monty_seconds": 0.068219335,
+        "monty_seconds_delta": 0.068219335,
         "oracle_rounds": 3,
         "phases": {
-          "class_projection": 0.0528075,
-          "diagnostic_mapping": 0.005897125,
-          "external_resolution": 0.177426833,
-          "final_check": 0.093255458,
-          "final_render": 0.069886834,
-          "flow_and_render": 0.509099167,
-          "hook_responses": 0.211104166,
-          "import_preflight": 0.028843667,
-          "initial_lowering": 0.075013042,
-          "oracle_check": 0.359341541,
-          "project_index": 0.042207,
-          "source_maps": 0.014693458,
-          "source_scan": 0.003529917
+          "class_projection": 0.050743417,
+          "diagnostic_mapping": 0.005847333,
+          "external_resolution": 0.17334375,
+          "final_check": 0.09097725,
+          "final_render": 0.06669925,
+          "flow_and_render": 0.490753918,
+          "hook_responses": 0.20625745900000003,
+          "import_preflight": 0.027576291,
+          "initial_lowering": 0.069314958,
+          "oracle_check": 0.348599999,
+          "project_index": 0.039802791,
+          "source_maps": 0.014714584,
+          "source_scan": 0.00326325
         },
         "plugin_runtime": "embedded-monty",
         "project": "artifact:django-benchmark-runs/inputs/e2e",
@@ -27045,7 +27045,7 @@
         "projection_rounds": 4,
         "reused_units": 0,
         "revision": 1,
-        "seconds": 1.643169917,
+        "seconds": 1.587942083,
         "suppressed_generated": [
           {
             "check_name": "redundant-cast",
@@ -27773,7 +27773,7 @@
       },
       "phase": "warmup",
       "repetition": 1,
-      "seconds": 1.9990799590013921,
+      "seconds": 1.9400264589930885,
       "suite": "e2e-positive",
       "verified": true
     },
@@ -27791,14 +27791,14 @@
       "evidence": "artifact:django-benchmark-runs/runs/warmup-01/e2e-positive-push",
       "exit": 0,
       "load_average_after": [
-        5.4306640625,
-        8.068359375,
-        8.00927734375
+        5.72998046875,
+        7.9287109375,
+        9.38134765625
       ],
       "load_average_before": [
-        5.4306640625,
-        8.068359375,
-        8.00927734375
+        6.0546875,
+        8.02880859375,
+        9.42529296875
       ],
       "native_metrics": {
         "checker": "binary:django-official",
@@ -27811,23 +27811,23 @@
         "monty_cache_hits_delta": 391,
         "monty_executions": 242,
         "monty_executions_delta": 242,
-        "monty_seconds": 0.070681297,
-        "monty_seconds_delta": 0.070681297,
+        "monty_seconds": 0.067929462,
+        "monty_seconds_delta": 0.067929462,
         "oracle_rounds": 3,
         "phases": {
-          "class_projection": 0.052207417,
-          "diagnostic_mapping": 0.005824708,
-          "external_resolution": 0.185947583,
-          "final_check": 0.0854995,
-          "final_render": 0.069056417,
-          "flow_and_render": 0.585355249,
-          "hook_responses": 0.21316924999999998,
-          "import_preflight": 0.19844850100000003,
-          "initial_lowering": 0.075355708,
-          "oracle_check": 0.1656125,
-          "project_index": 0.04192525,
-          "source_maps": 0.0149885,
-          "source_scan": 0.003363167
+          "class_projection": 0.049804125,
+          "diagnostic_mapping": 0.005926083,
+          "external_resolution": 0.176845542,
+          "final_check": 0.079965042,
+          "final_render": 0.06765125,
+          "flow_and_render": 0.560091457,
+          "hook_responses": 0.209388042,
+          "import_preflight": 0.20258179199999998,
+          "initial_lowering": 0.069251917,
+          "oracle_check": 0.156678125,
+          "project_index": 0.039513333,
+          "source_maps": 0.014832292,
+          "source_scan": 0.003277167
         },
         "plugin_runtime": "embedded-monty",
         "project": "artifact:django-benchmark-runs/inputs/e2e",
@@ -27835,7 +27835,7 @@
         "projection_rounds": 4,
         "reused_units": 0,
         "revision": 1,
-        "seconds": 1.696823625,
+        "seconds": 1.6358649170000001,
         "suppressed_generated": [
           {
             "check_name": "redundant-cast",
@@ -30083,7 +30083,7 @@
       },
       "phase": "warmup",
       "repetition": 1,
-      "seconds": 2.05776658304967,
+      "seconds": 1.9949850830016658,
       "suite": "e2e-positive",
       "verified": true
     },
@@ -30101,14 +30101,14 @@
       "evidence": "artifact:django-benchmark-runs/runs/warmup-01/e2e-negative-cli",
       "exit": 1,
       "load_average_after": [
-        5.15576171875,
-        7.96728515625,
-        7.9736328125
+        5.72998046875,
+        7.9287109375,
+        9.38134765625
       ],
       "load_average_before": [
-        5.4306640625,
-        8.068359375,
-        8.00927734375
+        5.72998046875,
+        7.9287109375,
+        9.38134765625
       ],
       "native_metrics": {
         "checker": "binary:django-official",
@@ -30121,23 +30121,23 @@
         "monty_cache_hits_delta": 391,
         "monty_executions": 242,
         "monty_executions_delta": 242,
-        "monty_seconds": 0.06994063,
-        "monty_seconds_delta": 0.06994063,
+        "monty_seconds": 0.070020879,
+        "monty_seconds_delta": 0.070020879,
         "oracle_rounds": 3,
         "phases": {
-          "class_projection": 0.051349791,
-          "diagnostic_mapping": 0.001047291,
-          "external_resolution": 0.181345333,
-          "final_check": 0.077263875,
-          "final_render": 0.069243167,
-          "flow_and_render": 0.505206417,
-          "hook_responses": 0.20973775099999997,
-          "import_preflight": 0.028520749,
-          "initial_lowering": 0.077967917,
-          "oracle_check": 0.362067833,
-          "project_index": 0.041732167,
-          "source_maps": 0.014895334,
-          "source_scan": 0.003361542
+          "class_projection": 0.053739958,
+          "diagnostic_mapping": 0.003910041,
+          "external_resolution": 0.180652959,
+          "final_check": 0.0719685,
+          "final_render": 0.09615075,
+          "flow_and_render": 0.503006834,
+          "hook_responses": 0.209041751,
+          "import_preflight": 0.028513333000000002,
+          "initial_lowering": 0.072960125,
+          "oracle_check": 0.356989791,
+          "project_index": 0.042095833,
+          "source_maps": 0.014655042,
+          "source_scan": 0.003326833
         },
         "plugin_runtime": "embedded-monty",
         "project": "artifact:django-benchmark-runs/inputs/e2e",
@@ -30145,7 +30145,7 @@
         "projection_rounds": 4,
         "reused_units": 0,
         "revision": 1,
-        "seconds": 1.6238025,
+        "seconds": 1.637062917,
         "suppressed_generated": [
           {
             "check_name": "redundant-cast",
@@ -30227,7 +30227,7 @@
       },
       "phase": "warmup",
       "repetition": 1,
-      "seconds": 1.978943666035775,
+      "seconds": 1.987180125026498,
       "suite": "e2e-negative",
       "verified": true
     },
@@ -30245,14 +30245,14 @@
       "evidence": "artifact:django-benchmark-runs/runs/warmup-01/e2e-negative-push",
       "exit": 1,
       "load_average_after": [
-        5.15576171875,
-        7.96728515625,
-        7.9736328125
+        5.72998046875,
+        7.9287109375,
+        9.38134765625
       ],
       "load_average_before": [
-        5.15576171875,
-        7.96728515625,
-        7.9736328125
+        5.72998046875,
+        7.9287109375,
+        9.38134765625
       ],
       "native_metrics": {
         "checker": "binary:django-official",
@@ -30265,23 +30265,23 @@
         "monty_cache_hits_delta": 391,
         "monty_executions": 242,
         "monty_executions_delta": 242,
-        "monty_seconds": 0.070101159,
-        "monty_seconds_delta": 0.070101159,
+        "monty_seconds": 0.06960284,
+        "monty_seconds_delta": 0.06960284,
         "oracle_rounds": 3,
         "phases": {
-          "class_projection": 0.051767291,
-          "diagnostic_mapping": 0.001088792,
-          "external_resolution": 0.183061125,
-          "final_check": 0.08493275,
-          "final_render": 0.073568708,
-          "flow_and_render": 0.58493925,
-          "hook_responses": 0.213216166,
-          "import_preflight": 0.20468350100000002,
-          "initial_lowering": 0.074228417,
-          "oracle_check": 0.167328833,
-          "project_index": 0.041883167,
-          "source_maps": 0.014796417,
-          "source_scan": 0.003376292
+          "class_projection": 0.050694792,
+          "diagnostic_mapping": 0.001049042,
+          "external_resolution": 0.186714959,
+          "final_check": 0.078714541,
+          "final_render": 0.0667255,
+          "flow_and_render": 0.564617167,
+          "hook_responses": 0.209184541,
+          "import_preflight": 0.19380483199999998,
+          "initial_lowering": 0.073066333,
+          "oracle_check": 0.152489127,
+          "project_index": 0.041427333,
+          "source_maps": 0.014635958,
+          "source_scan": 0.003314833
         },
         "plugin_runtime": "embedded-monty",
         "project": "artifact:django-benchmark-runs/inputs/e2e",
@@ -30289,7 +30289,7 @@
         "projection_rounds": 4,
         "reused_units": 0,
         "revision": 1,
-        "seconds": 1.698949834,
+        "seconds": 1.636496042,
         "suppressed_generated": [
           {
             "check_name": "redundant-cast",
@@ -30531,7 +30531,7 @@
       },
       "phase": "warmup",
       "repetition": 1,
-      "seconds": 2.0611006669932976,
+      "seconds": 2.08062537497608,
       "suite": "e2e-negative",
       "verified": true
     },
@@ -30543,19 +30543,19 @@
       "evidence": "artifact:django-benchmark-runs/runs/warmup-01/e2e-negative-fork",
       "exit": 1,
       "load_average_after": [
-        5.15576171875,
-        7.96728515625,
-        7.9736328125
+        5.72998046875,
+        7.9287109375,
+        9.38134765625
       ],
       "load_average_before": [
-        5.15576171875,
-        7.96728515625,
-        7.9736328125
+        5.72998046875,
+        7.9287109375,
+        9.38134765625
       ],
       "native_metrics": {},
       "phase": "warmup",
       "repetition": 1,
-      "seconds": 0.30542099999729544,
+      "seconds": 0.3012425829656422,
       "suite": "e2e-negative",
       "verified": true
     },
@@ -30567,19 +30567,19 @@
       "evidence": "artifact:django-benchmark-runs/runs/measured-00/conformance-fork",
       "exit": 1,
       "load_average_after": [
-        5.15576171875,
-        7.96728515625,
-        7.9736328125
+        5.43115234375,
+        7.830078125,
+        9.337890625
       ],
       "load_average_before": [
-        5.15576171875,
-        7.96728515625,
-        7.9736328125
+        5.72998046875,
+        7.9287109375,
+        9.38134765625
       ],
       "native_metrics": {},
       "phase": "measured",
       "repetition": 0,
-      "seconds": 0.7236934580141678,
+      "seconds": 0.7064807909773663,
       "suite": "conformance",
       "verified": true
     },
@@ -30597,14 +30597,14 @@
       "evidence": "artifact:django-benchmark-runs/runs/measured-00/conformance-cli",
       "exit": 1,
       "load_average_after": [
-        4.98291015625,
-        7.884765625,
-        7.9443359375
+        5.43115234375,
+        7.830078125,
+        9.337890625
       ],
       "load_average_before": [
-        5.15576171875,
-        7.96728515625,
-        7.9736328125
+        5.43115234375,
+        7.830078125,
+        9.337890625
       ],
       "native_metrics": {
         "checker": "binary:django-official",
@@ -30617,23 +30617,23 @@
         "monty_cache_hits_delta": 1315,
         "monty_executions": 622,
         "monty_executions_delta": 622,
-        "monty_seconds": 0.172460162,
-        "monty_seconds_delta": 0.172460162,
+        "monty_seconds": 0.17125987,
+        "monty_seconds_delta": 0.17125987,
         "oracle_rounds": 4,
         "phases": {
-          "class_projection": 0.05701925,
-          "diagnostic_mapping": 0.005123833,
-          "external_resolution": 0.203060542,
-          "final_check": 0.1034895,
-          "final_render": 0.086423333,
-          "flow_and_render": 0.657590209,
-          "hook_responses": 0.465675666,
-          "import_preflight": 0.033231417,
-          "initial_lowering": 0.085342792,
-          "oracle_check": 0.5050105,
-          "project_index": 0.041942333,
-          "source_maps": 0.0139525,
-          "source_scan": 0.002184916
+          "class_projection": 0.055796375,
+          "diagnostic_mapping": 0.00502425,
+          "external_resolution": 0.195285416,
+          "final_check": 0.098863833,
+          "final_render": 0.081780625,
+          "flow_and_render": 0.643486333,
+          "hook_responses": 0.454249709,
+          "import_preflight": 0.032803791,
+          "initial_lowering": 0.081771208,
+          "oracle_check": 0.481799876,
+          "project_index": 0.039235334,
+          "source_maps": 0.014320125,
+          "source_scan": 0.002143083
         },
         "plugin_runtime": "embedded-monty",
         "project": "artifact:django-benchmark-runs/inputs/conformance",
@@ -30641,7 +30641,7 @@
         "projection_rounds": 4,
         "reused_units": 0,
         "revision": 1,
-        "seconds": 2.260106,
+        "seconds": 2.186628208,
         "suppressed_generated": [
           {
             "check_name": "redundant-cast",
@@ -32205,7 +32205,7 @@
       },
       "phase": "measured",
       "repetition": 0,
-      "seconds": 2.619816417049151,
+      "seconds": 2.5403762909700163,
       "suite": "conformance",
       "verified": true
     },
@@ -32223,14 +32223,14 @@
       "evidence": "artifact:django-benchmark-runs/runs/measured-00/conformance-push",
       "exit": 1,
       "load_average_after": [
-        4.98291015625,
-        7.884765625,
-        7.9443359375
+        5.15625,
+        7.73291015625,
+        9.29443359375
       ],
       "load_average_before": [
-        4.98291015625,
-        7.884765625,
-        7.9443359375
+        5.43115234375,
+        7.830078125,
+        9.337890625
       ],
       "native_metrics": {
         "checker": "binary:django-official",
@@ -32243,23 +32243,23 @@
         "monty_cache_hits_delta": 1315,
         "monty_executions": 622,
         "monty_executions_delta": 622,
-        "monty_seconds": 0.171903572,
-        "monty_seconds_delta": 0.171903572,
+        "monty_seconds": 0.168812078,
+        "monty_seconds_delta": 0.168812078,
         "oracle_rounds": 4,
         "phases": {
-          "class_projection": 0.0558645,
-          "diagnostic_mapping": 0.005487792,
-          "external_resolution": 0.2004285,
-          "final_check": 0.0978365,
-          "final_render": 0.086703083,
-          "flow_and_render": 0.668472665,
-          "hook_responses": 0.468131042,
-          "import_preflight": 0.176180167,
-          "initial_lowering": 0.083538834,
-          "oracle_check": 0.267880834,
-          "project_index": 0.040787375,
-          "source_maps": 0.014094542,
-          "source_scan": 0.002321333
+          "class_projection": 0.054377875,
+          "diagnostic_mapping": 0.005544166,
+          "external_resolution": 0.195171042,
+          "final_check": 0.1004255,
+          "final_render": 0.08310975,
+          "flow_and_render": 0.649452625,
+          "hook_responses": 0.47286054199999994,
+          "import_preflight": 0.164666125,
+          "initial_lowering": 0.080496834,
+          "oracle_check": 0.25835220799999997,
+          "project_index": 0.038931208,
+          "source_maps": 0.014302459,
+          "source_scan": 0.002110666
         },
         "plugin_runtime": "embedded-monty",
         "project": "artifact:django-benchmark-runs/inputs/conformance",
@@ -32267,7 +32267,7 @@
         "projection_rounds": 4,
         "reused_units": 0,
         "revision": 1,
-        "seconds": 2.16778525,
+        "seconds": 2.119851583,
         "suppressed_generated": [
           {
             "check_name": "redundant-cast",
@@ -37111,7 +37111,7 @@
       },
       "phase": "measured",
       "repetition": 0,
-      "seconds": 2.521182082942687,
+      "seconds": 2.470096790988464,
       "suite": "conformance",
       "verified": true
     },
@@ -37129,14 +37129,14 @@
       "evidence": "artifact:django-benchmark-runs/runs/measured-00/e2e-positive-cli",
       "exit": 0,
       "load_average_after": [
-        4.90380859375,
-        7.81982421875,
-        7.9208984375
+        5.15625,
+        7.73291015625,
+        9.29443359375
       ],
       "load_average_before": [
-        4.98291015625,
-        7.884765625,
-        7.9443359375
+        5.15625,
+        7.73291015625,
+        9.29443359375
       ],
       "native_metrics": {
         "checker": "binary:django-official",
@@ -37149,23 +37149,23 @@
         "monty_cache_hits_delta": 391,
         "monty_executions": 242,
         "monty_executions_delta": 242,
-        "monty_seconds": 0.070830584,
-        "monty_seconds_delta": 0.070830584,
+        "monty_seconds": 0.068539802,
+        "monty_seconds_delta": 0.068539802,
         "oracle_rounds": 3,
         "phases": {
-          "class_projection": 0.053690584,
-          "diagnostic_mapping": 0.005866041,
-          "external_resolution": 0.179882541,
-          "final_check": 0.098364917,
-          "final_render": 0.068785125,
-          "flow_and_render": 0.515902292,
-          "hook_responses": 0.209453167,
-          "import_preflight": 0.028206458,
-          "initial_lowering": 0.081055166,
-          "oracle_check": 0.358662875,
-          "project_index": 0.041031375,
-          "source_maps": 0.014708584,
-          "source_scan": 0.003332042
+          "class_projection": 0.052584958,
+          "diagnostic_mapping": 0.0059215,
+          "external_resolution": 0.175042583,
+          "final_check": 0.090215833,
+          "final_render": 0.066365417,
+          "flow_and_render": 0.493092249,
+          "hook_responses": 0.205809291,
+          "import_preflight": 0.027804126000000002,
+          "initial_lowering": 0.074430917,
+          "oracle_check": 0.34715575,
+          "project_index": 0.039687292,
+          "source_maps": 0.014644334,
+          "source_scan": 0.003364917
         },
         "plugin_runtime": "embedded-monty",
         "project": "artifact:django-benchmark-runs/inputs/e2e",
@@ -37173,7 +37173,7 @@
         "projection_rounds": 4,
         "reused_units": 0,
         "revision": 1,
-        "seconds": 1.65899825,
+        "seconds": 1.5961715,
         "suppressed_generated": [
           {
             "check_name": "redundant-cast",
@@ -37901,7 +37901,7 @@
       },
       "phase": "measured",
       "repetition": 0,
-      "seconds": 2.0067776670330204,
+      "seconds": 1.9487503329874016,
       "suite": "e2e-positive",
       "verified": true
     },
@@ -37919,14 +37919,14 @@
       "evidence": "artifact:django-benchmark-runs/runs/measured-00/e2e-positive-push",
       "exit": 0,
       "load_average_after": [
-        4.90380859375,
-        7.81982421875,
-        7.9208984375
+        5.15625,
+        7.73291015625,
+        9.29443359375
       ],
       "load_average_before": [
-        4.90380859375,
-        7.81982421875,
-        7.9208984375
+        5.15625,
+        7.73291015625,
+        9.29443359375
       ],
       "native_metrics": {
         "checker": "binary:django-official",
@@ -37939,23 +37939,23 @@
         "monty_cache_hits_delta": 391,
         "monty_executions": 242,
         "monty_executions_delta": 242,
-        "monty_seconds": 0.070275304,
-        "monty_seconds_delta": 0.070275304,
+        "monty_seconds": 0.068840376,
+        "monty_seconds_delta": 0.068840376,
         "oracle_rounds": 3,
         "phases": {
-          "class_projection": 0.051714667,
-          "diagnostic_mapping": 0.005939625,
-          "external_resolution": 0.182234667,
-          "final_check": 0.086901916,
-          "final_render": 0.069123834,
-          "flow_and_render": 0.584739,
-          "hook_responses": 0.212234667,
-          "import_preflight": 0.205260375,
-          "initial_lowering": 0.073770958,
-          "oracle_check": 0.169732791,
-          "project_index": 0.040878,
-          "source_maps": 0.014937542,
-          "source_scan": 0.00345975
+          "class_projection": 0.049945709,
+          "diagnostic_mapping": 0.005941583,
+          "external_resolution": 0.176654583,
+          "final_check": 0.079632708,
+          "final_render": 0.066928542,
+          "flow_and_render": 0.584143125,
+          "hook_responses": 0.208831042,
+          "import_preflight": 0.19821866700000002,
+          "initial_lowering": 0.069729333,
+          "oracle_check": 0.161161416,
+          "project_index": 0.03911875,
+          "source_maps": 0.014800875,
+          "source_scan": 0.003326542
         },
         "plugin_runtime": "embedded-monty",
         "project": "artifact:django-benchmark-runs/inputs/e2e",
@@ -37963,7 +37963,7 @@
         "projection_rounds": 4,
         "reused_units": 0,
         "revision": 1,
-        "seconds": 1.700998,
+        "seconds": 1.6584892089999999,
         "suppressed_generated": [
           {
             "check_name": "redundant-cast",
@@ -40211,7 +40211,7 @@
       },
       "phase": "measured",
       "repetition": 0,
-      "seconds": 2.063572084007319,
+      "seconds": 2.011512249999214,
       "suite": "e2e-positive",
       "verified": true
     },
@@ -40223,19 +40223,19 @@
       "evidence": "artifact:django-benchmark-runs/runs/measured-00/e2e-positive-fork",
       "exit": 0,
       "load_average_after": [
-        4.90380859375,
-        7.81982421875,
-        7.9208984375
+        5.1435546875,
+        7.6875,
+        9.26904296875
       ],
       "load_average_before": [
-        4.90380859375,
-        7.81982421875,
-        7.9208984375
+        5.15625,
+        7.73291015625,
+        9.29443359375
       ],
       "native_metrics": {},
       "phase": "measured",
       "repetition": 0,
-      "seconds": 0.7089385829749517,
+      "seconds": 0.6956713750259951,
       "suite": "e2e-positive",
       "verified": true
     },
@@ -40253,14 +40253,14 @@
       "evidence": "artifact:django-benchmark-runs/runs/measured-00/e2e-negative-push",
       "exit": 1,
       "load_average_after": [
-        4.7509765625,
-        7.73974609375,
-        7.8916015625
+        5.1435546875,
+        7.6875,
+        9.26904296875
       ],
       "load_average_before": [
-        4.90380859375,
-        7.81982421875,
-        7.9208984375
+        5.1435546875,
+        7.6875,
+        9.26904296875
       ],
       "native_metrics": {
         "checker": "binary:django-official",
@@ -40273,23 +40273,23 @@
         "monty_cache_hits_delta": 391,
         "monty_executions": 242,
         "monty_executions_delta": 242,
-        "monty_seconds": 0.069603171,
-        "monty_seconds_delta": 0.069603171,
+        "monty_seconds": 0.068329621,
+        "monty_seconds_delta": 0.068329621,
         "oracle_rounds": 3,
         "phases": {
-          "class_projection": 0.05197125,
-          "diagnostic_mapping": 0.001177125,
-          "external_resolution": 0.179292375,
-          "final_check": 0.089372292,
-          "final_render": 0.069399583,
-          "flow_and_render": 0.586709791,
-          "hook_responses": 0.211759625,
-          "import_preflight": 0.201109126,
-          "initial_lowering": 0.073998291,
-          "oracle_check": 0.167771375,
-          "project_index": 0.040472375,
-          "source_maps": 0.014727125,
-          "source_scan": 0.003388959
+          "class_projection": 0.051197042,
+          "diagnostic_mapping": 0.001072292,
+          "external_resolution": 0.176302708,
+          "final_check": 0.083007083,
+          "final_render": 0.069140375,
+          "flow_and_render": 0.572402708,
+          "hook_responses": 0.208973667,
+          "import_preflight": 0.191865542,
+          "initial_lowering": 0.071492,
+          "oracle_check": 0.157462333,
+          "project_index": 0.040007,
+          "source_maps": 0.014685958,
+          "source_scan": 0.003181667
         },
         "plugin_runtime": "embedded-monty",
         "project": "artifact:django-benchmark-runs/inputs/e2e",
@@ -40297,7 +40297,7 @@
         "projection_rounds": 4,
         "reused_units": 0,
         "revision": 1,
-        "seconds": 1.691203792,
+        "seconds": 1.640859292,
         "suppressed_generated": [
           {
             "check_name": "redundant-cast",
@@ -40539,7 +40539,7 @@
       },
       "phase": "measured",
       "repetition": 0,
-      "seconds": 2.0591932500246912,
+      "seconds": 2.003517250006553,
       "suite": "e2e-negative",
       "verified": true
     },
@@ -40551,19 +40551,19 @@
       "evidence": "artifact:django-benchmark-runs/runs/measured-00/e2e-negative-fork",
       "exit": 1,
       "load_average_after": [
-        4.7509765625,
-        7.73974609375,
-        7.8916015625
+        5.1435546875,
+        7.6875,
+        9.26904296875
       ],
       "load_average_before": [
-        4.7509765625,
-        7.73974609375,
-        7.8916015625
+        5.1435546875,
+        7.6875,
+        9.26904296875
       ],
       "native_metrics": {},
       "phase": "measured",
       "repetition": 0,
-      "seconds": 0.30435704201227054,
+      "seconds": 0.2926884579937905,
       "suite": "e2e-negative",
       "verified": true
     },
@@ -40581,14 +40581,14 @@
       "evidence": "artifact:django-benchmark-runs/runs/measured-00/e2e-negative-cli",
       "exit": 1,
       "load_average_after": [
-        4.7509765625,
-        7.73974609375,
-        7.8916015625
+        5.1435546875,
+        7.6875,
+        9.26904296875
       ],
       "load_average_before": [
-        4.7509765625,
-        7.73974609375,
-        7.8916015625
+        5.1435546875,
+        7.6875,
+        9.26904296875
       ],
       "native_metrics": {
         "checker": "binary:django-official",
@@ -40601,23 +40601,23 @@
         "monty_cache_hits_delta": 391,
         "monty_executions": 242,
         "monty_executions_delta": 242,
-        "monty_seconds": 0.068964466,
-        "monty_seconds_delta": 0.068964466,
+        "monty_seconds": 0.069244048,
+        "monty_seconds_delta": 0.069244048,
         "oracle_rounds": 3,
         "phases": {
-          "class_projection": 0.051854834,
-          "diagnostic_mapping": 0.001056042,
-          "external_resolution": 0.184131709,
-          "final_check": 0.074269125,
-          "final_render": 0.069917333,
-          "flow_and_render": 0.504682833,
-          "hook_responses": 0.20863979,
-          "import_preflight": 0.029156501,
-          "initial_lowering": 0.074037958,
-          "oracle_check": 0.35402800100000004,
-          "project_index": 0.040118666,
-          "source_maps": 0.014757,
-          "source_scan": 0.003194583
+          "class_projection": 0.050710667,
+          "diagnostic_mapping": 0.000984292,
+          "external_resolution": 0.176929959,
+          "final_check": 0.081454291,
+          "final_render": 0.0696545,
+          "flow_and_render": 0.5071623759999999,
+          "hook_responses": 0.21273008399999999,
+          "import_preflight": 0.033692748999999994,
+          "initial_lowering": 0.074939791,
+          "oracle_check": 0.35948412500000004,
+          "project_index": 0.040841958,
+          "source_maps": 0.01470675,
+          "source_scan": 0.003326
         },
         "plugin_runtime": "embedded-monty",
         "project": "artifact:django-benchmark-runs/inputs/e2e",
@@ -40625,7 +40625,7 @@
         "projection_rounds": 4,
         "reused_units": 0,
         "revision": 1,
-        "seconds": 1.6099096670000002,
+        "seconds": 1.626670834,
         "suppressed_generated": [
           {
             "check_name": "redundant-cast",
@@ -40707,7 +40707,7 @@
       },
       "phase": "measured",
       "repetition": 0,
-      "seconds": 1.9605164580279961,
+      "seconds": 1.971415167034138,
       "suite": "e2e-negative",
       "verified": true
     },
@@ -40725,14 +40725,14 @@
       "evidence": "artifact:django-benchmark-runs/runs/measured-01/conformance-cli",
       "exit": 1,
       "load_average_after": [
-        4.6103515625,
-        7.66064453125,
-        7.86279296875
+        5.2119140625,
+        7.6591796875,
+        9.24951171875
       ],
       "load_average_before": [
-        4.7509765625,
-        7.73974609375,
-        7.8916015625
+        5.1435546875,
+        7.6875,
+        9.26904296875
       ],
       "native_metrics": {
         "checker": "binary:django-official",
@@ -40745,23 +40745,23 @@
         "monty_cache_hits_delta": 1315,
         "monty_executions": 622,
         "monty_executions_delta": 622,
-        "monty_seconds": 0.17372918,
-        "monty_seconds_delta": 0.17372918,
+        "monty_seconds": 0.172704256,
+        "monty_seconds_delta": 0.172704256,
         "oracle_rounds": 4,
         "phases": {
-          "class_projection": 0.055208459,
-          "diagnostic_mapping": 0.005085666,
-          "external_resolution": 0.20050899900000002,
-          "final_check": 0.105129542,
-          "final_render": 0.085316167,
-          "flow_and_render": 0.668862125,
-          "hook_responses": 0.46804508300000003,
-          "import_preflight": 0.033326125000000005,
-          "initial_lowering": 0.083376458,
-          "oracle_check": 0.5148993749999999,
-          "project_index": 0.039727959,
-          "source_maps": 0.013922834,
-          "source_scan": 0.0023735
+          "class_projection": 0.067585167,
+          "diagnostic_mapping": 0.005171291,
+          "external_resolution": 0.242435833,
+          "final_check": 0.110226625,
+          "final_render": 0.084671792,
+          "flow_and_render": 0.696918084,
+          "hook_responses": 0.460901374,
+          "import_preflight": 0.03970616700000001,
+          "initial_lowering": 0.077731416,
+          "oracle_check": 0.509236542,
+          "project_index": 0.042878542,
+          "source_maps": 0.014002959,
+          "source_scan": 0.002233708
         },
         "plugin_runtime": "embedded-monty",
         "project": "artifact:django-benchmark-runs/inputs/conformance",
@@ -40769,7 +40769,7 @@
         "projection_rounds": 4,
         "reused_units": 0,
         "revision": 1,
-        "seconds": 2.275838042,
+        "seconds": 2.3537547500000002,
         "suppressed_generated": [
           {
             "check_name": "redundant-cast",
@@ -42333,7 +42333,7 @@
       },
       "phase": "measured",
       "repetition": 1,
-      "seconds": 2.6262892919476144,
+      "seconds": 3.2487212080159225,
       "suite": "conformance",
       "verified": true
     },
@@ -42351,14 +42351,14 @@
       "evidence": "artifact:django-benchmark-runs/runs/measured-01/conformance-push",
       "exit": 1,
       "load_average_after": [
-        4.6103515625,
-        7.66064453125,
-        7.86279296875
+        5.51513671875,
+        7.68115234375,
+        9.248046875
       ],
       "load_average_before": [
-        4.6103515625,
-        7.66064453125,
-        7.86279296875
+        5.2119140625,
+        7.6591796875,
+        9.24951171875
       ],
       "native_metrics": {
         "checker": "binary:django-official",
@@ -42371,23 +42371,23 @@
         "monty_cache_hits_delta": 1315,
         "monty_executions": 622,
         "monty_executions_delta": 622,
-        "monty_seconds": 0.173813678,
-        "monty_seconds_delta": 0.173813678,
+        "monty_seconds": 0.170952591,
+        "monty_seconds_delta": 0.170952591,
         "oracle_rounds": 4,
         "phases": {
-          "class_projection": 0.055989833,
-          "diagnostic_mapping": 0.00549425,
-          "external_resolution": 0.199776792,
-          "final_check": 0.106268375,
-          "final_render": 0.085056166,
-          "flow_and_render": 0.666638751,
-          "hook_responses": 0.468786084,
-          "import_preflight": 0.17979029,
-          "initial_lowering": 0.084076,
-          "oracle_check": 0.267714834,
-          "project_index": 0.039338166,
-          "source_maps": 0.014223667,
-          "source_scan": 0.002293959
+          "class_projection": 0.056391125,
+          "diagnostic_mapping": 0.0071155,
+          "external_resolution": 0.195809166,
+          "final_check": 0.098549042,
+          "final_render": 0.098835208,
+          "flow_and_render": 0.652715874,
+          "hook_responses": 0.47189899999999996,
+          "import_preflight": 0.163721918,
+          "initial_lowering": 0.078226125,
+          "oracle_check": 0.260296333,
+          "project_index": 0.041437292,
+          "source_maps": 0.014113833,
+          "source_scan": 0.002273542
         },
         "plugin_runtime": "embedded-monty",
         "project": "artifact:django-benchmark-runs/inputs/conformance",
@@ -42395,7 +42395,7 @@
         "projection_rounds": 4,
         "reused_units": 0,
         "revision": 1,
-        "seconds": 2.175518875,
+        "seconds": 2.141438083,
         "suppressed_generated": [
           {
             "check_name": "redundant-cast",
@@ -47239,7 +47239,7 @@
       },
       "phase": "measured",
       "repetition": 1,
-      "seconds": 2.53129637503298,
+      "seconds": 2.520394000050146,
       "suite": "conformance",
       "verified": true
     },
@@ -47251,19 +47251,19 @@
       "evidence": "artifact:django-benchmark-runs/runs/measured-01/conformance-fork",
       "exit": 1,
       "load_average_after": [
-        4.6103515625,
-        7.66064453125,
-        7.86279296875
+        5.51513671875,
+        7.68115234375,
+        9.248046875
       ],
       "load_average_before": [
-        4.6103515625,
-        7.66064453125,
-        7.86279296875
+        5.51513671875,
+        7.68115234375,
+        9.248046875
       ],
       "native_metrics": {},
       "phase": "measured",
       "repetition": 1,
-      "seconds": 0.7175472499802709,
+      "seconds": 0.7264076659921557,
       "suite": "conformance",
       "verified": true
     },
@@ -47281,14 +47281,14 @@
       "evidence": "artifact:django-benchmark-runs/runs/measured-01/e2e-positive-push",
       "exit": 0,
       "load_average_after": [
-        4.56103515625,
-        7.599609375,
-        7.83984375
+        5.51513671875,
+        7.68115234375,
+        9.248046875
       ],
       "load_average_before": [
-        4.6103515625,
-        7.66064453125,
-        7.86279296875
+        5.51513671875,
+        7.68115234375,
+        9.248046875
       ],
       "native_metrics": {
         "checker": "binary:django-official",
@@ -47301,23 +47301,23 @@
         "monty_cache_hits_delta": 391,
         "monty_executions": 242,
         "monty_executions_delta": 242,
-        "monty_seconds": 0.070581282,
-        "monty_seconds_delta": 0.070581282,
+        "monty_seconds": 0.070375255,
+        "monty_seconds_delta": 0.070375255,
         "oracle_rounds": 3,
         "phases": {
-          "class_projection": 0.050869083,
-          "diagnostic_mapping": 0.005902917,
-          "external_resolution": 0.182420208,
-          "final_check": 0.090129917,
-          "final_render": 0.06912375,
-          "flow_and_render": 0.5922386660000001,
-          "hook_responses": 0.212873959,
-          "import_preflight": 0.20496962500000002,
-          "initial_lowering": 0.07497025,
-          "oracle_check": 0.166235,
-          "project_index": 0.040453625,
-          "source_maps": 0.014856375,
-          "source_scan": 0.00325525
+          "class_projection": 0.059137,
+          "diagnostic_mapping": 0.006506292,
+          "external_resolution": 0.1928975,
+          "final_check": 0.081842,
+          "final_render": 0.086226041,
+          "flow_and_render": 0.655128416,
+          "hook_responses": 0.214461834,
+          "import_preflight": 0.211638917,
+          "initial_lowering": 0.074992041,
+          "oracle_check": 0.163106042,
+          "project_index": 0.0463555,
+          "source_maps": 0.014681542,
+          "source_scan": 0.003391375
         },
         "plugin_runtime": "embedded-monty",
         "project": "artifact:django-benchmark-runs/inputs/e2e",
@@ -47325,7 +47325,7 @@
         "projection_rounds": 4,
         "reused_units": 0,
         "revision": 1,
-        "seconds": 1.708357208,
+        "seconds": 1.8104244999999999,
         "suppressed_generated": [
           {
             "check_name": "redundant-cast",
@@ -49573,7 +49573,7 @@
       },
       "phase": "measured",
       "repetition": 1,
-      "seconds": 2.0740055830101483,
+      "seconds": 2.1875480419839732,
       "suite": "e2e-positive",
       "verified": true
     },
@@ -49585,19 +49585,19 @@
       "evidence": "artifact:django-benchmark-runs/runs/measured-01/e2e-positive-fork",
       "exit": 0,
       "load_average_after": [
-        4.56103515625,
-        7.599609375,
-        7.83984375
+        5.51513671875,
+        7.68115234375,
+        9.248046875
       ],
       "load_average_before": [
-        4.56103515625,
-        7.599609375,
-        7.83984375
+        5.51513671875,
+        7.68115234375,
+        9.248046875
       ],
       "native_metrics": {},
       "phase": "measured",
       "repetition": 1,
-      "seconds": 0.7108045830391347,
+      "seconds": 0.7238490000017919,
       "suite": "e2e-positive",
       "verified": true
     },
@@ -49615,14 +49615,14 @@
       "evidence": "artifact:django-benchmark-runs/runs/measured-01/e2e-positive-cli",
       "exit": 0,
       "load_average_after": [
-        4.56103515625,
-        7.599609375,
-        7.83984375
+        6.1142578125,
+        7.76904296875,
+        9.27001953125
       ],
       "load_average_before": [
-        4.56103515625,
-        7.599609375,
-        7.83984375
+        5.51513671875,
+        7.68115234375,
+        9.248046875
       ],
       "native_metrics": {
         "checker": "binary:django-official",
@@ -49635,23 +49635,23 @@
         "monty_cache_hits_delta": 391,
         "monty_executions": 242,
         "monty_executions_delta": 242,
-        "monty_seconds": 0.070211547,
-        "monty_seconds_delta": 0.070211547,
+        "monty_seconds": 0.072153327,
+        "monty_seconds_delta": 0.072153327,
         "oracle_rounds": 3,
         "phases": {
-          "class_projection": 0.050888625,
-          "diagnostic_mapping": 0.005922542,
-          "external_resolution": 0.1791145,
-          "final_check": 0.09727725,
-          "final_render": 0.068971375,
-          "flow_and_render": 0.501185085,
-          "hook_responses": 0.209758415,
-          "import_preflight": 0.029126958,
-          "initial_lowering": 0.072574166,
-          "oracle_check": 0.364462542,
-          "project_index": 0.039928542,
-          "source_maps": 0.014928875,
-          "source_scan": 0.003390292
+          "class_projection": 0.05040325,
+          "diagnostic_mapping": 0.005752125,
+          "external_resolution": 0.181567958,
+          "final_check": 0.099298125,
+          "final_render": 0.076737042,
+          "flow_and_render": 0.517615833,
+          "hook_responses": 0.21094104199999997,
+          "import_preflight": 0.032101417,
+          "initial_lowering": 0.076838709,
+          "oracle_check": 0.375276041,
+          "project_index": 0.043018708,
+          "source_maps": 0.014722208,
+          "source_scan": 0.005098042
         },
         "plugin_runtime": "embedded-monty",
         "project": "artifact:django-benchmark-runs/inputs/e2e",
@@ -49659,7 +49659,7 @@
         "projection_rounds": 4,
         "reused_units": 0,
         "revision": 1,
-        "seconds": 1.637604292,
+        "seconds": 1.689445875,
         "suppressed_generated": [
           {
             "check_name": "redundant-cast",
@@ -50387,7 +50387,7 @@
       },
       "phase": "measured",
       "repetition": 1,
-      "seconds": 1.990998875000514,
+      "seconds": 2.3739660420105793,
       "suite": "e2e-positive",
       "verified": true
     },
@@ -50399,19 +50399,19 @@
       "evidence": "artifact:django-benchmark-runs/runs/measured-01/e2e-negative-fork",
       "exit": 1,
       "load_average_after": [
-        4.56103515625,
-        7.599609375,
-        7.83984375
+        6.1142578125,
+        7.76904296875,
+        9.27001953125
       ],
       "load_average_before": [
-        4.56103515625,
-        7.599609375,
-        7.83984375
+        6.1142578125,
+        7.76904296875,
+        9.27001953125
       ],
       "native_metrics": {},
       "phase": "measured",
       "repetition": 1,
-      "seconds": 0.3022592089837417,
+      "seconds": 0.3137586250086315,
       "suite": "e2e-negative",
       "verified": true
     },
@@ -50429,14 +50429,14 @@
       "evidence": "artifact:django-benchmark-runs/runs/measured-01/e2e-negative-cli",
       "exit": 1,
       "load_average_after": [
-        4.35546875,
-        7.50634765625,
-        7.80517578125
+        6.1142578125,
+        7.76904296875,
+        9.27001953125
       ],
       "load_average_before": [
-        4.56103515625,
-        7.599609375,
-        7.83984375
+        6.1142578125,
+        7.76904296875,
+        9.27001953125
       ],
       "native_metrics": {
         "checker": "binary:django-official",
@@ -50449,23 +50449,23 @@
         "monty_cache_hits_delta": 391,
         "monty_executions": 242,
         "monty_executions_delta": 242,
-        "monty_seconds": 0.070370461,
-        "monty_seconds_delta": 0.070370461,
+        "monty_seconds": 0.070122376,
+        "monty_seconds_delta": 0.070122376,
         "oracle_rounds": 3,
         "phases": {
-          "class_projection": 0.049812583,
-          "diagnostic_mapping": 0.001060333,
-          "external_resolution": 0.181191792,
-          "final_check": 0.075973542,
-          "final_render": 0.068578625,
-          "flow_and_render": 0.511898874,
-          "hook_responses": 0.21142854100000003,
-          "import_preflight": 0.028329667000000003,
-          "initial_lowering": 0.074801209,
-          "oracle_check": 0.367460334,
-          "project_index": 0.03910125,
-          "source_maps": 0.014611167,
-          "source_scan": 0.003465958
+          "class_projection": 0.051849083,
+          "diagnostic_mapping": 0.00295375,
+          "external_resolution": 0.183924625,
+          "final_check": 0.073641708,
+          "final_render": 0.089494125,
+          "flow_and_render": 0.516978125,
+          "hook_responses": 0.212077209,
+          "import_preflight": 0.033390416,
+          "initial_lowering": 0.075747042,
+          "oracle_check": 0.356969917,
+          "project_index": 0.041989833,
+          "source_maps": 0.014656667,
+          "source_scan": 0.003298084
         },
         "plugin_runtime": "embedded-monty",
         "project": "artifact:django-benchmark-runs/inputs/e2e",
@@ -50473,7 +50473,7 @@
         "projection_rounds": 4,
         "reused_units": 0,
         "revision": 1,
-        "seconds": 1.627767,
+        "seconds": 1.6570219590000002,
         "suppressed_generated": [
           {
             "check_name": "redundant-cast",
@@ -50555,7 +50555,7 @@
       },
       "phase": "measured",
       "repetition": 1,
-      "seconds": 1.9762539169751108,
+      "seconds": 2.017216041975189,
       "suite": "e2e-negative",
       "verified": true
     },
@@ -50573,14 +50573,14 @@
       "evidence": "artifact:django-benchmark-runs/runs/measured-01/e2e-negative-push",
       "exit": 1,
       "load_average_after": [
-        4.35546875,
-        7.50634765625,
-        7.80517578125
+        5.94482421875,
+        7.7060546875,
+        9.23876953125
       ],
       "load_average_before": [
-        4.35546875,
-        7.50634765625,
-        7.80517578125
+        6.1142578125,
+        7.76904296875,
+        9.27001953125
       ],
       "native_metrics": {
         "checker": "binary:django-official",
@@ -50593,23 +50593,23 @@
         "monty_cache_hits_delta": 391,
         "monty_executions": 242,
         "monty_executions_delta": 242,
-        "monty_seconds": 0.070465129,
-        "monty_seconds_delta": 0.070465129,
+        "monty_seconds": 0.069376999,
+        "monty_seconds_delta": 0.069376999,
         "oracle_rounds": 3,
         "phases": {
-          "class_projection": 0.050834916,
-          "diagnostic_mapping": 0.001125208,
-          "external_resolution": 0.183927584,
-          "final_check": 0.085971792,
-          "final_render": 0.068438792,
-          "flow_and_render": 0.587939501,
-          "hook_responses": 0.212406249,
-          "import_preflight": 0.20285183299999998,
-          "initial_lowering": 0.073681834,
-          "oracle_check": 0.166714708,
-          "project_index": 0.040027,
-          "source_maps": 0.014966792,
-          "source_scan": 0.003578125
+          "class_projection": 0.061974333,
+          "diagnostic_mapping": 0.0011665,
+          "external_resolution": 0.183543333,
+          "final_check": 0.092483625,
+          "final_render": 0.074968125,
+          "flow_and_render": 0.594109793,
+          "hook_responses": 0.21468854199999998,
+          "import_preflight": 0.217478499,
+          "initial_lowering": 0.070115958,
+          "oracle_check": 0.167168583,
+          "project_index": 0.043587459,
+          "source_maps": 0.014828667,
+          "source_scan": 0.003631292
         },
         "plugin_runtime": "embedded-monty",
         "project": "artifact:django-benchmark-runs/inputs/e2e",
@@ -50617,7 +50617,7 @@
         "projection_rounds": 4,
         "reused_units": 0,
         "revision": 1,
-        "seconds": 1.692528292,
+        "seconds": 1.739824834,
         "suppressed_generated": [
           {
             "check_name": "redundant-cast",
@@ -50859,7 +50859,7 @@
       },
       "phase": "measured",
       "repetition": 1,
-      "seconds": 2.052159583021421,
+      "seconds": 2.1150639580446295,
       "suite": "e2e-negative",
       "verified": true
     },
@@ -50877,14 +50877,14 @@
       "evidence": "artifact:django-benchmark-runs/runs/measured-02/conformance-push",
       "exit": 1,
       "load_average_after": [
-        4.24658203125,
-        7.43115234375,
-        7.77685546875
+        5.94482421875,
+        7.7060546875,
+        9.23876953125
       ],
       "load_average_before": [
-        4.35546875,
-        7.50634765625,
-        7.80517578125
+        5.94482421875,
+        7.7060546875,
+        9.23876953125
       ],
       "native_metrics": {
         "checker": "binary:django-official",
@@ -50897,23 +50897,23 @@
         "monty_cache_hits_delta": 1315,
         "monty_executions": 622,
         "monty_executions_delta": 622,
-        "monty_seconds": 0.173481679,
-        "monty_seconds_delta": 0.173481679,
+        "monty_seconds": 0.173281488,
+        "monty_seconds_delta": 0.173281488,
         "oracle_rounds": 4,
         "phases": {
-          "class_projection": 0.054042458,
-          "diagnostic_mapping": 0.005594584,
-          "external_resolution": 0.20399416599999998,
-          "final_check": 0.103178083,
-          "final_render": 0.0843985,
-          "flow_and_render": 0.6664517910000001,
-          "hook_responses": 0.468796835,
-          "import_preflight": 0.17383366599999997,
-          "initial_lowering": 0.083596709,
-          "oracle_check": 0.261134416,
-          "project_index": 0.039233417,
-          "source_maps": 0.014327583,
-          "source_scan": 0.00215575
+          "class_projection": 0.075304625,
+          "diagnostic_mapping": 0.005516417,
+          "external_resolution": 0.235814166,
+          "final_check": 0.110736375,
+          "final_render": 0.08575725,
+          "flow_and_render": 0.687632834,
+          "hook_responses": 0.476076249,
+          "import_preflight": 0.18014233300000004,
+          "initial_lowering": 0.078044208,
+          "oracle_check": 0.263320459,
+          "project_index": 0.042916834,
+          "source_maps": 0.014146625,
+          "source_scan": 0.002245833
         },
         "plugin_runtime": "embedded-monty",
         "project": "artifact:django-benchmark-runs/inputs/conformance",
@@ -50921,7 +50921,7 @@
         "projection_rounds": 4,
         "reused_units": 0,
         "revision": 1,
-        "seconds": 2.160812375,
+        "seconds": 2.257714,
         "suppressed_generated": [
           {
             "check_name": "redundant-cast",
@@ -55765,7 +55765,7 @@
       },
       "phase": "measured",
       "repetition": 2,
-      "seconds": 2.531421791994944,
+      "seconds": 2.6559841669513844,
       "suite": "conformance",
       "verified": true
     },
@@ -55777,19 +55777,19 @@
       "evidence": "artifact:django-benchmark-runs/runs/measured-02/conformance-fork",
       "exit": 1,
       "load_average_after": [
-        4.24658203125,
-        7.43115234375,
-        7.77685546875
+        5.94482421875,
+        7.7060546875,
+        9.23876953125
       ],
       "load_average_before": [
-        4.24658203125,
-        7.43115234375,
-        7.77685546875
+        5.94482421875,
+        7.7060546875,
+        9.23876953125
       ],
       "native_metrics": {},
       "phase": "measured",
       "repetition": 2,
-      "seconds": 0.7145239160163328,
+      "seconds": 0.7278092500055209,
       "suite": "conformance",
       "verified": true
     },
@@ -55807,14 +55807,14 @@
       "evidence": "artifact:django-benchmark-runs/runs/measured-02/conformance-cli",
       "exit": 1,
       "load_average_after": [
-        4.24658203125,
-        7.43115234375,
-        7.77685546875
+        6.4296875,
+        7.77685546875,
+        9.2548828125
       ],
       "load_average_before": [
-        4.24658203125,
-        7.43115234375,
-        7.77685546875
+        5.94482421875,
+        7.7060546875,
+        9.23876953125
       ],
       "native_metrics": {
         "checker": "binary:django-official",
@@ -55827,23 +55827,23 @@
         "monty_cache_hits_delta": 1315,
         "monty_executions": 622,
         "monty_executions_delta": 622,
-        "monty_seconds": 0.171393363,
-        "monty_seconds_delta": 0.171393363,
+        "monty_seconds": 0.174544588,
+        "monty_seconds_delta": 0.174544588,
         "oracle_rounds": 4,
         "phases": {
-          "class_projection": 0.053667542,
-          "diagnostic_mapping": 0.005111,
-          "external_resolution": 0.202891666,
-          "final_check": 0.105821,
-          "final_render": 0.084767917,
-          "flow_and_render": 0.658583833,
-          "hook_responses": 0.46364020899999997,
-          "import_preflight": 0.033942707999999995,
-          "initial_lowering": 0.084061625,
-          "oracle_check": 0.49976875,
-          "project_index": 0.039198459,
-          "source_maps": 0.013868041,
-          "source_scan": 0.002224583
+          "class_projection": 0.05580475,
+          "diagnostic_mapping": 0.005126375,
+          "external_resolution": 0.205220625,
+          "final_check": 0.107466,
+          "final_render": 0.086145042,
+          "flow_and_render": 0.6635523749999999,
+          "hook_responses": 0.461335125,
+          "import_preflight": 0.034182874999999995,
+          "initial_lowering": 0.086955708,
+          "oracle_check": 0.508947917,
+          "project_index": 0.0414215,
+          "source_maps": 0.014133208,
+          "source_scan": 0.002166625
         },
         "plugin_runtime": "embedded-monty",
         "project": "artifact:django-benchmark-runs/inputs/conformance",
@@ -55851,7 +55851,7 @@
         "projection_rounds": 4,
         "reused_units": 0,
         "revision": 1,
-        "seconds": 2.2476021250000002,
+        "seconds": 2.272518,
         "suppressed_generated": [
           {
             "check_name": "redundant-cast",
@@ -57415,7 +57415,7 @@
       },
       "phase": "measured",
       "repetition": 2,
-      "seconds": 2.5993196250055917,
+      "seconds": 2.633870083023794,
       "suite": "conformance",
       "verified": true
     },
@@ -57427,19 +57427,19 @@
       "evidence": "artifact:django-benchmark-runs/runs/measured-02/e2e-positive-fork",
       "exit": 0,
       "load_average_after": [
-        4.24658203125,
-        7.43115234375,
-        7.77685546875
+        6.4296875,
+        7.77685546875,
+        9.2548828125
       ],
       "load_average_before": [
-        4.24658203125,
-        7.43115234375,
-        7.77685546875
+        6.4296875,
+        7.77685546875,
+        9.2548828125
       ],
       "native_metrics": {},
       "phase": "measured",
       "repetition": 2,
-      "seconds": 0.7128631660016254,
+      "seconds": 0.7193646670202725,
       "suite": "e2e-positive",
       "verified": true
     },
@@ -57457,14 +57457,14 @@
       "evidence": "artifact:django-benchmark-runs/runs/measured-02/e2e-positive-cli",
       "exit": 0,
       "load_average_after": [
-        4.466796875,
-        7.423828125,
-        7.77197265625
+        6.4296875,
+        7.77685546875,
+        9.2548828125
       ],
       "load_average_before": [
-        4.24658203125,
-        7.43115234375,
-        7.77685546875
+        6.4296875,
+        7.77685546875,
+        9.2548828125
       ],
       "native_metrics": {
         "checker": "binary:django-official",
@@ -57477,23 +57477,23 @@
         "monty_cache_hits_delta": 391,
         "monty_executions": 242,
         "monty_executions_delta": 242,
-        "monty_seconds": 0.07034883,
-        "monty_seconds_delta": 0.07034883,
+        "monty_seconds": 0.070215582,
+        "monty_seconds_delta": 0.070215582,
         "oracle_rounds": 3,
         "phases": {
-          "class_projection": 0.051916667,
-          "diagnostic_mapping": 0.005866583,
-          "external_resolution": 0.186611334,
-          "final_check": 0.09397,
-          "final_render": 0.070329375,
-          "flow_and_render": 0.507944791,
-          "hook_responses": 0.209686835,
-          "import_preflight": 0.028530751,
-          "initial_lowering": 0.077888125,
-          "oracle_check": 0.35728104,
-          "project_index": 0.040405416,
-          "source_maps": 0.0146755,
-          "source_scan": 0.0033075
+          "class_projection": 0.051037375,
+          "diagnostic_mapping": 0.00588,
+          "external_resolution": 0.178934583,
+          "final_check": 0.09631775,
+          "final_render": 0.069910334,
+          "flow_and_render": 0.509674916,
+          "hook_responses": 0.21102791599999998,
+          "import_preflight": 0.029313709,
+          "initial_lowering": 0.074205542,
+          "oracle_check": 0.366023792,
+          "project_index": 0.040874083,
+          "source_maps": 0.01465175,
+          "source_scan": 0.003368125
         },
         "plugin_runtime": "embedded-monty",
         "project": "artifact:django-benchmark-runs/inputs/e2e",
@@ -57501,7 +57501,7 @@
         "projection_rounds": 4,
         "reused_units": 0,
         "revision": 1,
-        "seconds": 1.64846375,
+        "seconds": 1.6512877910000001,
         "suppressed_generated": [
           {
             "check_name": "redundant-cast",
@@ -58229,7 +58229,7 @@
       },
       "phase": "measured",
       "repetition": 2,
-      "seconds": 1.994299499958288,
+      "seconds": 2.001188291993458,
       "suite": "e2e-positive",
       "verified": true
     },
@@ -58247,14 +58247,14 @@
       "evidence": "artifact:django-benchmark-runs/runs/measured-02/e2e-positive-push",
       "exit": 0,
       "load_average_after": [
-        4.466796875,
-        7.423828125,
-        7.77197265625
+        6.95556640625,
+        7.86328125,
+        9.2763671875
       ],
       "load_average_before": [
-        4.466796875,
-        7.423828125,
-        7.77197265625
+        6.4296875,
+        7.77685546875,
+        9.2548828125
       ],
       "native_metrics": {
         "checker": "binary:django-official",
@@ -58267,23 +58267,23 @@
         "monty_cache_hits_delta": 391,
         "monty_executions": 242,
         "monty_executions_delta": 242,
-        "monty_seconds": 0.070324828,
-        "monty_seconds_delta": 0.070324828,
+        "monty_seconds": 0.069980008,
+        "monty_seconds_delta": 0.069980008,
         "oracle_rounds": 3,
         "phases": {
-          "class_projection": 0.050552708,
-          "diagnostic_mapping": 0.005989042,
-          "external_resolution": 0.183710375,
-          "final_check": 0.085709917,
-          "final_render": 0.069624833,
-          "flow_and_render": 0.586415583,
-          "hook_responses": 0.215832417,
-          "import_preflight": 0.200588292,
-          "initial_lowering": 0.075522667,
-          "oracle_check": 0.165136541,
-          "project_index": 0.039916042,
-          "source_maps": 0.014890208,
-          "source_scan": 0.003489458
+          "class_projection": 0.051778292,
+          "diagnostic_mapping": 0.005926458,
+          "external_resolution": 0.1835745,
+          "final_check": 0.0901265,
+          "final_render": 0.069785583,
+          "flow_and_render": 0.5880677910000001,
+          "hook_responses": 0.21426008300000002,
+          "import_preflight": 0.205021418,
+          "initial_lowering": 0.074319875,
+          "oracle_check": 0.16502650000000002,
+          "project_index": 0.040710041,
+          "source_maps": 0.01478675,
+          "source_scan": 0.003933167
         },
         "plugin_runtime": "embedded-monty",
         "project": "artifact:django-benchmark-runs/inputs/e2e",
@@ -58291,7 +58291,7 @@
         "projection_rounds": 4,
         "reused_units": 0,
         "revision": 1,
-        "seconds": 1.697436916,
+        "seconds": 1.707379792,
         "suppressed_generated": [
           {
             "check_name": "redundant-cast",
@@ -60539,7 +60539,7 @@
       },
       "phase": "measured",
       "repetition": 2,
-      "seconds": 2.058456083002966,
+      "seconds": 2.070020084036514,
       "suite": "e2e-positive",
       "verified": true
     },
@@ -60557,14 +60557,14 @@
       "evidence": "artifact:django-benchmark-runs/runs/measured-02/e2e-negative-cli",
       "exit": 1,
       "load_average_after": [
-        4.26904296875,
-        7.33349609375,
-        7.73779296875
+        6.95556640625,
+        7.86328125,
+        9.2763671875
       ],
       "load_average_before": [
-        4.466796875,
-        7.423828125,
-        7.77197265625
+        6.95556640625,
+        7.86328125,
+        9.2763671875
       ],
       "native_metrics": {
         "checker": "binary:django-official",
@@ -60577,23 +60577,23 @@
         "monty_cache_hits_delta": 391,
         "monty_executions": 242,
         "monty_executions_delta": 242,
-        "monty_seconds": 0.070018129,
-        "monty_seconds_delta": 0.070018129,
+        "monty_seconds": 0.069552587,
+        "monty_seconds_delta": 0.069552587,
         "oracle_rounds": 3,
         "phases": {
-          "class_projection": 0.05006275,
-          "diagnostic_mapping": 0.001070792,
-          "external_resolution": 0.181036667,
-          "final_check": 0.072771958,
-          "final_render": 0.068856334,
-          "flow_and_render": 0.509522875,
-          "hook_responses": 0.21061591699999999,
-          "import_preflight": 0.029524791999999998,
-          "initial_lowering": 0.075398083,
-          "oracle_check": 0.354485999,
-          "project_index": 0.03943275,
-          "source_maps": 0.014630333,
-          "source_scan": 0.003324667
+          "class_projection": 0.052043,
+          "diagnostic_mapping": 0.001032083,
+          "external_resolution": 0.179279125,
+          "final_check": 0.077933834,
+          "final_render": 0.069086416,
+          "flow_and_render": 0.507122166,
+          "hook_responses": 0.20959133400000002,
+          "import_preflight": 0.028767958000000003,
+          "initial_lowering": 0.074328042,
+          "oracle_check": 0.365557292,
+          "project_index": 0.040013583,
+          "source_maps": 0.014756292,
+          "source_scan": 0.003365375
         },
         "plugin_runtime": "embedded-monty",
         "project": "artifact:django-benchmark-runs/inputs/e2e",
@@ -60601,7 +60601,7 @@
         "projection_rounds": 4,
         "reused_units": 0,
         "revision": 1,
-        "seconds": 1.610793084,
+        "seconds": 1.622938,
         "suppressed_generated": [
           {
             "check_name": "redundant-cast",
@@ -60683,7 +60683,7 @@
       },
       "phase": "measured",
       "repetition": 2,
-      "seconds": 1.9644621249753982,
+      "seconds": 1.9843847920419648,
       "suite": "e2e-negative",
       "verified": true
     },
@@ -60701,14 +60701,14 @@
       "evidence": "artifact:django-benchmark-runs/runs/measured-02/e2e-negative-push",
       "exit": 1,
       "load_average_after": [
-        4.26904296875,
-        7.33349609375,
-        7.73779296875
+        6.798828125,
+        7.8154296875,
+        9.2509765625
       ],
       "load_average_before": [
-        4.26904296875,
-        7.33349609375,
-        7.73779296875
+        6.95556640625,
+        7.86328125,
+        9.2763671875
       ],
       "native_metrics": {
         "checker": "binary:django-official",
@@ -60721,23 +60721,23 @@
         "monty_cache_hits_delta": 391,
         "monty_executions": 242,
         "monty_executions_delta": 242,
-        "monty_seconds": 0.071204256,
-        "monty_seconds_delta": 0.071204256,
+        "monty_seconds": 0.0696715,
+        "monty_seconds_delta": 0.0696715,
         "oracle_rounds": 3,
         "phases": {
-          "class_projection": 0.050058208,
-          "diagnostic_mapping": 0.001184917,
-          "external_resolution": 0.183611667,
-          "final_check": 0.087547041,
-          "final_render": 0.068984917,
-          "flow_and_render": 0.588870751,
-          "hook_responses": 0.214986291,
-          "import_preflight": 0.206822624,
-          "initial_lowering": 0.074004208,
-          "oracle_check": 0.167461626,
-          "project_index": 0.0398135,
-          "source_maps": 0.014789458,
-          "source_scan": 0.003503208
+          "class_projection": 0.051267833,
+          "diagnostic_mapping": 0.001088083,
+          "external_resolution": 0.186135708,
+          "final_check": 0.08474975,
+          "final_render": 0.069868834,
+          "flow_and_render": 0.5837376679999999,
+          "hook_responses": 0.212889208,
+          "import_preflight": 0.20303383300000002,
+          "initial_lowering": 0.073850333,
+          "oracle_check": 0.164463041,
+          "project_index": 0.040622709,
+          "source_maps": 0.014809333,
+          "source_scan": 0.003336667
         },
         "plugin_runtime": "embedded-monty",
         "project": "artifact:django-benchmark-runs/inputs/e2e",
@@ -60745,7 +60745,7 @@
         "projection_rounds": 4,
         "reused_units": 0,
         "revision": 1,
-        "seconds": 1.701699291,
+        "seconds": 1.689912667,
         "suppressed_generated": [
           {
             "check_name": "redundant-cast",
@@ -60987,7 +60987,7 @@
       },
       "phase": "measured",
       "repetition": 2,
-      "seconds": 2.0575892080087215,
+      "seconds": 2.0646105830091983,
       "suite": "e2e-negative",
       "verified": true
     },
@@ -60999,19 +60999,19 @@
       "evidence": "artifact:django-benchmark-runs/runs/measured-02/e2e-negative-fork",
       "exit": 1,
       "load_average_after": [
-        4.26904296875,
-        7.33349609375,
-        7.73779296875
+        6.798828125,
+        7.8154296875,
+        9.2509765625
       ],
       "load_average_before": [
-        4.26904296875,
-        7.33349609375,
-        7.73779296875
+        6.798828125,
+        7.8154296875,
+        9.2509765625
       ],
       "native_metrics": {},
       "phase": "measured",
       "repetition": 2,
-      "seconds": 0.3084833340253681,
+      "seconds": 0.30487841699505225,
       "suite": "e2e-negative",
       "verified": true
     },
@@ -61023,19 +61023,19 @@
       "evidence": "artifact:django-benchmark-runs/runs/measured-03/conformance-fork",
       "exit": 1,
       "load_average_after": [
-        4.26904296875,
-        7.33349609375,
-        7.73779296875
+        6.798828125,
+        7.8154296875,
+        9.2509765625
       ],
       "load_average_before": [
-        4.26904296875,
-        7.33349609375,
-        7.73779296875
+        6.798828125,
+        7.8154296875,
+        9.2509765625
       ],
       "native_metrics": {},
       "phase": "measured",
       "repetition": 3,
-      "seconds": 0.7417131249676459,
+      "seconds": 0.712986667000223,
       "suite": "conformance",
       "verified": true
     },
@@ -61053,14 +61053,14 @@
       "evidence": "artifact:django-benchmark-runs/runs/measured-03/conformance-cli",
       "exit": 1,
       "load_average_after": [
-        4.4072265625,
-        7.31103515625,
-        7.7275390625
+        6.798828125,
+        7.8154296875,
+        9.2509765625
       ],
       "load_average_before": [
-        4.26904296875,
-        7.33349609375,
-        7.73779296875
+        6.798828125,
+        7.8154296875,
+        9.2509765625
       ],
       "native_metrics": {
         "checker": "binary:django-official",
@@ -61073,23 +61073,23 @@
         "monty_cache_hits_delta": 1315,
         "monty_executions": 622,
         "monty_executions_delta": 622,
-        "monty_seconds": 0.178581366,
-        "monty_seconds_delta": 0.178581366,
+        "monty_seconds": 0.172056533,
+        "monty_seconds_delta": 0.172056533,
         "oracle_rounds": 4,
         "phases": {
-          "class_projection": 0.057384042,
-          "diagnostic_mapping": 0.005078875,
-          "external_resolution": 0.206086459,
-          "final_check": 0.107953917,
-          "final_render": 0.085451125,
-          "flow_and_render": 0.6859247900000001,
-          "hook_responses": 0.47568708400000004,
-          "import_preflight": 0.035031626,
-          "initial_lowering": 0.087090375,
-          "oracle_check": 0.528276833,
-          "project_index": 0.042799166,
-          "source_maps": 0.013925041,
-          "source_scan": 0.002422333
+          "class_projection": 0.056360833,
+          "diagnostic_mapping": 0.005105917,
+          "external_resolution": 0.208811042,
+          "final_check": 0.103749917,
+          "final_render": 0.086123833,
+          "flow_and_render": 0.663496043,
+          "hook_responses": 0.46372954099999997,
+          "import_preflight": 0.033116083000000004,
+          "initial_lowering": 0.07922325,
+          "oracle_check": 0.5097833749999999,
+          "project_index": 0.04024525,
+          "source_maps": 0.01397575,
+          "source_scan": 0.002255666
         },
         "plugin_runtime": "embedded-monty",
         "project": "artifact:django-benchmark-runs/inputs/conformance",
@@ -61097,7 +61097,7 @@
         "projection_rounds": 4,
         "reused_units": 0,
         "revision": 1,
-        "seconds": 2.333163458,
+        "seconds": 2.266027916,
         "suppressed_generated": [
           {
             "check_name": "redundant-cast",
@@ -62661,7 +62661,7 @@
       },
       "phase": "measured",
       "repetition": 3,
-      "seconds": 2.6889705000212416,
+      "seconds": 2.6244239999796264,
       "suite": "conformance",
       "verified": true
     },
@@ -62679,14 +62679,14 @@
       "evidence": "artifact:django-benchmark-runs/runs/measured-03/conformance-push",
       "exit": 1,
       "load_average_after": [
-        4.4072265625,
-        7.31103515625,
-        7.7275390625
+        6.654296875,
+        7.7685546875,
+        9.2255859375
       ],
       "load_average_before": [
-        4.4072265625,
-        7.31103515625,
-        7.7275390625
+        6.798828125,
+        7.8154296875,
+        9.2509765625
       ],
       "native_metrics": {
         "checker": "binary:django-official",
@@ -62699,23 +62699,23 @@
         "monty_cache_hits_delta": 1315,
         "monty_executions": 622,
         "monty_executions_delta": 622,
-        "monty_seconds": 0.178397238,
-        "monty_seconds_delta": 0.178397238,
+        "monty_seconds": 0.173216342,
+        "monty_seconds_delta": 0.173216342,
         "oracle_rounds": 4,
         "phases": {
-          "class_projection": 0.056974291,
-          "diagnostic_mapping": 0.005475375,
-          "external_resolution": 0.21175575,
-          "final_check": 0.113789584,
-          "final_render": 0.087256875,
-          "flow_and_render": 0.679111166,
-          "hook_responses": 0.481685249,
-          "import_preflight": 0.182016668,
-          "initial_lowering": 0.087291167,
-          "oracle_check": 0.282546375,
-          "project_index": 0.040088375,
-          "source_maps": 0.013969666,
-          "source_scan": 0.002271792
+          "class_projection": 0.055400333,
+          "diagnostic_mapping": 0.005537333,
+          "external_resolution": 0.204855584,
+          "final_check": 0.105513625,
+          "final_render": 0.086527459,
+          "flow_and_render": 0.6674015,
+          "hook_responses": 0.47064179,
+          "import_preflight": 0.17913875,
+          "initial_lowering": 0.079358292,
+          "oracle_check": 0.271992751,
+          "project_index": 0.039389708,
+          "source_maps": 0.014424292,
+          "source_scan": 0.002233792
         },
         "plugin_runtime": "embedded-monty",
         "project": "artifact:django-benchmark-runs/inputs/conformance",
@@ -62723,7 +62723,7 @@
         "projection_rounds": 4,
         "reused_units": 0,
         "revision": 1,
-        "seconds": 2.2442812500000002,
+        "seconds": 2.18247575,
         "suppressed_generated": [
           {
             "check_name": "redundant-cast",
@@ -67567,7 +67567,7 @@
       },
       "phase": "measured",
       "repetition": 3,
-      "seconds": 2.6092043339740485,
+      "seconds": 2.535313792002853,
       "suite": "conformance",
       "verified": true
     },
@@ -67585,14 +67585,14 @@
       "evidence": "artifact:django-benchmark-runs/runs/measured-03/e2e-positive-cli",
       "exit": 0,
       "load_average_after": [
-        4.37451171875,
-        7.255859375,
-        7.70556640625
+        6.654296875,
+        7.7685546875,
+        9.2255859375
       ],
       "load_average_before": [
-        4.4072265625,
-        7.31103515625,
-        7.7275390625
+        6.654296875,
+        7.7685546875,
+        9.2255859375
       ],
       "native_metrics": {
         "checker": "binary:django-official",
@@ -67605,23 +67605,23 @@
         "monty_cache_hits_delta": 391,
         "monty_executions": 242,
         "monty_executions_delta": 242,
-        "monty_seconds": 0.07171929,
-        "monty_seconds_delta": 0.07171929,
+        "monty_seconds": 0.069051128,
+        "monty_seconds_delta": 0.069051128,
         "oracle_rounds": 3,
         "phases": {
-          "class_projection": 0.052290667,
-          "diagnostic_mapping": 0.005853833,
-          "external_resolution": 0.18773,
-          "final_check": 0.095077208,
-          "final_render": 0.070051417,
-          "flow_and_render": 0.522198583,
-          "hook_responses": 0.211619459,
-          "import_preflight": 0.029177958,
-          "initial_lowering": 0.07698475,
-          "oracle_check": 0.36552075,
-          "project_index": 0.041297208,
-          "source_maps": 0.014701584,
-          "source_scan": 0.003395042
+          "class_projection": 0.050543083,
+          "diagnostic_mapping": 0.005887958,
+          "external_resolution": 0.18008375,
+          "final_check": 0.095295417,
+          "final_render": 0.068207083,
+          "flow_and_render": 0.505490916,
+          "hook_responses": 0.20840679099999998,
+          "import_preflight": 0.028683001,
+          "initial_lowering": 0.072718917,
+          "oracle_check": 0.362761125,
+          "project_index": 0.039609209,
+          "source_maps": 0.014707,
+          "source_scan": 0.003376083
         },
         "plugin_runtime": "embedded-monty",
         "project": "artifact:django-benchmark-runs/inputs/e2e",
@@ -67629,7 +67629,7 @@
         "projection_rounds": 4,
         "reused_units": 0,
         "revision": 1,
-        "seconds": 1.675958042,
+        "seconds": 1.635823333,
         "suppressed_generated": [
           {
             "check_name": "redundant-cast",
@@ -68357,7 +68357,7 @@
       },
       "phase": "measured",
       "repetition": 3,
-      "seconds": 2.0429353329818696,
+      "seconds": 1.9929030409548432,
       "suite": "e2e-positive",
       "verified": true
     },
@@ -68375,14 +68375,14 @@
       "evidence": "artifact:django-benchmark-runs/runs/measured-03/e2e-positive-push",
       "exit": 0,
       "load_average_after": [
-        4.37451171875,
-        7.255859375,
-        7.70556640625
+        6.681640625,
+        7.75537109375,
+        9.21240234375
       ],
       "load_average_before": [
-        4.37451171875,
-        7.255859375,
-        7.70556640625
+        6.654296875,
+        7.7685546875,
+        9.2255859375
       ],
       "native_metrics": {
         "checker": "binary:django-official",
@@ -68395,23 +68395,23 @@
         "monty_cache_hits_delta": 391,
         "monty_executions": 242,
         "monty_executions_delta": 242,
-        "monty_seconds": 0.072125799,
-        "monty_seconds_delta": 0.072125799,
+        "monty_seconds": 0.070748872,
+        "monty_seconds_delta": 0.070748872,
         "oracle_rounds": 3,
         "phases": {
-          "class_projection": 0.051348958,
-          "diagnostic_mapping": 0.006139083,
-          "external_resolution": 0.181067208,
-          "final_check": 0.103193292,
-          "final_render": 0.076864708,
-          "flow_and_render": 0.6026562089999999,
-          "hook_responses": 0.21900100100000003,
-          "import_preflight": 0.21445495799999997,
-          "initial_lowering": 0.077312667,
-          "oracle_check": 0.175328249,
-          "project_index": 0.039965292,
-          "source_maps": 0.015063292,
-          "source_scan": 0.003661083
+          "class_projection": 0.050875792,
+          "diagnostic_mapping": 0.008498625,
+          "external_resolution": 0.184829292,
+          "final_check": 0.0888715,
+          "final_render": 0.070211583,
+          "flow_and_render": 0.586731793,
+          "hook_responses": 0.21450433400000002,
+          "import_preflight": 0.20500099900000002,
+          "initial_lowering": 0.071809833,
+          "oracle_check": 0.165116458,
+          "project_index": 0.039645958,
+          "source_maps": 0.014839208,
+          "source_scan": 0.003435083
         },
         "plugin_runtime": "embedded-monty",
         "project": "artifact:django-benchmark-runs/inputs/e2e",
@@ -68419,7 +68419,7 @@
         "projection_rounds": 4,
         "reused_units": 0,
         "revision": 1,
-        "seconds": 1.766127833,
+        "seconds": 1.704432792,
         "suppressed_generated": [
           {
             "check_name": "redundant-cast",
@@ -70667,7 +70667,7 @@
       },
       "phase": "measured",
       "repetition": 3,
-      "seconds": 2.1350956250098534,
+      "seconds": 2.0828184579731897,
       "suite": "e2e-positive",
       "verified": true
     },
@@ -70679,19 +70679,19 @@
       "evidence": "artifact:django-benchmark-runs/runs/measured-03/e2e-positive-fork",
       "exit": 0,
       "load_average_after": [
-        4.37451171875,
-        7.255859375,
-        7.70556640625
+        6.681640625,
+        7.75537109375,
+        9.21240234375
       ],
       "load_average_before": [
-        4.37451171875,
-        7.255859375,
-        7.70556640625
+        6.681640625,
+        7.75537109375,
+        9.21240234375
       ],
       "native_metrics": {},
       "phase": "measured",
       "repetition": 3,
-      "seconds": 0.7562217499944381,
+      "seconds": 0.7110604170011356,
       "suite": "e2e-positive",
       "verified": true
     },
@@ -70709,14 +70709,14 @@
       "evidence": "artifact:django-benchmark-runs/runs/measured-03/e2e-negative-push",
       "exit": 1,
       "load_average_after": [
-        4.50439453125,
-        7.23486328125,
-        7.6953125
+        6.681640625,
+        7.75537109375,
+        9.21240234375
       ],
       "load_average_before": [
-        4.37451171875,
-        7.255859375,
-        7.70556640625
+        6.681640625,
+        7.75537109375,
+        9.21240234375
       ],
       "native_metrics": {
         "checker": "binary:django-official",
@@ -70729,23 +70729,23 @@
         "monty_cache_hits_delta": 391,
         "monty_executions": 242,
         "monty_executions_delta": 242,
-        "monty_seconds": 0.073423039,
-        "monty_seconds_delta": 0.073423039,
+        "monty_seconds": 0.069903462,
+        "monty_seconds_delta": 0.069903462,
         "oracle_rounds": 3,
         "phases": {
-          "class_projection": 0.051799167,
-          "diagnostic_mapping": 0.001171917,
-          "external_resolution": 0.189583417,
-          "final_check": 0.094985125,
-          "final_render": 0.072094583,
-          "flow_and_render": 0.615362458,
-          "hook_responses": 0.219961917,
-          "import_preflight": 0.216605042,
-          "initial_lowering": 0.076989791,
-          "oracle_check": 0.17711791699999999,
-          "project_index": 0.043138708,
-          "source_maps": 0.014846625,
-          "source_scan": 0.003420208
+          "class_projection": 0.052655125,
+          "diagnostic_mapping": 0.001139209,
+          "external_resolution": 0.188505375,
+          "final_check": 0.087782791,
+          "final_render": 0.070001209,
+          "flow_and_render": 0.579860625,
+          "hook_responses": 0.212200958,
+          "import_preflight": 0.20483241700000002,
+          "initial_lowering": 0.072694542,
+          "oracle_check": 0.169139083,
+          "project_index": 0.039991291,
+          "source_maps": 0.014857625,
+          "source_scan": 0.003461709
         },
         "plugin_runtime": "embedded-monty",
         "project": "artifact:django-benchmark-runs/inputs/e2e",
@@ -70753,7 +70753,7 @@
         "projection_rounds": 4,
         "reused_units": 0,
         "revision": 1,
-        "seconds": 1.777135625,
+        "seconds": 1.697193542,
         "suppressed_generated": [
           {
             "check_name": "redundant-cast",
@@ -70995,7 +70995,7 @@
       },
       "phase": "measured",
       "repetition": 3,
-      "seconds": 2.1654728329740465,
+      "seconds": 2.0642223749891855,
       "suite": "e2e-negative",
       "verified": true
     },
@@ -71007,19 +71007,19 @@
       "evidence": "artifact:django-benchmark-runs/runs/measured-03/e2e-negative-fork",
       "exit": 1,
       "load_average_after": [
-        4.50439453125,
-        7.23486328125,
-        7.6953125
+        6.681640625,
+        7.75537109375,
+        9.21240234375
       ],
       "load_average_before": [
-        4.50439453125,
-        7.23486328125,
-        7.6953125
+        6.681640625,
+        7.75537109375,
+        9.21240234375
       ],
       "native_metrics": {},
       "phase": "measured",
       "repetition": 3,
-      "seconds": 0.31119416700676084,
+      "seconds": 0.3048512910027057,
       "suite": "e2e-negative",
       "verified": true
     },
@@ -71037,14 +71037,14 @@
       "evidence": "artifact:django-benchmark-runs/runs/measured-03/e2e-negative-cli",
       "exit": 1,
       "load_average_after": [
-        4.50439453125,
-        7.23486328125,
-        7.6953125
+        6.626953125,
+        7.72607421875,
+        9.193359375
       ],
       "load_average_before": [
-        4.50439453125,
-        7.23486328125,
-        7.6953125
+        6.681640625,
+        7.75537109375,
+        9.21240234375
       ],
       "native_metrics": {
         "checker": "binary:django-official",
@@ -71057,23 +71057,23 @@
         "monty_cache_hits_delta": 391,
         "monty_executions": 242,
         "monty_executions_delta": 242,
-        "monty_seconds": 0.075901541,
-        "monty_seconds_delta": 0.075901541,
+        "monty_seconds": 0.069124917,
+        "monty_seconds_delta": 0.069124917,
         "oracle_rounds": 3,
         "phases": {
-          "class_projection": 0.052715708,
-          "diagnostic_mapping": 0.001107958,
-          "external_resolution": 0.194951792,
-          "final_check": 0.082601125,
-          "final_render": 0.072484625,
-          "flow_and_render": 0.555047709,
-          "hook_responses": 0.22314500000000004,
-          "import_preflight": 0.02983625,
-          "initial_lowering": 0.084915458,
-          "oracle_check": 0.390765125,
-          "project_index": 0.045034292,
-          "source_maps": 0.014925167,
-          "source_scan": 0.003672708
+          "class_projection": 0.049725166,
+          "diagnostic_mapping": 0.001033417,
+          "external_resolution": 0.180044417,
+          "final_check": 0.076344833,
+          "final_render": 0.069282584,
+          "flow_and_render": 0.504271958,
+          "hook_responses": 0.21062483299999998,
+          "import_preflight": 0.029806832999999998,
+          "initial_lowering": 0.072295167,
+          "oracle_check": 0.362458459,
+          "project_index": 0.038748625,
+          "source_maps": 0.014778416,
+          "source_scan": 0.003435333
         },
         "plugin_runtime": "embedded-monty",
         "project": "artifact:django-benchmark-runs/inputs/e2e",
@@ -71081,7 +71081,7 @@
         "projection_rounds": 4,
         "reused_units": 0,
         "revision": 1,
-        "seconds": 1.7512693750000001,
+        "seconds": 1.612907791,
         "suppressed_generated": [
           {
             "check_name": "redundant-cast",
@@ -71163,7 +71163,7 @@
       },
       "phase": "measured",
       "repetition": 3,
-      "seconds": 2.1090708329575136,
+      "seconds": 1.9663784999866039,
       "suite": "e2e-negative",
       "verified": true
     },
@@ -71181,14 +71181,14 @@
       "evidence": "artifact:django-benchmark-runs/runs/measured-04/conformance-cli",
       "exit": 1,
       "load_average_after": [
-        4.3037109375,
-        7.14794921875,
-        7.66162109375
+        6.626953125,
+        7.72607421875,
+        9.193359375
       ],
       "load_average_before": [
-        4.50439453125,
-        7.23486328125,
-        7.6953125
+        6.626953125,
+        7.72607421875,
+        9.193359375
       ],
       "native_metrics": {
         "checker": "binary:django-official",
@@ -71201,23 +71201,23 @@
         "monty_cache_hits_delta": 1315,
         "monty_executions": 622,
         "monty_executions_delta": 622,
-        "monty_seconds": 0.174895971,
-        "monty_seconds_delta": 0.174895971,
+        "monty_seconds": 0.172915923,
+        "monty_seconds_delta": 0.172915923,
         "oracle_rounds": 4,
         "phases": {
-          "class_projection": 0.055907334,
-          "diagnostic_mapping": 0.005054416,
-          "external_resolution": 0.209185583,
-          "final_check": 0.116404625,
-          "final_render": 0.08889025,
-          "flow_and_render": 0.678165375,
-          "hook_responses": 0.47269033400000005,
-          "import_preflight": 0.03513858200000001,
-          "initial_lowering": 0.08655025,
-          "oracle_check": 0.5165123340000001,
-          "project_index": 0.043198375,
-          "source_maps": 0.013963084,
-          "source_scan": 0.002253625
+          "class_projection": 0.0546115,
+          "diagnostic_mapping": 0.005114917,
+          "external_resolution": 0.202143708,
+          "final_check": 0.106473208,
+          "final_render": 0.085727167,
+          "flow_and_render": 0.6628840840000001,
+          "hook_responses": 0.46637825,
+          "import_preflight": 0.033506875,
+          "initial_lowering": 0.085001042,
+          "oracle_check": 0.514579416,
+          "project_index": 0.038978625,
+          "source_maps": 0.014006916,
+          "source_scan": 0.002203375
         },
         "plugin_runtime": "embedded-monty",
         "project": "artifact:django-benchmark-runs/inputs/conformance",
@@ -71225,7 +71225,7 @@
         "projection_rounds": 4,
         "reused_units": 0,
         "revision": 1,
-        "seconds": 2.323971667,
+        "seconds": 2.271665042,
         "suppressed_generated": [
           {
             "check_name": "redundant-cast",
@@ -72789,7 +72789,7 @@
       },
       "phase": "measured",
       "repetition": 4,
-      "seconds": 2.6902167919906788,
+      "seconds": 2.645235042029526,
       "suite": "conformance",
       "verified": true
     },
@@ -72807,14 +72807,14 @@
       "evidence": "artifact:django-benchmark-runs/runs/measured-04/conformance-push",
       "exit": 1,
       "load_average_after": [
-        4.3037109375,
-        7.14794921875,
-        7.66162109375
+        6.65673828125,
+        7.7138671875,
+        9.18017578125
       ],
       "load_average_before": [
-        4.3037109375,
-        7.14794921875,
-        7.66162109375
+        6.626953125,
+        7.72607421875,
+        9.193359375
       ],
       "native_metrics": {
         "checker": "binary:django-official",
@@ -72827,23 +72827,23 @@
         "monty_cache_hits_delta": 1315,
         "monty_executions": 622,
         "monty_executions_delta": 622,
-        "monty_seconds": 0.176001124,
-        "monty_seconds_delta": 0.176001124,
+        "monty_seconds": 0.174163612,
+        "monty_seconds_delta": 0.174163612,
         "oracle_rounds": 4,
         "phases": {
-          "class_projection": 0.056843834,
-          "diagnostic_mapping": 0.005606834,
-          "external_resolution": 0.20468837399999998,
-          "final_check": 0.10741725,
-          "final_render": 0.087056958,
-          "flow_and_render": 0.6789770430000001,
-          "hook_responses": 0.47478870800000006,
-          "import_preflight": 0.183212416,
-          "initial_lowering": 0.086350333,
-          "oracle_check": 0.278078208,
-          "project_index": 0.042383042,
-          "source_maps": 0.014285083,
-          "source_scan": 0.002368917
+          "class_projection": 0.053324584,
+          "diagnostic_mapping": 0.005534167,
+          "external_resolution": 0.20227737399999998,
+          "final_check": 0.109688166,
+          "final_render": 0.086409459,
+          "flow_and_render": 0.6666922489999999,
+          "hook_responses": 0.471627709,
+          "import_preflight": 0.177927251,
+          "initial_lowering": 0.079622625,
+          "oracle_check": 0.273869207,
+          "project_index": 0.038868209,
+          "source_maps": 0.014121708,
+          "source_scan": 0.002288958
         },
         "plugin_runtime": "embedded-monty",
         "project": "artifact:django-benchmark-runs/inputs/conformance",
@@ -72851,7 +72851,7 @@
         "projection_rounds": 4,
         "reused_units": 0,
         "revision": 1,
-        "seconds": 2.222113875,
+        "seconds": 2.182304375,
         "suppressed_generated": [
           {
             "check_name": "redundant-cast",
@@ -77695,7 +77695,7 @@
       },
       "phase": "measured",
       "repetition": 4,
-      "seconds": 2.5759773750323802,
+      "seconds": 2.5365744580049068,
       "suite": "conformance",
       "verified": true
     },
@@ -77707,19 +77707,19 @@
       "evidence": "artifact:django-benchmark-runs/runs/measured-04/conformance-fork",
       "exit": 1,
       "load_average_after": [
-        4.3037109375,
-        7.14794921875,
-        7.66162109375
+        6.65673828125,
+        7.7138671875,
+        9.18017578125
       ],
       "load_average_before": [
-        4.3037109375,
-        7.14794921875,
-        7.66162109375
+        6.65673828125,
+        7.7138671875,
+        9.18017578125
       ],
       "native_metrics": {},
       "phase": "measured",
       "repetition": 4,
-      "seconds": 0.7314685409655795,
+      "seconds": 0.7130157500505447,
       "suite": "conformance",
       "verified": true
     },
@@ -77737,14 +77737,14 @@
       "evidence": "artifact:django-benchmark-runs/runs/measured-04/e2e-positive-push",
       "exit": 0,
       "load_average_after": [
-        4.279296875,
-        7.09521484375,
-        7.64013671875
+        6.65673828125,
+        7.7138671875,
+        9.18017578125
       ],
       "load_average_before": [
-        4.3037109375,
-        7.14794921875,
-        7.66162109375
+        6.65673828125,
+        7.7138671875,
+        9.18017578125
       ],
       "native_metrics": {
         "checker": "binary:django-official",
@@ -77757,23 +77757,23 @@
         "monty_cache_hits_delta": 391,
         "monty_executions": 242,
         "monty_executions_delta": 242,
-        "monty_seconds": 0.070682076,
-        "monty_seconds_delta": 0.070682076,
+        "monty_seconds": 0.070440951,
+        "monty_seconds_delta": 0.070440951,
         "oracle_rounds": 3,
         "phases": {
-          "class_projection": 0.051805041,
-          "diagnostic_mapping": 0.005955958,
-          "external_resolution": 0.18776575,
-          "final_check": 0.089375625,
-          "final_render": 0.072075375,
-          "flow_and_render": 0.602293291,
-          "hook_responses": 0.215325251,
-          "import_preflight": 0.212256584,
-          "initial_lowering": 0.076243542,
-          "oracle_check": 0.17096216599999997,
-          "project_index": 0.0420835,
-          "source_maps": 0.014785667,
-          "source_scan": 0.003335334
+          "class_projection": 0.050234,
+          "diagnostic_mapping": 0.005898292,
+          "external_resolution": 0.187929625,
+          "final_check": 0.085492042,
+          "final_render": 0.0695805,
+          "flow_and_render": 0.58058875,
+          "hook_responses": 0.213720499,
+          "import_preflight": 0.20445212499999998,
+          "initial_lowering": 0.0730345,
+          "oracle_check": 0.169093626,
+          "project_index": 0.039020375,
+          "source_maps": 0.014728416,
+          "source_scan": 0.003393416
         },
         "plugin_runtime": "embedded-monty",
         "project": "artifact:django-benchmark-runs/inputs/e2e",
@@ -77781,7 +77781,7 @@
         "projection_rounds": 4,
         "reused_units": 0,
         "revision": 1,
-        "seconds": 1.7443263340000001,
+        "seconds": 1.6972162910000002,
         "suppressed_generated": [
           {
             "check_name": "redundant-cast",
@@ -80029,7 +80029,7 @@
       },
       "phase": "measured",
       "repetition": 4,
-      "seconds": 2.110329790972173,
+      "seconds": 2.0727946250117384,
       "suite": "e2e-positive",
       "verified": true
     },
@@ -80041,19 +80041,19 @@
       "evidence": "artifact:django-benchmark-runs/runs/measured-04/e2e-positive-fork",
       "exit": 0,
       "load_average_after": [
-        4.279296875,
-        7.09521484375,
-        7.64013671875
+        6.76416015625,
+        7.71826171875,
+        9.1728515625
       ],
       "load_average_before": [
-        4.279296875,
-        7.09521484375,
-        7.64013671875
+        6.65673828125,
+        7.7138671875,
+        9.18017578125
       ],
       "native_metrics": {},
       "phase": "measured",
       "repetition": 4,
-      "seconds": 0.7177002499811351,
+      "seconds": 0.6975938339601271,
       "suite": "e2e-positive",
       "verified": true
     },
@@ -80071,14 +80071,14 @@
       "evidence": "artifact:django-benchmark-runs/runs/measured-04/e2e-positive-cli",
       "exit": 0,
       "load_average_after": [
-        4.279296875,
-        7.09521484375,
-        7.64013671875
+        6.76416015625,
+        7.71826171875,
+        9.1728515625
       ],
       "load_average_before": [
-        4.279296875,
-        7.09521484375,
-        7.64013671875
+        6.76416015625,
+        7.71826171875,
+        9.1728515625
       ],
       "native_metrics": {
         "checker": "binary:django-official",
@@ -80091,23 +80091,23 @@
         "monty_cache_hits_delta": 391,
         "monty_executions": 242,
         "monty_executions_delta": 242,
-        "monty_seconds": 0.070911376,
-        "monty_seconds_delta": 0.070911376,
+        "monty_seconds": 0.069436455,
+        "monty_seconds_delta": 0.069436455,
         "oracle_rounds": 3,
         "phases": {
-          "class_projection": 0.05377575,
-          "diagnostic_mapping": 0.005922875,
-          "external_resolution": 0.183208375,
-          "final_check": 0.101445708,
-          "final_render": 0.069703667,
-          "flow_and_render": 0.516079334,
-          "hook_responses": 0.21134958299999998,
-          "import_preflight": 0.029005166,
-          "initial_lowering": 0.079518459,
-          "oracle_check": 0.371353583,
-          "project_index": 0.042475125,
-          "source_maps": 0.014988292,
-          "source_scan": 0.003667375
+          "class_projection": 0.051493791,
+          "diagnostic_mapping": 0.005961375,
+          "external_resolution": 0.178413542,
+          "final_check": 0.101103041,
+          "final_render": 0.067661417,
+          "flow_and_render": 0.5338290410000001,
+          "hook_responses": 0.207121958,
+          "import_preflight": 0.030707210000000002,
+          "initial_lowering": 0.073162417,
+          "oracle_check": 0.359475541,
+          "project_index": 0.039874292,
+          "source_maps": 0.0146345,
+          "source_scan": 0.003355458
         },
         "plugin_runtime": "embedded-monty",
         "project": "artifact:django-benchmark-runs/inputs/e2e",
@@ -80115,7 +80115,7 @@
         "projection_rounds": 4,
         "reused_units": 0,
         "revision": 1,
-        "seconds": 1.682572167,
+        "seconds": 1.666851292,
         "suppressed_generated": [
           {
             "check_name": "redundant-cast",
@@ -80843,7 +80843,7 @@
       },
       "phase": "measured",
       "repetition": 4,
-      "seconds": 2.0302735840086825,
+      "seconds": 2.0160027079982683,
       "suite": "e2e-positive",
       "verified": true
     },
@@ -80855,19 +80855,19 @@
       "evidence": "artifact:django-benchmark-runs/runs/measured-04/e2e-negative-fork",
       "exit": 1,
       "load_average_after": [
-        4.279296875,
-        7.09521484375,
-        7.64013671875
+        6.76416015625,
+        7.71826171875,
+        9.1728515625
       ],
       "load_average_before": [
-        4.279296875,
-        7.09521484375,
-        7.64013671875
+        6.76416015625,
+        7.71826171875,
+        9.1728515625
       ],
       "native_metrics": {},
       "phase": "measured",
       "repetition": 4,
-      "seconds": 0.30918762501096353,
+      "seconds": 0.3029895410290919,
       "suite": "e2e-negative",
       "verified": true
     },
@@ -80885,14 +80885,14 @@
       "evidence": "artifact:django-benchmark-runs/runs/measured-04/e2e-negative-cli",
       "exit": 1,
       "load_average_after": [
-        4.6572265625,
-        7.12646484375,
-        7.64794921875
+        6.76416015625,
+        7.71826171875,
+        9.1728515625
       ],
       "load_average_before": [
-        4.279296875,
-        7.09521484375,
-        7.64013671875
+        6.76416015625,
+        7.71826171875,
+        9.1728515625
       ],
       "native_metrics": {
         "checker": "binary:django-official",
@@ -80905,23 +80905,23 @@
         "monty_cache_hits_delta": 391,
         "monty_executions": 242,
         "monty_executions_delta": 242,
-        "monty_seconds": 0.07107754,
-        "monty_seconds_delta": 0.07107754,
+        "monty_seconds": 0.068553951,
+        "monty_seconds_delta": 0.068553951,
         "oracle_rounds": 3,
         "phases": {
-          "class_projection": 0.057311958,
-          "diagnostic_mapping": 0.0010995,
-          "external_resolution": 0.184225542,
-          "final_check": 0.079112375,
-          "final_render": 0.068884083,
-          "flow_and_render": 0.511765249,
-          "hook_responses": 0.21051262499999998,
-          "import_preflight": 0.028999877,
-          "initial_lowering": 0.0800645,
-          "oracle_check": 0.371241999,
-          "project_index": 0.043472792,
-          "source_maps": 0.014621125,
-          "source_scan": 0.003451375
+          "class_projection": 0.051260667,
+          "diagnostic_mapping": 0.001015875,
+          "external_resolution": 0.181728208,
+          "final_check": 0.071625083,
+          "final_render": 0.067453667,
+          "flow_and_render": 0.495452416,
+          "hook_responses": 0.207707875,
+          "import_preflight": 0.028180417000000003,
+          "initial_lowering": 0.073194583,
+          "oracle_check": 0.35093725,
+          "project_index": 0.039237625,
+          "source_maps": 0.014653709,
+          "source_scan": 0.003360375
         },
         "plugin_runtime": "embedded-monty",
         "project": "artifact:django-benchmark-runs/inputs/e2e",
@@ -80929,7 +80929,7 @@
         "projection_rounds": 4,
         "reused_units": 0,
         "revision": 1,
-        "seconds": 1.654819,
+        "seconds": 1.585858541,
         "suppressed_generated": [
           {
             "check_name": "redundant-cast",
@@ -81011,7 +81011,7 @@
       },
       "phase": "measured",
       "repetition": 4,
-      "seconds": 2.0167744170175865,
+      "seconds": 1.9392014589975588,
       "suite": "e2e-negative",
       "verified": true
     },
@@ -81029,14 +81029,14 @@
       "evidence": "artifact:django-benchmark-runs/runs/measured-04/e2e-negative-push",
       "exit": 1,
       "load_average_after": [
-        4.6572265625,
-        7.12646484375,
-        7.64794921875
+        6.38232421875,
+        7.623046875,
+        9.13037109375
       ],
       "load_average_before": [
-        4.6572265625,
-        7.12646484375,
-        7.64794921875
+        6.76416015625,
+        7.71826171875,
+        9.1728515625
       ],
       "native_metrics": {
         "checker": "binary:django-official",
@@ -81049,23 +81049,23 @@
         "monty_cache_hits_delta": 391,
         "monty_executions": 242,
         "monty_executions_delta": 242,
-        "monty_seconds": 0.071244072,
-        "monty_seconds_delta": 0.071244072,
+        "monty_seconds": 0.069151087,
+        "monty_seconds_delta": 0.069151087,
         "oracle_rounds": 3,
         "phases": {
-          "class_projection": 0.055145208,
-          "diagnostic_mapping": 0.001151542,
-          "external_resolution": 0.188938833,
-          "final_check": 0.086531333,
-          "final_render": 0.069390333,
-          "flow_and_render": 0.620078959,
-          "hook_responses": 0.214606042,
-          "import_preflight": 0.210809542,
-          "initial_lowering": 0.080606333,
-          "oracle_check": 0.165231041,
-          "project_index": 0.044537709,
-          "source_maps": 0.014608625,
-          "source_scan": 0.003442667
+          "class_projection": 0.049843542,
+          "diagnostic_mapping": 0.001048125,
+          "external_resolution": 0.177321167,
+          "final_check": 0.078916959,
+          "final_render": 0.084491916,
+          "flow_and_render": 0.5661514999999999,
+          "hook_responses": 0.21131470800000002,
+          "import_preflight": 0.204273543,
+          "initial_lowering": 0.070751208,
+          "oracle_check": 0.159036208,
+          "project_index": 0.039052458,
+          "source_maps": 0.014698666,
+          "source_scan": 0.003385916
         },
         "plugin_runtime": "embedded-monty",
         "project": "artifact:django-benchmark-runs/inputs/e2e",
@@ -81073,7 +81073,7 @@
         "projection_rounds": 4,
         "reused_units": 0,
         "revision": 1,
-        "seconds": 1.7551345839999999,
+        "seconds": 1.660347375,
         "suppressed_generated": [
           {
             "check_name": "redundant-cast",
@@ -81315,7 +81315,7 @@
       },
       "phase": "measured",
       "repetition": 4,
-      "seconds": 2.119977333000861,
+      "seconds": 2.0234666659962386,
       "suite": "e2e-negative",
       "verified": true
     },
@@ -81333,14 +81333,14 @@
       "evidence": "artifact:django-benchmark-runs/runs/measured-05/conformance-push",
       "exit": 1,
       "load_average_after": [
-        4.6845703125,
-        7.0908203125,
-        7.63232421875
+        6.38232421875,
+        7.623046875,
+        9.13037109375
       ],
       "load_average_before": [
-        4.6572265625,
-        7.12646484375,
-        7.64794921875
+        6.38232421875,
+        7.623046875,
+        9.13037109375
       ],
       "native_metrics": {
         "checker": "binary:django-official",
@@ -81353,23 +81353,23 @@
         "monty_cache_hits_delta": 1315,
         "monty_executions": 622,
         "monty_executions_delta": 622,
-        "monty_seconds": 0.174875506,
-        "monty_seconds_delta": 0.174875506,
+        "monty_seconds": 0.174362803,
+        "monty_seconds_delta": 0.174362803,
         "oracle_rounds": 4,
         "phases": {
-          "class_projection": 0.058348708,
-          "diagnostic_mapping": 0.00551475,
-          "external_resolution": 0.207585125,
-          "final_check": 0.111190917,
-          "final_render": 0.084729041,
-          "flow_and_render": 0.6747363319999999,
-          "hook_responses": 0.47249291699999996,
-          "import_preflight": 0.178484792,
-          "initial_lowering": 0.085593334,
-          "oracle_check": 0.281644334,
-          "project_index": 0.043061958,
-          "source_maps": 0.014049542,
-          "source_scan": 0.002274917
+          "class_projection": 0.077868583,
+          "diagnostic_mapping": 0.005408208,
+          "external_resolution": 0.233701791,
+          "final_check": 0.110750875,
+          "final_render": 0.0854545,
+          "flow_and_render": 0.6569155010000001,
+          "hook_responses": 0.477926,
+          "import_preflight": 0.179118916,
+          "initial_lowering": 0.079979709,
+          "oracle_check": 0.267985958,
+          "project_index": 0.041617834,
+          "source_maps": 0.014184042,
+          "source_scan": 0.002251583
         },
         "plugin_runtime": "embedded-monty",
         "project": "artifact:django-benchmark-runs/inputs/conformance",
@@ -81377,7 +81377,7 @@
         "projection_rounds": 4,
         "reused_units": 0,
         "revision": 1,
-        "seconds": 2.219764083,
+        "seconds": 2.233216708,
         "suppressed_generated": [
           {
             "check_name": "redundant-cast",
@@ -86221,7 +86221,7 @@
       },
       "phase": "measured",
       "repetition": 5,
-      "seconds": 2.5772243330138735,
+      "seconds": 2.6864505410194397,
       "suite": "conformance",
       "verified": true
     },
@@ -86233,19 +86233,19 @@
       "evidence": "artifact:django-benchmark-runs/runs/measured-05/conformance-fork",
       "exit": 1,
       "load_average_after": [
-        4.6845703125,
-        7.0908203125,
-        7.63232421875
+        6.38232421875,
+        7.623046875,
+        9.13037109375
       ],
       "load_average_before": [
-        4.6845703125,
-        7.0908203125,
-        7.63232421875
+        6.38232421875,
+        7.623046875,
+        9.13037109375
       ],
       "native_metrics": {},
       "phase": "measured",
       "repetition": 5,
-      "seconds": 0.7259375840076245,
+      "seconds": 0.7091487500001676,
       "suite": "conformance",
       "verified": true
     },
@@ -86263,14 +86263,14 @@
       "evidence": "artifact:django-benchmark-runs/runs/measured-05/conformance-cli",
       "exit": 1,
       "load_average_after": [
-        4.86962890625,
-        7.0888671875,
-        7.62841796875
+        7.15234375,
+        7.76171875,
+        9.17041015625
       ],
       "load_average_before": [
-        4.6845703125,
-        7.0908203125,
-        7.63232421875
+        6.38232421875,
+        7.623046875,
+        9.13037109375
       ],
       "native_metrics": {
         "checker": "binary:django-official",
@@ -86283,23 +86283,23 @@
         "monty_cache_hits_delta": 1315,
         "monty_executions": 622,
         "monty_executions_delta": 622,
-        "monty_seconds": 0.176537472,
-        "monty_seconds_delta": 0.176537472,
+        "monty_seconds": 0.172370421,
+        "monty_seconds_delta": 0.172370421,
         "oracle_rounds": 4,
         "phases": {
-          "class_projection": 0.05469575,
-          "diagnostic_mapping": 0.00525175,
-          "external_resolution": 0.20974591599999998,
-          "final_check": 0.1190505,
-          "final_render": 0.090402625,
-          "flow_and_render": 0.678211208,
-          "hook_responses": 0.483002543,
-          "import_preflight": 0.035748708,
-          "initial_lowering": 0.087489792,
-          "oracle_check": 0.5498042489999999,
-          "project_index": 0.050451834,
-          "source_maps": 0.014351625,
-          "source_scan": 0.002296875
+          "class_projection": 0.078180542,
+          "diagnostic_mapping": 0.011371875,
+          "external_resolution": 0.207076083,
+          "final_check": 0.1004745,
+          "final_render": 0.194431542,
+          "flow_and_render": 0.681467501,
+          "hook_responses": 0.48884225000000003,
+          "import_preflight": 0.036547540999999996,
+          "initial_lowering": 0.078948583,
+          "oracle_check": 0.5011094580000001,
+          "project_index": 0.04125525,
+          "source_maps": 0.013967458,
+          "source_scan": 0.002473542
         },
         "plugin_runtime": "embedded-monty",
         "project": "artifact:django-benchmark-runs/inputs/conformance",
@@ -86307,7 +86307,7 @@
         "projection_rounds": 4,
         "reused_units": 0,
         "revision": 1,
-        "seconds": 2.380567292,
+        "seconds": 2.436196958,
         "suppressed_generated": [
           {
             "check_name": "redundant-cast",
@@ -87871,7 +87871,7 @@
       },
       "phase": "measured",
       "repetition": 5,
-      "seconds": 2.7638563330401666,
+      "seconds": 2.81180820800364,
       "suite": "conformance",
       "verified": true
     },
@@ -87883,19 +87883,19 @@
       "evidence": "artifact:django-benchmark-runs/runs/measured-05/e2e-positive-fork",
       "exit": 0,
       "load_average_after": [
-        4.86962890625,
-        7.0888671875,
-        7.62841796875
+        7.15234375,
+        7.76171875,
+        9.17041015625
       ],
       "load_average_before": [
-        4.86962890625,
-        7.0888671875,
-        7.62841796875
+        7.15234375,
+        7.76171875,
+        9.17041015625
       ],
       "native_metrics": {},
       "phase": "measured",
       "repetition": 5,
-      "seconds": 0.7594989169738255,
+      "seconds": 0.722407250024844,
       "suite": "e2e-positive",
       "verified": true
     },
@@ -87913,14 +87913,14 @@
       "evidence": "artifact:django-benchmark-runs/runs/measured-05/e2e-positive-cli",
       "exit": 0,
       "load_average_after": [
-        4.86962890625,
-        7.0888671875,
-        7.62841796875
+        6.89990234375,
+        7.69921875,
+        9.1396484375
       ],
       "load_average_before": [
-        4.86962890625,
-        7.0888671875,
-        7.62841796875
+        7.15234375,
+        7.76171875,
+        9.17041015625
       ],
       "native_metrics": {
         "checker": "binary:django-official",
@@ -87933,23 +87933,23 @@
         "monty_cache_hits_delta": 391,
         "monty_executions": 242,
         "monty_executions_delta": 242,
-        "monty_seconds": 0.075194919,
-        "monty_seconds_delta": 0.075194919,
+        "monty_seconds": 0.070349412,
+        "monty_seconds_delta": 0.070349412,
         "oracle_rounds": 3,
         "phases": {
-          "class_projection": 0.06853075,
-          "diagnostic_mapping": 0.005850666,
-          "external_resolution": 0.2532265,
-          "final_check": 0.094880459,
-          "final_render": 0.068198291,
-          "flow_and_render": 0.585149875,
-          "hook_responses": 0.21479845900000002,
-          "import_preflight": 0.039658874000000004,
-          "initial_lowering": 0.094469875,
-          "oracle_check": 0.382285251,
-          "project_index": 0.053427916,
-          "source_maps": 0.014618084,
-          "source_scan": 0.004409834
+          "class_projection": 0.055326334,
+          "diagnostic_mapping": 0.00843725,
+          "external_resolution": 0.177808583,
+          "final_check": 0.090958584,
+          "final_render": 0.09649,
+          "flow_and_render": 0.514100792,
+          "hook_responses": 0.21238258400000004,
+          "import_preflight": 0.03515675,
+          "initial_lowering": 0.075967416,
+          "oracle_check": 0.36414337399999996,
+          "project_index": 0.041710833,
+          "source_maps": 0.014674541,
+          "source_scan": 0.003413917
         },
         "plugin_runtime": "embedded-monty",
         "project": "artifact:django-benchmark-runs/inputs/e2e",
@@ -87957,7 +87957,7 @@
         "projection_rounds": 4,
         "reused_units": 0,
         "revision": 1,
-        "seconds": 1.879552917,
+        "seconds": 1.690623083,
         "suppressed_generated": [
           {
             "check_name": "redundant-cast",
@@ -88685,7 +88685,7 @@
       },
       "phase": "measured",
       "repetition": 5,
-      "seconds": 2.258414666983299,
+      "seconds": 2.0544407920097,
       "suite": "e2e-positive",
       "verified": true
     },
@@ -88703,14 +88703,14 @@
       "evidence": "artifact:django-benchmark-runs/runs/measured-05/e2e-positive-push",
       "exit": 0,
       "load_average_after": [
-        4.7197265625,
-        7.0205078125,
-        7.60107421875
+        6.89990234375,
+        7.69921875,
+        9.1396484375
       ],
       "load_average_before": [
-        4.86962890625,
-        7.0888671875,
-        7.62841796875
+        6.89990234375,
+        7.69921875,
+        9.1396484375
       ],
       "native_metrics": {
         "checker": "binary:django-official",
@@ -88723,23 +88723,23 @@
         "monty_cache_hits_delta": 391,
         "monty_executions": 242,
         "monty_executions_delta": 242,
-        "monty_seconds": 0.069313915,
-        "monty_seconds_delta": 0.069313915,
+        "monty_seconds": 0.068702116,
+        "monty_seconds_delta": 0.068702116,
         "oracle_rounds": 3,
         "phases": {
-          "class_projection": 0.053831292,
-          "diagnostic_mapping": 0.006051958,
-          "external_resolution": 0.190954166,
-          "final_check": 0.092444625,
-          "final_render": 0.123881584,
-          "flow_and_render": 0.628899417,
-          "hook_responses": 0.242441917,
-          "import_preflight": 0.261337124,
-          "initial_lowering": 0.078729583,
-          "oracle_check": 0.162263875,
-          "project_index": 0.045420042,
-          "source_maps": 0.014989167,
-          "source_scan": 0.003740334
+          "class_projection": 0.054805583,
+          "diagnostic_mapping": 0.005949791,
+          "external_resolution": 0.189660792,
+          "final_check": 0.083082625,
+          "final_render": 0.093140334,
+          "flow_and_render": 0.659603459,
+          "hook_responses": 0.209228417,
+          "import_preflight": 0.198750333,
+          "initial_lowering": 0.073952875,
+          "oracle_check": 0.15967241599999998,
+          "project_index": 0.048170708,
+          "source_maps": 0.014755375,
+          "source_scan": 0.003295292
         },
         "plugin_runtime": "embedded-monty",
         "project": "artifact:django-benchmark-runs/inputs/e2e",
@@ -88747,7 +88747,7 @@
         "projection_rounds": 4,
         "reused_units": 0,
         "revision": 1,
-        "seconds": 1.9050556250000001,
+        "seconds": 1.794134584,
         "suppressed_generated": [
           {
             "check_name": "redundant-cast",
@@ -90995,7 +90995,7 @@
       },
       "phase": "measured",
       "repetition": 5,
-      "seconds": 2.2895517920260318,
+      "seconds": 2.1854040000471286,
       "suite": "e2e-positive",
       "verified": true
     },
@@ -91013,14 +91013,14 @@
       "evidence": "artifact:django-benchmark-runs/runs/measured-05/e2e-negative-cli",
       "exit": 1,
       "load_average_after": [
-        4.7197265625,
-        7.0205078125,
-        7.60107421875
+        6.58740234375,
+        7.62109375,
+        9.103515625
       ],
       "load_average_before": [
-        4.7197265625,
-        7.0205078125,
-        7.60107421875
+        6.89990234375,
+        7.69921875,
+        9.1396484375
       ],
       "native_metrics": {
         "checker": "binary:django-official",
@@ -91033,23 +91033,23 @@
         "monty_cache_hits_delta": 391,
         "monty_executions": 242,
         "monty_executions_delta": 242,
-        "monty_seconds": 0.071606997,
-        "monty_seconds_delta": 0.071606997,
+        "monty_seconds": 0.068424873,
+        "monty_seconds_delta": 0.068424873,
         "oracle_rounds": 3,
         "phases": {
-          "class_projection": 0.078144291,
-          "diagnostic_mapping": 0.001096125,
-          "external_resolution": 0.1939455,
-          "final_check": 0.07251725,
-          "final_render": 0.068657041,
-          "flow_and_render": 0.6149343329999999,
-          "hook_responses": 0.21356275,
-          "import_preflight": 0.031091126000000004,
-          "initial_lowering": 0.079608,
-          "oracle_check": 0.358624375,
-          "project_index": 0.0481705,
-          "source_maps": 0.014836375,
-          "source_scan": 0.003452042
+          "class_projection": 0.050663417,
+          "diagnostic_mapping": 0.0010295,
+          "external_resolution": 0.181210834,
+          "final_check": 0.070359458,
+          "final_render": 0.066995459,
+          "flow_and_render": 0.49441291800000003,
+          "hook_responses": 0.20763458199999998,
+          "import_preflight": 0.027588,
+          "initial_lowering": 0.070708333,
+          "oracle_check": 0.347486958,
+          "project_index": 0.041321083,
+          "source_maps": 0.014693125,
+          "source_scan": 0.003460833
         },
         "plugin_runtime": "embedded-monty",
         "project": "artifact:django-benchmark-runs/inputs/e2e",
@@ -91057,7 +91057,7 @@
         "projection_rounds": 4,
         "reused_units": 0,
         "revision": 1,
-        "seconds": 1.7787216670000001,
+        "seconds": 1.577622167,
         "suppressed_generated": [
           {
             "check_name": "redundant-cast",
@@ -91139,7 +91139,7 @@
       },
       "phase": "measured",
       "repetition": 5,
-      "seconds": 2.1338548340136185,
+      "seconds": 2.041691708029248,
       "suite": "e2e-negative",
       "verified": true
     },
@@ -91157,14 +91157,14 @@
       "evidence": "artifact:django-benchmark-runs/runs/measured-05/e2e-negative-push",
       "exit": 1,
       "load_average_after": [
-        4.7197265625,
-        7.0205078125,
-        7.60107421875
+        6.58740234375,
+        7.62109375,
+        9.103515625
       ],
       "load_average_before": [
-        4.7197265625,
-        7.0205078125,
-        7.60107421875
+        6.58740234375,
+        7.62109375,
+        9.103515625
       ],
       "native_metrics": {
         "checker": "binary:django-official",
@@ -91177,23 +91177,23 @@
         "monty_cache_hits_delta": 391,
         "monty_executions": 242,
         "monty_executions_delta": 242,
-        "monty_seconds": 0.068981295,
-        "monty_seconds_delta": 0.068981295,
+        "monty_seconds": 0.071477668,
+        "monty_seconds_delta": 0.071477668,
         "oracle_rounds": 3,
         "phases": {
-          "class_projection": 0.051223209,
-          "diagnostic_mapping": 0.001120875,
-          "external_resolution": 0.181293292,
-          "final_check": 0.084491625,
-          "final_render": 0.068376583,
-          "flow_and_render": 0.5719603329999999,
-          "hook_responses": 0.2088125,
-          "import_preflight": 0.19735233300000002,
-          "initial_lowering": 0.071417416,
-          "oracle_check": 0.157306793,
-          "project_index": 0.042953166,
-          "source_maps": 0.014605333,
-          "source_scan": 0.003351958
+          "class_projection": 0.05199825,
+          "diagnostic_mapping": 0.001112958,
+          "external_resolution": 0.175342334,
+          "final_check": 0.083558917,
+          "final_render": 0.068334458,
+          "flow_and_render": 0.587205376,
+          "hook_responses": 0.214611126,
+          "import_preflight": 0.212550083,
+          "initial_lowering": 0.073155125,
+          "oracle_check": 0.167455457,
+          "project_index": 0.042050166,
+          "source_maps": 0.014821459,
+          "source_scan": 0.0032495
         },
         "plugin_runtime": "embedded-monty",
         "project": "artifact:django-benchmark-runs/inputs/e2e",
@@ -91201,7 +91201,7 @@
         "projection_rounds": 4,
         "reused_units": 0,
         "revision": 1,
-        "seconds": 1.6543155,
+        "seconds": 1.6955028749999999,
         "suppressed_generated": [
           {
             "check_name": "redundant-cast",
@@ -91443,7 +91443,7 @@
       },
       "phase": "measured",
       "repetition": 5,
-      "seconds": 2.018195582961198,
+      "seconds": 2.0605233749956824,
       "suite": "e2e-negative",
       "verified": true
     },
@@ -91455,19 +91455,19 @@
       "evidence": "artifact:django-benchmark-runs/runs/measured-05/e2e-negative-fork",
       "exit": 1,
       "load_average_after": [
-        4.7197265625,
-        7.0205078125,
-        7.60107421875
+        6.58740234375,
+        7.62109375,
+        9.103515625
       ],
       "load_average_before": [
-        4.7197265625,
-        7.0205078125,
-        7.60107421875
+        6.58740234375,
+        7.62109375,
+        9.103515625
       ],
       "native_metrics": {},
       "phase": "measured",
       "repetition": 5,
-      "seconds": 0.3000653329654597,
+      "seconds": 0.3057431249762885,
       "suite": "e2e-negative",
       "verified": true
     },
@@ -91479,19 +91479,19 @@
       "evidence": "artifact:django-benchmark-runs/runs/measured-06/conformance-fork",
       "exit": 1,
       "load_average_after": [
-        4.42138671875,
-        6.92041015625,
-        7.56201171875
+        6.58740234375,
+        7.62109375,
+        9.103515625
       ],
       "load_average_before": [
-        4.7197265625,
-        7.0205078125,
-        7.60107421875
+        6.58740234375,
+        7.62109375,
+        9.103515625
       ],
       "native_metrics": {},
       "phase": "measured",
       "repetition": 6,
-      "seconds": 0.70707466697786,
+      "seconds": 0.7070064169820398,
       "suite": "conformance",
       "verified": true
     },
@@ -91509,14 +91509,14 @@
       "evidence": "artifact:django-benchmark-runs/runs/measured-06/conformance-cli",
       "exit": 1,
       "load_average_after": [
-        4.42138671875,
-        6.92041015625,
-        7.56201171875
+        7.2607421875,
+        7.7431640625,
+        9.1376953125
       ],
       "load_average_before": [
-        4.42138671875,
-        6.92041015625,
-        7.56201171875
+        6.58740234375,
+        7.62109375,
+        9.103515625
       ],
       "native_metrics": {
         "checker": "binary:django-official",
@@ -91529,23 +91529,23 @@
         "monty_cache_hits_delta": 1315,
         "monty_executions": 622,
         "monty_executions_delta": 622,
-        "monty_seconds": 0.171928549,
-        "monty_seconds_delta": 0.171928549,
+        "monty_seconds": 0.169561753,
+        "monty_seconds_delta": 0.169561753,
         "oracle_rounds": 4,
         "phases": {
-          "class_projection": 0.054848125,
-          "diagnostic_mapping": 0.005173875,
-          "external_resolution": 0.194174125,
-          "final_check": 0.10251025,
-          "final_render": 0.083629583,
-          "flow_and_render": 0.653303335,
-          "hook_responses": 0.458467125,
-          "import_preflight": 0.032435541,
-          "initial_lowering": 0.081492,
-          "oracle_check": 0.49470420800000003,
-          "project_index": 0.041424041,
-          "source_maps": 0.014082875,
-          "source_scan": 0.002614792
+          "class_projection": 0.055261792,
+          "diagnostic_mapping": 0.005098834,
+          "external_resolution": 0.198410916,
+          "final_check": 0.104318708,
+          "final_render": 0.08279425,
+          "flow_and_render": 0.6479183749999999,
+          "hook_responses": 0.459281916,
+          "import_preflight": 0.033094958,
+          "initial_lowering": 0.078850958,
+          "oracle_check": 0.480213668,
+          "project_index": 0.041259334,
+          "source_maps": 0.013932875,
+          "source_scan": 0.002257583
         },
         "plugin_runtime": "embedded-monty",
         "project": "artifact:django-benchmark-runs/inputs/conformance",
@@ -91553,7 +91553,7 @@
         "projection_rounds": 4,
         "reused_units": 0,
         "revision": 1,
-        "seconds": 2.218916792,
+        "seconds": 2.202743708,
         "suppressed_generated": [
           {
             "check_name": "redundant-cast",
@@ -93117,7 +93117,7 @@
       },
       "phase": "measured",
       "repetition": 6,
-      "seconds": 2.575816292024683,
+      "seconds": 2.557017333980184,
       "suite": "conformance",
       "verified": true
     },
@@ -93135,14 +93135,14 @@
       "evidence": "artifact:django-benchmark-runs/runs/measured-06/conformance-push",
       "exit": 1,
       "load_average_after": [
-        4.54736328125,
-        6.90478515625,
-        7.552734375
+        7.2607421875,
+        7.7431640625,
+        9.1376953125
       ],
       "load_average_before": [
-        4.42138671875,
-        6.92041015625,
-        7.56201171875
+        7.2607421875,
+        7.7431640625,
+        9.1376953125
       ],
       "native_metrics": {
         "checker": "binary:django-official",
@@ -93155,23 +93155,23 @@
         "monty_cache_hits_delta": 1315,
         "monty_executions": 622,
         "monty_executions_delta": 622,
-        "monty_seconds": 0.17073001,
-        "monty_seconds_delta": 0.17073001,
+        "monty_seconds": 0.171115624,
+        "monty_seconds_delta": 0.171115624,
         "oracle_rounds": 4,
         "phases": {
-          "class_projection": 0.055923959,
-          "diagnostic_mapping": 0.005452542,
-          "external_resolution": 0.199042125,
-          "final_check": 0.098386125,
-          "final_render": 0.083412,
-          "flow_and_render": 0.6469083339999999,
-          "hook_responses": 0.460317417,
-          "import_preflight": 0.176731582,
-          "initial_lowering": 0.08292225,
-          "oracle_check": 0.25476825000000003,
-          "project_index": 0.040990708,
-          "source_maps": 0.014004333,
-          "source_scan": 0.002198833
+          "class_projection": 0.06864325,
+          "diagnostic_mapping": 0.005697292,
+          "external_resolution": 0.209271291,
+          "final_check": 0.103809291,
+          "final_render": 0.086111542,
+          "flow_and_render": 0.659774293,
+          "hook_responses": 0.472153292,
+          "import_preflight": 0.17439924999999998,
+          "initial_lowering": 0.08334325,
+          "oracle_check": 0.25859220699999996,
+          "project_index": 0.044397917,
+          "source_maps": 0.014228583,
+          "source_scan": 0.002203458
         },
         "plugin_runtime": "embedded-monty",
         "project": "artifact:django-benchmark-runs/inputs/conformance",
@@ -93179,7 +93179,7 @@
         "projection_rounds": 4,
         "reused_units": 0,
         "revision": 1,
-        "seconds": 2.121115208,
+        "seconds": 2.1826825,
         "suppressed_generated": [
           {
             "check_name": "redundant-cast",
@@ -98023,7 +98023,7 @@
       },
       "phase": "measured",
       "repetition": 6,
-      "seconds": 2.4669582920032553,
+      "seconds": 2.5453477920382284,
       "suite": "conformance",
       "verified": true
     },
@@ -98041,14 +98041,14 @@
       "evidence": "artifact:django-benchmark-runs/runs/measured-06/e2e-positive-cli",
       "exit": 0,
       "load_average_after": [
-        4.54736328125,
-        6.90478515625,
-        7.552734375
+        6.91943359375,
+        7.6640625,
+        9.1015625
       ],
       "load_average_before": [
-        4.54736328125,
-        6.90478515625,
-        7.552734375
+        7.2607421875,
+        7.7431640625,
+        9.1376953125
       ],
       "native_metrics": {
         "checker": "binary:django-official",
@@ -98061,23 +98061,23 @@
         "monty_cache_hits_delta": 391,
         "monty_executions": 242,
         "monty_executions_delta": 242,
-        "monty_seconds": 0.071106582,
-        "monty_seconds_delta": 0.071106582,
+        "monty_seconds": 0.069203027,
+        "monty_seconds_delta": 0.069203027,
         "oracle_rounds": 3,
         "phases": {
-          "class_projection": 0.053077375,
-          "diagnostic_mapping": 0.005780625,
-          "external_resolution": 0.179632792,
-          "final_check": 0.090314375,
-          "final_render": 0.066221375,
-          "flow_and_render": 0.495333292,
-          "hook_responses": 0.20907166700000002,
-          "import_preflight": 0.028822291,
-          "initial_lowering": 0.075159291,
-          "oracle_check": 0.352776042,
-          "project_index": 0.042835542,
-          "source_maps": 0.014572,
-          "source_scan": 0.003198291
+          "class_projection": 0.051586625,
+          "diagnostic_mapping": 0.005743584,
+          "external_resolution": 0.17902925,
+          "final_check": 0.090601458,
+          "final_render": 0.066317667,
+          "flow_and_render": 0.49848287599999996,
+          "hook_responses": 0.209697083,
+          "import_preflight": 0.027765249,
+          "initial_lowering": 0.0730985,
+          "oracle_check": 0.339567208,
+          "project_index": 0.041991792,
+          "source_maps": 0.014706625,
+          "source_scan": 0.003654083
         },
         "plugin_runtime": "embedded-monty",
         "project": "artifact:django-benchmark-runs/inputs/e2e",
@@ -98085,7 +98085,7 @@
         "projection_rounds": 4,
         "reused_units": 0,
         "revision": 1,
-        "seconds": 1.616844166,
+        "seconds": 1.6023012909999998,
         "suppressed_generated": [
           {
             "check_name": "redundant-cast",
@@ -98813,7 +98813,7 @@
       },
       "phase": "measured",
       "repetition": 6,
-      "seconds": 1.9610537919797935,
+      "seconds": 1.9695724159828387,
       "suite": "e2e-positive",
       "verified": true
     },
@@ -98831,14 +98831,14 @@
       "evidence": "artifact:django-benchmark-runs/runs/measured-06/e2e-positive-push",
       "exit": 0,
       "load_average_after": [
-        4.54736328125,
-        6.90478515625,
-        7.552734375
+        6.91943359375,
+        7.6640625,
+        9.1015625
       ],
       "load_average_before": [
-        4.54736328125,
-        6.90478515625,
-        7.552734375
+        6.91943359375,
+        7.6640625,
+        9.1015625
       ],
       "native_metrics": {
         "checker": "binary:django-official",
@@ -98851,23 +98851,23 @@
         "monty_cache_hits_delta": 391,
         "monty_executions": 242,
         "monty_executions_delta": 242,
-        "monty_seconds": 0.069952828,
-        "monty_seconds_delta": 0.069952828,
+        "monty_seconds": 0.069249043,
+        "monty_seconds_delta": 0.069249043,
         "oracle_rounds": 3,
         "phases": {
-          "class_projection": 0.049624708,
-          "diagnostic_mapping": 0.00597675,
-          "external_resolution": 0.1753495,
-          "final_check": 0.081056375,
-          "final_render": 0.067249417,
-          "flow_and_render": 0.565641125,
-          "hook_responses": 0.210789959,
-          "import_preflight": 0.191219667,
-          "initial_lowering": 0.072149875,
-          "oracle_check": 0.156060916,
-          "project_index": 0.041185875,
-          "source_maps": 0.014711083,
-          "source_scan": 0.003307542
+          "class_projection": 0.05133175,
+          "diagnostic_mapping": 0.0058505,
+          "external_resolution": 0.17783325,
+          "final_check": 0.080750292,
+          "final_render": 0.06689375,
+          "flow_and_render": 0.572328708,
+          "hook_responses": 0.20767729100000004,
+          "import_preflight": 0.19301587500000003,
+          "initial_lowering": 0.072273709,
+          "oracle_check": 0.160928542,
+          "project_index": 0.041441958,
+          "source_maps": 0.01482075,
+          "source_scan": 0.003350958
         },
         "plugin_runtime": "embedded-monty",
         "project": "artifact:django-benchmark-runs/inputs/e2e",
@@ -98875,7 +98875,7 @@
         "projection_rounds": 4,
         "reused_units": 0,
         "revision": 1,
-        "seconds": 1.634386375,
+        "seconds": 1.6485594159999999,
         "suppressed_generated": [
           {
             "check_name": "redundant-cast",
@@ -101123,7 +101123,7 @@
       },
       "phase": "measured",
       "repetition": 6,
-      "seconds": 1.9879496250068769,
+      "seconds": 2.018132708966732,
       "suite": "e2e-positive",
       "verified": true
     },
@@ -101135,19 +101135,19 @@
       "evidence": "artifact:django-benchmark-runs/runs/measured-06/e2e-positive-fork",
       "exit": 0,
       "load_average_after": [
-        4.74365234375,
-        6.90625,
-        7.54931640625
+        6.91943359375,
+        7.6640625,
+        9.1015625
       ],
       "load_average_before": [
-        4.54736328125,
-        6.90478515625,
-        7.552734375
+        6.91943359375,
+        7.6640625,
+        9.1015625
       ],
       "native_metrics": {},
       "phase": "measured",
       "repetition": 6,
-      "seconds": 0.7029925829847343,
+      "seconds": 0.6944505840074271,
       "suite": "e2e-positive",
       "verified": true
     },
@@ -101165,14 +101165,14 @@
       "evidence": "artifact:django-benchmark-runs/runs/measured-06/e2e-negative-push",
       "exit": 1,
       "load_average_after": [
-        4.74365234375,
-        6.90625,
-        7.54931640625
+        7.005859375,
+        7.66943359375,
+        9.0947265625
       ],
       "load_average_before": [
-        4.74365234375,
-        6.90625,
-        7.54931640625
+        6.91943359375,
+        7.6640625,
+        9.1015625
       ],
       "native_metrics": {
         "checker": "binary:django-official",
@@ -101185,23 +101185,23 @@
         "monty_cache_hits_delta": 391,
         "monty_executions": 242,
         "monty_executions_delta": 242,
-        "monty_seconds": 0.069082877,
-        "monty_seconds_delta": 0.069082877,
+        "monty_seconds": 0.068566789,
+        "monty_seconds_delta": 0.068566789,
         "oracle_rounds": 3,
         "phases": {
-          "class_projection": 0.050473084,
-          "diagnostic_mapping": 0.001116083,
-          "external_resolution": 0.175799875,
-          "final_check": 0.083869708,
-          "final_render": 0.066735417,
-          "flow_and_render": 0.565460417,
-          "hook_responses": 0.208771333,
-          "import_preflight": 0.19492579100000001,
-          "initial_lowering": 0.071000333,
-          "oracle_check": 0.154024459,
-          "project_index": 0.041347333,
-          "source_maps": 0.014761334,
-          "source_scan": 0.003301542
+          "class_projection": 0.055762375,
+          "diagnostic_mapping": 0.001141041,
+          "external_resolution": 0.175040166,
+          "final_check": 0.082755667,
+          "final_render": 0.068820292,
+          "flow_and_render": 0.567775292,
+          "hook_responses": 0.209583458,
+          "import_preflight": 0.19659337500000001,
+          "initial_lowering": 0.072760042,
+          "oracle_check": 0.151841083,
+          "project_index": 0.0411965,
+          "source_maps": 0.014775834,
+          "source_scan": 0.003348042
         },
         "plugin_runtime": "embedded-monty",
         "project": "artifact:django-benchmark-runs/inputs/e2e",
@@ -101209,7 +101209,7 @@
         "projection_rounds": 4,
         "reused_units": 0,
         "revision": 1,
-        "seconds": 1.6316365419999999,
+        "seconds": 1.641439542,
         "suppressed_generated": [
           {
             "check_name": "redundant-cast",
@@ -101451,7 +101451,7 @@
       },
       "phase": "measured",
       "repetition": 6,
-      "seconds": 1.9925224159960635,
+      "seconds": 2.023089083028026,
       "suite": "e2e-negative",
       "verified": true
     },
@@ -101463,19 +101463,19 @@
       "evidence": "artifact:django-benchmark-runs/runs/measured-06/e2e-negative-fork",
       "exit": 1,
       "load_average_after": [
-        4.74365234375,
-        6.90625,
-        7.54931640625
+        7.005859375,
+        7.66943359375,
+        9.0947265625
       ],
       "load_average_before": [
-        4.74365234375,
-        6.90625,
-        7.54931640625
+        7.005859375,
+        7.66943359375,
+        9.0947265625
       ],
       "native_metrics": {},
       "phase": "measured",
       "repetition": 6,
-      "seconds": 0.2999085000483319,
+      "seconds": 0.29695500002708286,
       "suite": "e2e-negative",
       "verified": true
     },
@@ -101493,14 +101493,14 @@
       "evidence": "artifact:django-benchmark-runs/runs/measured-06/e2e-negative-cli",
       "exit": 1,
       "load_average_after": [
-        4.74365234375,
-        6.90625,
-        7.54931640625
+        7.005859375,
+        7.66943359375,
+        9.0947265625
       ],
       "load_average_before": [
-        4.74365234375,
-        6.90625,
-        7.54931640625
+        7.005859375,
+        7.66943359375,
+        9.0947265625
       ],
       "native_metrics": {
         "checker": "binary:django-official",
@@ -101513,23 +101513,23 @@
         "monty_cache_hits_delta": 391,
         "monty_executions": 242,
         "monty_executions_delta": 242,
-        "monty_seconds": 0.068574664,
-        "monty_seconds_delta": 0.068574664,
+        "monty_seconds": 0.068153671,
+        "monty_seconds_delta": 0.068153671,
         "oracle_rounds": 3,
         "phases": {
-          "class_projection": 0.049496125,
-          "diagnostic_mapping": 0.001065292,
-          "external_resolution": 0.178311583,
-          "final_check": 0.070506875,
-          "final_render": 0.069460041,
-          "flow_and_render": 0.489857667,
-          "hook_responses": 0.206905834,
-          "import_preflight": 0.027689208000000003,
-          "initial_lowering": 0.070737375,
-          "oracle_check": 0.346217875,
-          "project_index": 0.041292,
-          "source_maps": 0.0148505,
-          "source_scan": 0.003349
+          "class_projection": 0.050624542,
+          "diagnostic_mapping": 0.001005583,
+          "external_resolution": 0.175965,
+          "final_check": 0.076705459,
+          "final_render": 0.069455083,
+          "flow_and_render": 0.496053999,
+          "hook_responses": 0.20656645899999998,
+          "import_preflight": 0.027399876,
+          "initial_lowering": 0.0715525,
+          "oracle_check": 0.34790724900000003,
+          "project_index": 0.041505667,
+          "source_maps": 0.014580833,
+          "source_scan": 0.003311833
         },
         "plugin_runtime": "embedded-monty",
         "project": "artifact:django-benchmark-runs/inputs/e2e",
@@ -101537,7 +101537,7 @@
         "projection_rounds": 4,
         "reused_units": 0,
         "revision": 1,
-        "seconds": 1.569797875,
+        "seconds": 1.5826870419999999,
         "suppressed_generated": [
           {
             "check_name": "redundant-cast",
@@ -101619,7 +101619,7 @@
       },
       "phase": "measured",
       "repetition": 6,
-      "seconds": 1.939825417008251,
+      "seconds": 1.9282294579898007,
       "suite": "e2e-negative",
       "verified": true
     }
@@ -101628,148 +101628,148 @@
   "summary": {
     "conformance": {
       "cli": {
-        "max_seconds": 2.7638563330401666,
-        "median_seconds": 2.6262892919476144,
-        "min_seconds": 2.575816292024683,
-        "native_over_fork_ratio": 3.6290079216056688,
+        "max_seconds": 3.2487212080159225,
+        "median_seconds": 2.633870083023794,
+        "min_seconds": 2.5403762909700163,
+        "native_over_fork_ratio": 3.694136517454639,
         "runs": 7,
         "samples_seconds": [
-          2.619816417049151,
-          2.6262892919476144,
-          2.5993196250055917,
-          2.6889705000212416,
-          2.6902167919906788,
-          2.7638563330401666,
-          2.575816292024683
+          2.5403762909700163,
+          3.2487212080159225,
+          2.633870083023794,
+          2.6244239999796264,
+          2.645235042029526,
+          2.81180820800364,
+          2.557017333980184
         ]
       },
       "fork": {
-        "max_seconds": 0.7417131249676459,
-        "median_seconds": 0.7236934580141678,
-        "min_seconds": 0.70707466697786,
+        "max_seconds": 0.7278092500055209,
+        "median_seconds": 0.712986667000223,
+        "min_seconds": 0.7064807909773663,
         "runs": 7,
         "samples_seconds": [
-          0.7236934580141678,
-          0.7175472499802709,
-          0.7145239160163328,
-          0.7417131249676459,
-          0.7314685409655795,
-          0.7259375840076245,
-          0.70707466697786
+          0.7064807909773663,
+          0.7264076659921557,
+          0.7278092500055209,
+          0.712986667000223,
+          0.7130157500505447,
+          0.7091487500001676,
+          0.7070064169820398
         ]
       },
       "push": {
-        "max_seconds": 2.6092043339740485,
-        "median_seconds": 2.531421791994944,
-        "min_seconds": 2.4669582920032553,
-        "native_over_fork_ratio": 3.4979199603948694,
+        "max_seconds": 2.6864505410194397,
+        "median_seconds": 2.5365744580049068,
+        "min_seconds": 2.470096790988464,
+        "native_over_fork_ratio": 3.5576744635031354,
         "runs": 7,
         "samples_seconds": [
-          2.521182082942687,
-          2.53129637503298,
-          2.531421791994944,
-          2.6092043339740485,
-          2.5759773750323802,
-          2.5772243330138735,
-          2.4669582920032553
+          2.470096790988464,
+          2.520394000050146,
+          2.6559841669513844,
+          2.535313792002853,
+          2.5365744580049068,
+          2.6864505410194397,
+          2.5453477920382284
         ]
       }
     },
     "e2e-negative": {
       "cli": {
-        "max_seconds": 2.1338548340136185,
-        "median_seconds": 1.9762539169751108,
-        "min_seconds": 1.939825417008251,
-        "native_over_fork_ratio": 6.493209107004778,
+        "max_seconds": 2.041691708029248,
+        "median_seconds": 1.971415167034138,
+        "min_seconds": 1.9282294579898007,
+        "native_over_fork_ratio": 6.466809310696476,
         "runs": 7,
         "samples_seconds": [
-          1.9605164580279961,
-          1.9762539169751108,
-          1.9644621249753982,
-          2.1090708329575136,
-          2.0167744170175865,
-          2.1338548340136185,
-          1.939825417008251
+          1.971415167034138,
+          2.017216041975189,
+          1.9843847920419648,
+          1.9663784999866039,
+          1.9392014589975588,
+          2.041691708029248,
+          1.9282294579898007
         ]
       },
       "fork": {
-        "max_seconds": 0.31119416700676084,
-        "median_seconds": 0.30435704201227054,
-        "min_seconds": 0.2999085000483319,
+        "max_seconds": 0.3137586250086315,
+        "median_seconds": 0.3048512910027057,
+        "min_seconds": 0.2926884579937905,
         "runs": 7,
         "samples_seconds": [
-          0.30435704201227054,
-          0.3022592089837417,
-          0.3084833340253681,
-          0.31119416700676084,
-          0.30918762501096353,
-          0.3000653329654597,
-          0.2999085000483319
+          0.2926884579937905,
+          0.3137586250086315,
+          0.30487841699505225,
+          0.3048512910027057,
+          0.3029895410290919,
+          0.3057431249762885,
+          0.29695500002708286
         ]
       },
       "push": {
-        "max_seconds": 2.1654728329740465,
-        "median_seconds": 2.0575892080087215,
-        "min_seconds": 1.9925224159960635,
-        "native_over_fork_ratio": 6.760445542527539,
+        "max_seconds": 2.1150639580446295,
+        "median_seconds": 2.0605233749956824,
+        "min_seconds": 2.003517250006553,
+        "native_over_fork_ratio": 6.7591098867197985,
         "runs": 7,
         "samples_seconds": [
-          2.0591932500246912,
-          2.052159583021421,
-          2.0575892080087215,
-          2.1654728329740465,
-          2.119977333000861,
-          2.018195582961198,
-          1.9925224159960635
+          2.003517250006553,
+          2.1150639580446295,
+          2.0646105830091983,
+          2.0642223749891855,
+          2.0234666659962386,
+          2.0605233749956824,
+          2.023089083028026
         ]
       }
     },
     "e2e-positive": {
       "cli": {
-        "max_seconds": 2.258414666983299,
-        "median_seconds": 2.0067776670330204,
-        "min_seconds": 1.9610537919797935,
-        "native_over_fork_ratio": 2.815095186203582,
+        "max_seconds": 2.3739660420105793,
+        "median_seconds": 2.001188291993458,
+        "min_seconds": 1.9487503329874016,
+        "native_over_fork_ratio": 2.814371668209822,
         "runs": 7,
         "samples_seconds": [
-          2.0067776670330204,
-          1.990998875000514,
-          1.994299499958288,
-          2.0429353329818696,
-          2.0302735840086825,
-          2.258414666983299,
-          1.9610537919797935
+          1.9487503329874016,
+          2.3739660420105793,
+          2.001188291993458,
+          1.9929030409548432,
+          2.0160027079982683,
+          2.0544407920097,
+          1.9695724159828387
         ]
       },
       "fork": {
-        "max_seconds": 0.7594989169738255,
-        "median_seconds": 0.7128631660016254,
-        "min_seconds": 0.7029925829847343,
+        "max_seconds": 0.7238490000017919,
+        "median_seconds": 0.7110604170011356,
+        "min_seconds": 0.6944505840074271,
         "runs": 7,
         "samples_seconds": [
-          0.7089385829749517,
-          0.7108045830391347,
-          0.7128631660016254,
-          0.7562217499944381,
-          0.7177002499811351,
-          0.7594989169738255,
-          0.7029925829847343
+          0.6956713750259951,
+          0.7238490000017919,
+          0.7193646670202725,
+          0.7110604170011356,
+          0.6975938339601271,
+          0.722407250024844,
+          0.6944505840074271
         ]
       },
       "push": {
-        "max_seconds": 2.2895517920260318,
-        "median_seconds": 2.0740055830101483,
-        "min_seconds": 1.9879496250068769,
-        "native_over_fork_ratio": 2.909402087139707,
+        "max_seconds": 2.1875480419839732,
+        "median_seconds": 2.0727946250117384,
+        "min_seconds": 2.011512249999214,
+        "native_over_fork_ratio": 2.915075253033566,
         "runs": 7,
         "samples_seconds": [
-          2.063572084007319,
-          2.0740055830101483,
-          2.058456083002966,
-          2.1350956250098534,
-          2.110329790972173,
-          2.2895517920260318,
-          1.9879496250068769
+          2.011512249999214,
+          2.1875480419839732,
+          2.070020084036514,
+          2.0828184579731897,
+          2.0727946250117384,
+          2.1854040000471286,
+          2.018132708966732
         ]
       }
     }

@@ -2,7 +2,7 @@
   "binaries": {
     "companion": {
       "path": "binary:companion",
-      "sha256": "75b7804e9c0e49efa9f0ff3f1e21f20ee3ffe310b824e9b2609618fb0a132110"
+      "sha256": "9cc9b5aecb5df2fff1bc5e709383a5d193eee8536fe362586d6f0e1b82b75e05"
     },
     "fork": {
       "path": "binary:django-fork",
@@ -955,13 +955,13 @@
           "requests": 150
         }
       ],
-      "sha256": "a6556364fc45fb1f09688dd3f275a42e4a21b9a6d2241d394d302ebb10df1477"
+      "sha256": "67c6ca82701bf6ada7f163623cb6408d7ca40a41b534722d3149a83390913486"
     },
     "unit": {
       "artifact": "artifact:unit-test-log",
       "ignored": 11,
-      "passed": 116,
-      "sha256": "155dae0d74c5a19d6fddf9d67c5e4df0130ab206363e77a748a225896ed19217"
+      "passed": 118,
+      "sha256": "a20eb4d0a97e679077985cc4191141a85783fcb076e6763e1b66a876147b7662"
     }
   },
   "generic_fixture_sha256": {
@@ -1031,29 +1031,29 @@
   "original_artifacts": {
     "generic-cli": {
       "artifact": "artifact:generic-cli-results",
-      "sha256": "911a832f7f0d78188b50ef05736ae49badf4001949b27b7d0d95eb1e33298172"
+      "sha256": "5e56c03a8ba9013f8d727fd617afb053ffe0c10b71d25d4535195d643b316881"
     },
     "generic-lsp": {
       "artifact": "artifact:generic-lsp-results",
-      "sha256": "9eef5b52bb13dffac144f34e759e8f5b3d486e107bd5acf2d9163fda4ad1a11e"
+      "sha256": "17381a1f61e5354f717bd0aa17256dc21f0e4c3fa0cb0bee53236b7156e88ab4"
     },
     "generic-push": {
       "artifact": "artifact:generic-push-results",
-      "sha256": "04ffc21dc1e2c5529db702bd4b77b48514c180d7c84f8564f45b94e02ddb81d7"
+      "sha256": "935afbe83b1300d7cfd1f9bb25a92e8e6247e75036016a250b25964ad9600c88"
     },
     "matrix-cli": {
       "artifact": "artifact:matrix-cli",
-      "sha256": "4b9327674b11aca71190196f53542ceb1975b1584c689e85d7726ae9b886b0f6"
+      "sha256": "6b04f9ee16c4dfb460d14d9a3fd87dac6e19dd5b1e9425878c2e1aa356d7fb00"
     },
     "matrix-push": {
       "artifact": "artifact:matrix-push",
-      "sha256": "c5952c4557d2f3a0f2fb4bbada97166854e8f7cc4d3fb9bb07eefe555f521e3a"
+      "sha256": "612634732a8f6131f239de7bf0cc14e2bfc38f88407b7d7d49c486659d2cc9ec"
     }
   },
   "schema": 1,
   "source": {
     "commits": {
-      "repository": "0e9dd965b08ed34e81234825f2d0fa911d9efc3a",
+      "repository": "5e4b65cd9081b1281d05ae2035bfd75120eda326",
       "ruff": "601b36e9d1884d058535f9daa888eb637f0cc488"
     },
     "source_sha256": {
@@ -1082,7 +1082,7 @@
       "src/notebook.rs": "9a12ae49794573b05662125390c295f852b49e4c8d1cd05ead6a1d78fffc2749",
       "src/project.rs": "a4dbac27f2bc69db684fcdc84536e9ac3be46e630794b8c2c355d52fed53c418",
       "src/project_check.rs": "74c8da6aa8590a7776fe098de45d03461d98d2a2b94b25004e80e3f296ff88bc",
-      "src/project_config.rs": "f30d661b5c3d05bbc6eef6f075301a5e7df2232b345e4a7a624405804d11c452",
+      "src/project_config.rs": "4ce2e9c889ce51f6cf0160e0b454aa1cbb388cc4cc21d230f2cfcf9a179a3acd",
       "src/runtime.rs": "4ff14505ba186a6075e584f00b62006d1f9d2edbde1045d67dc0db15cc50ab7b",
       "src/static_project.rs": "a74a12a167897e1b06fdc15dd2e9bdeebd30d1fabe94a0f784c8b4236e7affad",
       "src/type_render.rs": "ae5ccb8e5461c9c66410317e98754810196215f9051dbe2090a7156c282e6a46",

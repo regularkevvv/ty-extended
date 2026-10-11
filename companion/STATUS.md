@@ -9,8 +9,8 @@ Official ty is separate: together they occupy **40,308,864 bytes**, versus
 executables are larger. This build uses Ruff parser/SDK crates and embedded Monty;
 it excludes ty’s semantic engine, Salsa, Wasmtime and the Python worker.
 
-Release artifact: source `4ce52071c8901e06b5c4e30a22b03487cfe416ed`, SHA-256
-`75b7804e9c0e49efa9f0ff3f1e21f20ee3ffe310b824e9b2609618fb0a132110`.
+Release artifact: source `5e4b65cd9081b1281d05ae2035bfd75120eda326`, SHA-256
+`9cc9b5aecb5df2fff1bc5e709383a5d193eee8536fe362586d6f0e1b82b75e05`.
 
 | Passed release gates    | Coverage                                                                                                                                                                                                               |
 | ----------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -20,7 +20,7 @@ Release artifact: source `4ce52071c8901e06b5c4e30a22b03487cfe416ed`, SHA-256
 | Editor behavior         | Six acceptance sessions, 105 ordinary and 66 notebook comparisons across UTF-8/16/32; multiworkspace/configuration/unsaved-file lifecycle checks                                                                       |
 | Django editor           | 28 baseline diagnostics with exact source spans; unsaved negative controls; ten comment and ten semantic revisions, preserving original files                                                                          |
 
-Source checks: 117 Rust unit/configuration checks, 28 Python harness tests, and
+Source checks: 119 Rust unit/configuration checks, 28 Python harness tests, and
 150 replayed Django requests. The 8 MiB limit rejects one oversized response as
 expected; the explicit 16 MiB limit accepts all.
 
@@ -32,13 +32,13 @@ On the Django conformance project, fresh-process public `check` medians were:
 
 | Output    | Companion | Reference fork | Companion / fork |
 | --------- | --------- | -------------- | ---------------- |
-| `full`    | 2.895 s   | 0.733 s        | 3.95×            |
-| `concise` | 2.628 s   | 0.727 s        | 3.62×            |
+| `full`    | 2.986 s   | 0.722 s        | 4.14×            |
+| `concise` | 2.767 s   | 0.722 s        | 3.83×            |
 
 Seven measured runs follow two warmups. All 36 invocations preserve accepted
 diagnostics and exit status; `full` includes the secondary checker for notes.
 
-Persistent-editor medians: **32 ms comment edits**, **485 ms semantic edits**
+Persistent-editor medians: **32 ms comment edits**, **479 ms semantic edits**
 (seven measured revisions after three warmups). Comment edits make no Monty calls
 or native hint queries.
 

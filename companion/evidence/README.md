@@ -1,8 +1,8 @@
 # Companion evidence
 
 Frozen release source:
-`4ce52071c8901e06b5c4e30a22b03487cfe416ed`, SHA-256
-`75b7804e9c0e49efa9f0ff3f1e21f20ee3ffe310b824e9b2609618fb0a132110`.
+`5e4b65cd9081b1281d05ae2035bfd75120eda326`, SHA-256
+`9cc9b5aecb5df2fff1bc5e709383a5d193eee8536fe362586d6f0e1b82b75e05`.
 Its macOS arm64 size is 13,972,912 bytes, or 6,221,558 bytes with gzip.
 The separately installed official ty executable is excluded. Combined, the two
 executables occupy **40,308,864 bytes**, versus **37,518,400 bytes** for the reference
@@ -21,6 +21,11 @@ warmups then seven measurements per backend/format. CLI checks cover `full`,
 and external note paths. Internal `project` timings are separate from public CLI
 performance. Editor measurements reuse the checker; fresh invocations may reuse
 OS caches. Neither establishes cold-disk timing.
+
+Earlier runs overlapping another project's tests are retained separately in
+`supplemental.json`. The final timings retain all seven samples after the two
+scheduled warmups. The old and new executables had comparable timings in an
+interleaved comparison after that load ended.
 
 Checker pins: Django uses official 0.0.84 / fork 0.84.4; generic/editor
 differentials use official 0.0.86 / fork 0.86.0. Separate reference failures:
