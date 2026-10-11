@@ -1,8 +1,8 @@
 {
   "companion": {
-    "bytes": 13972992,
-    "sha256": "59e0634f6219b32190b1efce851775de1ef80f3ca667443a267a2231340cba63",
-    "gzip_bytes": 6223690
+    "bytes": 14948064,
+    "sha256": "c4f681887b358944318e01c73db864bf0de76e00ab24d15417e07d9ed2a4f8f2",
+    "gzip_bytes": 6576615
   },
   "official_ty_0_0_86": {
     "bytes": 26335952,
@@ -14,6 +14,6 @@
     "sha256": "b9abe43ba8ef0692c9d9804a0dc0c450800eb22436e0bc6097ae61b3e5335464",
     "gzip_bytes": 17428457
   },
-  "combined_companion_official_bytes": 40308944,
+  "combined_companion_official_bytes": 41284016,
   "comparison_scope": "aarch64-apple-darwin executable files; gzip9 deterministic; separate official checker needed, executable not wheel sizes"
 }
