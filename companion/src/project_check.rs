@@ -318,8 +318,12 @@ fn check(binary: &Path, root: &Path, config: &Path, paths: &[PathBuf]) -> Result
     }
     let output = Command::new(binary)
         .args(["check", "--output-format", "gitlab", "--config-file"])
-        .arg(config)
-        .args(paths)
+        .arg(crate::checker::native_cli_path(config))
+        .args(
+            paths
+                .iter()
+                .map(|path| crate::checker::native_cli_path(path)),
+        )
         .current_dir(root)
         .env("TY_UV", "0")
         .output()
@@ -335,7 +339,13 @@ fn check(binary: &Path, root: &Path, config: &Path, paths: &[PathBuf]) -> Result
 }
 fn path_of(d: &Value, root: &Path) -> PathBuf {
     let p = PathBuf::from(d["location"]["path"].as_str().unwrap_or(""));
-    if p.is_absolute() { p } else { root.join(p) }
+    let path = if p.is_absolute() { p } else { root.join(p) };
+    // Native CLI paths use ordinary Windows spelling, while internal project
+    // keys use canonicalize()'s verbatim spelling. Restore that identity before
+    // selecting a document; changing presentation cannot drop its diagnostics.
+    #[cfg(windows)]
+    let path = path.canonicalize().unwrap_or(path);
+    path
 }
 fn imports(text: &str, source_type: ruff_python_ast::PySourceType) -> Result<BTreeSet<String>> {
     let parsed = crate::project::parse_source(text, source_type)?;
@@ -2852,6 +2862,49 @@ pub fn run(input: &Path, options: &BTreeMap<String, String>) -> Result<Value> {
 
 #[cfg(test)]
 mod tests {
+    #[test]
+    #[ignore = "requires TY_COMPANION_TEST_OFFICIAL"]
+    fn native_cli_and_lsp_preserve_canonical_self_import_identity() -> Result<()> {
+        let binary = PathBuf::from(
+            std::env::var_os("TY_COMPANION_TEST_OFFICIAL").context("official checker")?,
+        );
+        let directory =
+            std::env::temp_dir().join(format!("ty-canonical-self-import-{}", std::process::id()));
+        std::fs::create_dir_all(&directory)?;
+        let directory = directory.canonicalize()?;
+        let path = directory.join("demo.py");
+        let source = "from typing import assert_type\nimport demo as imported\nclass Model: pass\nclass Generic[T]: pass\nassert_type(imported.Model(), Model)\nassert_type(imported.Generic[Model](), Generic[Model])\nwrong: str = imported.Model()\n";
+        write(&path, source)?;
+        let config = directory.join("ty.toml");
+        write(
+            &config,
+            &format!(
+                "[environment]\npython-version = '3.13'\nroot = [{}]\nextra-paths = [{}]\n",
+                serde_json::to_string(&directory)?,
+                serde_json::to_string(&directory)?,
+            ),
+        )?;
+        let cli = check(&binary, &directory, &config, std::slice::from_ref(&path))?;
+        let mut server = crate::checker::ProjectChecker::new(&binary, &directory, &config)?;
+        let lsp = server.check(
+            &BTreeMap::from([(path.clone(), source.to_owned())]),
+            std::slice::from_ref(&path),
+        )?;
+        for (mode, diagnostics) in [("cli", cli), ("lsp", lsp)] {
+            assert_eq!(diagnostics.len(), 1, "{mode}: {diagnostics:#?}");
+            let diagnostic = &diagnostics[0];
+            assert_eq!(diagnostic["check_name"], "invalid-assignment", "{mode}");
+            assert_eq!(
+                diagnostic["location"]["positions"]["begin"]["line"], 7,
+                "{mode}"
+            );
+            assert_eq!(path_of(diagnostic, &directory), path, "{mode}");
+        }
+        drop(server);
+        std::fs::remove_dir_all(directory)?;
+        Ok(())
+    }
+
     #[test]
     fn setter_receiver_views_keep_factory_return_identity() -> Result<()> {
         let binary = std::env::var_os("TY_COMPANION_TEST_OFFICIAL").expect("official checker");

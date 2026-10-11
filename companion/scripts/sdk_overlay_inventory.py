@@ -10,6 +10,7 @@ import os
 import subprocess
 from pathlib import Path
 
+from harness_paths import file_uri_matches
 from lsp_acceptance import Client, position
 
 CASES = [
@@ -140,6 +141,7 @@ def main() -> int:
         "original_source": str(original),
         "original_source_sha256": digest(original),
         "runner_sha256": digest(Path(__file__)),
+        "path_helper_sha256": digest(Path(__file__).with_name("harness_paths.py")),
         "original_contracts": original_names,
         "fixture_kind": "Original resolver file topologies with executable type assertions",
         "binaries": {
@@ -238,7 +240,7 @@ def main() -> int:
                             / ("Lib" if os.name == "nt" else "lib/python3.13")
                             / "site-packages/foo.py"
                         )
-                        assert declaration[0]["uri"] == expected_site.as_uri(), (
+                        assert file_uri_matches(declaration[0]["uri"], expected_site), (
                             declaration
                         )
                         for annotation, expected in [("int", 1), ("str", 0)]:
@@ -347,7 +349,14 @@ def main() -> int:
                         },
                     }
                 ]
-                assert location == expected, (backend, location, expected)
+                assert len(location) == 1 and file_uri_matches(
+                    location[0]["uri"], expected_path
+                ), (backend, location, expected)
+                assert location == [expected[0] | {"uri": location[0]["uri"]}], (
+                    backend,
+                    location,
+                    expected,
+                )
                 reports12[backend] = location
             finally:
                 client.close()

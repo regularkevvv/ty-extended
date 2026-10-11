@@ -20,6 +20,21 @@ use serde_json::{Value, json};
 const RESPONSE_TIMEOUT: Duration = Duration::from_secs(10);
 const MAX_FRAME: usize = 64 * 1024 * 1024;
 
+/// Match the native resolver's canonical path spelling at the CLI boundary.
+/// On Windows, explicit verbatim paths and simplified import roots otherwise
+/// become distinct File identities in ty. Keep paths that require verbatim
+/// semantics unchanged, as the native resolver does with dunce::simplified.
+pub(crate) fn native_cli_path(path: &Path) -> &Path {
+    #[cfg(windows)]
+    {
+        dunce::simplified(path)
+    }
+    #[cfg(not(windows))]
+    {
+        path
+    }
+}
+
 #[derive(Debug)]
 pub struct ProtocolError {
     pub code: i64,
@@ -92,7 +107,7 @@ impl Checker {
                     "--output-format",
                     "gitlab",
                 ])
-                .arg(path)
+                .arg(native_cli_path(path))
                 .current_dir(path.parent().context("checker input parent")?)
                 .env("TY_UV", "0")
                 .output()
@@ -927,6 +942,23 @@ pub(crate) fn normalize_diagnostic(
 mod tests {
     use super::*;
     use std::io::Cursor;
+
+    #[test]
+    #[cfg(windows)]
+    fn native_cli_paths_match_resolver_without_changing_verbatim_only_names() {
+        assert_eq!(
+            native_cli_path(Path::new(r"\\?\C:\project\demo.py")),
+            Path::new(r"C:\project\demo.py")
+        );
+        for path in [
+            r"C:\project\demo.py",
+            r"\\?\C:\project\NUL.py",
+            r"\\?\C:\project\trailing.\demo.py",
+            r"\\?\UNC\server\share\demo.py",
+        ] {
+            assert_eq!(native_cli_path(Path::new(path)), Path::new(path));
+        }
+    }
 
     #[test]
     fn file_uri_handles_windows_drives_and_unc_paths() -> Result<()> {

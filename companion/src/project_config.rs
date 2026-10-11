@@ -1397,7 +1397,7 @@ fn resolve_python_version(
         "--output-format",
         "gitlab",
     ])
-    .arg(&probe)
+    .arg(crate::checker::native_cli_path(&probe))
     .current_dir(&directory)
     .env("TY_UV", "0")
     .env_remove("TY_CONFIG_FILE")
@@ -2537,6 +2537,7 @@ mod tests {
         assert_eq!(load(&root, &view, &stubs, &options)?.python_version, "3.12");
         let selected = root.join("selected-environment");
         std::fs::create_dir_all(selected.join("lib/python3.13/site-packages"))?;
+        std::fs::create_dir_all(selected.join("Lib/site-packages"))?;
         options.insert(
             "lsp-initialization-options".into(),
             serde_json::json!({"pythonExtension": {"activeEnvironment": {

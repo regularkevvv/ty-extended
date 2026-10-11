@@ -17,6 +17,7 @@ import re
 import subprocess
 from pathlib import Path
 
+from harness_paths import relative_path
 from lsp_acceptance import position
 from lsp_differential import DifferentialClient, hover
 
@@ -40,10 +41,7 @@ def save(path, value):
 def cli_diagnostics(value, root):
     result = []
     for item in value:
-        path = Path(item["location"]["path"])
-        if not path.is_absolute():
-            path = root / path
-        assert path.resolve() == (root / "demo.py").resolve(), item
+        assert relative_path(item["location"]["path"], root) == "demo.py", item
         result.append(
             {key: item[key] for key in ("check_name", "description", "severity")}
             | {
@@ -88,6 +86,7 @@ class Gate:
                     "plugin_error_differential.py",
                     "lsp_acceptance.py",
                     "lsp_differential.py",
+                    "harness_paths.py",
                 )
             },
             "contract": "state_hook_failure_reports_and_discards_facts; native call/signature/return/mutation fallback and static-hook no-change",

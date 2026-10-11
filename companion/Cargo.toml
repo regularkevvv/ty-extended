@@ -24,6 +24,9 @@ ruff_text_size = { path = "../ruff/crates/ruff_text_size" }
 ruff_notebook = { path = "../ruff/crates/ruff_notebook" }
 ruff_diagnostics = { path = "../ruff/crates/ruff_diagnostics" }
 
+[target.'cfg(windows)'.dependencies]
+dunce = { version = "=1.0.5", default-features = false }
+
 [profile.release]
 lto = "fat"
 codegen-units = 16

@@ -10,6 +10,7 @@ import os
 import subprocess
 from pathlib import Path
 
+from harness_paths import relative_path
 from lsp_acceptance import Client
 
 
@@ -36,7 +37,7 @@ def manifest(name, function):
     }
 
 
-def diagnostics(values, root):
+def diagnostics(values, root, *, allowed_external=()):
     out = []
     for value in values:
         item = {
@@ -46,11 +47,8 @@ def diagnostics(values, root):
         item["location"] = dict(item["location"])
         raw = item["location"]["path"]
         if raw:
-            path = Path(raw)
-            if not path.is_absolute():
-                path = root / path
-            item["location"]["path"] = os.path.relpath(path.resolve(), root).replace(
-                "\\", "/"
+            item["location"]["path"] = relative_path(
+                raw, root, allowed_external=allowed_external
             )
         out.append(item)
     return sorted(out, key=lambda x: json.dumps(x, sort_keys=True))
@@ -79,7 +77,11 @@ class Gate:
             "fork": {"path": str(args.fork), "sha256": digest(args.fork)},
             "source_sha256": {
                 name: digest(Path(__file__).with_name(name))
-                for name in (Path(__file__).name, "lsp_acceptance.py")
+                for name in (
+                    Path(__file__).name,
+                    "lsp_acceptance.py",
+                    "harness_paths.py",
+                )
             },
             "checks": [],
             "cases": {},
@@ -190,7 +192,12 @@ class Gate:
     def cli(self, name, case, root):
         common = ["check", "--project", ".", "--output-format", "gitlab", "demo.py"]
         native = self.command([str(self.args.fork), *common], root, case / "fork")
-        expected = diagnostics(json.loads(native.stdout), root)
+        # Manifest validation diagnostics intentionally refer to these two
+        # fixture inputs outside the checked project, retaining their ../ path.
+        external = (case / "plugin.json", case / "good.json")
+        expected = diagnostics(
+            json.loads(native.stdout), root, allowed_external=external
+        )
         assert not any(x["check_name"] == "type-assertion-failure" for x in expected), (
             expected
         )
@@ -204,7 +211,9 @@ class Gate:
             case / "companion",
         )
         self.equal(
-            name + "/public-cli", diagnostics(json.loads(actual.stdout), root), expected
+            name + "/public-cli",
+            diagnostics(json.loads(actual.stdout), root, allowed_external=external),
+            expected,
         )
         self.report["cases"][name]["native_diagnostics"] = expected
 
