@@ -85,6 +85,10 @@ pub struct Project {
     source_roots: Vec<PathBuf>,
     pub modules: Arc<BTreeMap<String, Module>>,
     pub classes: Arc<BTreeMap<String, Value>>,
+    // Cached renderers need names, not historical syntax and class summaries.
+    // Preserve these shared sets across edits that leave their keys unchanged.
+    renderer_modules: Arc<BTreeSet<String>>,
+    renderer_virtual_classes: Arc<BTreeSet<String>>,
     pub config: Value,
     pub manifest: Value,
     /// Hygienic generated declaration name -> public protocol identity.
@@ -201,6 +205,8 @@ impl Project {
             root,
             modules: Arc::default(),
             classes: Arc::default(),
+            renderer_modules: Arc::default(),
+            renderer_virtual_classes: Arc::default(),
             config,
             manifest: manifest.clone(),
             virtual_identities: BTreeMap::new(),
@@ -751,6 +757,7 @@ impl Project {
         self.assignments = Arc::new(assignments);
         self.functions = Arc::new(functions);
         self.rebuild_settings();
+        self.sync_renderer_names();
         Ok(())
     }
 
@@ -767,18 +774,24 @@ impl Project {
                 .and_then(Value::as_str)
                 .is_none_or(|path| !paths.contains(path))
         };
-        Arc::make_mut(&mut self.classes).retain(|_, summary| retain(summary));
+        if self.classes.values().any(|summary| !retain(summary)) {
+            Arc::make_mut(&mut self.classes).retain(|_, summary| retain(summary));
+        }
         Arc::make_mut(&mut self.assignments).retain(retain);
         Arc::make_mut(&mut self.functions).retain(|function| retain(&function.summary));
+        let mut registered_classes = BTreeMap::new();
         for name in affected {
             if let Some(module) = self.modules.get(name) {
                 register_class_names(
                     &module.suite,
                     name,
                     &module.imports,
-                    Arc::make_mut(&mut self.classes),
+                    &mut registered_classes,
                 );
             }
+        }
+        if !registered_classes.is_empty() {
+            Arc::make_mut(&mut self.classes).extend(registered_classes);
         }
         let mut classes = BTreeMap::new();
         let mut assignments = Vec::new();
@@ -789,7 +802,9 @@ impl Project {
                 functions.extend(self.summarize_functions(name, module));
             }
         }
-        Arc::make_mut(&mut self.classes).extend(classes);
+        if !classes.is_empty() {
+            Arc::make_mut(&mut self.classes).extend(classes);
+        }
         Arc::make_mut(&mut self.assignments).extend(assignments);
         Arc::make_mut(&mut self.functions).extend(functions);
         // Keep the exact full-rebuild request order, including explicit roots.
@@ -817,7 +832,30 @@ impl Project {
         Arc::make_mut(&mut self.assignments).sort_by_key(key);
         Arc::make_mut(&mut self.functions).sort_by_key(|function| key(&function.summary));
         self.rebuild_settings();
+        self.sync_renderer_names();
         Ok(())
+    }
+
+    pub fn renderer_module_names(&self) -> Arc<BTreeSet<String>> {
+        self.renderer_modules.clone()
+    }
+
+    pub fn renderer_virtual_class_names(&self) -> Arc<BTreeSet<String>> {
+        self.renderer_virtual_classes.clone()
+    }
+
+    fn sync_renderer_names(&mut self) {
+        if !self.renderer_modules.iter().eq(self.modules.keys()) {
+            self.renderer_modules = Arc::new(self.modules.keys().cloned().collect());
+        }
+        let virtual_names = || {
+            self.classes.iter().filter_map(|(name, summary)| {
+                (name.contains('.') && summary["virtual"] == true).then_some(name)
+            })
+        };
+        if !self.renderer_virtual_classes.iter().eq(virtual_names()) {
+            self.renderer_virtual_classes = Arc::new(virtual_names().cloned().collect());
+        }
     }
 
     fn rebuild_settings(&mut self) {
@@ -1395,6 +1433,7 @@ impl Project {
                 );
             }
         }
+        self.sync_renderer_names();
         render_virtual_types_with_names(
             rendered_definitions.as_array().unwrap(),
             &names,
@@ -2948,6 +2987,66 @@ mod tests {
         assert_eq!(edited.mro("models.Model"), None);
         edited.refresh_sources(&BTreeMap::new())?;
         assert_eq!(edited.mro("models.Model"), original.mro("models.Model"));
+        Ok(())
+    }
+
+    #[test]
+    fn renderer_names_share_semantic_edits_without_retaining_project_indexes() -> Result<()> {
+        let fixture = Fixture::new(&[
+            ("models.py", "class Base: pass\nclass Other: pass\n"),
+            ("probe.py", "1\n"),
+        ]);
+        let root = fixture.0.canonicalize()?;
+        let mut project = Project::load_editor(&root, &json!({}), json!({}))?;
+        let original_modules = project.renderer_module_names();
+        let original_virtual = project.renderer_virtual_class_names();
+        let original_classes = project.classes.clone();
+        let old_index = Arc::downgrade(&project.modules);
+        project.refresh_sources(&BTreeMap::from([(root.join("probe.py"), "2\n".into())]))?;
+        assert!(Arc::ptr_eq(
+            &original_modules,
+            &project.renderer_module_names()
+        ));
+        assert!(Arc::ptr_eq(
+            &original_virtual,
+            &project.renderer_virtual_class_names()
+        ));
+        assert!(old_index.upgrade().is_none());
+        assert!(Arc::ptr_eq(&original_classes, &project.classes));
+
+        project.refresh_sources(&BTreeMap::from([
+            (root.join("probe.py"), "2\n".into()),
+            (root.join("extra.py"), "3\n".into()),
+        ]))?;
+        let added_modules = project.renderer_module_names();
+        assert!(!Arc::ptr_eq(&original_modules, &added_modules));
+        assert!(added_modules.contains("extra"));
+        assert!(!original_modules.contains("extra"));
+        project.refresh_sources(&BTreeMap::from([(root.join("probe.py"), "2\n".into())]))?;
+        assert!(!project.renderer_module_names().contains("extra"));
+        assert!(added_modules.contains("extra"));
+
+        let modules = project.renderer_module_names();
+        let definitions = |base: &str| {
+            vec![
+                json!({"name":"virtual.Row","shape":{"kind":"class","bases":[typ(base)]}}),
+                json!({"name":"Bare","shape":{"kind":"class"}}),
+            ]
+        };
+        project.register_virtual_types(&definitions("models.Base"))?;
+        let virtual_names = project.renderer_virtual_class_names();
+        assert_eq!(*virtual_names, BTreeSet::from(["virtual.Row".into()]));
+        assert!(original_virtual.is_empty());
+        assert!(Arc::ptr_eq(&modules, &project.renderer_module_names()));
+        project.register_virtual_types(&definitions("models.Other"))?;
+        assert!(Arc::ptr_eq(
+            &virtual_names,
+            &project.renderer_virtual_class_names()
+        ));
+        project.rebuild()?;
+        assert!(project.renderer_virtual_class_names().is_empty());
+        assert!(virtual_names.contains("virtual.Row"));
+        assert!(Arc::ptr_eq(&modules, &project.renderer_module_names()));
         Ok(())
     }
 

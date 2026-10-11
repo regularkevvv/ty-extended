@@ -17,8 +17,8 @@ use std::{
 /// each renderer, so sharing this context cannot change declaration ordering.
 #[derive(Clone, Default)]
 struct RenderContext {
-    modules: Arc<BTreeMap<String, crate::project::Module>>,
-    classes: Arc<BTreeMap<String, Value>>,
+    modules: Arc<BTreeSet<String>>,
+    virtual_classes: Arc<BTreeSet<String>>,
     virtual_modules: Arc<BTreeMap<String, String>>,
     unavailable_modules: Arc<BTreeSet<String>>,
     nominal_resolution: Arc<BTreeMap<String, Option<usize>>>,
@@ -28,8 +28,8 @@ struct RenderContext {
 impl RenderContext {
     fn from_project(project: &Project) -> Self {
         Self {
-            modules: project.modules.clone(),
-            classes: project.classes.clone(),
+            modules: project.renderer_module_names(),
+            virtual_classes: project.renderer_virtual_class_names(),
             virtual_modules: project.virtual_modules.clone(),
             unavailable_modules: project.unavailable_modules.clone(),
             nominal_resolution: project.snapshot_nominals.clone(),
@@ -42,26 +42,20 @@ impl RenderContext {
         // does not declare that module as a public namespace. Preserve the
         // exact dotted-class rule without scanning every project class.
         let prefix = format!("{module}.");
-        self.classes
+        self.virtual_classes
             .range::<str, _>((
                 std::ops::Bound::Included(prefix.as_str()),
                 std::ops::Bound::Unbounded,
             ))
-            .take_while(|(name, _)| name.starts_with(&prefix))
-            .any(|(name, summary)| {
-                summary["virtual"] == true
-                    && name
-                        .rsplit_once('.')
-                        .is_some_and(|(owner, _)| owner == module)
+            .take_while(|name| name.starts_with(&prefix))
+            .any(|name| {
+                name.rsplit_once('.')
+                    .is_some_and(|(owner, _)| owner == module)
             })
     }
 
     fn virtual_class(&self, qualified: &str) -> bool {
-        qualified.contains('.')
-            && self
-                .classes
-                .get(qualified)
-                .is_some_and(|summary| summary["virtual"] == true)
+        qualified.contains('.') && self.virtual_classes.contains(qualified)
     }
 }
 
@@ -127,7 +121,7 @@ impl Types {
         let mut remaining = name;
         while let Some((module, _)) = remaining.rsplit_once('.') {
             if self.modules.contains(module)
-                || self.project_context.modules.contains_key(module)
+                || self.project_context.modules.contains(module)
                 || self.project_context.virtual_module(module)
             {
                 return Some(module);
@@ -1168,15 +1162,28 @@ mod tests {
         project.register_virtual_types(&virtual_types)?;
         Arc::make_mut(&mut project.snapshot_nominals).insert("models.Model".into(), Some(0));
         Arc::make_mut(&mut project.snapshot_symbols).insert("models.Model".into(), true);
+        let module_owners = Arc::strong_count(&project.modules);
+        let class_owners = Arc::strong_count(&project.classes);
         let mut original = Types::with_project("_generated_", "models", &project);
         assert!(Arc::ptr_eq(
             &original.project_context.modules,
-            &project.modules
+            &project.renderer_module_names()
         ));
         assert!(Arc::ptr_eq(
-            &original.project_context.classes,
-            &project.classes
+            &original.project_context.virtual_classes,
+            &project.renderer_virtual_class_names()
         ));
+        // Cached unchanged units can retain renderers from older revisions.
+        // Neither creating nor cloning one may retain the full syntax/summary
+        // maps, which would accumulate one project map per changed file.
+        let retained = original.clone();
+        assert_eq!(Arc::strong_count(&project.modules), module_owners);
+        assert_eq!(Arc::strong_count(&project.classes), class_owners);
+        assert!(Arc::ptr_eq(
+            &retained.project_context.modules,
+            &original.project_context.modules
+        ));
+        drop(retained);
         assert!(Arc::ptr_eq(
             &original.project_context.nominal_resolution,
             &project.snapshot_nominals
@@ -1190,8 +1197,10 @@ mod tests {
         Arc::make_mut(&mut project.unavailable_modules).insert("absent".into());
         Arc::make_mut(&mut project.snapshot_nominals).insert("models.Model".into(), None);
         Arc::make_mut(&mut project.snapshot_symbols).insert("models.Model".into(), false);
-        let module = project.modules["models"].clone();
-        Arc::make_mut(&mut project.modules).insert("Package.generated.Nested".into(), module);
+        let nested = directory.join("Nested.pyi");
+        std::fs::write(&nested, "class Item: pass\n")?;
+        project.add_resolved_modules(&[("Package.generated.Nested".into(), nested)])?;
+        project.register_virtual_types(&virtual_types)?;
         Arc::make_mut(&mut project.virtual_modules)
             .insert("Package.generated".into(), "_replacement".into());
         let mut current = Types::with_project("_generated_", "models", &project);
@@ -1258,17 +1267,8 @@ mod tests {
     #[test]
     fn shared_virtual_namespaces_preserve_dotted_class_rules() {
         let mut types = Types::new("_generated_", "models");
-        Arc::make_mut(&mut types.project_context.classes).extend([
-            ("Bare".into(), serde_json::json!({"virtual":true})),
-            (
-                "Package.Inner.Row".into(),
-                serde_json::json!({"virtual":true}),
-            ),
-            (
-                "ordinary.Model".into(),
-                serde_json::json!({"virtual":false}),
-            ),
-        ]);
+        Arc::make_mut(&mut types.project_context.virtual_classes)
+            .extend(["Bare".into(), "Package.Inner.Row".into()]);
         Arc::make_mut(&mut types.project_context.virtual_modules)
             .insert("_ty_ext_virtual".into(), "_generated_bare".into());
         assert!(!types.project_context.virtual_class("Bare"));
