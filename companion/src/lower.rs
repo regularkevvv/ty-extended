@@ -109,9 +109,7 @@ fn class_patch(
         .unwrap_or(json!({"kind":"no-change"}));
     if response["kind"] == "no-change" {
         response = runtime.execute(source, "analyze-class", json!({"class":summary}))?;
-        runtime
-            .project_patches
-            .insert(qualified.into(), response.clone());
+        runtime.set_project_patch(qualified.into(), response.clone());
     }
     let mut fields: BTreeMap<String, Value> = response["fields"]
         .as_array()
@@ -119,6 +117,12 @@ fn class_patch(
         .flatten()
         .map(|v| (v["name"].as_str().unwrap_or("").to_owned(), v.clone()))
         .collect();
+    let class_transform_fields = response["fields"]
+        .as_array()
+        .into_iter()
+        .flatten()
+        .filter_map(|field| field["name"].as_str())
+        .collect::<BTreeSet<_>>();
     let mut members: BTreeMap<String, (Value, bool)> = BTreeMap::new();
     for (key, class_scope) in [("class-members", true), ("instance-members", false)] {
         for m in response[key].as_array().into_iter().flatten() {
@@ -197,11 +201,7 @@ fn class_patch(
         // A native class-transform descriptor supplies a class *value*. Its
         // ordinary instance lookup takes precedence over the instance fallback;
         // it is not a Python descriptor with an inherited __set__ method.
-        let class_transform = response["fields"]
-            .as_array()
-            .into_iter()
-            .flatten()
-            .any(|candidate| candidate["name"] == *name);
+        let class_transform = class_transform_fields.contains(name.as_str());
         if class_transform && let Some(class_type) = class_type {
             let class_type = types.render(class_type)?;
             class_code.push_str(&format!(
@@ -299,13 +299,14 @@ fn class_patch(
         diagnostics.push(json!({"diagnostic":diagnostic,"source":source.location(span(class))}));
     }
     types.set_self_context(previous_self);
+    let declared = field_types.keys().cloned().collect();
     Ok(ClassInfo {
         origin: span(&class.name),
-        fields: field_types.clone(),
+        fields: field_types,
         methods,
         insertion,
         indent,
-        declared: field_types.keys().cloned().collect(),
+        declared,
     })
 }
 

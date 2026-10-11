@@ -4,7 +4,10 @@
 //! source-mapped wrapper, so synthetic casts cannot change object identities or
 //! be mistaken for user calls. Unsupported control-flow constructs are rejected.
 
-use std::collections::{BTreeMap, BTreeSet};
+use std::{
+    collections::{BTreeMap, BTreeSet},
+    sync::Arc,
+};
 
 use anyhow::{Result, bail};
 use ruff_python_ast::{ElifElseClause, Expr, ExprContext, Pattern, Stmt, StmtFunctionDef};
@@ -17,6 +20,7 @@ use crate::model::{
 use crate::runtime::{Runtime, call_request};
 use crate::type_render::Types;
 
+#[derive(Clone)]
 pub struct FlowResult {
     pub edits: Edits,
     pub diagnostics: Vec<Value>,
@@ -25,7 +29,7 @@ pub struct FlowResult {
 }
 
 type Object = usize;
-type Facts = BTreeMap<String, Value>;
+type Facts = Arc<BTreeMap<String, Value>>;
 
 /// Find outer bindings that a newly created nested function can replace.
 /// Intervening function locals shadow outer cells; class namespaces do not.
@@ -155,9 +159,7 @@ impl Scope {
     }
 
     fn invalidate(&mut self) {
-        for facts in self.facts.values_mut() {
-            facts.clear();
-        }
+        self.facts.clear();
         // At module level an unknown call can also rebind globals. Local names
         // retain identity while member facts are invalidated.
         if self.module {
@@ -274,7 +276,6 @@ impl Project<'_> {
         self.next_object += 1;
         let id = self.next_object;
         scope.types.insert(id, owner.to_string());
-        scope.facts.insert(id, Facts::new());
         if guaranteed {
             scope.fresh.insert(id);
         }
@@ -822,9 +823,10 @@ impl Project<'_> {
                         let setter = self.types.render(&setter)?;
                         self.types.set_self_context(previous);
                         let helper = format!("{}setter_{}", self.source.prefix, span(target).start);
-                        self.runtime
-                            .projected_receivers
-                            .insert(format!("{}.{}", self.source.module, helper), owner);
+                        self.runtime.set_projected_receiver(
+                            format!("{}.{}", self.source.module, helper),
+                            owner,
+                        );
                         let typing = self.types.typing_alias();
                         self.types.definitions.push_str(&format!(
                             "class {helper}({typing}.Protocol):\n    {}: {setter}\n",
@@ -955,20 +957,32 @@ impl Project<'_> {
         scope.objects = left.objects;
         scope.objects.extend(right.objects);
         scope.facts.clear();
-        for identity in left.facts.keys().chain(right.facts.keys()) {
+        for identity in left.facts.keys().chain(
+            right
+                .facts
+                .keys()
+                .filter(|identity| !left.facts.contains_key(identity)),
+        ) {
             let first = left.facts.get(identity);
             let second = right.facts.get(identity);
+            if let (Some(first), Some(second)) = (first, second)
+                && (Arc::ptr_eq(first, second) || first == second)
+            {
+                scope.facts.insert(*identity, first.clone());
+                continue;
+            }
             let defaults = self
                 .analysis
                 .classes
                 .get(&scope.types[identity])
                 .map(|class| &class.fields);
-            let mut facts = Facts::new();
-            for member in first
-                .into_iter()
-                .flat_map(|facts| facts.keys())
-                .chain(second.into_iter().flat_map(|facts| facts.keys()))
-            {
+            let mut facts = BTreeMap::new();
+            for member in first.into_iter().flat_map(|facts| facts.keys()).chain(
+                second
+                    .into_iter()
+                    .flat_map(|facts| facts.keys())
+                    .filter(|member| first.is_none_or(|facts| !facts.contains_key(*member))),
+            ) {
                 let default = self
                     .runtime
                     .default_member_expr(&scope.types[identity], member)
@@ -1004,7 +1018,7 @@ impl Project<'_> {
                 };
                 facts.insert(member.clone(), value);
             }
-            scope.facts.insert(*identity, facts);
+            scope.facts.insert(*identity, Arc::new(facts));
         }
     }
 
@@ -1245,14 +1259,11 @@ impl Project<'_> {
         {
             scope.invalidate();
         } else if let Some(receiver) = receiver {
-            for (identity, facts) in &mut scope.facts {
-                if *identity == receiver
-                    || !scope.fresh.contains(&receiver)
-                    || !scope.fresh.contains(identity)
-                {
-                    facts.clear();
-                }
-            }
+            scope.facts.retain(|identity, _| {
+                *identity != receiver
+                    && scope.fresh.contains(&receiver)
+                    && scope.fresh.contains(identity)
+            });
         }
         if patch["kind"] == "call-state-patch"
             && let Some(receiver) = receiver
@@ -1465,9 +1476,10 @@ impl Project<'_> {
                         }
                         let helper =
                             format!("{}member_{}", self.source.prefix, span(attribute).start);
-                        self.runtime
-                            .projected_receivers
-                            .insert(format!("{}.{}", self.source.module, helper), owner.clone());
+                        self.runtime.set_projected_receiver(
+                            format!("{}.{}", self.source.module, helper),
+                            owner.clone(),
+                        );
                         let previous_self = self
                             .types
                             .set_self_context(Some(self.runtime.qualified_type_expr(&owner)));
@@ -1791,7 +1803,7 @@ impl Project<'_> {
 fn extend_members(facts: &mut Facts, members: &Value) {
     if let Some(members) = members.as_object() {
         for (name, value) in members {
-            facts.insert(name.clone(), value.clone());
+            Arc::make_mut(facts).insert(name.clone(), value.clone());
         }
     }
 }

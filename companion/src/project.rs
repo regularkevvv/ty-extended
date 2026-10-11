@@ -6,7 +6,7 @@
 use std::{
     collections::{BTreeMap, BTreeSet},
     path::{Path, PathBuf},
-    sync::Arc,
+    sync::{Arc, Mutex},
 };
 
 use anyhow::{Context, Result, bail, ensure};
@@ -19,9 +19,9 @@ use crate::model::{Source, span, typ};
 pub struct Module {
     pub source: Arc<Source>,
     pub suite: Arc<Vec<Stmt>>,
-    pub imports: BTreeMap<String, String>,
-    pub bindings: BTreeSet<String>,
-    pub assignments: BTreeMap<String, Expr>,
+    pub imports: Arc<BTreeMap<String, String>>,
+    pub bindings: Arc<BTreeSet<String>>,
+    pub assignments: Arc<BTreeMap<String, Expr>>,
     pub external: bool,
 }
 
@@ -31,32 +31,83 @@ struct IndexFunction {
     name_offset: usize,
 }
 
+#[derive(Default)]
+struct HierarchyCache {
+    mro: BTreeMap<String, Option<Vec<String>>>,
+    mro_bytes: usize,
+    subclasses: BTreeMap<(String, String), bool>,
+    subclass_bytes: usize,
+}
+
+impl HierarchyCache {
+    const MAX_ENTRIES: usize = 8192;
+    const MAX_BYTES: usize = 8 * 1024 * 1024;
+
+    fn insert_mro(&mut self, class: &str, result: &Option<Vec<String>>) {
+        let bytes = 128
+            + class.len()
+            + result.as_ref().map_or(0, |names| {
+                names
+                    .iter()
+                    .map(|name| std::mem::size_of::<String>() + name.len())
+                    .sum::<usize>()
+            });
+        if bytes > Self::MAX_BYTES {
+            return;
+        }
+        if self.mro.len() >= Self::MAX_ENTRIES || self.mro_bytes + bytes > Self::MAX_BYTES {
+            self.mro.clear();
+            self.mro_bytes = 0;
+        }
+        self.mro.insert(class.to_owned(), result.clone());
+        self.mro_bytes += bytes;
+    }
+
+    fn insert_subclass(&mut self, key: (String, String), answer: bool) {
+        let bytes = 128 + key.0.capacity() + key.1.capacity();
+        if bytes > Self::MAX_BYTES {
+            return;
+        }
+        if self.subclasses.len() >= Self::MAX_ENTRIES
+            || self.subclass_bytes + bytes > Self::MAX_BYTES
+        {
+            self.subclasses.clear();
+            self.subclass_bytes = 0;
+        }
+        self.subclasses.insert(key, answer);
+        self.subclass_bytes += bytes;
+    }
+}
+
 #[derive(Clone)]
 pub struct Project {
     pub root: PathBuf,
     source_roots: Vec<PathBuf>,
-    pub modules: BTreeMap<String, Module>,
-    pub classes: BTreeMap<String, Value>,
+    pub modules: Arc<BTreeMap<String, Module>>,
+    pub classes: Arc<BTreeMap<String, Value>>,
     pub config: Value,
     pub manifest: Value,
     /// Hygienic generated declaration name -> public protocol identity.
     pub virtual_identities: BTreeMap<String, String>,
     /// Public SDK module -> isolated physical module, independent of user imports.
-    pub virtual_modules: BTreeMap<String, String>,
+    pub virtual_modules: Arc<BTreeMap<String, String>>,
     /// Modules proven unavailable by the official checker's environment. Absence
     /// from the syntax index alone must never populate this set.
-    pub unavailable_modules: BTreeSet<String>,
+    pub unavailable_modules: Arc<BTreeSet<String>>,
     /// Native-checker evidence for TypeSnapshot::Nominal resolution and arity.
-    pub snapshot_nominals: BTreeMap<String, Option<usize>>,
-    pub snapshot_symbols: BTreeMap<String, bool>,
+    pub snapshot_nominals: Arc<BTreeMap<String, Option<usize>>>,
+    pub snapshot_symbols: Arc<BTreeMap<String, bool>>,
     /// Modules with incomplete editor buffers are checked unchanged by ty.
     pub syntax_errors: BTreeSet<String>,
     allow_invalid: bool,
     notebook_sources: BTreeSet<PathBuf>,
     additional_sources: BTreeSet<PathBuf>,
-    assignments: Vec<Value>,
-    functions: Vec<IndexFunction>,
-    settings: Vec<Value>,
+    assignments: Arc<Vec<Value>>,
+    functions: Arc<Vec<IndexFunction>>,
+    settings: Arc<Vec<Value>>,
+    /// All clones describe the same immutable class revision until a rebuild
+    /// detaches this cache. Never carry derived inheritance facts into an edit.
+    hierarchy: Arc<Mutex<HierarchyCache>>,
 }
 
 pub fn parse_source(
@@ -148,22 +199,23 @@ impl Project {
         let mut project = Self {
             source_roots: vec![root.clone()],
             root,
-            modules: BTreeMap::new(),
-            classes: BTreeMap::new(),
+            modules: Arc::default(),
+            classes: Arc::default(),
             config,
             manifest: manifest.clone(),
             virtual_identities: BTreeMap::new(),
-            virtual_modules: BTreeMap::new(),
-            unavailable_modules: BTreeSet::new(),
-            snapshot_nominals: BTreeMap::new(),
-            snapshot_symbols: BTreeMap::new(),
+            virtual_modules: Arc::default(),
+            unavailable_modules: Arc::default(),
+            snapshot_nominals: Arc::default(),
+            snapshot_symbols: Arc::default(),
             syntax_errors: BTreeSet::new(),
             allow_invalid,
             notebook_sources: BTreeSet::new(),
             additional_sources: BTreeSet::new(),
-            assignments: vec![],
-            functions: vec![],
-            settings: vec![],
+            assignments: Arc::default(),
+            functions: Arc::default(),
+            settings: Arc::default(),
+            hierarchy: Arc::default(),
         };
         let mut paths = source_paths.to_vec();
         if paths.is_empty() && !exact_paths {
@@ -208,7 +260,7 @@ impl Project {
             .filter(|m| !m.external)
             .cloned()
             .collect();
-        self.modules.retain(|_, m| m.external);
+        Arc::make_mut(&mut self.modules).retain(|_, m| m.external);
         self.syntax_errors.clear();
         for module in locals {
             let path = Path::new(&module.source.path);
@@ -271,12 +323,27 @@ impl Project {
             .find_map(|root| find_module(root, name))
     }
 
-    pub fn add_resolved_module(&mut self, name: &str, path: &Path) -> Result<()> {
-        if self.modules.contains_key(name) {
-            return Ok(());
+    /// Install one completed checker resolution wave before rebuilding the
+    /// shared summaries. No query observes a partially installed wave.
+    pub fn add_resolved_modules(&mut self, modules: &[(String, PathBuf)]) -> Result<()> {
+        let previous = self.clone();
+        let result = (|| {
+            let mut changed = false;
+            for (name, path) in modules {
+                if !self.modules.contains_key(name) {
+                    self.add_module(name, path, true)?;
+                    changed = true;
+                }
+            }
+            if changed {
+                self.rebuild()?;
+            }
+            Ok(())
+        })();
+        if result.is_err() {
+            *self = previous;
         }
-        self.add_module(name, path, true)?;
-        self.rebuild()
+        result
     }
 
     /// Resolve only superclass chains used by first-party declarations. Ordinary
@@ -393,7 +460,7 @@ impl Project {
     }
 
     pub fn retain_external_roots(&mut self, roots: &[PathBuf]) -> Result<()> {
-        self.modules.retain(|_, module| {
+        Arc::make_mut(&mut self.modules).retain(|_, module| {
             !module.external
                 || roots
                     .iter()
@@ -413,7 +480,7 @@ impl Project {
         collect_python(root, &mut paths)?;
         paths.retain(|path| include(path.strip_prefix(root).unwrap()));
         let current: BTreeSet<_> = paths.iter().cloned().collect();
-        self.modules.retain(|_, module| {
+        Arc::make_mut(&mut self.modules).retain(|_, module| {
             !module.external
                 || !Path::new(&module.source.path).starts_with(root)
                 || current.contains(Path::new(&module.source.path))
@@ -494,20 +561,20 @@ impl Project {
         let mut module = Module {
             source,
             suite: Arc::new(suite),
-            imports: BTreeMap::new(),
-            bindings: BTreeSet::new(),
-            assignments: BTreeMap::new(),
+            imports: Arc::default(),
+            bindings: Arc::default(),
+            assignments: Arc::default(),
             external,
         };
         collect_bindings(
             &module.suite.clone(),
             name,
             is_package,
-            &mut module.imports,
-            &mut module.bindings,
-            &mut module.assignments,
+            Arc::make_mut(&mut module.imports),
+            Arc::make_mut(&mut module.bindings),
+            Arc::make_mut(&mut module.assignments),
         );
-        self.modules.insert(name.to_owned(), module);
+        Arc::make_mut(&mut self.modules).insert(name.to_owned(), module);
         Ok(())
     }
 
@@ -594,7 +661,7 @@ impl Project {
             }
             changed = true;
         }
-        self.modules.retain(|name, module| {
+        Arc::make_mut(&mut self.modules).retain(|name, module| {
             let keep = module.external || current.contains(name);
             changed |= !keep;
             if !keep {
@@ -659,29 +726,36 @@ impl Project {
     }
 
     fn rebuild(&mut self) -> Result<()> {
-        self.classes.clear();
-        self.assignments.clear();
-        self.functions.clear();
-        self.settings.clear();
+        self.classes = Arc::default();
+        self.hierarchy = Arc::default();
+        self.assignments = Arc::default();
+        self.functions = Arc::default();
+        self.settings = Arc::default();
         // First register every class name, then resolve forward references.
-        for (name, module) in &self.modules {
-            register_class_names(&module.suite, name, &module.imports, &mut self.classes);
+        for (name, module) in self.modules.iter() {
+            register_class_names(
+                &module.suite,
+                name,
+                &module.imports,
+                Arc::make_mut(&mut self.classes),
+            );
         }
         let mut classes = BTreeMap::new();
         let mut assignments = vec![];
         let mut functions = vec![];
-        for (name, module) in &self.modules {
+        for (name, module) in self.modules.iter() {
             self.summarize_body(name, module, &module.suite, &mut classes, &mut assignments)?;
             functions.extend(self.summarize_functions(name, module));
         }
-        self.classes = classes;
-        self.assignments = assignments;
-        self.functions = functions;
+        self.classes = Arc::new(classes);
+        self.assignments = Arc::new(assignments);
+        self.functions = Arc::new(functions);
         self.rebuild_settings();
         Ok(())
     }
 
     fn rebuild_selected(&mut self, affected: &BTreeSet<String>) -> Result<()> {
+        self.hierarchy = Arc::default();
         let paths = affected
             .iter()
             .filter_map(|name| self.modules.get(name))
@@ -693,12 +767,17 @@ impl Project {
                 .and_then(Value::as_str)
                 .is_none_or(|path| !paths.contains(path))
         };
-        self.classes.retain(|_, summary| retain(summary));
-        self.assignments.retain(retain);
-        self.functions.retain(|function| retain(&function.summary));
+        Arc::make_mut(&mut self.classes).retain(|_, summary| retain(summary));
+        Arc::make_mut(&mut self.assignments).retain(retain);
+        Arc::make_mut(&mut self.functions).retain(|function| retain(&function.summary));
         for name in affected {
             if let Some(module) = self.modules.get(name) {
-                register_class_names(&module.suite, name, &module.imports, &mut self.classes);
+                register_class_names(
+                    &module.suite,
+                    name,
+                    &module.imports,
+                    Arc::make_mut(&mut self.classes),
+                );
             }
         }
         let mut classes = BTreeMap::new();
@@ -710,9 +789,9 @@ impl Project {
                 functions.extend(self.summarize_functions(name, module));
             }
         }
-        self.classes.extend(classes);
-        self.assignments.extend(assignments);
-        self.functions.extend(functions);
+        Arc::make_mut(&mut self.classes).extend(classes);
+        Arc::make_mut(&mut self.assignments).extend(assignments);
+        Arc::make_mut(&mut self.functions).extend(functions);
         // Keep the exact full-rebuild request order, including explicit roots.
         let order = self
             .modules
@@ -735,15 +814,14 @@ impl Project {
                 value["source"]["start"]["column"].as_u64().unwrap_or(0),
             )
         };
-        self.assignments.sort_by_key(key);
-        self.functions
-            .sort_by_key(|function| key(&function.summary));
+        Arc::make_mut(&mut self.assignments).sort_by_key(key);
+        Arc::make_mut(&mut self.functions).sort_by_key(|function| key(&function.summary));
         self.rebuild_settings();
         Ok(())
     }
 
     fn rebuild_settings(&mut self) {
-        self.settings.clear();
+        let mut settings = Vec::new();
         for name in self.settings_modules() {
             if let Some(module) = self.modules.get(&name) {
                 let mut values = vec![];
@@ -790,11 +868,12 @@ impl Project {
                         values.push(json!({"name":key,"value":value,"source":location}));
                     }
                 }
-                self.settings.push(json!({"module":name,"values":values,"dependencies":dependencies.into_iter().map(|path|json!({"path":path})).collect::<Vec<_>>(),"diagnostics":diagnostics,"source":{"module":name,"file-path":module.source.path}}));
+                settings.push(json!({"module":name,"values":values,"dependencies":dependencies.into_iter().map(|path|json!({"path":path})).collect::<Vec<_>>(),"diagnostics":diagnostics,"source":{"module":name,"file-path":module.source.path}}));
             } else {
-                self.settings.push(json!({"module":name,"values":[],"dependencies":[],"diagnostics":[{"id":"ty.settings.module-not-found","message":format!("Settings module `{name}` could not be resolved"),"severity":self.settings_severity()}],"source":{"module":name}}));
+                settings.push(json!({"module":name,"values":[],"dependencies":[],"diagnostics":[{"id":"ty.settings.module-not-found","message":format!("Settings module `{name}` could not be resolved"),"severity":self.settings_severity()}],"source":{"module":name}}));
             }
         }
+        self.settings = Arc::new(settings);
     }
 
     fn settings_modules(&self) -> Vec<String> {
@@ -956,10 +1035,9 @@ impl Project {
             }
         }
         if self.classes.contains_key(name)
-            || self
-                .modules
-                .keys()
-                .any(|m| name.starts_with(&format!("{m}.")))
+            || name
+                .match_indices('.')
+                .any(|(at, _)| self.modules.contains_key(&name[..at]))
         {
             return self.resolve_qualified(name, seen);
         }
@@ -968,9 +1046,7 @@ impl Project {
 
     fn resolve_qualified(&self, name: &str, seen: &mut BTreeSet<String>) -> String {
         // Expand re-exports using the longest known module prefix.
-        let mut positions: Vec<_> = name.match_indices('.').map(|(i, _)| i).collect();
-        positions.reverse();
-        for at in positions {
+        for (at, _) in name.rmatch_indices('.') {
             let (module, member) = (&name[..at], &name[at + 1..]);
             if self.modules.contains_key(module) {
                 let resolved = self.resolve_symbol(module, member, seen);
@@ -985,31 +1061,38 @@ impl Project {
     pub fn is_subclass(&self, class: &str, base: &str) -> bool {
         let class = class.split('[').next().unwrap_or(class).trim();
         let base = base.split('[').next().unwrap_or(base).trim();
-        let mut todo = vec![class.to_owned()];
+        if class == base {
+            return true;
+        }
+        if !self.classes.contains_key(class) {
+            return false;
+        }
+        let mut hierarchy = self.hierarchy.lock().unwrap();
+        let key = (class.to_owned(), base.to_owned());
+        if let Some(answer) = hierarchy.subclasses.get(&key) {
+            return *answer;
+        }
+        let mut todo = vec![class];
         let mut seen = BTreeSet::new();
+        let mut answer = false;
         while let Some(current) = todo.pop() {
             if current == base {
-                return true;
+                answer = true;
+                break;
             }
-            if !seen.insert(current.clone()) {
+            if !seen.insert(current) {
                 continue;
             }
-            if let Some(summary) = self.classes.get(&current) {
+            if let Some(summary) = self.classes.get(current) {
                 for parent in summary["bases"].as_array().into_iter().flatten() {
                     if let Some(expression) = parent["expression"].as_str() {
-                        todo.push(
-                            expression
-                                .split('[')
-                                .next()
-                                .unwrap_or(expression)
-                                .trim()
-                                .to_owned(),
-                        );
+                        todo.push(expression.split('[').next().unwrap_or(expression).trim());
                     }
                 }
             }
         }
-        false
+        hierarchy.insert_subclass(key, answer);
+        answer
     }
 
     /// Python C3 linearization. Cyclic or inconsistent bases return no answer;
@@ -1019,11 +1102,29 @@ impl Project {
             project: &Project,
             class: &str,
             active: &mut BTreeSet<String>,
+            cache: &mut HierarchyCache,
         ) -> Option<Vec<String>> {
             let class = class.split('[').next()?.trim();
+            if !project.classes.contains_key(class) {
+                return Some(vec![class.to_owned()]);
+            }
+            if let Some(result) = cache.mro.get(class) {
+                return result.clone();
+            }
             if !active.insert(class.to_owned()) {
                 return None;
             }
+            let result = linearize(project, class, active, cache);
+            active.remove(class);
+            cache.insert_mro(class, &result);
+            result
+        }
+        fn linearize(
+            project: &Project,
+            class: &str,
+            active: &mut BTreeSet<String>,
+            cache: &mut HierarchyCache,
+        ) -> Option<Vec<String>> {
             let bases: Vec<String> = project
                 .classes
                 .get(class)
@@ -1034,7 +1135,7 @@ impl Project {
                 .collect();
             let mut sequences = vec![];
             for base in &bases {
-                sequences.push(resolve(project, base, active)?);
+                sequences.push(resolve(project, base, active, cache)?);
             }
             sequences.push(bases);
             let mut result = vec![class.to_owned()];
@@ -1059,10 +1160,14 @@ impl Project {
                     }
                 }
             }
-            active.remove(class);
             Some(result)
         }
-        resolve(self, class, &mut BTreeSet::new())
+        resolve(
+            self,
+            class,
+            &mut BTreeSet::new(),
+            &mut self.hierarchy.lock().unwrap(),
+        )
     }
 
     pub fn method_owner(&self, class: &str, method: &str) -> Option<String> {
@@ -1139,7 +1244,7 @@ impl Project {
 
     pub fn set_index_function_types(&mut self, types: BTreeMap<usize, Value>) {
         for (index, ty) in types {
-            if let Some(function) = self.functions.get_mut(index) {
+            if let Some(function) = Arc::make_mut(&mut self.functions).get_mut(index) {
                 function.summary["inferred-type"] = ty;
             }
         }
@@ -1232,13 +1337,14 @@ impl Project {
             .filter(in_regular_module)
             .collect::<Vec<_>>();
         json!({"kind":"build-project-index","context":{"root":"","python-version":"3.13","platform":std::env::consts::OS.replace("macos","darwin"),"config":self.config},
-            "classes":classes,"settings":self.settings,"assignments":assignments,"functions":functions})
+            "classes":classes,"settings":self.settings.as_ref(),"assignments":assignments,"functions":functions})
     }
 
     pub fn register_virtual_types(
         &mut self,
         definitions: &[Value],
     ) -> Result<BTreeMap<PathBuf, String>> {
+        self.hierarchy = Arc::default();
         let mut prefix = String::from("_ty_ext_virtual_");
         while self.modules.values().any(|module| {
             module.source.text.contains(&prefix)
@@ -1254,7 +1360,7 @@ impl Project {
         }) {
             prefix.push('_');
         }
-        self.virtual_modules.clear();
+        self.virtual_modules = Arc::default();
         let mut names = BTreeMap::new();
         for definition in definitions {
             let name = definition["name"]
@@ -1265,13 +1371,13 @@ impl Project {
                 .map_or("_ty_ext_virtual", |(module, _)| module);
             use sha2::Digest as _;
             let digest = sha2::Sha256::digest(module.as_bytes());
-            self.virtual_modules
+            Arc::make_mut(&mut self.virtual_modules)
                 .insert(module.to_owned(), format!("{prefix}module_{digest:x}"));
             let internal = virtual_internal_name_with_prefix(name, &prefix);
             self.virtual_identities
                 .insert(internal.clone(), name.to_owned());
             names.insert(name.to_owned(), internal);
-            self.classes.insert(name.to_owned(),json!({"qualified-name":name,"bases":definition["shape"]["bases"].as_array().cloned().unwrap_or_default(),"virtual":true}));
+            Arc::make_mut(&mut self.classes).insert(name.to_owned(),json!({"qualified-name":name,"bases":definition["shape"]["bases"].as_array().cloned().unwrap_or_default(),"virtual":true}));
         }
         let mut rendered_definitions = Value::Array(definitions.to_vec());
         crate::type_render::replace_unavailable_types(
@@ -1280,7 +1386,7 @@ impl Project {
         )?;
         for definition in rendered_definitions.as_array().unwrap() {
             let name = definition["name"].as_str().unwrap();
-            if let Some(summary) = self.classes.get_mut(name) {
+            if let Some(summary) = Arc::make_mut(&mut self.classes).get_mut(name) {
                 summary["bases"] = json!(
                     definition["shape"]["bases"]
                         .as_array()
@@ -2571,6 +2677,86 @@ mod tests {
     }
 
     #[test]
+    fn qualified_resolution_uses_complete_module_prefixes() {
+        let fixture = Fixture::new(&[
+            ("actual.py", "class Real: pass\n"),
+            ("pkg/__init__.py", "from actual import Real as Target\n"),
+            ("pkg/deep.py", "from actual import Real as Target\n"),
+            ("pkg/deepest.py", "class Target: pass\n"),
+        ]);
+        let project = Project::load(&fixture.0, &[], &json!({}), json!({})).unwrap();
+        for (name, expected) in [
+            ("pkg.Target", "actual.Real"),
+            ("pkg.deep.Target", "actual.Real"),
+            ("pkg.deep.Target.member", "actual.Real.member"),
+            ("pkg.deepest.Target", "pkg.deepest.Target"),
+            ("pkg.deepish.Target", "pkg.deepish.Target"),
+            ("pkgish.Target", "pkgish.Target"),
+            ("unknown.pkg.Target", "unknown.pkg.Target"),
+            ("pkg", "pkg"),
+        ] {
+            assert_eq!(project.canonical_name("", name), expected, "{name}");
+        }
+    }
+
+    #[test]
+    fn resolved_module_waves_match_sequential_summaries_and_rollback_failures() -> Result<()> {
+        let fixture = Fixture::new(&[(
+            "models.py",
+            "import external\nclass Model(external.Base): pass\n",
+        )]);
+        let external = Fixture::new(&[
+            ("external.pyi", "from parent import Parent as Base\n"),
+            (
+                "parent.pyi",
+                "class Parent:\n    def method(self) -> int: ...\n",
+            ),
+            ("ignored.pyi", "class Replacement: pass\n"),
+            ("invalid.pyi", "class Invalid(\n"),
+        ]);
+        let original = fixture.project(json!({}), json!({}));
+        let modules = vec![
+            ("external".into(), external.0.join("external.pyi")),
+            ("parent".into(), external.0.join("parent.pyi")),
+            // Existing names retain the first resolved module, exactly as
+            // separate insertions did before batching.
+            ("external".into(), external.0.join("ignored.pyi")),
+        ];
+        let mut sequential = original.clone();
+        for module in &modules {
+            sequential.add_resolved_modules(std::slice::from_ref(module))?;
+        }
+        let mut batched = original.clone();
+        batched.add_resolved_modules(&modules)?;
+        assert_eq!(batched.build_request(), sequential.build_request());
+        assert_eq!(batched.classes, sequential.classes);
+        assert_eq!(batched.mro("models.Model"), sequential.mro("models.Model"));
+        assert!(batched.is_subclass("models.Model", "parent.Parent"));
+        assert!(batched.modules["external"].external);
+        assert!(!batched.classes.contains_key("external.Replacement"));
+        let classes = batched.classes.clone();
+        batched.add_resolved_modules(&modules)?;
+        assert!(Arc::ptr_eq(&classes, &batched.classes));
+
+        let mut failed = original.clone();
+        assert!(
+            failed
+                .add_resolved_modules(&[
+                    modules[0].clone(),
+                    ("invalid".into(), external.0.join("invalid.pyi")),
+                ])
+                .is_err()
+        );
+        assert_eq!(failed.build_request(), original.build_request());
+        assert_eq!(
+            failed.modules.keys().collect::<Vec<_>>(),
+            original.modules.keys().collect::<Vec<_>>()
+        );
+        assert!(!failed.modules.contains_key("external"));
+        Ok(())
+    }
+
+    #[test]
     fn project_imports_fields_decorators_and_nested_metadata_are_protocol_valid() {
         let fixture = Fixture::new(&[
             (
@@ -2706,6 +2892,117 @@ mod tests {
             project.method_owner("models.D", "save").as_deref(),
             Some("models.C")
         );
+    }
+
+    #[test]
+    fn project_snapshots_share_indexes_but_refresh_inheritance_independently() -> Result<()> {
+        let fixture = Fixture::new(&[
+            (
+                "base.py",
+                "class Base:\n    def method(self): pass\nclass Other: pass\n",
+            ),
+            (
+                "models.py",
+                "from base import Base, Other\nVALUE = [1, 2, 3]\nclass Model(Base): pass\ndef factory(): pass\n",
+            ),
+        ]);
+        let root = fixture.0.canonicalize()?;
+        let original = Project::load_editor(&root, &json!({}), json!({}))?;
+        assert!(original.is_subclass("models.Model[int]", "base.Base"));
+        assert!(!original.is_subclass("models.Model", "base.Other"));
+        assert_eq!(
+            original.method_owner("models.Model", "method").as_deref(),
+            Some("base.Base")
+        );
+        let request = original.build_request();
+        let mut edited = original.clone();
+        assert!(Arc::ptr_eq(&original.modules, &edited.modules));
+        assert!(Arc::ptr_eq(&original.classes, &edited.classes));
+        assert!(Arc::ptr_eq(&original.functions, &edited.functions));
+        assert!(Arc::ptr_eq(&original.assignments, &edited.assignments));
+        assert!(Arc::ptr_eq(
+            &original.modules["models"].assignments,
+            &edited.modules["models"].assignments
+        ));
+
+        edited.refresh_sources(&BTreeMap::from([(
+            root.join("models.py"),
+            "from base import Base, Other\nclass Model(Other): pass\n".into(),
+        )]))?;
+        assert!(!Arc::ptr_eq(&original.modules, &edited.modules));
+        assert!(!edited.is_subclass("models.Model", "base.Base"));
+        assert!(edited.is_subclass("models.Model[int]", "base.Other[str]"));
+        assert_eq!(edited.method_owner("models.Model", "method"), None);
+        assert_eq!(original.build_request(), request);
+        assert!(original.is_subclass("models.Model", "base.Base"));
+        assert_eq!(
+            original.method_owner("models.Model", "method").as_deref(),
+            Some("base.Base")
+        );
+
+        edited.refresh_sources(&BTreeMap::from([(
+            root.join("models.py"),
+            "class Model(Model): pass\n".into(),
+        )]))?;
+        assert_eq!(edited.mro("models.Model"), None);
+        assert_eq!(edited.mro("models.Model"), None);
+        edited.refresh_sources(&BTreeMap::new())?;
+        assert_eq!(edited.mro("models.Model"), original.mro("models.Model"));
+        Ok(())
+    }
+
+    #[test]
+    fn virtual_type_replacement_invalidates_cached_ancestry() {
+        let fixture = Fixture::new(&[("models.py", "class Base: pass\nclass Other: pass\n")]);
+        let mut project = fixture.project(json!({}), json!({}));
+        let definitions = |base: &str| {
+            vec![json!({"name":"plugin.Child","shape":{"kind":"class","bases":[typ(base)]}})]
+        };
+        project
+            .register_virtual_types(&definitions("models.Base"))
+            .unwrap();
+        assert!(project.is_subclass("plugin.Child", "models.Base"));
+        assert!(!project.is_subclass("plugin.Child", "models.Other"));
+        assert_eq!(
+            project.mro("plugin.Child").unwrap(),
+            vec!["plugin.Child", "models.Base"]
+        );
+        let previous = project.clone();
+        project
+            .register_virtual_types(&definitions("models.Other"))
+            .unwrap();
+        assert!(!project.is_subclass("plugin.Child", "models.Base"));
+        assert!(project.is_subclass("plugin.Child", "models.Other"));
+        assert_eq!(
+            project.mro("plugin.Child").unwrap(),
+            vec!["plugin.Child", "models.Other"]
+        );
+        assert!(previous.is_subclass("plugin.Child", "models.Base"));
+        assert_eq!(
+            previous.mro("plugin.Child").unwrap(),
+            vec!["plugin.Child", "models.Base"]
+        );
+    }
+
+    #[test]
+    fn inheritance_queries_bound_retained_cache_storage() {
+        let fixture = Fixture::new(&[("models.py", "class Base: pass\nclass Model(Base): pass\n")]);
+        let project = fixture.project(json!({}), json!({}));
+        for index in 0..=HierarchyCache::MAX_ENTRIES {
+            let unknown = format!("external.Unknown{index}");
+            assert!(!project.is_subclass("models.Model", &unknown));
+            assert_eq!(project.mro(&unknown), Some(vec![unknown]));
+        }
+        assert!(project.is_subclass("models.Model", "models.Base"));
+        assert_eq!(
+            project.mro("models.Model").unwrap(),
+            vec!["models.Model", "models.Base"]
+        );
+        let cache = project.hierarchy.lock().unwrap();
+        assert!(cache.subclasses.len() <= HierarchyCache::MAX_ENTRIES);
+        assert!(cache.subclass_bytes <= HierarchyCache::MAX_BYTES);
+        assert!(cache.mro.len() <= 2);
+        assert!(cache.mro_bytes <= HierarchyCache::MAX_BYTES);
     }
 
     #[test]

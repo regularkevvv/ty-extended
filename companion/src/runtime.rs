@@ -4,6 +4,7 @@ use anyhow::{Context, Result, bail};
 use serde_json::{Value, json};
 use sha2::{Digest, Sha256};
 use std::{
+    cell::RefCell,
     collections::{BTreeMap, BTreeSet},
     path::{Path, PathBuf},
     sync::Arc,
@@ -26,11 +27,13 @@ pub struct Runtime {
     pub project_contributions: Vec<Value>,
     pub projected_receivers: BTreeMap<String, String>,
     protocol_types: BTreeMap<(String, String), BTreeMap<String, Value>>,
-    pub virtual_shapes: BTreeMap<String, Value>,
+    virtual_shapes: BTreeMap<String, Value>,
     pub selected_virtual_scope: Option<String>,
     pub nominal_candidates: BTreeSet<String>,
     pub annotation_candidates: BTreeSet<String>,
     cache: RequestCache,
+    type_cache: RefCell<RequestCache>,
+    projection_generation: u64,
     pub executions: usize,
     pub hits: usize,
     pub execution_time: Duration,
@@ -44,9 +47,28 @@ struct Registration {
     index: Option<Value>,
     index_generation: u64,
     virtual_names: BTreeMap<String, String>,
+    inverse_virtual_names: BTreeMap<String, String>,
 }
 
 type RequestKey = [u8; 32];
+
+fn type_key(
+    qualified: bool,
+    expression: &str,
+    module: Option<&str>,
+    virtual_scope: Option<&str>,
+) -> RequestKey {
+    let mut digest = Sha256::new();
+    digest.update([u8::from(qualified)]);
+    for part in [Some(expression), module, virtual_scope] {
+        // None and an empty module name are different protocol contexts.
+        digest.update([u8::from(part.is_some())]);
+        let part = part.unwrap_or_default();
+        digest.update((part.len() as u64).to_le_bytes());
+        digest.update(part.as_bytes());
+    }
+    digest.finalize().into()
+}
 
 /// Serializes directly into the digest, so project summaries need no second
 /// megabyte-sized allocation just to look up a cached result.
@@ -66,6 +88,90 @@ fn request_key(value: &impl serde::Serialize) -> Result<RequestKey> {
     Ok(writer.0.finalize().into())
 }
 
+/// Decode the known payload directly instead of buffering its entire tree in
+/// serde's internally tagged enum representation first. These protocol structs
+/// accept unknown fields, so the existing `kind` field is ignored by them.
+/// Retain the input for the original decoder on failure: its content buffering
+/// accepts some unusual nested enum representations that Value does not, and
+/// also determines the exact diagnostics for invalid requests.
+fn decode_request(mut payload: Value) -> serde_json::Result<PluginRequest> {
+    let indexed = matches!(
+        payload.get("kind").and_then(Value::as_str),
+        Some(
+            "analyze-class"
+                | "resolve-class-member"
+                | "resolve-instance-member"
+                | "adjust-call-signature"
+                | "adjust-call-return"
+                | "adjust-call-state"
+                | "validate-mutation"
+        )
+    );
+    // The index is opaque JSON, often much larger than the semantic request.
+    // Move it directly into the result instead of cloning it through borrowed
+    // deserialization. A null placeholder decodes as Option::None and retains
+    // the exact original map slot for restoration if the fallback is needed.
+    let index = if indexed {
+        payload.get_mut("project-index").map(Value::take)
+    } else {
+        None
+    };
+    let direct = match payload.get("kind").and_then(Value::as_str) {
+        Some("build-project-index") => {
+            serde::Deserialize::deserialize(&payload).map(PluginRequest::BuildProjectIndex)
+        }
+        Some("analyze-class") => {
+            serde::Deserialize::deserialize(&payload).map(PluginRequest::AnalyzeClass)
+        }
+        Some("resolve-class-member") => {
+            serde::Deserialize::deserialize(&payload).map(PluginRequest::ResolveClassMember)
+        }
+        Some("resolve-instance-member") => {
+            serde::Deserialize::deserialize(&payload).map(PluginRequest::ResolveInstanceMember)
+        }
+        Some("adjust-call-signature") => {
+            serde::Deserialize::deserialize(&payload).map(PluginRequest::AdjustCallSignature)
+        }
+        Some("adjust-call-return") => {
+            serde::Deserialize::deserialize(&payload).map(PluginRequest::AdjustCallReturn)
+        }
+        Some("adjust-call-state") => {
+            serde::Deserialize::deserialize(&payload).map(PluginRequest::AdjustCallState)
+        }
+        Some("additional-dependencies") => {
+            serde::Deserialize::deserialize(&payload).map(PluginRequest::AdditionalDependencies)
+        }
+        Some("validate-mutation") => {
+            serde::Deserialize::deserialize(&payload).map(PluginRequest::ValidateMutation)
+        }
+        // Preserve the protocol enum's validation and diagnostics for malformed
+        // discriminants, future variants, and the fieldless manifest request.
+        _ => return serde_json::from_value(payload),
+    };
+    match direct {
+        Ok(mut request) => {
+            let index = index.filter(|value| !value.is_null());
+            match &mut request {
+                PluginRequest::AnalyzeClass(request) => request.project_index = index,
+                PluginRequest::ResolveClassMember(request)
+                | PluginRequest::ResolveInstanceMember(request) => request.project_index = index,
+                PluginRequest::AdjustCallSignature(request)
+                | PluginRequest::AdjustCallReturn(request)
+                | PluginRequest::AdjustCallState(request) => request.project_index = index,
+                PluginRequest::ValidateMutation(request) => request.project_index = index,
+                _ => {}
+            }
+            Ok(request)
+        }
+        Err(_) => {
+            if let Some(index) = index {
+                payload["project-index"] = index;
+            }
+            serde_json::from_value(payload)
+        }
+    }
+}
+
 #[derive(Default)]
 struct RequestCache {
     entries: BTreeMap<RequestKey, CachedResponse>,
@@ -83,6 +189,10 @@ struct CachedResponse {
 impl RequestCache {
     const MAX_ENTRIES: usize = 8192;
     const MAX_BYTES: usize = 64 * 1024 * 1024;
+
+    fn clear(&mut self) {
+        *self = Self::default();
+    }
 
     fn get(&mut self, key: &RequestKey) -> Option<&Value> {
         let entry = self.entries.get_mut(key)?;
@@ -188,6 +298,7 @@ impl Runtime {
                 index: None,
                 index_generation: 0,
                 virtual_names: BTreeMap::new(),
+                inverse_virtual_names: BTreeMap::new(),
             });
             manifests.push(manifest);
         }
@@ -273,6 +384,8 @@ impl Runtime {
             nominal_candidates: BTreeSet::new(),
             annotation_candidates: BTreeSet::new(),
             cache: RequestCache::default(),
+            type_cache: RefCell::default(),
+            projection_generation: 0,
             executions: 0,
             hits: 0,
             execution_time: Duration::ZERO,
@@ -280,6 +393,11 @@ impl Runtime {
     }
 
     pub fn attach_project(&mut self, project: Arc<Project>, config: Value) {
+        // A type snapshot can depend on imports, ancestry and structural record
+        // declarations anywhere in the project. Retain memoized snapshots only
+        // within this immutable project revision; never key them by an address.
+        self.type_cache.get_mut().clear();
+        self.advance_projection_generation();
         self.protocol_types
             .retain(|(module, _), _| project.modules.contains_key(module));
         self.project = Some(project);
@@ -304,14 +422,44 @@ impl Runtime {
             .collect()
     }
 
+    /// Changes observable by another file during one fixed-point loop. The
+    /// surrounding check fixes plugin registrations/configuration, the opaque
+    /// project indexes, contributions and the virtual display scope before
+    /// entering that loop. This token is not a cross-revision cache key.
+    pub fn projection_generation(&self) -> u64 {
+        self.projection_generation
+    }
+
+    fn advance_projection_generation(&mut self) {
+        self.projection_generation = self
+            .projection_generation
+            .checked_add(1)
+            .expect("projection generation exhausted");
+    }
+
+    pub fn set_project_patch(&mut self, qualified: String, patch: Value) {
+        if self.project_patches.get(&qualified) != Some(&patch) {
+            self.project_patches.insert(qualified, patch);
+            self.advance_projection_generation();
+        }
+    }
+
+    pub fn set_projected_receiver(&mut self, qualified: String, receiver: String) {
+        if self.projected_receivers.get(&qualified) != Some(&receiver) {
+            self.projected_receivers.insert(qualified, receiver);
+            self.type_cache.get_mut().clear();
+            self.advance_projection_generation();
+        }
+    }
+
     pub fn virtual_display_names(&self) -> BTreeMap<String, String> {
         self.plugins
             .iter()
             .flat_map(|plugin| {
                 plugin
-                    .virtual_names
+                    .inverse_virtual_names
                     .iter()
-                    .map(|(original, generated)| (generated.clone(), original.clone()))
+                    .map(|(generated, original)| (generated.clone(), original.clone()))
             })
             .collect()
     }
@@ -593,12 +741,18 @@ impl Runtime {
         if expression.starts_with("Self@") || expression == "Self" {
             return json!({"expression":"Self","mode":"annotation","snapshot":{"kind":"self-type"}});
         }
+        let key = type_key(false, expression, Some(&source.module), None);
+        if let Some(value) = self.type_cache.borrow_mut().get(&key).cloned() {
+            return value;
+        }
         let display = self.project.as_ref().map_or_else(
             || expression.to_owned(),
             |project| project.rewrite_virtual_identities(expression),
         );
         let qualified = self.canonical_name(source, expression);
-        self.type_expr_with_identity(display, &qualified, Some(&source.module))
+        let value = self.type_expr_with_identity(display, &qualified, Some(&source.module));
+        self.type_cache.borrow_mut().insert(key, value.clone());
+        value
     }
 
     /// Types obtained from protocol metadata and established flow identities
@@ -608,6 +762,15 @@ impl Runtime {
     }
 
     fn qualified_type_expr_in_module(&self, expression: &str, module: Option<&str>) -> Value {
+        let key = type_key(
+            true,
+            expression,
+            module,
+            self.selected_virtual_scope.as_deref(),
+        );
+        if let Some(value) = self.type_cache.borrow_mut().get(&key).cloned() {
+            return value;
+        }
         let mut value = self.type_expr_with_identity(expression.to_owned(), expression, module);
         // Native virtual named tuples carry their protocol identity in the
         // snapshot, but their displayed nominal name belongs to the first
@@ -619,6 +782,7 @@ impl Runtime {
             value["expression"].as_str().unwrap_or(expression),
             module
         ));
+        self.type_cache.borrow_mut().insert(key, value.clone());
         value
     }
 
@@ -673,8 +837,29 @@ impl Runtime {
         prefix: &str,
         types: BTreeMap<String, Value>,
     ) {
-        self.protocol_types
-            .insert((module.to_owned(), prefix.to_owned()), types);
+        let key = (module.to_owned(), prefix.to_owned());
+        // An absent and an empty alias registry have identical lookups. Avoid
+        // invalidating every cached type when a file contributes no aliases.
+        if types.is_empty() && !self.protocol_types.contains_key(&key) {
+            return;
+        }
+        if self.protocol_types.get(&key) != Some(&types) {
+            if types.is_empty() {
+                self.protocol_types.remove(&key);
+            } else {
+                self.protocol_types.insert(key, types);
+            }
+            self.type_cache.get_mut().clear();
+            self.advance_projection_generation();
+        }
+    }
+
+    pub fn set_virtual_shapes(&mut self, shapes: BTreeMap<String, Value>) {
+        if self.virtual_shapes != shapes {
+            self.virtual_shapes = shapes;
+            self.type_cache.get_mut().clear();
+            self.advance_projection_generation();
+        }
     }
 
     fn protocol_type(&self, module: Option<&str>, name: &str) -> Option<&Value> {
@@ -1069,8 +1254,7 @@ impl Runtime {
             return Ok(value.clone());
         }
         let kind = payload["kind"].as_str().unwrap_or("").to_owned();
-        let request: PluginRequest =
-            serde_json::from_value(payload).context("invalid plugin request")?;
+        let request = decode_request(payload).context("invalid plugin request")?;
         let start = Instant::now();
         if let Some((message, hint)) = self.load_failures.get(id) {
             let response = hook_failure_message(id, &kind, message, hint);
@@ -1227,6 +1411,11 @@ impl Runtime {
                     })
                     .collect();
                 self.plugins[index].virtual_names = names;
+                self.plugins[index].inverse_virtual_names = self.plugins[index]
+                    .virtual_names
+                    .iter()
+                    .map(|(original, generated)| (generated.clone(), original.clone()))
+                    .collect();
                 rewrite_protocol_names(&mut response, &self.plugins[index].virtual_names);
                 if let Some(definitions) = response
                     .get_mut("virtual-types")
@@ -1278,12 +1467,7 @@ impl Runtime {
                 continue;
             }
             let mut request = payload.clone();
-            let inverse: BTreeMap<_, _> = plugin
-                .virtual_names
-                .iter()
-                .map(|(original, generated)| (generated.clone(), original.clone()))
-                .collect();
-            rewrite_protocol_names(&mut request, &inverse);
+            rewrite_protocol_names(&mut request, &plugin.inverse_virtual_names);
             if !plugin.virtual_names.is_empty()
                 && !self.allowed(source, kind, &request, &plugin.manifest)
             {
@@ -1621,29 +1805,6 @@ pub fn call_request(
     oracle: Option<&Oracle>,
     receiver: Option<&str>,
 ) -> Result<Value> {
-    let arguments: Vec<_> = call
-        .arguments
-        .iter()
-        .enumerate()
-        .map(|(index, arg)| {
-            let mut value =
-                json!({"kind":arg.kind,"value":arg.literal,"source":source.location(arg.span)});
-            if let Some(name) = &arg.name {
-                value["name"] = json!(name);
-            }
-            if let Some(expression) = oracle.and_then(|o| o.get(&call.argument_key(index))) {
-                value["type-expr"] = runtime.type_expr(source, expression);
-            }
-            if let Some(inferred) = &arg.inferred_type {
-                if value.get("type-expr").is_none() {
-                    value["type-expr"] = inferred.clone();
-                } else if let Some(snapshot) = inferred.get("snapshot") {
-                    value["type-expr"]["snapshot"] = snapshot.clone();
-                }
-            }
-            value
-        })
-        .collect();
     let mut callee = call.callee.clone();
     let receiver = receiver
         .or(call.flow_receiver_type.as_deref())
@@ -1697,6 +1858,49 @@ pub fn call_request(
             callee = runtime.method_callee(owner, method);
         }
     }
+    // Claims inspect only the callee and nominal receiver. Avoid constructing
+    // argument/return snapshots and source locations for calls no plugin can
+    // observe. Use the same namespace translation and claim implementation as
+    // execute(), including notebooks and inherited state-hook restrictions.
+    let mut routing = json!({"callee":{"expression":callee,"mode":"expression"}});
+    if let Some(summary) = &summary {
+        routing["receiver"] = json!({"nominal-class":summary["nominal-class"]});
+    }
+    let claimed = runtime.plugins.iter().any(|plugin| {
+        if plugin.inverse_virtual_names.is_empty() {
+            runtime.allowed(source, kind, &routing, &plugin.manifest)
+        } else {
+            let mut translated = routing.clone();
+            rewrite_protocol_names(&mut translated, &plugin.inverse_virtual_names);
+            runtime.allowed(source, kind, &translated, &plugin.manifest)
+        }
+    });
+    if !claimed {
+        return Ok(json!({"kind":"no-change"}));
+    }
+    let arguments: Vec<_> = call
+        .arguments
+        .iter()
+        .enumerate()
+        .map(|(index, arg)| {
+            let mut value =
+                json!({"kind":arg.kind,"value":arg.literal,"source":source.location(arg.span)});
+            if let Some(name) = &arg.name {
+                value["name"] = json!(name);
+            }
+            if let Some(expression) = oracle.and_then(|o| o.get(&call.argument_key(index))) {
+                value["type-expr"] = runtime.type_expr(source, expression);
+            }
+            if let Some(inferred) = &arg.inferred_type {
+                if value.get("type-expr").is_none() {
+                    value["type-expr"] = inferred.clone();
+                } else if let Some(snapshot) = inferred.get("snapshot") {
+                    value["type-expr"]["snapshot"] = snapshot.clone();
+                }
+            }
+            value
+        })
+        .collect();
     let mut value =
         json!({"callee":{"expression":callee,"mode":"expression"},"arguments":arguments});
     if let Some(expression) = oracle.and_then(|o| o.get(&call.return_key())) {
@@ -1713,17 +1917,174 @@ mod tests {
     use super::*;
 
     #[test]
+    fn concrete_request_decoding_preserves_protocol_values_and_errors() {
+        fn same_decode(payload: &Value) {
+            let original = serde_json::from_value::<PluginRequest>(payload.clone())
+                .map_err(|error| error.to_string());
+            let direct = decode_request(payload.clone()).map_err(|error| error.to_string());
+            assert_eq!(direct, original, "request: {payload}");
+        }
+
+        fn paths(value: &Value, path: String, output: &mut Vec<String>) {
+            output.push(path.clone());
+            match value {
+                Value::Object(fields) => {
+                    for (name, value) in fields {
+                        let name = name.replace('~', "~0").replace('/', "~1");
+                        paths(value, format!("{path}/{name}"), output);
+                    }
+                }
+                Value::Array(values) => {
+                    for (index, value) in values.iter().enumerate() {
+                        paths(value, format!("{path}/{index}"), output);
+                    }
+                }
+                _ => {}
+            }
+        }
+
+        let context = json!({
+            "module":"models","file-path":"models.py","python-version":"3.13",
+            "platform":"darwin","config":{"enabled":true,"values":[null,1,-2,1.5]},
+            "speculative":false
+        });
+        let type_expr = json!({
+            "expression":"Alias","mode":"annotation",
+            "imports":[{"module":"builtins","name":"str","alias":"Alias"}],
+            "snapshot":{"kind":"nominal","qualified-name":"builtins.str","arguments":[]}
+        });
+        let class = json!({
+            "qualified-name":"models.Row","bases":[type_expr],
+            "fields":[{"name":"value","annotation":type_expr,"has-default":false}],
+            "methods":[],"decorators":[],"nested-classes":[],"class-constants":[],
+            "metaclass":type_expr,"source":{}
+        });
+        let argument = json!({
+            "name":"value","kind":"keyword","type-expr":type_expr,
+            "value":{"kind":"str","value":"text"},"source":{}
+        });
+        let index = json!({"nested":{"a/b~c":[null,false,0,1.25,"value"]}});
+        let mut fixtures = vec![
+            json!({"kind":"manifest"}),
+            json!({"kind":"build-project-index","context":{
+                "root":"/project","python-version":"3.13","platform":"darwin","config":index
+            },"classes":[class],"settings":[],"assignments":[],"functions":[],
+                "previous-index-fingerprint":"previous"}),
+            json!({"kind":"analyze-class","context":context,"class":class,"project-index":index}),
+            json!({"kind":"additional-dependencies","config":index}),
+            json!({"kind":"validate-mutation","context":context,"operation":"attribute-set",
+                "receiver":type_expr,"key":argument,"value":argument,"source":{},"project-index":index}),
+        ];
+        for kind in ["resolve-class-member", "resolve-instance-member"] {
+            fixtures.push(json!({"kind":kind,"context":context,"owner":type_expr,"member-name":"value",
+                "existing-member":{"name":"value","access":{"kind":"value","type-expr":type_expr},"is-read-only":false},
+                "project-index":index}));
+        }
+        for kind in [
+            "adjust-call-signature",
+            "adjust-call-return",
+            "adjust-call-state",
+        ] {
+            fixtures.push(json!({"kind":kind,"context":context,"callee":type_expr,
+                "receiver":{"type-expr":type_expr,"nominal-class":"models.Row","generic-arguments":[type_expr],"plugin-metadata":index},
+                "arguments":[argument],"existing-signature":{"parameters":[{
+                    "name":"value","kind":"positional-or-keyword","type-expr":type_expr,"required":true
+                }],"return-type":type_expr},"default-return-type":type_expr,"project-index":index}));
+        }
+        let replacements = [
+            Value::Null,
+            json!(true),
+            json!(0),
+            json!(1),
+            json!(2),
+            json!(-1),
+            json!(u64::MAX),
+            json!(1.25),
+            json!("unknown"),
+            json!([]),
+            json!({}),
+            json!({"unknown": null}),
+        ];
+        for fixture in fixtures {
+            // This assertion keeps the test meaningful if protocol schemas
+            // change: every base fixture must continue to be a valid request.
+            let original: PluginRequest = serde_json::from_value(fixture.clone()).unwrap();
+            same_decode(&fixture);
+            // Omitted default fields must retain the enum's exact behavior.
+            same_decode(&serde_json::to_value(original).unwrap());
+            for index in [
+                None,
+                Some(Value::Null),
+                Some(json!(true)),
+                Some(json!(42)),
+                Some(json!("opaque")),
+                Some(json!([1, null, "value"])),
+                Some(index.clone()),
+            ] {
+                let mut indexed = fixture.clone();
+                if let Some(index) = index {
+                    indexed["project-index"] = index;
+                } else {
+                    indexed.as_object_mut().unwrap().remove("project-index");
+                }
+                same_decode(&indexed);
+                for path in [
+                    "/class/bases/0/snapshot/kind",
+                    "/owner/snapshot/kind",
+                    "/callee/snapshot/kind",
+                    "/receiver/snapshot/kind",
+                ] {
+                    let mut fallback = indexed.clone();
+                    if let Some(kind) = fallback.pointer_mut(path) {
+                        // Numeric nested discriminants require the old enum
+                        // decoder. Its successful result must retain the index.
+                        *kind = json!(1);
+                        same_decode(&fallback);
+                    }
+                }
+                if indexed["context"].is_object() {
+                    indexed["context"]["platform"] = Value::Null;
+                    same_decode(&indexed);
+                }
+            }
+            let mut locations = Vec::new();
+            paths(&fixture, String::new(), &mut locations);
+            for path in locations {
+                for replacement in &replacements {
+                    let mut changed = fixture.clone();
+                    *changed.pointer_mut(&path).unwrap() = replacement.clone();
+                    same_decode(&changed);
+                }
+                if let Some(fields) = fixture.pointer(&path).and_then(Value::as_object) {
+                    for name in fields.keys() {
+                        let mut changed = fixture.clone();
+                        changed
+                            .pointer_mut(&path)
+                            .unwrap()
+                            .as_object_mut()
+                            .unwrap()
+                            .remove(name);
+                        same_decode(&changed);
+                    }
+                    let mut changed = fixture.clone();
+                    changed.pointer_mut(&path).unwrap()["unknown-extra-field"] = index.clone();
+                    same_decode(&changed);
+                }
+            }
+        }
+    }
+
+    #[test]
     fn virtual_record_wire_preserves_shape_and_named_tuple_identity() -> Result<()> {
         let mut runtime = Runtime::from_plugins(&[])?;
         runtime.selected_virtual_scope = Some("accounts".into());
-        runtime.virtual_shapes.insert("virtual.Row".into(), json!({"kind":"typed-dict","total":false,"fields":[
+        runtime.set_virtual_shapes(BTreeMap::from([("virtual.Row".into(), json!({"kind":"typed-dict","total":false,"fields":[
             {"name":"title","type-expr":{"expression":"Alias","imports":[{"module":"builtins","name":"str","alias":"Alias"}]},"required":true,"read-only":true},
             {"name":"pages","type-expr":{"expression":"int | None"},"required":true}
-        ]}));
-        runtime.virtual_shapes.insert(
+        ]})), (
             "virtual.NamedRow".into(),
             json!({"kind":"named-tuple","fields":[]}),
-        );
+        )]));
         let record = runtime.qualified_type_expr("query.Rows[virtual.Row]");
         assert_eq!(
             record["expression"],
@@ -1746,12 +2107,12 @@ mod tests {
         );
         runtime.selected_virtual_scope = Some("other".into());
         assert_eq!(
-            runtime.qualified_type_expr("virtual.NamedRow")["expression"],
-            "other.NamedRow"
+            runtime.qualified_type_expr("query.Rows[virtual.NamedRow]")["expression"],
+            "query.Rows[other.NamedRow]"
         );
-        runtime.virtual_shapes.clear();
+        runtime.set_virtual_shapes(BTreeMap::new());
         assert_eq!(
-            runtime.qualified_type_expr("virtual.Row")["snapshot"]["kind"],
+            runtime.qualified_type_expr("query.Rows[virtual.Row]")["snapshot"]["arguments"][0]["kind"],
             "nominal"
         );
         Ok(())
@@ -1782,6 +2143,156 @@ mod tests {
             runtime.type_expr(&source("right"), "_record")["snapshot"]["kind"],
             "typed-dict"
         );
+        Ok(())
+    }
+
+    #[test]
+    fn type_snapshot_cache_tracks_project_revisions_and_projected_receivers() -> Result<()> {
+        let directory =
+            std::env::temp_dir().join(format!("native-runtime-type-cache-{}", std::process::id()));
+        std::fs::create_dir_all(&directory)?;
+        let path = directory.join("models.py");
+        let mut runtime = Runtime::from_plugins(&[])?;
+        let source = Source::new(String::new(), "models.py".into(), "models".into());
+        for annotation in ["int", "str"] {
+            std::fs::write(
+                &path,
+                format!(
+                    "from typing import TypedDict\nclass Row(TypedDict):\n    item: {annotation}\n"
+                ),
+            )?;
+            let project = Project::load(
+                &directory,
+                std::slice::from_ref(&path),
+                &runtime.manifest,
+                json!({}),
+            )?;
+            runtime.attach_project(Arc::new(project), json!({}));
+            assert!(runtime.type_cache.borrow().entries.is_empty());
+            let value = runtime.type_expr(&source, "Row");
+            assert_eq!(value["snapshot"]["kind"], "typed-dict");
+            assert_eq!(
+                value["snapshot"]["fields"][0]["type-snapshot"]["qualified-name"],
+                format!("builtins.{annotation}")
+            );
+            let cache_clock = runtime.type_cache.borrow().clock;
+            assert_eq!(runtime.type_expr(&source, "Row"), value);
+            assert_eq!(runtime.type_cache.borrow().clock, cache_clock + 1);
+        }
+        for annotation in ["int", "str"] {
+            runtime.set_projected_receiver("models.projected".into(), annotation.into());
+            assert_eq!(
+                runtime.type_expr(&source, "projected")["snapshot"]["qualified-name"],
+                format!("builtins.{annotation}")
+            );
+            // An unqualified projected key is resolved during canonicalization
+            // after the complete source-expression cache lookup.
+            runtime.set_projected_receiver("bare".into(), annotation.into());
+            let value = runtime.type_expr(&source, "bare");
+            assert_eq!(value["expression"], "bare");
+            assert_eq!(
+                value["snapshot"]["qualified-name"],
+                format!("builtins.{annotation}")
+            );
+        }
+        std::fs::remove_dir_all(directory)?;
+        Ok(())
+    }
+
+    #[test]
+    fn projection_generation_retains_equal_cross_file_inputs() -> Result<()> {
+        let mut runtime = Runtime::from_plugins(&[])?;
+        let initial = runtime.projection_generation();
+        let value = runtime.qualified_type_expr("str");
+        runtime.register_protocol_types("unused", "static_", BTreeMap::new());
+        assert_eq!(runtime.projection_generation(), initial);
+        assert_eq!(runtime.type_cache.borrow().entries.len(), 1);
+        assert_eq!(runtime.qualified_type_expr("str"), value);
+
+        let record = BTreeMap::from([("Alias".into(), runtime.qualified_type_expr("str"))]);
+        runtime.register_protocol_types("models", "static_", record.clone());
+        runtime.set_project_patch("models.Model".into(), json!({"kind":"no-change"}));
+        runtime.set_projected_receiver("models.receiver".into(), "str".into());
+        let established = runtime.projection_generation();
+        assert!(established > initial);
+
+        runtime.register_protocol_types("models", "static_", record);
+        runtime.set_project_patch("models.Model".into(), json!({"kind":"no-change"}));
+        runtime.set_projected_receiver("models.receiver".into(), "str".into());
+        assert_eq!(runtime.projection_generation(), established);
+
+        runtime.register_protocol_types("models", "static_", BTreeMap::new());
+        assert!(runtime.projection_generation() > established);
+        let removed = runtime.projection_generation();
+        runtime.register_protocol_types("models", "static_", BTreeMap::new());
+        assert_eq!(runtime.projection_generation(), removed);
+        Ok(())
+    }
+
+    #[test]
+    fn cached_source_and_qualified_types_keep_distinct_display_contracts() -> Result<()> {
+        let mut runtime = Runtime::from_plugins(&[])?;
+        let source = Source::new(String::new(), "models.py".into(), "models".into());
+        runtime.register_protocol_types(
+            "models",
+            "static_",
+            BTreeMap::from([(
+                "Alias".into(),
+                json!({"expression":"StringDisplay","mode":"annotation","snapshot":{
+                    "kind":"nominal","qualified-name":"builtins.str"
+                }}),
+            )]),
+        );
+        for _ in 0..2 {
+            assert_eq!(
+                runtime.type_expr(&source, "Alias")["expression"],
+                "StringDisplay"
+            );
+            assert_eq!(runtime.qualified_type_expr("Alias")["expression"], "Alias");
+            assert_eq!(
+                runtime.qualified_type_expr_in_module("Alias", Some("models"))["expression"],
+                "builtins.str"
+            );
+        }
+        Ok(())
+    }
+
+    #[test]
+    fn unclaimed_calls_skip_argument_and_return_type_snapshots() -> Result<()> {
+        let mut runtime = Runtime::from_plugins(&[])?;
+        let source = Source::new("ordinary(1)".into(), "models.py".into(), "models".into());
+        let call = CallSite {
+            span: crate::model::Span { start: 0, end: 11 },
+            function: crate::model::Span { start: 0, end: 8 },
+            callee: "ordinary".into(),
+            arguments: vec![crate::model::Argument {
+                span: crate::model::Span { start: 9, end: 10 },
+                name: None,
+                literal: json!({"kind":"int","value":1}),
+                kind: "positional",
+                inferred_type: None,
+            }],
+            receiver_span: None,
+            receiver_type: None,
+            flow_receiver_type: None,
+        };
+        let oracle = BTreeMap::from([
+            (call.argument_key(0), "Literal[1]".into()),
+            (call.return_key(), "int".into()),
+        ]);
+        assert_eq!(
+            call_request(
+                &mut runtime,
+                &source,
+                "adjust-call-return",
+                &call,
+                Some(&oracle),
+                None,
+            )?,
+            json!({"kind":"no-change"})
+        );
+        assert!(runtime.type_cache.borrow().entries.is_empty());
+        assert_eq!(runtime.executions, 0);
         Ok(())
     }
 

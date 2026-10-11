@@ -385,6 +385,36 @@ struct File {
     dirty: bool,
     raw_diagnostics: Vec<Value>,
     flow_diagnostics: Vec<Value>,
+    pass: Option<ProjectionPass>,
+}
+
+/// Inputs to one lowering/flow pass within a fixed project revision. Inference
+/// still queries every dirty file after reuse: an unchanged local view can
+/// acquire different types when another module's projection changes.
+#[derive(PartialEq)]
+struct ProjectionInputs {
+    generation: u64,
+    oracle: Oracle,
+    patches: ReturnPatches,
+    return_types: BTreeMap<crate::model::Span, Value>,
+    prelude: String,
+}
+
+impl ProjectionInputs {
+    fn new(unit: &File, runtime: &Runtime) -> Self {
+        Self {
+            generation: runtime.projection_generation(),
+            oracle: unit.oracle.clone(),
+            patches: unit.patches.clone(),
+            return_types: unit.return_types.clone(),
+            prelude: unit.types.prelude(),
+        }
+    }
+}
+
+struct ProjectionPass {
+    inputs: ProjectionInputs,
+    flow: crate::flow::FlowResult,
 }
 
 #[allow(clippy::too_many_arguments)]
@@ -441,7 +471,7 @@ fn diagnostic_origins(
         ..DiagnosticOrigins::default()
     };
     let mut nominal_names: BTreeMap<&str, Vec<&str>> = BTreeMap::new();
-    for (qualified, class) in &project.classes {
+    for (qualified, class) in project.classes.iter() {
         if class["virtual"] != true
             && let Some(short) = qualified.rsplit('.').next()
         {
@@ -1108,7 +1138,7 @@ impl Session {
         self.cached_context = None;
         self.cached_units.clear();
         self.cached_sources.clear();
-        self.base_project.unavailable_modules.clear();
+        Arc::make_mut(&mut self.base_project.unavailable_modules).clear();
     }
 
     fn reload_dependencies(&mut self) -> Result<()> {
@@ -1269,8 +1299,9 @@ impl Session {
             }
             server.sync_documents(&sources)?;
             let uri = crate::checker::file_uri(&probe)?;
+            let mut resolved = Vec::new();
+            let mut resolved_paths = self.resolved_paths.clone();
             for (line, module) in candidates.iter().enumerate() {
-                self.resolved_imports.insert(module.clone());
                 self.external_resolution_requests += 1;
                 let result=server.request("textDocument/declaration",json!({"textDocument":{"uri":uri},"position":{"line":line,"character":7+module.chars().count().saturating_sub(1)}}))?;
                 let location = if let Some(locations) = result.as_array() {
@@ -1290,7 +1321,7 @@ impl Session {
                     &self.view,
                     &self.stubs,
                     &self.stub_roots,
-                    &self.resolved_paths,
+                    &resolved_paths,
                 )?
                 else {
                     continue;
@@ -1322,9 +1353,12 @@ impl Session {
                     )
                 };
                 let relative = PathBuf::from(suffix);
-                self.base_project.add_resolved_module(module, &path)?;
-                self.resolved_paths.insert(path.clone(), relative.clone());
+                resolved.push((module.clone(), path.clone()));
+                resolved_paths.insert(path.clone(), relative.clone());
             }
+            self.base_project.add_resolved_modules(&resolved)?;
+            self.resolved_imports.extend(candidates);
+            self.resolved_paths = resolved_paths;
         }
     }
 
@@ -1713,7 +1747,7 @@ impl Session {
             .keys()
             .eq(self.base_project.modules.keys())
         {
-            self.base_project.unavailable_modules.clear();
+            Arc::make_mut(&mut self.base_project.unavailable_modules).clear();
         }
         if !self.has_plugins {
             self.last_result = None;
@@ -1845,15 +1879,17 @@ impl Session {
             .as_array()
             .cloned()
             .unwrap_or_default();
-        runtime.virtual_shapes = definitions
-            .iter()
-            .filter_map(|definition| {
-                Some((
-                    definition["name"].as_str()?.to_owned(),
-                    definition["shape"].clone(),
-                ))
-            })
-            .collect();
+        runtime.set_virtual_shapes(
+            definitions
+                .iter()
+                .filter_map(|definition| {
+                    Some((
+                        definition["name"].as_str()?.to_owned(),
+                        definition["shape"].clone(),
+                    ))
+                })
+                .collect(),
+        );
         let virtual_sources = project.register_virtual_types(&definitions)?;
         let next_virtual_files: BTreeSet<_> =
             virtual_sources.keys().map(|p| stubs.join(p)).collect();
@@ -1893,7 +1929,7 @@ impl Session {
         }
         runtime.attach_project(Arc::new(project.clone()), config);
         // Every model patch is available before flow analysis of importing modules.
-        for (name, summary) in &project.classes {
+        for (name, summary) in project.classes.iter() {
             let module = summary
                 .pointer("/source/module")
                 .and_then(Value::as_str)
@@ -1957,16 +1993,16 @@ impl Session {
             dirty.extend(next);
         }
         if !module_set_unchanged || self.cached_context.as_ref() != Some(&context) {
-            project.snapshot_nominals.clear();
-            project.snapshot_symbols.clear();
+            Arc::make_mut(&mut project.snapshot_nominals).clear();
+            Arc::make_mut(&mut project.snapshot_symbols).clear();
         } else {
-            project.snapshot_nominals.retain(|name, _| {
+            Arc::make_mut(&mut project.snapshot_nominals).retain(|name, _| {
                 !dirty.iter().any(|module| {
                     name.strip_prefix(module)
                         .is_some_and(|tail| tail.starts_with('.'))
                 })
             });
-            project.snapshot_symbols.retain(|name, _| {
+            Arc::make_mut(&mut project.snapshot_symbols).retain(|name, _| {
                 !dirty.iter().any(|module| {
                     name.strip_prefix(module)
                         .is_some_and(|tail| tail.starts_with('.'))
@@ -1978,7 +2014,7 @@ impl Session {
         runtime.attach_project(Arc::new(project.clone()), runtime.config.clone());
         let mut previous = std::mem::take(&mut self.cached_units);
         let mut units = BTreeMap::new();
-        for (name, module) in &project.modules {
+        for (name, module) in project.modules.iter() {
             if module.external && !external_targets.contains(name) {
                 continue;
             }
@@ -2039,6 +2075,7 @@ impl Session {
                     dirty: true,
                     raw_diagnostics: Vec::new(),
                     flow_diagnostics: Vec::new(),
+                    pass: None,
                 },
             );
         }
@@ -2084,6 +2121,9 @@ impl Session {
         let mut converged = false;
         let mut rounds = 0;
         let mut oracle_queries = 0;
+        let mut analysis_passes = 0;
+        let mut reused_analysis_passes = 0;
+        let mut reused_final_flows = 0;
         let mut checked_imports = BTreeSet::new();
         // Each oracle round can advance a plugin-dependent type by one call
         // site. Bound acyclic chains by this program's sites, not a fixed depth.
@@ -2114,6 +2154,12 @@ impl Session {
                     unit.rendered = Some(generated);
                     continue;
                 }
+                let inputs = ProjectionInputs::new(unit, runtime);
+                if unit.pass.as_ref().is_some_and(|pass| pass.inputs == inputs) {
+                    reused_analysis_passes += 1;
+                    continue;
+                }
+                analysis_passes += 1;
                 unit.analysis = crate::lower::analyze_with_oracle(
                     &unit.source,
                     &unit.suite,
@@ -2133,18 +2179,23 @@ impl Session {
                 let mut edits = crate::build_edits(
                     &unit.source,
                     &unit.analysis,
-                    flow.edits,
+                    flow.edits.clone(),
                     &unit.patches,
                     true,
                 );
                 edits.insert(unit.analysis.prelude_offset, unit.types.prelude());
-                edits.insert(unit.analysis.prelude_offset, flow.type_prelude);
+                edits.insert(unit.analysis.prelude_offset, flow.type_prelude.clone());
                 let generated = render(&unit.source, &edits)
                     .with_context(|| format!("render {}", unit.source.module))?;
                 if unit.path.starts_with(&out) {
                     write(&unit.path, &generated.text)?;
                 }
                 unit.rendered = Some(generated);
+                // A pass that installs different protocol aliases or receiver
+                // metadata has side effects. Replay it until its input/output
+                // context is identical before permitting memoized reuse.
+                unit.pass = (inputs.generation == runtime.projection_generation())
+                    .then_some(ProjectionPass { inputs, flow });
             }
             phase(&mut phases, "flow_and_render", &mut phase_started);
             let mut candidates = BTreeSet::new();
@@ -2208,7 +2259,8 @@ impl Session {
                     let module = candidates
                         .get(line.checked_sub(1).context("import line zero")?)
                         .context("import diagnostic outside preflight")?;
-                    changed |= project.unavailable_modules.insert(module.clone());
+                    changed |=
+                        Arc::make_mut(&mut project.unavailable_modules).insert(module.clone());
                 }
                 checked_imports.extend(candidates);
                 if changed {
@@ -2405,10 +2457,9 @@ impl Session {
                         .contains(&index)
                         .then(|| arities.get(&index).copied())
                         .flatten();
-                    project
-                        .snapshot_symbols
+                    Arc::make_mut(&mut project.snapshot_symbols)
                         .insert(name.clone(), !missing_symbols.contains(&index));
-                    project.snapshot_nominals.insert(name, arity);
+                    Arc::make_mut(&mut project.snapshot_nominals).insert(name, arity);
                 }
                 runtime.attach_project(Arc::new(project.clone()), runtime.config.clone());
                 for unit in units.values_mut().filter(|unit| unit.dirty) {
@@ -2590,15 +2641,22 @@ impl Session {
             if !unit.valid {
                 continue;
             }
-            let flow = crate::flow::project_with_return_types(
-                &unit.source,
-                &unit.suite,
-                &mut unit.analysis,
-                runtime,
-                Some(&unit.oracle),
-                &unit.patches,
-                &unit.return_types,
-            )?;
+            let inputs = ProjectionInputs::new(unit, runtime);
+            let flow = if unit.pass.as_ref().is_some_and(|pass| pass.inputs == inputs) {
+                reused_final_flows += 1;
+                unit.pass.take().unwrap().flow
+            } else {
+                unit.pass = None;
+                crate::flow::project_with_return_types(
+                    &unit.source,
+                    &unit.suite,
+                    &mut unit.analysis,
+                    runtime,
+                    Some(&unit.oracle),
+                    &unit.patches,
+                    &unit.return_types,
+                )?
+            };
             unit.names.extend(flow.type_names.clone());
             let mut edits = crate::build_edits(
                 &unit.source,
@@ -2824,6 +2882,9 @@ impl Session {
         }
         phase(&mut phases, "source_maps", &mut phase_started);
         result["projected_units"] = json!(units.values().filter(|unit| unit.dirty).count());
+        result["analysis_passes"] = json!(analysis_passes);
+        result["reused_analysis_passes"] = json!(reused_analysis_passes);
+        result["reused_final_flows"] = json!(reused_final_flows);
         result["reused_units"] = json!(units.values().filter(|unit| !unit.dirty).count());
         self.cached_sources = project
             .modules
@@ -3086,6 +3147,7 @@ mod tests {
             dirty: true,
             raw_diagnostics: vec![],
             flow_diagnostics: vec![],
+            pass: None,
         };
         let generated = GeneratedDeclarations {
             descriptors: BTreeMap::from([(
@@ -3704,6 +3766,284 @@ mod tests {
             "recoverable hook failure must not reuse the former successful patch"
         );
         assert_eq!(session.check(&BTreeMap::new())?["diagnostics"], json!([]));
+        drop(session);
+        std::fs::remove_dir_all(directory)?;
+        Ok(())
+    }
+
+    #[test]
+    fn projection_inputs_observe_cross_module_alias_changes_without_local_changes() -> Result<()> {
+        let source = Arc::new(Source::new(
+            "import producer\nvalue = producer.record\n".into(),
+            "consumer.py".into(),
+            "consumer".into(),
+        ));
+        let unit = File {
+            source,
+            suite: Arc::new(Vec::new()),
+            analysis: Analysis::default(),
+            path: "consumer.py".into(),
+            oracle: BTreeMap::from([("expr:24:39".into(), "producer.Generated".into())]),
+            patches: ReturnPatches::new(),
+            return_types: BTreeMap::new(),
+            types: Types::new("_consumer_", "consumer"),
+            diagnostics: Vec::new(),
+            rendered: None,
+            selected: true,
+            valid: true,
+            names: BTreeMap::new(),
+            final_edits: None,
+            dirty: true,
+            raw_diagnostics: Vec::new(),
+            flow_diagnostics: Vec::new(),
+            pass: None,
+        };
+        let aliases = |field: &str| {
+            BTreeMap::from([(
+                "Generated".into(),
+                json!({
+                    "expression":"<TypedDict with items item>", "mode":"annotation",
+                    "snapshot":{"kind":"typed-dict", "closed":true, "fields":[{
+                        "name":"item", "required":true, "read-only":false,
+                        "type-snapshot":{"kind":"nominal", "qualified-name":field, "arguments":[]}
+                    }]}
+                }),
+            )])
+        };
+        let mut runtime = Runtime::from_plugins(&[])?;
+        runtime.register_protocol_types("producer", "generated_", aliases("builtins.str"));
+        let before = ProjectionInputs::new(&unit, &runtime);
+        assert_eq!(
+            runtime.type_expr(&unit.source, "producer.Generated")["snapshot"]["fields"][0]["type-snapshot"]
+                ["qualified-name"],
+            "builtins.str"
+        );
+        runtime.register_protocol_types("producer", "generated_", aliases("builtins.str"));
+        assert!(before == ProjectionInputs::new(&unit, &runtime));
+
+        runtime.register_protocol_types("producer", "generated_", aliases("builtins.int"));
+        let after = ProjectionInputs::new(&unit, &runtime);
+        assert_eq!(before.oracle, after.oracle);
+        assert_eq!(before.patches, after.patches);
+        assert_eq!(before.return_types, after.return_types);
+        assert_eq!(before.prelude, after.prelude);
+        assert!(
+            before != after,
+            "changed producer aliases must reject a cached consumer pass"
+        );
+        assert_eq!(
+            runtime.type_expr(&unit.source, "producer.Generated")["snapshot"]["fields"][0]["type-snapshot"]
+                ["qualified-name"],
+            "builtins.int"
+        );
+        Ok(())
+    }
+
+    #[test]
+    fn projection_reuse_invalidates_cross_module_aliases_with_unchanged_spelling() -> Result<()> {
+        let binary = std::env::var("TY_COMPANION_TEST_OFFICIAL")?;
+        let directory = std::env::temp_dir().join(format!(
+            "ty-cross-module-alias-{}-{}",
+            std::process::id(),
+            std::time::SystemTime::now()
+                .duration_since(std::time::UNIX_EPOCH)?
+                .as_nanos()
+        ));
+        let root = directory.join("project");
+        let consumer = root.join("a_consumer.py");
+        // ty displays structural aliases without their originating module. Bind
+        // the generated name explicitly so this internal fixture exercises
+        // cache invalidation through supported qualified-alias resolution.
+        let source = "from z_producer import row, _ty_ext_result_snapshot_0\ndef consume(row: object, check: object) -> None: pass\nconsume(row, 1)\n";
+        write(&consumer, source)?;
+        write(
+            &root.join("z_producer.py"),
+            "def seed() -> object: return 1\ndef advance(value: object) -> object: return value\ndef make(value: object) -> object: return {'item': value}\nrow = make(advance(advance(seed())))\n",
+        )?;
+        let manifest = directory.join("plugin.json");
+        write(
+            &manifest,
+            &json!({
+                "id":"research.cross-module-alias", "name":"Cross-module alias", "version":"0.0.1",
+                "protocol-version":{"major":0,"minor":7}, "ty-compatibility":{"requirement":">=0.86.0,<0.87.0"},
+                "runtime":{"kind":"monty","artifact":"plugin.py"},
+                "capabilities":{"call-return":true,"call-signature":true},
+                "claims":{"functions":[
+                    {"qualified-name":"z_producer.seed"}, {"qualified-name":"z_producer.advance"},
+                    {"qualified-name":"z_producer.make"}, {"qualified-name":"a_consumer.consume"}
+                ]}
+            }).to_string(),
+        )?;
+        let plugin = directory.join("plugin.py");
+        write(
+            &plugin,
+            r#"@on_call_return
+def returns(request):
+    callee = request['callee']['expression']
+    if callee == 'z_producer.seed':
+        return call_return_patch(type_annotation('int'))
+    arguments = request.get('arguments', [])
+    argument = arguments[0].get('type-expr') if arguments else None
+    if callee == 'z_producer.advance' and argument:
+        return call_return_patch(argument)
+    if callee == 'z_producer.make':
+        snapshot = argument.get('snapshot', {}) if argument else {}
+        concrete = snapshot.get('qualified-name') == 'builtins.int'
+        item = {'kind':'nominal', 'qualified-name':'builtins.int' if concrete else 'builtins.object', 'arguments':[]}
+        return call_return_patch({'expression':'object', 'mode':'annotation', 'snapshot':{
+            'kind':'typed-dict', 'fields':[{'name':'item', 'type-snapshot':item, 'required':True, 'read-only':False}], 'closed':True
+        }})
+    return None
+
+@on_call_signature
+def signature(request):
+    if request['callee']['expression'] != 'a_consumer.consume':
+        return None
+    arguments = request.get('arguments', [])
+    snapshot = arguments[0].get('type-expr', {}).get('snapshot', {}) if arguments else {}
+    fields = snapshot.get('fields', [])
+    concrete = bool(fields) and fields[0].get('type-snapshot', {}).get('qualified-name') == 'builtins.int'
+    return call_signature_patch({
+        'parameters':[
+            parameter('row', type=type_annotation('object'), required=True),
+            parameter('check', type=type_annotation('int' if concrete else 'str'), required=True)
+        ],
+        'return-type':type_annotation('None')
+    })
+"#,
+        )?;
+        let mut session = Session::new(
+            &root,
+            &BTreeMap::from([
+                ("ty".into(), binary),
+                (
+                    "out".into(),
+                    directory.join("output").to_string_lossy().into_owned(),
+                ),
+                ("plugin".into(), plugin.to_string_lossy().into_owned()),
+                ("manifest".into(), manifest.to_string_lossy().into_owned()),
+                ("checker-mode".into(), "push".into()),
+                ("lsp-capabilities".into(), "{}".into()),
+                ("python-version".into(), "3.13".into()),
+            ]),
+        )?;
+        let result = session.check(&BTreeMap::new())?;
+        assert_eq!(result["diagnostics"], json!([]), "{result:#}");
+        assert!(
+            result["projection_rounds"].as_u64().unwrap() >= 5,
+            "{result:#}"
+        );
+        assert!(
+            result["reused_analysis_passes"].as_u64().unwrap() > 0,
+            "{result:#}"
+        );
+        // Consumer lowering precedes producer lowering lexically. The delayed
+        // return chain changes snapshot_0's field from object to int after the
+        // consumer has already seen the same generated alias name in ty.
+        let producer = session
+            .cached_units
+            .values()
+            .find(|unit| unit.source.module == "z_producer")
+            .unwrap();
+        assert!(producer.types.prelude().contains("snapshot_0"));
+        let changed = session.check(&BTreeMap::from([(
+            consumer.canonicalize()?,
+            source.replace("consume(row, 1)", "consume(row, 'wrong')"),
+        )]))?;
+        let diagnostics = changed["diagnostics"].as_array().unwrap();
+        assert_eq!(diagnostics.len(), 1, "{changed:#}");
+        assert_eq!(diagnostics[0]["check_name"], "invalid-argument-type");
+        assert_eq!(diagnostics[0]["location"]["positions"]["begin"]["line"], 3);
+        assert_eq!(session.check(&BTreeMap::new())?["diagnostics"], json!([]));
+        drop(session);
+        std::fs::remove_dir_all(directory)?;
+        Ok(())
+    }
+
+    #[test]
+    fn external_resolution_retries_the_whole_wave_after_a_parse_failure() -> Result<()> {
+        let binary = std::env::var("TY_COMPANION_TEST_OFFICIAL")?;
+        let directory = std::env::temp_dir().join(format!(
+            "ty-external-retry-{}-{}",
+            std::process::id(),
+            std::time::SystemTime::now()
+                .duration_since(std::time::UNIX_EPOCH)?
+                .as_nanos()
+        ));
+        let root = directory.join("project");
+        let library = directory.join("library");
+        write(&library.join("a_good.pyi"), "class Good: ...\n")?;
+        let broken = library.join("z_bad.pyi");
+        write(&broken, "class Bad: ...\nbroken = (\n")?;
+        write(
+            &root.join("ty.toml"),
+            &format!(
+                "[environment]\nextra-paths=[{}]\npython-version='3.13'\n",
+                serde_json::to_string(&library)?
+            ),
+        )?;
+        write(
+            &root.join("demo.py"),
+            "from a_good import Good\nfrom z_bad import Bad\nclass Resource(Good, Bad): pass\nlabel: str = Resource().label\n",
+        )?;
+        let fixtures = Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures/generic");
+        let mut session = Session::new(
+            &root,
+            &BTreeMap::from([
+                ("ty".into(), binary),
+                (
+                    "out".into(),
+                    directory.join("output").to_string_lossy().into_owned(),
+                ),
+                (
+                    "plugin".into(),
+                    fixtures.join("plugin.py").to_string_lossy().into_owned(),
+                ),
+                (
+                    "manifest".into(),
+                    fixtures
+                        .join("plugin.plugin.json")
+                        .to_string_lossy()
+                        .into_owned(),
+                ),
+                ("checker-mode".into(), "push".into()),
+                ("lsp-capabilities".into(), "{}".into()),
+            ]),
+        )?;
+        let error = session.check(&BTreeMap::new()).unwrap_err();
+        assert!(format!("{error:#}").contains("z_bad.pyi"), "{error:#}");
+        for module in ["a_good", "z_bad"] {
+            assert!(!session.base_project.modules.contains_key(module));
+            assert!(!session.resolved_imports.contains(module));
+        }
+        assert!(session.resolved_paths.is_empty());
+        let requests = session.external_resolution_requests;
+        let pid = session.server.as_ref().unwrap().process_id();
+        write(&broken, "class Bad: ...\n")?;
+        session.server.as_mut().unwrap().notify(
+            "workspace/didChangeWatchedFiles",
+            json!({"changes":[{"uri":crate::checker::file_uri(&broken)?,"type":2}]}),
+        )?;
+        // Retry the same session without invalidate(), which would hide stale
+        // per-wave resolution markers and lose the recovery guarantee.
+        let recovered = session.check(&BTreeMap::new())?;
+        assert_eq!(recovered["diagnostics"], json!([]), "{recovered:#}");
+        assert!(session.external_resolution_requests >= requests + 2);
+        assert_eq!(session.server.as_ref().unwrap().process_id(), pid);
+        for module in ["a_good", "z_bad"] {
+            assert!(session.base_project.modules[module].external);
+            assert!(session.resolved_imports.contains(module));
+        }
+        assert!(
+            session
+                .base_project
+                .is_subclass("demo.Resource", "a_good.Good")
+        );
+        assert!(
+            session
+                .base_project
+                .is_subclass("demo.Resource", "z_bad.Bad")
+        );
         drop(session);
         std::fs::remove_dir_all(directory)?;
         Ok(())

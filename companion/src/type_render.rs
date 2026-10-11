@@ -7,7 +7,63 @@ use ruff_python_ast::{
     visitor::{self, Visitor},
 };
 use serde_json::Value;
-use std::collections::{BTreeMap, BTreeSet};
+use std::{
+    collections::{BTreeMap, BTreeSet},
+    sync::Arc,
+};
+
+/// Immutable project inputs shared by all renderers in the same revision.
+/// Aliases, generated declarations and candidate discoveries remain local to
+/// each renderer, so sharing this context cannot change declaration ordering.
+#[derive(Clone, Default)]
+struct RenderContext {
+    modules: Arc<BTreeMap<String, crate::project::Module>>,
+    classes: Arc<BTreeMap<String, Value>>,
+    virtual_modules: Arc<BTreeMap<String, String>>,
+    unavailable_modules: Arc<BTreeSet<String>>,
+    nominal_resolution: Arc<BTreeMap<String, Option<usize>>>,
+    annotation_resolution: Arc<BTreeMap<String, bool>>,
+}
+
+impl RenderContext {
+    fn from_project(project: &Project) -> Self {
+        Self {
+            modules: project.modules.clone(),
+            classes: project.classes.clone(),
+            virtual_modules: project.virtual_modules.clone(),
+            unavailable_modules: project.unavailable_modules.clone(),
+            nominal_resolution: project.snapshot_nominals.clone(),
+            annotation_resolution: project.snapshot_symbols.clone(),
+        }
+    }
+
+    fn virtual_module(&self, module: &str) -> bool {
+        // An unqualified virtual class uses a fallback generated module, but
+        // does not declare that module as a public namespace. Preserve the
+        // exact dotted-class rule without scanning every project class.
+        let prefix = format!("{module}.");
+        self.classes
+            .range::<str, _>((
+                std::ops::Bound::Included(prefix.as_str()),
+                std::ops::Bound::Unbounded,
+            ))
+            .take_while(|(name, _)| name.starts_with(&prefix))
+            .any(|(name, summary)| {
+                summary["virtual"] == true
+                    && name
+                        .rsplit_once('.')
+                        .is_some_and(|(owner, _)| owner == module)
+            })
+    }
+
+    fn virtual_class(&self, qualified: &str) -> bool {
+        qualified.contains('.')
+            && self
+                .classes
+                .get(qualified)
+                .is_some_and(|summary| summary["virtual"] == true)
+    }
+}
 
 #[derive(Clone)]
 pub struct Types {
@@ -18,24 +74,23 @@ pub struct Types {
     unimportable_module: bool,
     aliases: BTreeMap<String, String>,
     modules: BTreeSet<String>,
+    project_context: RenderContext,
     import_bindings: BTreeMap<String, String>,
     imported_symbols: BTreeMap<(String, String), String>,
     imported_modules: BTreeMap<String, String>,
-    virtual_modules: BTreeMap<String, String>,
-    virtual_types: BTreeSet<String>,
     imported_virtual_modules: BTreeMap<String, String>,
-    unavailable_modules: BTreeSet<String>,
     unresolved_bindings: BTreeSet<String>,
     self_context: Option<Value>,
     snapshots: BTreeMap<String, String>,
     protocol_types: BTreeMap<String, Value>,
     nominal_candidates: BTreeSet<String>,
-    nominal_resolution: BTreeMap<String, Option<usize>>,
     annotation_candidates: BTreeSet<String>,
-    annotation_resolution: BTreeMap<String, bool>,
 }
 impl Types {
     pub fn new(prefix: &str, module: &str) -> Self {
+        Self::with_context(prefix, module, RenderContext::default())
+    }
+    fn with_context(prefix: &str, module: &str, project_context: RenderContext) -> Self {
         Self {
             imports: BTreeSet::new(),
             definitions: String::new(),
@@ -44,46 +99,42 @@ impl Types {
             unimportable_module: false,
             aliases: BTreeMap::new(),
             modules: BTreeSet::from([module.to_owned()]),
+            project_context,
             import_bindings: BTreeMap::new(),
             imported_symbols: BTreeMap::new(),
             imported_modules: BTreeMap::new(),
-            virtual_modules: BTreeMap::new(),
-            virtual_types: BTreeSet::new(),
             imported_virtual_modules: BTreeMap::new(),
-            unavailable_modules: BTreeSet::new(),
             unresolved_bindings: BTreeSet::new(),
             self_context: None,
             snapshots: BTreeMap::new(),
             protocol_types: BTreeMap::new(),
             nominal_candidates: BTreeSet::new(),
-            nominal_resolution: BTreeMap::new(),
             annotation_candidates: BTreeSet::new(),
-            annotation_resolution: BTreeMap::new(),
         }
     }
     pub fn with_project(prefix: &str, module: &str, project: &Project) -> Self {
-        let mut renderer = Self::new(prefix, module);
+        let mut renderer = Self::with_context(prefix, module, RenderContext::from_project(project));
         renderer.unimportable_module = project
             .modules
             .get(module)
             .is_some_and(|module| module.source.protocol_module.is_some());
-        renderer.modules.extend(project.modules.keys().cloned());
-        renderer.unavailable_modules = project.unavailable_modules.clone();
-        renderer.virtual_modules = project.virtual_modules.clone();
-        renderer.nominal_resolution = project.snapshot_nominals.clone();
-        renderer.annotation_resolution = project.snapshot_symbols.clone();
-        for (qualified, summary) in &project.classes {
-            if summary["virtual"] == true
-                && let Some((module, _)) = qualified.rsplit_once('.')
-            {
-                renderer.modules.insert(module.to_owned());
-                renderer.virtual_types.insert(qualified.to_owned());
-            }
-        }
         renderer
     }
     pub fn add_module(&mut self, module: &str) {
         self.modules.insert(module.to_owned());
+    }
+    fn known_module<'a>(&self, name: &'a str) -> Option<&'a str> {
+        let mut remaining = name;
+        while let Some((module, _)) = remaining.rsplit_once('.') {
+            if self.modules.contains(module)
+                || self.project_context.modules.contains_key(module)
+                || self.project_context.virtual_module(module)
+            {
+                return Some(module);
+            }
+            remaining = module;
+        }
+        None
     }
     pub fn display_names(&self) -> BTreeMap<String, String> {
         self.imported_modules
@@ -202,9 +253,14 @@ impl Types {
             let module = import["module"].as_str().context("type import module")?;
             let name = import["name"].as_str().context("type import name")?;
             let alias = import["alias"].as_str().unwrap_or(name);
-            if self.unavailable_modules.iter().any(|unresolved| {
-                module == unresolved || module.starts_with(&format!("{unresolved}."))
-            }) {
+            if self
+                .project_context
+                .unavailable_modules
+                .iter()
+                .any(|unresolved| {
+                    module == unresolved || module.starts_with(&format!("{unresolved}."))
+                })
+            {
                 self.unresolved_bindings.insert(alias.to_owned());
                 continue;
             }
@@ -260,7 +316,7 @@ impl Types {
                     .as_array()
                     .map(Vec::as_slice)
                     .unwrap_or(&[]);
-                if let Some(resolution) = self.nominal_resolution.get(name) {
+                if let Some(resolution) = self.project_context.nominal_resolution.get(name) {
                     if resolution
                         .is_none_or(|arity| !arguments.is_empty() && arity != arguments.len())
                     {
@@ -659,14 +715,8 @@ impl Types {
                 if self.annotation_missing(&name) {
                     return Ok(self.unknown());
                 }
-                if let Some(module) = self
-                    .modules
-                    .iter()
-                    .filter(|module| name.starts_with(&format!("{module}.")))
-                    .max_by_key(|module| module.len())
-                    .cloned()
-                {
-                    let alias = self.module_alias(&module);
+                if let Some(module) = self.known_module(&name) {
+                    let alias = self.module_alias(module);
                     return Ok(format!("{alias}{}", &name[module.len()..]));
                 } else {
                     // Dependencies outside the project may only be known from
@@ -718,7 +768,7 @@ impl Types {
     }
 
     fn annotation_missing(&mut self, name: &str) -> bool {
-        if let Some(available) = self.annotation_resolution.get(name) {
+        if let Some(available) = self.project_context.annotation_resolution.get(name) {
             return !available;
         }
         if name.contains('.')
@@ -793,13 +843,15 @@ impl Types {
         let qualified = self.import_bindings.get(head).map(|generated| {
             self.protocol_annotation(&format!("{generated}{}", &name[head.len()..]))
         });
-        self.annotation_resolution
+        self.project_context
+            .annotation_resolution
             .get(qualified.as_deref().unwrap_or(name))
             == Some(&false)
             || self
                 .unresolved_bindings
                 .contains(name.split('.').next().unwrap_or(name))
             || self
+                .project_context
                 .unavailable_modules
                 .iter()
                 .any(|module| name == module || name.starts_with(&format!("{module}.")))
@@ -808,11 +860,11 @@ impl Types {
     /// share its logical module and must still resolve through the real module.
     fn virtual_symbol(&mut self, name: &str) -> Option<String> {
         let mut qualified = name;
-        while !self.virtual_types.contains(qualified) {
+        while !self.project_context.virtual_class(qualified) {
             qualified = qualified.rsplit_once('.')?.0;
         }
         let (module, symbol) = qualified.rsplit_once('.')?;
-        let physical = self.virtual_modules.get(module)?;
+        let physical = self.project_context.virtual_modules.get(module)?;
         let alias = if let Some(alias) = self.imported_virtual_modules.get(module) {
             alias.clone()
         } else {
@@ -1096,6 +1148,139 @@ mod tests {
         );
         assert!(!types.imports.contains("import package.generated.models"));
     }
+
+    #[test]
+    fn renderer_project_context_shares_storage_and_preserves_old_revisions() -> Result<()> {
+        let directory =
+            std::env::temp_dir().join(format!("native-renderer-context-{}", std::process::id()));
+        std::fs::create_dir_all(&directory)?;
+        let path = directory.join("models.py");
+        std::fs::write(&path, "class Model: pass\n")?;
+        let mut project = Project::load(
+            &directory,
+            std::slice::from_ref(&path),
+            &serde_json::json!({}),
+            serde_json::json!({}),
+        )?;
+        let virtual_types = vec![serde_json::json!({
+            "name":"Package.generated.Row", "shape":{"kind":"class","bases":[]}
+        })];
+        project.register_virtual_types(&virtual_types)?;
+        Arc::make_mut(&mut project.snapshot_nominals).insert("models.Model".into(), Some(0));
+        Arc::make_mut(&mut project.snapshot_symbols).insert("models.Model".into(), true);
+        let mut original = Types::with_project("_generated_", "models", &project);
+        assert!(Arc::ptr_eq(
+            &original.project_context.modules,
+            &project.modules
+        ));
+        assert!(Arc::ptr_eq(
+            &original.project_context.classes,
+            &project.classes
+        ));
+        assert!(Arc::ptr_eq(
+            &original.project_context.nominal_resolution,
+            &project.snapshot_nominals
+        ));
+        assert_eq!(
+            original.known_module("Package.generated.Other"),
+            Some("Package.generated")
+        );
+        let original_virtual = original.text("Package.generated.Row")?;
+
+        Arc::make_mut(&mut project.unavailable_modules).insert("absent".into());
+        Arc::make_mut(&mut project.snapshot_nominals).insert("models.Model".into(), None);
+        Arc::make_mut(&mut project.snapshot_symbols).insert("models.Model".into(), false);
+        let module = project.modules["models"].clone();
+        Arc::make_mut(&mut project.modules).insert("Package.generated.Nested".into(), module);
+        Arc::make_mut(&mut project.virtual_modules)
+            .insert("Package.generated".into(), "_replacement".into());
+        let mut current = Types::with_project("_generated_", "models", &project);
+
+        assert!(
+            !original
+                .project_context
+                .unavailable_modules
+                .contains("absent")
+        );
+        assert!(
+            current
+                .project_context
+                .unavailable_modules
+                .contains("absent")
+        );
+        assert_eq!(
+            original.project_context.nominal_resolution["models.Model"],
+            Some(0)
+        );
+        assert_eq!(
+            current.project_context.nominal_resolution["models.Model"],
+            None
+        );
+        assert!(!original.annotation_missing("models.Model"));
+        assert!(current.annotation_missing("models.Model"));
+        assert_eq!(
+            original.known_module("Package.generated.Nested.Item"),
+            Some("Package.generated")
+        );
+        assert_eq!(
+            current.known_module("Package.generated.Nested.Item"),
+            Some("Package.generated.Nested")
+        );
+        assert_eq!(original.text("Package.generated.Row")?, original_virtual);
+        current.text("Package.generated.Row")?;
+        assert!(
+            current
+                .imports
+                .iter()
+                .any(|import| import.starts_with("import _replacement as "))
+        );
+        assert!(
+            original
+                .imports
+                .iter()
+                .all(|import| !import.starts_with("import _replacement as "))
+        );
+
+        // Local explicit modules are independent of the shared project map.
+        current.add_module("Package.generated.Nested.Item");
+        assert_eq!(
+            current.known_module("Package.generated.Nested.Item.Child"),
+            Some("Package.generated.Nested.Item")
+        );
+        assert_eq!(
+            original.known_module("Package.generated.Nested.Item.Child"),
+            Some("Package.generated")
+        );
+        std::fs::remove_dir_all(directory)?;
+        Ok(())
+    }
+
+    #[test]
+    fn shared_virtual_namespaces_preserve_dotted_class_rules() {
+        let mut types = Types::new("_generated_", "models");
+        Arc::make_mut(&mut types.project_context.classes).extend([
+            ("Bare".into(), serde_json::json!({"virtual":true})),
+            (
+                "Package.Inner.Row".into(),
+                serde_json::json!({"virtual":true}),
+            ),
+            (
+                "ordinary.Model".into(),
+                serde_json::json!({"virtual":false}),
+            ),
+        ]);
+        Arc::make_mut(&mut types.project_context.virtual_modules)
+            .insert("_ty_ext_virtual".into(), "_generated_bare".into());
+        assert!(!types.project_context.virtual_class("Bare"));
+        assert!(!types.project_context.virtual_module("_ty_ext_virtual"));
+        assert!(!types.project_context.virtual_module("ordinary"));
+        assert!(!types.project_context.virtual_module("Package"));
+        assert!(types.project_context.virtual_module("Package.Inner"));
+        assert_eq!(
+            types.known_module("Package.Inner.Other"),
+            Some("Package.Inner")
+        );
+    }
     #[test]
     fn explicit_import_aliases_are_not_mistaken_for_module_names() {
         let mut types = Types::new("_generated_", "models");
@@ -1123,7 +1308,7 @@ mod tests {
             types.text("external.Widget").unwrap(),
             "_generated_module_0.Widget"
         );
-        types.unavailable_modules.insert("absent".to_owned());
+        Arc::make_mut(&mut types.project_context.unavailable_modules).insert("absent".to_owned());
         let rendered = types
             .text("tuple[absent.Row, typing.Literal['absent.Row'], absent.Container[int]]")
             .unwrap();
