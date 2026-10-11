@@ -2,16 +2,23 @@
 //! confined to this test's temporary project and compared byte-for-byte.
 use anyhow::{Context, Result, ensure};
 use serde_json::json;
-use std::{fs, path::Path, process::Command};
+use std::{
+    fs,
+    path::{Path, PathBuf},
+    process::Command,
+};
 
 #[test]
 #[ignore = "requires TY_COMPANION_TEST_OFFICIAL and TY_COMPANION_TEST_FORK"]
 fn safe_fixes_and_suppressions_match_reference_source_edits() -> Result<()> {
     let official = std::env::var("TY_COMPANION_TEST_OFFICIAL")?;
     let fork = std::env::var("TY_COMPANION_TEST_FORK")?;
-    let root = std::env::temp_dir()
-        .canonicalize()?
-        .join(format!("ty-cli-edits-{}", std::process::id()));
+    let root = match std::env::var_os("TY_COMPANION_CLI_EDITS_OUTPUT") {
+        Some(root) => PathBuf::from(root),
+        None => std::env::temp_dir()
+            .canonicalize()?
+            .join(format!("ty-cli-edits-{}", std::process::id())),
+    };
     fs::create_dir_all(&root)?;
     let fixture = Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures/generic");
     let config = format!(
@@ -105,6 +112,7 @@ fn safe_fixes_and_suppressions_match_reference_source_edits() -> Result<()> {
         ),
         ]);
     let mut evidence = vec![];
+    let mut mismatches = vec![];
     for (flag, name, source) in cases {
         let filename = if name.starts_with("notebook_") {
             "demo.ipynb"
@@ -112,6 +120,7 @@ fn safe_fixes_and_suppressions_match_reference_source_edits() -> Result<()> {
             "demo.py"
         };
         let path = root.join(filename);
+        fs::write(root.join(format!("{name}-input.txt")), source.as_bytes())?;
         if name == "notebook_plugin" {
             fs::write(
                 root.join("demo.py"),
@@ -144,8 +153,20 @@ fn safe_fixes_and_suppressions_match_reference_source_edits() -> Result<()> {
                 root.join(format!("{name}-{backend}.stderr")),
                 &output.stderr,
             )?;
-            let text = fs::read_to_string(&path)?;
-            fs::write(root.join(format!("{name}-{backend}.txt")), &text)?;
+            let bytes = fs::read(&path)?;
+            fs::write(root.join(format!("{name}-{backend}.txt")), &bytes)?;
+            fs::write(
+                root.join(format!("{name}-{backend}.json")),
+                serde_json::to_vec_pretty(&json!({
+                    "case":name,"backend":backend,"flag":flag,
+                    "exit":output.status.code(),
+                    "input_snapshot":format!("{name}-input.txt"),
+                    "output_snapshot":format!("{name}-{backend}.txt"),
+                    "stdout":format!("{name}-{backend}.stdout"),
+                    "stderr":format!("{name}-{backend}.stderr")
+                }))?,
+            )?;
+            let text = String::from_utf8(bytes).context("edited source must remain UTF-8")?;
             ensure!(
                 matches!(output.status.code(), Some(0 | 1)),
                 "{name}/{backend}: {}",
@@ -167,16 +188,23 @@ fn safe_fixes_and_suppressions_match_reference_source_edits() -> Result<()> {
             codes.sort_by_key(serde_json::Value::to_string);
             results.push((text, output.status.code(), codes));
         }
-        evidence.push(json!({"case":name,"flag":flag,"equal":results[0]==results[1],"fork":results[0],"companion":results[1]}));
+        evidence.push(json!({"case":name,"flag":flag,"input":source,"equal":results[0]==results[1],"fork":results[0],"companion":results[1]}));
         fs::write(
             root.join("evidence.json"),
             serde_json::to_vec_pretty(&evidence)?,
         )?;
-        ensure!(
-            results[0] == results[1],
-            "{name} source/status/rules differ: {}",
-            root.display()
-        );
+        if results[0] != results[1] {
+            mismatches.push(format!(
+                "{name} source/status/rules differ: fork={:?}; companion={:?}",
+                results[0], results[1]
+            ));
+        }
     }
+    ensure!(
+        mismatches.is_empty(),
+        "{}\nevidence: {}",
+        mismatches.join("\n"),
+        root.display()
+    );
     Ok(())
 }

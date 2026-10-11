@@ -61,3 +61,5 @@ jobs:
             ${{ runner.temp }}/companion-ci-evidence/**/*.stderr
             ${{ runner.temp }}/companion-ci-evidence/**/*.stdout
             ${{ runner.temp }}/companion-ci-evidence/**/stderr.log
+            ${{ runner.temp }}/companion-ci-evidence/gates/*.log
+            ${{ runner.temp }}/companion-ci-evidence/cli-edits/**

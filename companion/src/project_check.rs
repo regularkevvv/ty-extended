@@ -119,6 +119,38 @@ fn projected_stub_path(
         .map(|relative| stubs.join(relative))
         .with_context(|| format!("stub {} is outside configured overlays", original.display()))
 }
+
+fn resolved_import_path(
+    uri: &str,
+    view: &Path,
+    stubs: &Path,
+    stub_roots: &[PathBuf],
+    resolved: &BTreeMap<PathBuf, PathBuf>,
+) -> Result<Option<PathBuf>> {
+    if crate::lsp_mapping::decode_file_uri(uri)?.is_none() {
+        return Ok(None);
+    }
+    // File URIs omit Windows' verbatim prefix. Use the same canonical identity
+    // as the project roots before rejecting generated files or restoring an
+    // overlay's original source. Never index a generated copy as a dependency.
+    let path = crate::lsp_server::uri_path(uri)?;
+    if path.starts_with(view) {
+        return Ok(None);
+    }
+    if let Ok(relative) = path.strip_prefix(stubs) {
+        return Ok(resolved
+            .iter()
+            .find_map(|(original, generated)| (generated == relative).then(|| original.clone()))
+            .or_else(|| {
+                stub_roots
+                    .iter()
+                    .map(|root| root.join(relative))
+                    .find(|path| path.is_file())
+            }));
+    }
+    Ok(Some(path))
+}
+
 fn check(binary: &Path, root: &Path, config: &Path, paths: &[PathBuf]) -> Result<Vec<Value>> {
     if paths.is_empty() {
         return Ok(Vec::new());
@@ -904,35 +936,16 @@ impl Session {
                 }) else {
                     continue;
                 };
-                let Some(mut path) = crate::lsp_mapping::decode_file_uri(uri)? else {
+                let Some(path) = resolved_import_path(
+                    uri,
+                    &self.view,
+                    &self.stubs,
+                    &self.stub_roots,
+                    &self.resolved_paths,
+                )?
+                else {
                     continue;
                 };
-                if path.starts_with(&self.view) {
-                    continue;
-                }
-                // A configured overlay resolves through its generated copy; map
-                // it back before indexing so the plugin sees original locations.
-                if let Ok(relative) = path.strip_prefix(&self.stubs) {
-                    let relative = relative.to_owned();
-                    if let Some(original) =
-                        self.resolved_paths
-                            .iter()
-                            .find_map(|(original, generated)| {
-                                (generated == &relative).then(|| original.clone())
-                            })
-                    {
-                        path = original;
-                    } else if let Some(original) = self
-                        .stub_roots
-                        .iter()
-                        .map(|root| root.join(&relative))
-                        .find(|path| path.is_file())
-                    {
-                        path = original;
-                    } else {
-                        continue;
-                    }
-                }
                 if !path.is_file() || !path.extension().is_some_and(|e| e == "py" || e == "pyi") {
                     continue;
                 }
@@ -2139,6 +2152,74 @@ pub fn run(input: &Path, options: &BTreeMap<String, String>) -> Result<Value> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn resolved_import_uris_restore_originals_and_reject_generated_dependencies() -> Result<()> {
+        let directory = std::env::temp_dir().join(format!(
+            "ty-resolution-uri-{}-{}",
+            std::process::id(),
+            std::time::SystemTime::now()
+                .duration_since(std::time::UNIX_EPOCH)?
+                .as_nanos()
+        ));
+        for name in [
+            "generated/project/local.py",
+            "generated/stubs/overlay.pyi",
+            "generated/stubs/indexed.pyi",
+            "generated/stubs/unknown.pyi",
+            "originals/overlay.pyi",
+            "originals/indexed-source.pyi",
+            "external.py",
+        ] {
+            write(&directory.join(name), "class Base: ...\n")?;
+        }
+        let directory = directory.canonicalize()?;
+        let view = directory.join("generated/project");
+        let stubs = directory.join("generated/stubs");
+        let originals = directory.join("originals");
+        let indexed = originals.join("indexed-source.pyi");
+        let resolved = BTreeMap::from([(indexed.clone(), PathBuf::from("indexed.pyi"))]);
+
+        // Windows URI decoding yields a non-verbatim path. On Unix a directory
+        // alias exercises the same lexical mismatch without needing Windows.
+        #[cfg(unix)]
+        let generated = {
+            let alias = directory.join("generated-alias");
+            std::os::unix::fs::symlink(directory.join("generated"), &alias)?;
+            alias
+        };
+        #[cfg(not(unix))]
+        let generated = directory.join("generated");
+        let local_uri = crate::checker::file_uri(&generated.join("project/local.py"))?;
+        let decoded = crate::lsp_mapping::decode_file_uri(&local_uri)?.unwrap();
+        assert!(
+            !decoded.starts_with(&view),
+            "the regression must exercise different URI and canonical path spellings"
+        );
+        let map = |uri: &str| {
+            resolved_import_path(
+                uri,
+                &view,
+                &stubs,
+                std::slice::from_ref(&originals),
+                &resolved,
+            )
+        };
+        assert_eq!(map(&local_uri)?, None);
+        for (name, expected) in [
+            ("overlay.pyi", Some(originals.join("overlay.pyi"))),
+            ("indexed.pyi", Some(indexed)),
+            ("unknown.pyi", None),
+        ] {
+            let uri = crate::checker::file_uri(&generated.join("stubs").join(name))?;
+            assert_eq!(map(&uri)?, expected, "{name}");
+        }
+        let external = directory.join("external.py");
+        assert_eq!(map(&crate::checker::file_uri(&external)?)?, Some(external));
+        assert_eq!(map("untitled:demo.py")?, None);
+        std::fs::remove_dir_all(directory)?;
+        Ok(())
+    }
 
     #[test]
     fn project_config_filters_before_parsing_and_preserves_source_roots() -> Result<()> {

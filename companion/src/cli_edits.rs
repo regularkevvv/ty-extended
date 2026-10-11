@@ -15,8 +15,7 @@ use serde_json::{Value, json};
 use crate::{
     checker::{ProjectChecker, file_uri},
     lsp_mapping::{
-        DocumentMap, LspSourceMaps, PositionEncoding, decode_file_uri, offset_to_position,
-        position_to_offset,
+        DocumentMap, LspSourceMaps, PositionEncoding, offset_to_position, position_to_offset,
     },
     project_check::{ProjectDocument, Session},
 };
@@ -183,10 +182,9 @@ fn source_maps(documents: &[ProjectDocument], session: &Session) -> Result<LspSo
 fn fix_edits(
     documents: &[ProjectDocument],
     snapshots: &BTreeMap<PathBuf, Snapshot>,
-    session: &Session,
+    maps: &LspSourceMaps,
     result: &Value,
 ) -> Result<(BTreeMap<PathBuf, String>, usize)> {
-    let maps = source_maps(documents, session)?;
     let sources: BTreeMap<_, _> = documents
         .iter()
         .map(|document| {
@@ -196,6 +194,14 @@ fn fix_edits(
             )
         })
         .collect();
+    // DocumentMap retains these original URI identities. Decoding a URI would
+    // lose Windows' canonical \\?\ prefix and fail to find its source snapshot.
+    // Resolve through the registered URI instead; keep distinct symlink paths
+    // intact until write_transaction checks their canonical destinations.
+    let original_paths: BTreeMap<_, _> = sources
+        .keys()
+        .map(|path| Ok((file_uri(path)?, path)))
+        .collect::<Result<_>>()?;
     let mut pending = BTreeMap::<PathBuf, Vec<Edit>>::new();
     let mut count = 0;
     for diagnostic in result["diagnostics"]
@@ -218,17 +224,17 @@ fn fix_edits(
         let mut transaction = BTreeMap::new();
         let mut applicable = true;
         for (uri, edits) in mapped["changes"].as_object().context("mapped fixes")? {
-            let path = decode_file_uri(uri)?.context("fix target is not a local file")?;
-            let Some(source) = sources.get(&path) else {
+            let Some(&path) = original_paths.get(uri) else {
                 applicable = false;
                 break;
             };
-            if !snapshots[&path].valid(source) {
+            let source = sources[path];
+            if !snapshots[path].valid(source) {
                 applicable = false;
                 break;
             }
             let edits = parse_edits(source, edits.as_array().context("fix edit list")?)?;
-            if pending.get(&path).is_some_and(|prior| {
+            if pending.get(path).is_some_and(|prior| {
                 prior
                     .iter()
                     .any(|left| edits.iter().any(|right| overlaps(left, right)))
@@ -236,7 +242,7 @@ fn fix_edits(
                 applicable = false;
                 break;
             }
-            transaction.insert(path, edits);
+            transaction.insert(path.clone(), edits);
         }
         if applicable && !transaction.is_empty() {
             for (path, edits) in transaction {
@@ -584,7 +590,12 @@ pub fn apply(session: &mut Session, mut result: Value, mode: Mode) -> Result<Out
             })
             .collect::<Result<_>>()?;
         let (changes, applied) = match mode {
-            Mode::Fix => fix_edits(&documents, &snapshots, session, &result)?,
+            Mode::Fix => fix_edits(
+                &documents,
+                &snapshots,
+                &source_maps(&documents, session)?,
+                &result,
+            )?,
             Mode::AddIgnore => ignore_edits(
                 &documents,
                 &snapshots,
@@ -608,6 +619,85 @@ pub fn apply(session: &mut Session, mut result: Value, mode: Mode) -> Result<Out
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn mapped_fixes_keep_original_paths_and_reject_unregistered_files() -> Result<()> {
+        let root = std::env::temp_dir().join(format!("ty-cli-mapped-fix-{}", std::process::id()));
+        std::fs::create_dir_all(&root)?;
+        let root = root.canonicalize()?;
+        let original = root.join("snow 雪%.py");
+        let source_text = "é = 1  # ty: ignore[invalid-assignment]\r\nreveal_type(é)\r\n";
+        let expected = "é = 1\r\nreveal_type(é)\r\n";
+        std::fs::write(&original, source_text)?;
+        // On Windows this canonical source has a verbatim prefix; its file URI
+        // necessarily decodes to an ordinary drive/UNC path instead.
+        let original = original.canonicalize()?;
+        let paths = vec![original.clone()];
+        #[cfg(unix)]
+        let paths = {
+            let mut paths = paths;
+            let alias = root.join("alias.py");
+            std::os::unix::fs::symlink(&original, &alias)?;
+            paths.push(alias);
+            paths
+        };
+        for path in paths {
+            std::fs::write(&original, source_text)?;
+            let source = std::sync::Arc::new(crate::model::Source::new(
+                source_text.into(),
+                path.to_string_lossy().into(),
+                "demo".into(),
+            ));
+            let document = ProjectDocument {
+                rendered: crate::mapping::render(&source, &crate::mapping::Edits::default())?,
+                source,
+                path: root.join("generated.py"),
+                names: BTreeMap::new(),
+            };
+            let generated_uri = file_uri(&document.path)?;
+            let mut maps = LspSourceMaps::new(PositionEncoding::Utf32, PositionEncoding::Utf32);
+            maps.insert(DocumentMap::new(
+                file_uri(&path)?,
+                generated_uri.clone(),
+                source_text.into(),
+                document.rendered.clone(),
+            ));
+            let snapshots = BTreeMap::from([(path.clone(), Snapshot::capture(&document)?)]);
+            let edit = json!({"range":{"start":{"line":0,"character":5},"end":{"line":0,"character":source_text.lines().next().unwrap().chars().count()}},"newText":""});
+            let diagnostic = |uri: &str| json!({"lsp_diagnostic":{"data":{"fix":{"preferred":true,"edits":{uri:[edit.clone()]}}}}});
+            let (changes, count) = fix_edits(
+                std::slice::from_ref(&document),
+                &snapshots,
+                &maps,
+                &json!({"diagnostics":[diagnostic(&generated_uri)]}),
+            )?;
+            assert_eq!(count, 1, "mapped safe fix was silently rejected");
+            assert_eq!(changes, BTreeMap::from([(path.clone(), expected.into())]));
+            write_transaction(&snapshots, &changes)?;
+            assert_eq!(std::fs::read_to_string(&original)?, expected);
+            if path != original {
+                assert!(std::fs::symlink_metadata(&path)?.file_type().is_symlink());
+            }
+            // An arbitrary backend URI must never become a writable
+            // destination outside this session's registered sources.
+            std::fs::write(&original, source_text)?;
+            let external = root.join("unregistered.py");
+            std::fs::write(&external, source_text)?;
+            let (changes, count) = fix_edits(
+                std::slice::from_ref(&document),
+                &snapshots,
+                &maps,
+                &json!({"diagnostics":[diagnostic(&file_uri(&external)?)]}),
+            )?;
+            assert!(changes.is_empty());
+            assert_eq!(count, 0);
+            assert_eq!(std::fs::read_to_string(&original)?, source_text);
+            assert_eq!(std::fs::read_to_string(&external)?, source_text);
+        }
+        std::fs::remove_dir_all(root)?;
+        Ok(())
+    }
+
     #[test]
     fn edit_transactions_reject_overlaps_and_preserve_unicode_crlf() -> Result<()> {
         let text = "é = 1\r\n";

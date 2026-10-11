@@ -12,6 +12,7 @@ import shutil
 import subprocess
 import sys
 import tarfile
+import time
 import urllib.request
 import venv
 from pathlib import Path
@@ -20,6 +21,65 @@ from pathlib import Path
 def run(command: list[str], *, env: dict[str, str]) -> None:
     print("+", " ".join(command), flush=True)
     subprocess.run(command, check=True, env=env)
+
+
+class Gates:
+    """Collect independent check failures without hiding a failed job."""
+
+    def __init__(self, output: Path):
+        self.output = output
+        (output / "gates").mkdir()
+        self.evidence = {
+            "platform": sys.platform,
+            "python": sys.version,
+            "passed": False,
+            "gates": [],
+            "failures": [],
+        }
+
+    def write(self) -> None:
+        (self.output / "ci.json").write_text(
+            json.dumps(self.evidence, indent=2) + "\n", encoding="utf-8"
+        )
+
+    def run(self, name: str, command: list[str], *, env: dict[str, str]) -> None:
+        print("+", " ".join(command), flush=True)
+        started = time.perf_counter()
+        log = self.output / "gates" / f"{name}.log"
+        with log.open("wb") as stream:
+            result = subprocess.run(
+                command, env=env, stdout=stream, stderr=subprocess.STDOUT
+            )
+        data = log.read_bytes()
+        if hasattr(sys.stdout, "buffer"):
+            sys.stdout.buffer.write(data)
+            sys.stdout.buffer.flush()
+        else:
+            sys.stdout.write(data.decode(errors="replace"))
+        self.evidence["gates"].append(
+            {
+                "name": name,
+                "command": command,
+                "exit": result.returncode,
+                "passed": result.returncode == 0,
+                "seconds": time.perf_counter() - started,
+                "log": str(log),
+            }
+        )
+        if result.returncode:
+            self.evidence["failures"].append(name)
+            print(
+                f"FAILED: {name} (exit {result.returncode}); continuing independent checks",
+                flush=True,
+            )
+        self.write()
+
+    def finish(self) -> int:
+        self.evidence["passed"] = (
+            not self.evidence["failures"] and "setup_error" not in self.evidence
+        )
+        self.write()
+        return 0 if self.evidence["passed"] else 1
 
 
 def install(root: Path, package: str, env: dict[str, str]) -> Path:
@@ -58,7 +118,7 @@ def reference_checker(output: Path, env: dict[str, str]) -> Path:
     return target / "release/ty.exe"
 
 
-def django_gate(output: Path, binary: Path, env: dict[str, str]) -> None:
+def django_gate(output: Path, binary: Path, env: dict[str, str], gates: Gates) -> None:
     """The real Django contract on Linux; the full version matrix also runs locally."""
     source = output / "django-source"
     run(["git", "init", str(source)], env=env)
@@ -79,21 +139,21 @@ def django_gate(output: Path, binary: Path, env: dict[str, str]) -> None:
     oracle = output / "django-oracle.jsonl"
     with gzip.open("companion/evidence/protocol-inputs/oracle.jsonl.gz", "rb") as data:
         oracle.write_bytes(data.read())
-    run(
-        [
-            "cargo",
-            "+1.98.0",
-            "test",
-            "--locked",
-            "--release",
-            "--manifest-path",
-            "companion/Cargo.toml",
-            "--test",
-            "django_monty_parity",
-            "--",
-            "--ignored",
-            "--nocapture",
-        ],
+    protocol = [
+        "cargo",
+        "+1.98.0",
+        "test",
+        "--locked",
+        "--release",
+        "--manifest-path",
+        "companion/Cargo.toml",
+        "--test",
+        "django_monty_parity",
+    ]
+    run([*protocol, "--no-run"], env=env)
+    gates.run(
+        "django-protocol",
+        [*protocol, "--", "--ignored", "--nocapture"],
         env={**env, "DJANGO_TY_SOURCE": str(source), "DJANGO_TY_ORACLE": str(oracle)},
     )
     official = install(output / "official084", "ty==0.0.84", env)
@@ -126,7 +186,8 @@ def django_gate(output: Path, binary: Path, env: dict[str, str]) -> None:
         env=env,
     )
     for mode in ("cli", "push"):
-        run(
+        gates.run(
+            f"django-{mode}",
             [
                 sys.executable,
                 "companion/scripts/django_acceptance.py",
@@ -150,7 +211,8 @@ def django_gate(output: Path, binary: Path, env: dict[str, str]) -> None:
             ],
             env=env,
         )
-    run(
+    gates.run(
+        "django-editor",
         [
             sys.executable,
             "companion/scripts/lsp_django.py",
@@ -173,148 +235,187 @@ def django_gate(output: Path, binary: Path, env: dict[str, str]) -> None:
     )
 
 
-def main() -> None:
+def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--output", type=Path, required=True)
     args = parser.parse_args()
     args.output.mkdir(parents=True, exist_ok=False)
     output = args.output.resolve()
     env = {**os.environ, "TY_UV": "0", "TY_MAX_PARALLELISM": "1"}
-    run(
-        [
-            sys.executable,
-            "-m",
-            "unittest",
-            "discover",
-            "-s",
-            "companion/tests",
-            "-p",
-            "test_*.py",
-        ],
-        env=env,
-    )
-    manifest = Path("companion/Cargo.toml").resolve()
-    cargo = ["cargo", "+1.98.0"]
-    run([*cargo, "fmt", "--manifest-path", str(manifest), "--check"], env=env)
-    run(
-        [
-            *cargo,
-            "clippy",
-            "--locked",
-            "--manifest-path",
-            str(manifest),
-            "--all-targets",
-            "--",
-            "-D",
-            "warnings",
-        ],
-        env=env,
-    )
-    official = install(output / "official", "ty==0.0.86", env)
-    fork = reference_checker(output, env)
-    env.update(
-        TY_COMPANION_TEST_OFFICIAL=str(official),
-        TY_COMPANION_TEST_FORK=str(fork),
-        TY_COMPANION_GENERIC_PROJECT_OUTPUT=str(output / "generic-project"),
-        TY_COMPANION_EXTENDED_OUTPUT=str(output / "sdk-extended"),
-        TY_COMPANION_MULTI_OUTPUT=str(output / "sdk-multi"),
-    )
-    run([*cargo, "test", "--locked", "--manifest-path", str(manifest)], env=env)
-    run(
-        [
-            *cargo,
-            "test",
-            "--locked",
-            "--manifest-path",
-            str(manifest),
-            "--bin",
-            "ty-companion-rust",
-            "--",
-            "--ignored",
-        ],
-        env=env,
-    )
-    for test in (
-        "generic_project_semantics",
-        "sdk_extended_semantics",
-        "sdk_multi_semantics",
-        "cli_acceptance",
-        "cli_edits",
-        "cli_watch",
-    ):
+    gates = Gates(output)
+    gates.write()
+    try:
+        gates.run(
+            "python-harness",
+            [
+                sys.executable,
+                "-m",
+                "unittest",
+                "discover",
+                "-s",
+                "companion/tests",
+                "-p",
+                "test_*.py",
+            ],
+            env=env,
+        )
+        manifest = Path("companion/Cargo.toml").resolve()
+        cargo = ["cargo", "+1.98.0"]
+        run([*cargo, "fmt", "--manifest-path", str(manifest), "--check"], env=env)
         run(
+            [
+                *cargo,
+                "clippy",
+                "--locked",
+                "--manifest-path",
+                str(manifest),
+                "--all-targets",
+                "--",
+                "-D",
+                "warnings",
+            ],
+            env=env,
+        )
+        official = install(output / "official", "ty==0.0.86", env)
+        fork = reference_checker(output, env)
+        env.update(
+            TY_COMPANION_TEST_OFFICIAL=str(official),
+            TY_COMPANION_TEST_FORK=str(fork),
+            TY_COMPANION_GENERIC_PROJECT_OUTPUT=str(output / "generic-project"),
+            TY_COMPANION_EXTENDED_OUTPUT=str(output / "sdk-extended"),
+            TY_COMPANION_MULTI_OUTPUT=str(output / "sdk-multi"),
+            TY_COMPANION_CLI_EDITS_OUTPUT=str(output / "cli-edits"),
+        )
+        run(
+            [*cargo, "test", "--locked", "--manifest-path", str(manifest), "--no-run"],
+            env=env,
+        )
+        gates.run(
+            "rust-units",
+            [
+                *cargo,
+                "test",
+                "--locked",
+                "--no-fail-fast",
+                "--manifest-path",
+                str(manifest),
+            ],
+            env=env,
+        )
+        gates.run(
+            "rust-official-units",
             [
                 *cargo,
                 "test",
                 "--locked",
                 "--manifest-path",
                 str(manifest),
-                "--test",
-                test,
+                "--bin",
+                "ty-companion-rust",
                 "--",
                 "--ignored",
             ],
             env=env,
         )
-    run(
-        [*cargo, "build", "--locked", "--release", "--manifest-path", str(manifest)],
-        env=env,
-    )
-    target = Path(env.get("CARGO_TARGET_DIR", "companion/target"))
-    binary = (
-        target
-        / "release"
-        / ("ty-companion-rust.exe" if os.name == "nt" else "ty-companion-rust")
-    ).resolve()
-    for mode in ("cli", "lsp", "push"):
+        for test in (
+            "generic_project_semantics",
+            "sdk_extended_semantics",
+            "sdk_multi_semantics",
+            "cli_acceptance",
+            "cli_edits",
+            "cli_watch",
+        ):
+            gates.run(
+                test,
+                [
+                    *cargo,
+                    "test",
+                    "--locked",
+                    "--manifest-path",
+                    str(manifest),
+                    "--test",
+                    test,
+                    "--",
+                    "--ignored",
+                ],
+                env=env,
+            )
         run(
             [
-                str(binary),
-                "suite",
-                str(Path("companion/tests/fixtures/generic").resolve()),
-                str(output / f"generic-{mode}"),
-                mode,
-                str(official),
-                str(fork),
+                *cargo,
+                "build",
+                "--locked",
+                "--release",
+                "--manifest-path",
+                str(manifest),
             ],
             env=env,
         )
-    for script in (
-        "lsp_acceptance",
-        "lsp_differential",
-        "lsp_lifecycle",
-        "lsp_notebook_differential",
-    ):
-        command = [
-            sys.executable,
-            f"companion/scripts/{script}.py",
-            "--companion",
-            str(binary),
-            "--official",
-            str(official),
-            "--output",
-            str(output / script),
-        ]
-        if script in {"lsp_differential", "lsp_notebook_differential"}:
-            command += ["--fork", str(fork)]
-        run(command, env=env)
-    if sys.platform == "linux":
-        django_gate(output, binary, env)
-    evidence = {
-        "platform": sys.platform,
-        "python": sys.version,
-        "binary_sha256": hashlib.sha256(binary.read_bytes()).hexdigest(),
-        "official_sha256": hashlib.sha256(official.read_bytes()).hexdigest(),
-        "fork_sha256": hashlib.sha256(fork.read_bytes()).hexdigest(),
-        "passed": True,
-    }
-    (output / "ci.json").write_text(json.dumps(evidence, indent=2) + "\n")
+        target = Path(env.get("CARGO_TARGET_DIR", "companion/target"))
+        binary = (
+            target
+            / "release"
+            / ("ty-companion-rust.exe" if os.name == "nt" else "ty-companion-rust")
+        ).resolve()
+        gates.evidence.update(
+            {
+                "binary_sha256": hashlib.sha256(binary.read_bytes()).hexdigest(),
+                "official_sha256": hashlib.sha256(official.read_bytes()).hexdigest(),
+                "fork_sha256": hashlib.sha256(fork.read_bytes()).hexdigest(),
+            }
+        )
+        for mode in ("cli", "lsp", "push"):
+            gates.run(
+                f"generic-{mode}",
+                [
+                    str(binary),
+                    "suite",
+                    str(Path("companion/tests/fixtures/generic").resolve()),
+                    str(output / f"generic-{mode}"),
+                    mode,
+                    str(official),
+                    str(fork),
+                ],
+                env=env,
+            )
+        for script in (
+            "lsp_acceptance",
+            "lsp_differential",
+            "lsp_lifecycle",
+            "lsp_notebook_differential",
+        ):
+            command = [
+                sys.executable,
+                f"companion/scripts/{script}.py",
+                "--companion",
+                str(binary),
+                "--official",
+                str(official),
+                "--output",
+                str(output / script),
+            ]
+            if script in {"lsp_differential", "lsp_notebook_differential"}:
+                command += ["--fork", str(fork)]
+            gates.run(script, command, env=env)
+        if sys.platform == "linux":
+            django_gate(output, binary, env, gates)
+    except Exception as error:
+        gates.evidence["setup_error"] = f"{type(error).__name__}: {error}"
+        raise
+    finally:
+        gates.write()
+    status = gates.finish()
+    if status:
+        print("Failed checks: " + ", ".join(gates.evidence["failures"]), flush=True)
+        return status
+
     # Only retain portable reports for the CI artifact, not installed wheels or
     # generated copies of the fixtures.
     shutil.rmtree(output / "official")
     if (output / "fork").exists():
         shutil.rmtree(output / "fork")
+    return status
 
 
 if __name__ == "__main__":
-    main()
+    sys.exit(main())
