@@ -843,6 +843,12 @@ fn check_once(
             &rich,
             &session.documents(),
             session.names(),
+            crate::lsp_mapping::ProjectDisplayPaths {
+                projected_root: session.projected_root(),
+                original_root: session.original_root(),
+                projected_stubs: session.projected_stubs(),
+                generated_root: session.generated_root(),
+            },
         )?;
     }
     crate::notebook::cli_locations(

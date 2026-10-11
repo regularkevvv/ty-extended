@@ -120,6 +120,8 @@ struct Server {
     stderr: PathBuf,
     initialized: Value,
     project: bool,
+    workspace_configuration: Option<Value>,
+    notifications: Vec<Value>,
 }
 
 /// A persistent official checker with the real generated module paths. All
@@ -157,6 +159,26 @@ impl ProjectChecker {
         capabilities: Value,
         initialization_options: Value,
     ) -> Result<Self> {
+        Self::new_editor_with_configuration(
+            binary,
+            root,
+            config,
+            capabilities,
+            initialization_options,
+            None,
+        )
+    }
+    /// `Some(null)` enables the configuration handshake before the outer IDE
+    /// has replied. The queued request is answered after Session installs the
+    /// relocated configuration and cached settings, before its first analysis.
+    pub fn new_editor_with_configuration(
+        binary: &Path,
+        root: &Path,
+        config: &Path,
+        capabilities: Value,
+        initialization_options: Value,
+        workspace_configuration: Option<Value>,
+    ) -> Result<Self> {
         let mut server = Server::configured_editor(
             binary,
             root,
@@ -164,6 +186,7 @@ impl ProjectChecker {
             true,
             Some(capabilities),
             initialization_options,
+            workspace_configuration,
         )?;
         server.project = true;
         Ok(Self {
@@ -172,6 +195,12 @@ impl ProjectChecker {
             notebooks: BTreeMap::new(),
             external_sources: BTreeSet::new(),
         })
+    }
+    pub fn set_workspace_configuration(&mut self, settings: Value) {
+        self.server.workspace_configuration = Some(settings);
+    }
+    pub fn take_notifications(&mut self) -> Vec<Value> {
+        std::mem::take(&mut self.server.notifications)
     }
     pub fn initialization(&self) -> &Value {
         &self.server.initialized
@@ -407,7 +436,7 @@ impl Server {
     }
 
     fn configured(binary: &Path, out: &Path, config: &Path, push: bool) -> Result<Self> {
-        Self::configured_editor(binary, out, config, push, None, Value::Null)
+        Self::configured_editor(binary, out, config, push, None, Value::Null, None)
     }
 
     fn configured_editor(
@@ -417,7 +446,10 @@ impl Server {
         push: bool,
         capabilities: Option<Value>,
         initialization_options: Value,
+        workspace_configuration: Option<Value>,
     ) -> Result<Self> {
+        let initialization_options =
+            crate::editor_options::initialization(&initialization_options)?;
         let stderr = out.join("checker-server.stderr.log");
         let mut child = Command::new(binary)
             .arg("server")
@@ -452,6 +484,8 @@ impl Server {
             stderr,
             initialized: Value::Null,
             project: false,
+            workspace_configuration: workspace_configuration.clone(),
+            notifications: vec![],
         };
         let root_uri = file_uri(out)?;
         let mut initialization = json!({
@@ -476,7 +510,7 @@ impl Server {
             // The projection protocol has one fixed coordinate encoding. The
             // editor-facing side negotiates its own encoding and translates it.
             capabilities["general"]["positionEncodings"] = json!(["utf-32"]);
-            capabilities["workspace"]["configuration"] = json!(false);
+            capabilities["workspace"]["configuration"] = json!(workspace_configuration.is_some());
             capabilities["workspace"]["didChangeWatchedFiles"]["dynamicRegistration"] =
                 json!(false);
             capabilities["window"]["workDoneProgress"] = json!(false);
@@ -487,10 +521,16 @@ impl Server {
                 .as_object_mut()
                 .unwrap();
             merged.extend(options.clone());
+            // Session consumed original-path typing options. Forwarding them
+            // here would undo relocation; pythonExtension must only appear in
+            // the native workspace/configuration response (never both inputs).
+            merged.remove("configuration");
+            merged.remove("pythonExtension");
             // Always analyze the generated workspace with the relocated config.
             merged.insert("configurationFile".into(), json!(config));
             merged.insert("diagnosticMode".into(), json!("openFilesOnly"));
             merged.insert("showSyntaxErrors".into(), json!(true));
+            merged.insert("disableLanguageServices".into(), json!(false));
         }
         if push
             && let Some(capabilities) =
@@ -687,7 +727,7 @@ impl Server {
                 "workspace/configuration" => {
                     let count = message.pointer("/params/items").and_then(Value::as_array)
                         .context("workspace/configuration has no item array")?.len();
-                    Value::Array(vec![Value::Null; count])
+                    Value::Array(vec![self.workspace_configuration.clone().unwrap_or(Value::Null); count])
                 }
                 "client/registerCapability" | "client/unregisterCapability" |
                 "workspace/diagnostic/refresh" | "workspace/semanticTokens/refresh" |
@@ -697,6 +737,12 @@ impl Server {
                     "error":{"code":-32601,"message":format!("unsupported client request: {method}")}})),
             };
             return self.send(&json!({"jsonrpc":"2.0","id":id,"result":result}));
+        }
+        if matches!(method, "window/showMessage" | "window/logMessage")
+            && self.workspace_configuration.is_some()
+        {
+            self.notifications.push(message.clone());
+            return Ok(());
         }
         if method == "window/showMessage"
             && message.pointer("/params/type").and_then(Value::as_i64) == Some(1)

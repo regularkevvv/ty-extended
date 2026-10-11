@@ -154,3 +154,18 @@ tests require `-- --ignored --nocapture`; use fresh output directories.
 
 Use the 0.84 checker pair for these gates and `TY_MAX_PARALLELISM=1`. Harness
 checks are `python3 -m unittest discover -s companion/tests -p 'test_*.py'`.
+
+The client-settings gate uses official ty 0.0.86 and real LSP sessions:
+
+```sh
+python3 companion/scripts/lsp_configuration.py \
+  --companion /path/to/ty-companion-rust \
+  --official /path/to/official-ty-0.0.86 \
+  --output /tmp/client-settings-evidence
+```
+
+It compares per-workspace Python environments, inline configuration, diagnostics,
+hover, and inlay hints. Live settings changes are compared with a freshly started
+official server because this upstream version does not reload client settings.
+It also checks delayed/stale replies, cancellation, unsaved buffers, and unchanged
+checker reuse. CI runs it on Linux, macOS, and Windows.

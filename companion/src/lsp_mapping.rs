@@ -7,6 +7,7 @@
 use std::{
     collections::{BTreeMap, BTreeSet},
     hash::{Hash, Hasher},
+    path::Path,
 };
 
 use anyhow::{Context, Result, bail, ensure};
@@ -133,6 +134,13 @@ pub fn offset_to_position(text: &str, offset: usize, encoding: PositionEncoding)
     Coordinates::new(text).position(text, offset, encoding)
 }
 
+pub struct ProjectDisplayPaths<'a> {
+    pub projected_root: &'a Path,
+    pub original_root: &'a Path,
+    pub projected_stubs: &'a Path,
+    pub generated_root: &'a Path,
+}
+
 /// Preserve upstream diagnostic notes for terminal output while mapping every
 /// related location through the complete project. CLI primary descriptions may
 /// have extra plugin-specific normalization, so keep their existing wording.
@@ -141,6 +149,7 @@ pub fn merge_cli_diagnostic_details(
     rich: &[Value],
     documents: &[crate::project_check::ProjectDocument],
     names: BTreeMap<String, String>,
+    paths: ProjectDisplayPaths<'_>,
 ) -> Result<()> {
     let generated: BTreeMap<_, _> = documents
         .iter()
@@ -194,22 +203,26 @@ pub fn merge_cli_diagnostic_details(
             diagnostic["lsp_diagnostic"] = candidate.clone();
         }
     }
-    cli_diagnostic_details(diagnostics, documents, names)
+    cli_diagnostic_details(diagnostics, documents, names, paths)
 }
 
 pub fn cli_diagnostic_details(
     diagnostics: &mut [Value],
     documents: &[crate::project_check::ProjectDocument],
     names: BTreeMap<String, String>,
+    display_paths: ProjectDisplayPaths<'_>,
 ) -> Result<()> {
     let mut maps = LspSourceMaps::new(PositionEncoding::Utf32, PositionEncoding::Utf32);
+    maps.add_path_prefix(display_paths.projected_root, display_paths.original_root)?;
+    maps.add_synthetic_path_prefix(display_paths.projected_stubs, "<plugin stub overlay>")?;
+    maps.add_synthetic_path_prefix(display_paths.generated_root, "<plugin analysis>")?;
     for (generated, original) in names {
         maps.add_name(generated, original);
     }
-    let mut paths = vec![];
     for document in documents {
         let original = crate::checker::file_uri(std::path::Path::new(&document.source.path))?;
         let generated = crate::checker::file_uri(&document.path)?;
+        maps.add_path_prefix(&document.path, Path::new(&document.source.path))?;
         maps.add_hidden_prefix(document.source.prefix.clone());
         maps.add_generated_root(crate::checker::file_uri(
             document
@@ -217,11 +230,6 @@ pub fn cli_diagnostic_details(
                 .parent()
                 .context("diagnostic projection parent")?,
         )?);
-        paths.push((
-            document.path.to_string_lossy().into_owned(),
-            document.source.path.clone(),
-        ));
-        paths.push((generated.clone(), original.clone()));
         maps.insert(
             DocumentMap::new(
                 original,
@@ -233,7 +241,6 @@ pub fn cli_diagnostic_details(
             .with_module(document.source.module.clone()),
         );
     }
-    paths.sort_by_key(|(generated, _)| std::cmp::Reverse(generated.len()));
     for diagnostic in diagnostics {
         let Some(raw) = diagnostic.get("lsp_diagnostic") else {
             continue;
@@ -252,25 +259,13 @@ pub fn cli_diagnostic_details(
             continue;
         };
         if let Some((_, details)) = mapped["message"].as_str().unwrap_or("").split_once('\n') {
-            let mut details = details.trim().to_owned();
-            for (generated, original) in &paths {
-                details = details.replace(generated, original);
-            }
+            let details = details.trim().to_owned();
             if !details.is_empty() && !maps.hidden_text(&details) {
                 diagnostic["details"] = json!(details);
             }
         }
         if let Some(related) = mapped["relatedInformation"].as_array() {
             let mut related = related.clone();
-            for entry in &mut related {
-                if let Some(message) = entry["message"].as_str() {
-                    let mut message = message.to_owned();
-                    for (generated, original) in &paths {
-                        message = message.replace(generated, original);
-                    }
-                    entry["message"] = json!(message);
-                }
-            }
             related.retain(|entry| !maps.hidden_text(entry["message"].as_str().unwrap_or("")));
             if !related.is_empty() {
                 diagnostic["related"] = json!(related);
@@ -520,6 +515,87 @@ struct Resolve {
     fingerprint: Option<u64>,
 }
 
+fn add_native_path_prefixes(
+    prefixes: &mut BTreeMap<String, String>,
+    generated: &str,
+    original: &str,
+    windows: bool,
+) {
+    fn ordinary(path: &str) -> String {
+        if let Some(path) = path.strip_prefix(r"\\?\UNC\") {
+            format!(r"\\{path}")
+        } else {
+            path.strip_prefix(r"\\?\").unwrap_or(path).to_owned()
+        }
+    }
+    if windows {
+        let original = ordinary(original);
+        let generated_ordinary = ordinary(generated);
+        prefixes.insert(generated.to_owned(), original.clone());
+        prefixes.insert(generated_ordinary.clone(), original.clone());
+        prefixes.insert(
+            generated_ordinary.replace('\\', "/"),
+            original.replace('\\', "/"),
+        );
+    } else {
+        prefixes.insert(generated.to_owned(), original.to_owned());
+    }
+}
+
+/// Rewrite complete path prefixes in prose, once. Longest matches preserve
+/// specific project mappings when their generated parent is also registered.
+fn rewrite_path_prefixes(text: &str, prefixes: &BTreeMap<String, String>) -> String {
+    if prefixes.is_empty() {
+        return text.to_owned();
+    }
+    let mut sorted: Vec<_> = prefixes.iter().collect();
+    sorted.sort_unstable_by_key(|(prefix, _)| std::cmp::Reverse(prefix.len()));
+    let mut result = String::with_capacity(text.len());
+    let mut offset = 0;
+    while offset < text.len() {
+        let starts_path = offset == 0
+            || text[..offset].chars().next_back().is_some_and(|ch| {
+                ch.is_whitespace() || matches!(ch, '\'' | '"' | '`' | '(' | '[' | '{' | '=' | '<')
+            });
+        let found = starts_path
+            .then(|| {
+                sorted.iter().find(|(prefix, _)| {
+                    text[offset..]
+                        .strip_prefix(prefix.as_str())
+                        .is_some_and(|rest| {
+                            rest.is_empty()
+                                || rest.chars().next().is_some_and(|ch| {
+                                    ch.is_whitespace()
+                                        || matches!(
+                                            ch,
+                                            '/' | '\\'
+                                                | '\''
+                                                | '"'
+                                                | '`'
+                                                | ')'
+                                                | ']'
+                                                | '}'
+                                                | ','
+                                                | ';'
+                                                | ':'
+                                        )
+                                })
+                        })
+                })
+            })
+            .flatten();
+        if let Some((prefix, original)) = found {
+            result.push_str(original);
+            offset += prefix.len();
+        } else {
+            let ch = text[offset..].chars().next().unwrap();
+            result.push(ch);
+            offset += ch.len_utf8();
+        }
+    }
+    result
+}
+
 pub struct LspSourceMaps {
     pub client_encoding: PositionEncoding,
     pub server_encoding: PositionEncoding,
@@ -528,6 +604,7 @@ pub struct LspSourceMaps {
     generated_roots: BTreeSet<String>,
     hidden_prefixes: BTreeSet<String>,
     names: BTreeMap<String, String>,
+    path_prefixes: BTreeMap<String, String>,
     resolves: BTreeMap<u64, Resolve>,
     next_resolve: u64,
     semantic_tokens: BTreeMap<(String, String), Vec<Value>>,
@@ -543,6 +620,7 @@ impl LspSourceMaps {
             generated_roots: BTreeSet::new(),
             hidden_prefixes: BTreeSet::new(),
             names: BTreeMap::new(),
+            path_prefixes: BTreeMap::new(),
             resolves: BTreeMap::new(),
             next_resolve: 1,
             semantic_tokens: BTreeMap::new(),
@@ -563,6 +641,7 @@ impl LspSourceMaps {
         self.documents.clear();
         self.originals.clear();
         self.names.clear();
+        self.path_prefixes.clear();
         self.hidden_prefixes.clear();
         self.diagnostic_context.clear();
     }
@@ -575,6 +654,34 @@ impl LspSourceMaps {
     }
     pub fn add_name(&mut self, generated: String, original: String) {
         self.names.insert(generated, original);
+    }
+    pub fn clean_message(&self, text: &str) -> String {
+        self.clean_text(None, text)
+    }
+    /// Rewrite displayed search paths without changing URI/location routing.
+    pub fn add_path_prefix(&mut self, generated: &Path, original: &Path) -> Result<()> {
+        let generated_uri = crate::checker::file_uri(generated)?;
+        let original_uri = crate::checker::file_uri(original)?;
+        self.path_prefixes.insert(generated_uri, original_uri);
+        add_native_path_prefixes(
+            &mut self.path_prefixes,
+            generated.to_str().context("non-UTF-8 generated path")?,
+            original.to_str().context("non-UTF-8 original path")?,
+            cfg!(windows),
+        );
+        Ok(())
+    }
+    /// Merged/synthesized overlays have no single real directory to claim.
+    pub fn add_synthetic_path_prefix(&mut self, generated: &Path, label: &str) -> Result<()> {
+        self.path_prefixes
+            .insert(crate::checker::file_uri(generated)?, label.to_owned());
+        add_native_path_prefixes(
+            &mut self.path_prefixes,
+            generated.to_str().context("non-UTF-8 generated path")?,
+            label,
+            cfg!(windows),
+        );
+        Ok(())
     }
     /// Preserve the server's opaque diagnostic data and exact generated range
     /// while displaying normalized diagnostic text/locations to the editor.
@@ -663,7 +770,7 @@ impl LspSourceMaps {
                 .and_then(|doc| doc.names.get(name))
                 .or_else(|| self.names.get(name))
         };
-        crate::project::rewrite_names(text, |name| {
+        let text = crate::project::rewrite_names(text, |name| {
             if let Some(original) = name_of(name) {
                 return original.clone();
             }
@@ -683,7 +790,8 @@ impl LspSourceMaps {
                 prefix = head;
             }
             name.to_owned()
-        })
+        });
+        rewrite_path_prefixes(&text, &self.path_prefixes)
     }
     fn hidden_text(&self, text: &str) -> bool {
         self.hidden_prefixes
@@ -2317,6 +2425,100 @@ mod tests {
         Ok(maps)
     }
     #[test]
+    fn displayed_search_paths_preserve_origins_and_overlay_identity() -> Result<()> {
+        let mut maps = fixture()?;
+        let base = std::env::temp_dir().join("mapping paths café");
+        let analysis = base.join("analysis");
+        let project = analysis.join("project");
+        let stubs = analysis.join("stubs");
+        let original = base.join("original project");
+        maps.add_synthetic_path_prefix(&analysis, "<plugin analysis>")?;
+        maps.add_path_prefix(&project, &original)?;
+        maps.add_synthetic_path_prefix(&stubs, "<plugin stub overlay>")?;
+        let original_display = if cfg!(windows) {
+            original
+                .to_string_lossy()
+                .trim_start_matches(r"\\?\")
+                .to_owned()
+        } else {
+            original.to_string_lossy().into_owned()
+        };
+        let message = format!(
+            "Cannot resolve imported module `missing`\ninfo: 1. {} (extra path)\ninfo: 2. {} (extra path)\ninfo: 3. `{}`\ninfo: 4. {}",
+            stubs.display(),
+            project.display(),
+            crate::checker::file_uri(&project)?,
+            analysis.join("generated.py").display()
+        );
+        let diagnostic = maps.diagnostics(&json!({
+            "uri":"file:///analysis/demo.py",
+            "diagnostics":[{"range":range(1,0,1,4),"message":message,"code":"unresolved-import"}]
+        }))?;
+        let shown = diagnostic["diagnostics"][0]["message"].as_str().unwrap();
+        assert!(
+            shown.contains("1. <plugin stub overlay> (extra path)"),
+            "{shown}"
+        );
+        assert!(
+            shown.contains(&format!("2. {original_display} (extra path)")),
+            "{shown}"
+        );
+        assert!(
+            shown.contains(&crate::checker::file_uri(&original)?),
+            "{shown}"
+        );
+        assert!(shown.contains("<plugin analysis>"), "{shown}");
+        assert!(
+            !shown.contains(&analysis.to_string_lossy().into_owned()),
+            "{shown}"
+        );
+        maps.clear_documents();
+        assert_eq!(maps.clean_text(None, &message), message);
+        Ok(())
+    }
+    #[test]
+    fn displayed_path_replacement_is_boundary_aware_and_does_not_cascade() {
+        let prefixes = BTreeMap::from([
+            ("/analysis".into(), "<analysis>".into()),
+            ("/analysis/project".into(), "/analysis/original".into()),
+        ]);
+        let text = "('/analysis/project/a.py') `/analysis/project` /analysis/project:5 /analysis/project-other /analysis-other x/analysis/project https://host/analysis/project";
+        assert_eq!(
+            rewrite_path_prefixes(text, &prefixes),
+            "('/analysis/original/a.py') `/analysis/original` /analysis/original:5 <analysis>/project-other /analysis-other x/analysis/project https://host/analysis/project"
+        );
+        assert_eq!(
+            rewrite_path_prefixes(
+                "text `/analysis/project.py`",
+                &BTreeMap::from([("/analysis/project".into(), "/source".into())])
+            ),
+            "text `/analysis/project.py`"
+        );
+    }
+    #[test]
+    fn displayed_windows_paths_cover_verbatim_ordinary_and_slash_spellings() {
+        let mut prefixes = BTreeMap::new();
+        add_native_path_prefixes(
+            &mut prefixes,
+            r"\\?\C:\analysis\project",
+            r"\\?\C:\source\café",
+            true,
+        );
+        add_native_path_prefixes(
+            &mut prefixes,
+            r"\\?\UNC\host\share\stubs",
+            "<plugin stub overlay>",
+            true,
+        );
+        assert_eq!(
+            rewrite_path_prefixes(
+                r"`\\?\C:\analysis\project` C:\analysis\project\a.py C:/analysis/project/a.py \\host\share\stubs //host/share/stubs/pkg.pyi C:\analysis\project-other",
+                &prefixes,
+            ),
+            r"`C:\source\café` C:\source\café\a.py C:/source/café/a.py <plugin stub overlay> <plugin stub overlay>/pkg.pyi C:\analysis\project-other"
+        );
+    }
+    #[test]
     fn encodings_crlf_bom_and_character_boundaries() -> Result<()> {
         let text = "\u{feff}x😀é\r\n雪z\ry\n";
         let after_emoji = text.find('é').unwrap();
@@ -2954,7 +3156,18 @@ mod tests {
         ];
         diagnostics[0]["lsp_diagnostic"]["message"] =
             json!("Custom concise message differing from the editor headline");
-        merge_cli_diagnostic_details(&mut diagnostics, &rich, &[document], BTreeMap::new())?;
+        merge_cli_diagnostic_details(
+            &mut diagnostics,
+            &rich,
+            &[document],
+            BTreeMap::new(),
+            ProjectDisplayPaths {
+                projected_root: &root.join("generated"),
+                original_root: &root.join("source"),
+                projected_stubs: &root.join("stubs"),
+                generated_root: &root.join("analysis"),
+            },
+        )?;
         assert_eq!(diagnostics[0]["description"], "original primary");
         assert_eq!(
             diagnostics[0]["details"],

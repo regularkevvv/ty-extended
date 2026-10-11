@@ -15,6 +15,7 @@ globset = "0.4"
 ignore = "0.4"
 notify = "8.2"
 ctrlc = "3.5"
+shellexpand = { version = "=3.1.2", default-features = false, features = ["base-0", "tilde"] }
 ty_plugin_host = { path = "../ruff/crates/ty_plugin_host", default-features = false, features = ["plugins-monty"] }
 ty_plugin_protocol = { path = "../ruff/crates/ty_plugin_protocol" }
 ruff_python_parser = { path = "../ruff/crates/ruff_python_parser" }

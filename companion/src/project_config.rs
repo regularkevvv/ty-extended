@@ -11,6 +11,7 @@ type PluginRegistration = (PathBuf, PathBuf, serde_json::Value);
 
 pub struct Config {
     pub text: String,
+    pub editor_configuration: Option<serde_json::Value>,
     pub python_version: String,
     pub platform: String,
     pub source: Option<PathBuf>,
@@ -223,6 +224,416 @@ fn discovered(root: &Path, explicit: Option<&String>) -> Result<(Table, PathBuf,
         }
     }
     Ok((Table::new(), root.to_owned(), None))
+}
+
+/// Merge a higher-precedence ty configuration layer. ty_combine places higher
+/// precedence array items last, while scalar values replace earlier values.
+fn merge_layer(table: &mut Table, additions: Table, combine: bool) {
+    fn merge(table: &mut Table, additions: Table, path: &mut Vec<String>, combine: bool) {
+        for (key, value) in additions {
+            // A plugin's configuration is opaque JSON, not another ty options
+            // struct. PluginsOptions.config combines its map entries atomically.
+            if combine && path.as_slice() == ["plugins", "config"] {
+                table.insert(key, value);
+                continue;
+            }
+            match (table.get_mut(&key), value) {
+                (Some(Value::Table(existing)), Value::Table(additions)) => {
+                    path.push(key);
+                    merge(existing, additions, path, combine);
+                    path.pop();
+                }
+                (Some(Value::Array(existing)), Value::Array(additions)) if combine => {
+                    existing.extend(additions);
+                }
+                (_, value) => {
+                    table.insert(key, value);
+                }
+            }
+        }
+    }
+    merge(table, additions, &mut Vec::new(), combine);
+}
+
+fn expanded_editor_path(value: &str, root: &Path) -> Result<PathBuf> {
+    let expanded = shellexpand::full_with_context(
+        value,
+        || std::env::var("HOME").ok(),
+        |name| match std::env::var(name) {
+            Ok(value) => Ok(Some(value)),
+            Err(std::env::VarError::NotPresent) => Ok(None),
+            Err(error) => Err(error),
+        },
+    )
+    .context("expand editor configuration path")?;
+    Ok(PathBuf::from(relocated(&expanded, root, root, root)))
+}
+
+/// Keep each inline path's original workspace origin before merging it with
+/// paths read from a (possibly different) configuration directory.
+fn anchor_editor_paths(table: &mut Table, root: &Path) -> Result<()> {
+    if let Some(environment) = table.get_mut("environment").and_then(Value::as_table_mut) {
+        for key in ["root", "extra-paths"] {
+            if let Some(values) = environment.get_mut(key).and_then(Value::as_array_mut) {
+                for value in values {
+                    if let Some(path) = value.as_str() {
+                        *value = Value::String(
+                            expanded_editor_path(path, root)?
+                                .to_string_lossy()
+                                .into_owned(),
+                        );
+                    }
+                }
+            }
+        }
+        for key in ["python", "typeshed"] {
+            if let Some(value) = environment.get_mut(key)
+                && let Some(path) = value.as_str()
+            {
+                *value = Value::String(
+                    expanded_editor_path(path, root)?
+                        .to_string_lossy()
+                        .into_owned(),
+                );
+            }
+        }
+    }
+    let anchor_globs = |table: &mut Table| {
+        for key in ["include", "exclude"] {
+            if let Some(value) = table.get_mut(key) {
+                relocate_list(value, root, root, root);
+            }
+        }
+    };
+    if let Some(src) = table.get_mut("src").and_then(Value::as_table_mut) {
+        anchor_globs(src);
+    }
+    if let Some(overrides) = table.get_mut("overrides").and_then(Value::as_array_mut) {
+        for entry in overrides.iter_mut().filter_map(Value::as_table_mut) {
+            anchor_globs(entry);
+        }
+    }
+    if let Some(plugins) = table.get_mut("plugins").and_then(Value::as_table_mut)
+        && let Some(entries) = plugins.get_mut("plugin").and_then(Value::as_array_mut)
+    {
+        for entry in entries.iter_mut().filter_map(Value::as_table_mut) {
+            for key in ["path", "manifest-path", "stub-overlay-path"] {
+                if let Some(value) = entry.get_mut(key)
+                    && let Some(path) = value.as_str()
+                {
+                    *value = Value::String(
+                        expanded_editor_path(path, root)?
+                            .to_string_lossy()
+                            .into_owned(),
+                    );
+                }
+            }
+        }
+    }
+    Ok(())
+}
+
+fn editor_options(options: &BTreeMap<String, String>) -> Result<serde_json::Value> {
+    let read = |key: &str| -> Result<serde_json::Value> {
+        options
+            .get(key)
+            .map(|value| serde_json::from_str(value).with_context(|| format!("invalid {key}")))
+            .transpose()
+            .map(|value| value.unwrap_or(serde_json::Value::Null))
+    };
+    Ok(crate::editor_options::effective(
+        &read("lsp-initialization-options")?,
+        &read("lsp-workspace-configuration")?,
+    ))
+}
+
+/// The checked-in schema supplies serialization shape, not filesystem or glob
+/// semantics; those remain the native checker's responsibility.
+fn editor_schema() -> Result<&'static serde_json::Value> {
+    static SCHEMA: std::sync::OnceLock<std::result::Result<serde_json::Value, String>> =
+        std::sync::OnceLock::new();
+    SCHEMA
+        .get_or_init(|| {
+            let schema: serde_json::Value =
+                serde_json::from_str(include_str!("../../ruff/ty.schema.json"))
+                    .map_err(|error| error.to_string())?;
+            audit_editor_schema(&schema, &schema).map_err(|error| error.to_string())?;
+            Ok(schema)
+        })
+        .as_ref()
+        .map_err(|error| anyhow::anyhow!("unsupported pinned ty configuration schema: {error}"))
+}
+
+fn audit_editor_schema(schema: &serde_json::Value, root: &serde_json::Value) -> Result<()> {
+    if schema.is_boolean() {
+        return Ok(());
+    }
+    let object = schema
+        .as_object()
+        .context("schema must be an object or boolean")?;
+    for (key, value) in object {
+        match key.as_str() {
+            "$schema" | "title" | "description" | "default" | "const" => {}
+            "type" => {
+                let supported = |name: &serde_json::Value| {
+                    matches!(
+                        name.as_str(),
+                        Some(
+                            "object"
+                                | "array"
+                                | "string"
+                                | "boolean"
+                                | "null"
+                                | "number"
+                                | "integer"
+                        )
+                    )
+                };
+                ensure!(
+                    supported(value)
+                        || value
+                            .as_array()
+                            .is_some_and(|types| !types.is_empty() && types.iter().all(supported)),
+                    "unsupported schema type {value}"
+                );
+            }
+            "enum" => ensure!(
+                value.as_array().is_some_and(|values| !values.is_empty()),
+                "schema enum must be a nonempty array"
+            ),
+            "required" => ensure!(
+                value
+                    .as_array()
+                    .is_some_and(|keys| keys.iter().all(serde_json::Value::is_string)),
+                "schema required must contain strings"
+            ),
+            "$ref" => {
+                let pointer = value
+                    .as_str()
+                    .and_then(|value| value.strip_prefix('#'))
+                    .context("schema reference must be local")?;
+                ensure!(
+                    root.pointer(pointer).is_some(),
+                    "missing schema reference {pointer}"
+                );
+            }
+            "properties" | "definitions" => {
+                for child in value
+                    .as_object()
+                    .context("schema properties must be an object")?
+                    .values()
+                {
+                    audit_editor_schema(child, root)?;
+                }
+            }
+            "additionalProperties" | "items" => audit_editor_schema(value, root)?,
+            "oneOf" | "anyOf" | "allOf" => {
+                for child in value
+                    .as_array()
+                    .context("schema alternatives must be an array")?
+                {
+                    audit_editor_schema(child, root)?;
+                }
+            }
+            _ => anyhow::bail!("unhandled validation keyword {key}"),
+        }
+    }
+    Ok(())
+}
+
+fn matches_editor_schema(
+    value: &serde_json::Value,
+    schema: &serde_json::Value,
+    root: &serde_json::Value,
+    depth: usize,
+) -> bool {
+    if depth > 128 {
+        return false;
+    }
+    if let Some(result) = schema.as_bool() {
+        return result;
+    }
+    if let Some(reference) = schema.get("$ref").and_then(serde_json::Value::as_str) {
+        return reference
+            .strip_prefix('#')
+            .and_then(|pointer| root.pointer(pointer))
+            .is_some_and(|referenced| matches_editor_schema(value, referenced, root, depth + 1));
+    }
+    let type_matches = |name: &str| match name {
+        "object" => value.is_object(),
+        "array" => value.is_array(),
+        "string" => value.is_string(),
+        "boolean" => value.is_boolean(),
+        "null" => value.is_null(),
+        "number" => value.is_number(),
+        "integer" => value.is_i64() || value.is_u64(),
+        _ => false,
+    };
+    if let Some(types) = schema.get("type") {
+        let matches = types.as_str().map(type_matches).unwrap_or_else(|| {
+            types.as_array().is_some_and(|types| {
+                types
+                    .iter()
+                    .any(|name| name.as_str().is_some_and(type_matches))
+            })
+        });
+        if !matches {
+            return false;
+        }
+    }
+    if schema
+        .get("const")
+        .is_some_and(|expected| expected != value)
+        || schema
+            .get("enum")
+            .and_then(serde_json::Value::as_array)
+            .is_some_and(|choices| !choices.contains(value))
+    {
+        return false;
+    }
+    for (key, predicate) in [("allOf", 0), ("anyOf", 1), ("oneOf", 2)] {
+        if let Some(choices) = schema.get(key).and_then(serde_json::Value::as_array) {
+            let matches = choices
+                .iter()
+                .filter(|choice| matches_editor_schema(value, choice, root, depth + 1))
+                .count();
+            if match predicate {
+                0 => matches != choices.len(),
+                1 => matches == 0,
+                _ => matches != 1,
+            } {
+                return false;
+            }
+        }
+    }
+    if let Some(object) = value.as_object() {
+        if schema
+            .get("required")
+            .and_then(serde_json::Value::as_array)
+            .is_some_and(|keys| {
+                keys.iter()
+                    .any(|key| key.as_str().is_none_or(|key| !object.contains_key(key)))
+            })
+        {
+            return false;
+        }
+        for (key, value) in object {
+            let child = schema
+                .get("properties")
+                .and_then(|properties| properties.get(key))
+                .or_else(|| schema.get("additionalProperties"));
+            if child.is_some_and(|child| !matches_editor_schema(value, child, root, depth + 1)) {
+                return false;
+            }
+        }
+    }
+    if let Some(array) = value.as_array()
+        && let Some(items) = schema.get("items")
+        && !array
+            .iter()
+            .all(|value| matches_editor_schema(value, items, root, depth + 1))
+    {
+        return false;
+    }
+    true
+}
+
+fn remove_null_options(value: &mut serde_json::Value) {
+    match value {
+        serde_json::Value::Object(object) => {
+            object.retain(|_, value| !value.is_null());
+            for value in object.values_mut() {
+                remove_null_options(value);
+            }
+        }
+        serde_json::Value::Array(values) => {
+            for value in values {
+                remove_null_options(value);
+            }
+        }
+        _ => {}
+    }
+}
+
+fn editor_python_version(editor: &serde_json::Value) -> Option<String> {
+    let version = editor.pointer("/pythonExtension/activeEnvironment/version")?;
+    let major = version["major"].as_u64()?;
+    let minor = version["minor"].as_u64()?;
+    // Match SupportedPythonVersion in the pinned upstream project options.
+    (major == 3 && (7..=15).contains(&minor)).then(|| format!("3.{minor}"))
+}
+
+fn project_metadata(
+    root: &Path,
+    base: &Path,
+    source: Option<&Path>,
+    explicit: bool,
+) -> Result<Table> {
+    if explicit {
+        // Upstream ProjectMetadata::from_config_file deliberately bypasses the
+        // workspace pyproject metadata, including requires-python.
+        return Ok(Table::new());
+    }
+    let path = if source.is_some() {
+        Some(base.join("pyproject.toml"))
+    } else {
+        root.ancestors()
+            .map(|parent| parent.join("pyproject.toml"))
+            .find(|path| path.is_file())
+    };
+    let Some(path) = path.filter(|path| path.is_file()) else {
+        return Ok(Table::new());
+    };
+    let original: Table = toml::from_str(&std::fs::read_to_string(path)?)?;
+    let mut metadata = Table::new();
+    if let Some(project) = original.get("project") {
+        metadata.insert("project".into(), project.clone());
+    }
+    Ok(metadata)
+}
+
+fn relocate_native_layer(table: &mut Table, base: &Path, root: &Path, view: &Path) -> Result<()> {
+    table.remove("plugins");
+    if let Some(environment) = table.get_mut("environment").and_then(Value::as_table_mut) {
+        for key in ["root", "extra-paths"] {
+            if let Some(value) = environment.get_mut(key) {
+                relocate_list(value, base, root, view);
+            }
+        }
+        for key in ["python", "typeshed"] {
+            if let Some(value) = environment.get_mut(key)
+                && let Some(path) = value.as_str()
+            {
+                *value = Value::String(
+                    expanded_editor_path(path, base)?
+                        .to_string_lossy()
+                        .into_owned(),
+                );
+            }
+        }
+    }
+    let relocate_globs = |table: &mut Table| -> Result<()> {
+        for key in ["include", "exclude"] {
+            if let Some(value) = table.get_mut(key) {
+                relocate_list(value, base, root, view);
+                if key == "exclude" {
+                    preserve_negated_globs(value, view.parent().context("checker root")?)?;
+                }
+                #[cfg(windows)]
+                portable_windows_globs(value, view.parent().context("checker root")?)?;
+            }
+        }
+        Ok(())
+    };
+    if let Some(src) = table.get_mut("src").and_then(Value::as_table_mut) {
+        relocate_globs(src)?;
+    }
+    if let Some(overrides) = table.get_mut("overrides").and_then(Value::as_array_mut) {
+        for entry in overrides.iter_mut().filter_map(Value::as_table_mut) {
+            relocate_globs(entry)?;
+        }
+    }
+    Ok(())
 }
 
 fn relocated(value: &str, base: &Path, root: &Path, view: &Path) -> String {
@@ -609,27 +1020,17 @@ fn plugin_registrations(
 /// preserves requires-python/interpreter/default behavior across checker releases
 /// without duplicating PEP 440 or hard-coding the checker's latest stable version.
 fn resolve_python_version(
-    root: &Path,
     view: &Path,
     table: &Table,
     options: &BTreeMap<String, String>,
+    project_metadata: &Table,
 ) -> Result<String> {
     let directory = view
         .parent()
         .context("generated view parent")?
         .join("environment-probe");
     std::fs::create_dir_all(&directory)?;
-    let mut metadata = Table::new();
-    for parent in root.ancestors() {
-        let path = parent.join("pyproject.toml");
-        if path.is_file() {
-            let original: Table = toml::from_str(&std::fs::read_to_string(path)?)?;
-            if let Some(project) = original.get("project") {
-                metadata.insert("project".into(), project.clone());
-            }
-            break;
-        }
-    }
+    let mut metadata = project_metadata.clone();
     let mut tool = Table::new();
     tool.insert("ty".into(), Value::Table(table.clone()));
     metadata.insert("tool".into(), Value::Table(tool));
@@ -684,21 +1085,62 @@ pub fn load(
     stubs: &Path,
     options: &BTreeMap<String, String>,
 ) -> Result<Config> {
-    let (mut table, base, source) = discovered(root, options.get("ty-config"))?;
-    if let Some(overrides) = options.get("cli-config") {
-        fn merge(table: &mut Table, additions: Table) {
-            for (key, value) in additions {
-                if let Value::Table(additions) = value {
-                    if let Some(Value::Table(existing)) = table.get_mut(&key) {
-                        merge(existing, additions);
-                    } else {
-                        table.insert(key, Value::Table(additions));
-                    }
-                } else {
-                    table.insert(key, value);
-                }
+    let is_editor = options.contains_key("lsp-initialization-options")
+        || options.contains_key("lsp-workspace-configuration");
+    let editor = editor_options(options)?;
+    let editor_file = editor
+        .get("configurationFile")
+        .and_then(serde_json::Value::as_str)
+        .map(|path| expanded_editor_path(path, root))
+        .transpose()?
+        .map(|path| path.to_string_lossy().into_owned());
+    let explicit = options.get("ty-config").or(editor_file.as_ref());
+    let (mut table, mut base, source) = discovered(root, explicit)?;
+    let metadata = if is_editor {
+        project_metadata(root, &base, source.as_deref(), explicit.is_some())?
+    } else {
+        Table::new()
+    };
+    if options.get("ty-config").is_none() && editor_file.is_some() {
+        // The LSP config-file path is resolved against the workspace, and its
+        // file-relative settings use that same ProjectMetadata root upstream.
+        base = root.to_owned();
+    }
+    let mut native_base = table.clone();
+    let mut native_inline = None;
+    let mut invalid_inline = None;
+    if let Some(configuration) = editor.get("configuration").filter(|v| !v.is_null()) {
+        let mut native = configuration.clone();
+        // Plugins are frontend options. Their opaque configuration must not be
+        // validated or normalized as native ty options, nor sent to stock ty.
+        let plugins = native
+            .as_object_mut()
+            .and_then(|object| object.remove("plugins"));
+        let schema = editor_schema()?;
+        if matches_editor_schema(&native, schema, schema, 0) {
+            // JSON null deserializes as None for native Option fields; TOML has
+            // no null representation. Validate first so invalid null map values
+            // cannot disappear and accidentally turn a rejected layer valid.
+            remove_null_options(&mut native);
+            if let Some(plugins) = plugins.filter(|value| !value.is_null()) {
+                native
+                    .as_object_mut()
+                    .unwrap()
+                    .insert("plugins".into(), plugins);
             }
+            let mut inline: Table =
+                serde_json::from_value(native).context("invalid editor plugin configuration")?;
+            anchor_editor_paths(&mut inline, root)?;
+            native_inline = Some(inline.clone());
+            merge_layer(&mut table, inline, true);
+        } else {
+            // Native ty rejects the whole inline layer but continues with file
+            // and Python-extension settings. Preserve its original invalid JSON
+            // so the native server can report the same configuration error.
+            invalid_inline = Some(native);
         }
+    }
+    if let Some(overrides) = options.get("cli-config") {
         let overrides: Vec<String> = serde_json::from_str(overrides)?;
         let cwd = std::env::current_dir()?;
         for text in overrides {
@@ -730,7 +1172,48 @@ pub fn load(
                     }
                 }
             }
-            merge(&mut table, additions);
+            if let Some(inline) = &mut native_inline {
+                merge_layer(inline, additions.clone(), true);
+            } else {
+                merge_layer(&mut native_base, additions.clone(), is_editor);
+            }
+            // Keep the existing CLI override behavior outside editor sessions.
+            merge_layer(&mut table, additions, is_editor);
+        }
+    }
+    let mut editor_python_fallback = false;
+    let mut editor_version_fallback = false;
+    if let Some(python) = editor
+        .pointer("/pythonExtension/activeEnvironment/executable/sysPrefix")
+        .and_then(serde_json::Value::as_str)
+    {
+        let environment = table
+            .entry("environment")
+            .or_insert_with(|| Value::Table(Table::new()))
+            .as_table_mut()
+            .context("environment must be a table")?;
+        if !environment.contains_key("python") {
+            editor_python_fallback = !options.contains_key("python");
+            environment.insert(
+                "python".into(),
+                Value::String(
+                    expanded_editor_path(python, root)?
+                        .to_string_lossy()
+                        .into_owned(),
+                ),
+            );
+        }
+        // Discovery applies requires-python to the project layer before the
+        // editor's lowest-precedence fallback layer. The stock checker remains
+        // responsible for parsing and resolving that Python version policy.
+        editor_version_fallback = !environment.contains_key("python-version")
+            && !options.contains_key("python-version")
+            && metadata
+                .get("project")
+                .and_then(|project| project.get("requires-python"))
+                .is_none();
+        if editor_version_fallback && let Some(version) = editor_python_version(&editor) {
+            environment.insert("python-version".into(), Value::String(version));
         }
     }
     let terminal = serde_json::to_value(table.get("terminal"))?;
@@ -941,7 +1424,13 @@ pub fn load(
     }
     let python_version = match configured_python_version {
         Some(version) => version,
-        None => resolve_python_version(root, view, &table, options)?,
+        None if is_editor => resolve_python_version(view, &table, options, &metadata)?,
+        None => resolve_python_version(
+            view,
+            &table,
+            options,
+            &project_metadata(root, root, None, false)?,
+        )?,
     };
     table
         .get_mut("environment")
@@ -951,8 +1440,100 @@ pub fn load(
             "python-version".into(),
             Value::String(python_version.clone()),
         );
+    // The native editor server must still receive these as Python-extension
+    // fallbacks, not explicit config values. Apart from precedence this preserves
+    // its diagnostic explanation of where the selected Python version came from.
+    let environment = table
+        .get_mut("environment")
+        .and_then(Value::as_table_mut)
+        .unwrap();
+    if editor_python_fallback {
+        environment.remove("python");
+    }
+    if editor_version_fallback {
+        environment.remove("python-version");
+    }
+    let editor_configuration = if is_editor {
+        // Keep native configuration layers separate. Re-serializing the merged
+        // options as a file loses editor provenance and forwarding inline arrays
+        // on top of that merged file would apply every item twice.
+        if let Some(inline) = &mut native_inline {
+            let environment = inline
+                .entry("environment")
+                .or_insert_with(|| Value::Table(Table::new()))
+                .as_table_mut()
+                .context("environment must be a table")?;
+            for key in ["python-version", "python-platform", "python"] {
+                if let Some(value) = options.get(key) {
+                    environment.insert(key.into(), Value::String(value.clone()));
+                }
+            }
+            relocate_native_layer(inline, root, root, view)?;
+        }
+        relocate_native_layer(&mut native_base, &base, root, view)?;
+        let native_environment = native_base
+            .entry("environment")
+            .or_insert_with(|| Value::Table(Table::new()))
+            .as_table_mut()
+            .context("environment must be a table")?;
+        for key in ["python-version", "python-platform", "python"] {
+            if let Some(value) = options.get(key) {
+                native_environment.insert(key.into(), Value::String(value.clone()));
+            }
+        }
+        if !native_environment.contains_key("python")
+            && !editor_python_fallback
+            && root.join(".venv").is_dir()
+        {
+            native_environment.insert(
+                "python".into(),
+                Value::String(root.join(".venv").to_string_lossy().into_owned()),
+            );
+        }
+        let extras = native_environment
+            .entry("extra-paths")
+            .or_insert_with(|| Value::Array(vec![]))
+            .as_array_mut()
+            .context("environment.extra-paths must be an array")?;
+        extras.insert(0, Value::String(view.to_string_lossy().into_owned()));
+        extras.insert(0, Value::String(stubs.to_string_lossy().into_owned()));
+        let inline_has_root = native_inline
+            .as_ref()
+            .and_then(|inline| inline.get("environment"))
+            .is_some_and(|environment| environment.get("root").is_some());
+        if !inline_has_root {
+            native_environment.entry("root").or_insert_with(|| {
+                Value::Array(
+                    source_roots
+                        .iter()
+                        .map(|path| {
+                            Value::String(relocated(&path.to_string_lossy(), root, root, view))
+                        })
+                        .collect(),
+                )
+            });
+        }
+        if !native_environment.contains_key("python-version")
+            && metadata
+                .get("project")
+                .and_then(|project| project.get("requires-python"))
+                .is_some()
+        {
+            let version = resolve_python_version(view, &native_base, options, &metadata)?;
+            native_base
+                .get_mut("environment")
+                .and_then(Value::as_table_mut)
+                .unwrap()
+                .insert("python-version".into(), Value::String(version));
+        }
+        table = native_base;
+        invalid_inline.or(native_inline.map(serde_json::to_value).transpose()?)
+    } else {
+        None
+    };
     Ok(Config {
         text: toml::to_string(&table)?,
+        editor_configuration,
         python_version,
         platform,
         source,
@@ -968,6 +1549,333 @@ pub fn load(
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    fn editor_fixture(name: &str) -> Result<PathBuf> {
+        let root = std::env::temp_dir().join(format!("ty-editor-{name}-{}", std::process::id()));
+        std::fs::create_dir_all(root.join("generated/project"))?;
+        std::fs::create_dir_all(root.join("generated/stubs"))?;
+        Ok(root.canonicalize()?)
+    }
+
+    #[test]
+    fn editor_schema_is_fully_supported_and_rejects_schema_drift() -> Result<()> {
+        let schema = editor_schema()?;
+        audit_editor_schema(schema, schema)?;
+        for changed in [
+            serde_json::json!({"definitions": {"future": {"minimum": 0}}}),
+            serde_json::json!({"$ref": "https://example.invalid/schema"}),
+            serde_json::json!({"$ref": "#/definitions/missing"}),
+            serde_json::json!({"type": "future-type"}),
+            serde_json::json!({"items": [{"type": "string"}]}),
+        ] {
+            assert!(
+                audit_editor_schema(&changed, &changed).is_err(),
+                "{changed}"
+            );
+        }
+        Ok(())
+    }
+
+    #[test]
+    fn editor_null_options_use_file_or_extension_fallbacks() -> Result<()> {
+        let root = editor_fixture("null-options")?;
+        std::fs::write(root.join("ty.toml"), "[rules]\ninvalid-assignment='warn'\n")?;
+        let options = BTreeMap::from([(
+            "lsp-workspace-configuration".into(),
+            serde_json::json!({
+                "configuration": {
+                    "environment": {"python-version": null, "extra-paths": null},
+                    "src": {"include": null}, "rules": null, "plugins": null
+                },
+                "pythonExtension": {"activeEnvironment": {
+                    "executable": {"sysPrefix": root.join("selected")},
+                    "version": {"major": 3, "minor": 13}
+                }}
+            })
+            .to_string(),
+        )]);
+        let config = load(
+            &root,
+            &root.join("generated/project"),
+            &root.join("generated/stubs"),
+            &options,
+        )?;
+        assert_eq!(config.python_version, "3.13");
+        assert!(config.selection.includes(&root.join("any.py"), ""));
+        let base: Table = toml::from_str(&config.text)?;
+        assert_eq!(base["rules"]["invalid-assignment"].as_str(), Some("warn"));
+        assert!(base["environment"].get("python-version").is_none());
+        assert_eq!(
+            config.editor_configuration,
+            Some(serde_json::json!({"environment": {}, "src": {}}))
+        );
+        std::fs::remove_dir_all(root)?;
+        Ok(())
+    }
+
+    #[test]
+    fn invalid_editor_ty_layer_is_ignored_wholly_and_preserved_for_native_error() -> Result<()> {
+        let root = editor_fixture("invalid-options")?;
+        std::fs::write(root.join("ty.toml"), "[rules]\ninvalid-assignment='warn'\n")?;
+        for invalid in [
+            serde_json::json!({"environment": {"python-version": "3.99"}}),
+            serde_json::json!({"environment": "invalid"}),
+            serde_json::json!({"environment": {"extra-paths": [null]}}),
+            serde_json::json!({"src": {"include": [1]}}),
+            serde_json::json!({"rules": {"invalid-assignment": null}}),
+            serde_json::json!({"rules": {"invalid-assignment": "invalid"}}),
+            serde_json::json!({"unknown-option": true}),
+        ] {
+            let mut configuration = serde_json::json!({
+                "environment": {"python-version": "3.14"},
+                "src": {"include": ["inline-only"]},
+                "rules": {"invalid-assignment": "error"}
+            });
+            configuration
+                .as_object_mut()
+                .unwrap()
+                .extend(invalid.as_object().unwrap().clone());
+            let options = BTreeMap::from([(
+                "lsp-workspace-configuration".into(),
+                serde_json::json!({"configuration": configuration, "pythonExtension": {"activeEnvironment": {
+                    "executable": {"sysPrefix": root.join("selected")},
+                    "version": {"major": 3, "minor": 13}
+                }}}).to_string(),
+            )]);
+            let config = load(
+                &root,
+                &root.join("generated/project"),
+                &root.join("generated/stubs"),
+                &options,
+            )?;
+            assert_eq!(config.python_version, "3.13", "{configuration}");
+            assert!(
+                config.selection.includes(&root.join("any.py"), ""),
+                "{configuration}"
+            );
+            let base: Table = toml::from_str(&config.text)?;
+            assert_eq!(base["rules"]["invalid-assignment"].as_str(), Some("warn"));
+            assert_eq!(config.editor_configuration.as_ref(), Some(&configuration));
+        }
+        std::fs::remove_dir_all(root)?;
+        Ok(())
+    }
+
+    #[test]
+    fn editor_inline_options_override_files_and_append_arrays() -> Result<()> {
+        let root = editor_fixture("layers")?;
+        std::fs::write(
+            root.join("ty.toml"),
+            "[environment]\npython-version='3.12'\nextra-paths=['file-shared']\n[src]\ninclude=['file-src']\n[rules]\ninvalid-assignment='warn'\n[[overrides]]\ninclude=['file-tests/**']\n[overrides.rules]\nunknown-argument='ignore'\n",
+        )?;
+        let mut options = BTreeMap::from([
+            (
+                "lsp-initialization-options".into(),
+                serde_json::json!({"configuration": {
+                    "environment": {"python-version": "3.13", "extra-paths": ["inline-shared"], "root": ["inline-root"]},
+                    "src": {"include": ["inline-src"]},
+                    "rules": {"invalid-assignment": "error"},
+                    "overrides": [{"include": ["inline-tests/**"], "rules": {"unknown-argument": "warn"}}]
+                }}).to_string(),
+            ),
+            (
+                "lsp-workspace-configuration".into(),
+                serde_json::json!({"configuration": {
+                    "environment": {"python-version": "3.10"},
+                    "rules": {"unresolved-reference": "ignore"}
+                }}).to_string(),
+            ),
+        ]);
+        let view = root.join("generated/project");
+        let stubs = root.join("generated/stubs");
+        let config = load(&root, &view, &stubs, &options)?;
+        let mut table: Table = toml::from_str(&config.text)?;
+        assert_eq!(table["rules"]["invalid-assignment"].as_str(), Some("warn"));
+        assert_eq!(
+            table["environment"]["python-version"].as_str(),
+            Some("3.12")
+        );
+        assert_eq!(
+            table["environment"]["extra-paths"]
+                .as_array()
+                .unwrap()
+                .len(),
+            3
+        );
+        assert!(table["environment"].get("root").is_none());
+        assert_eq!(table["overrides"].as_array().unwrap().len(), 1);
+        let inline = config.editor_configuration.as_ref().unwrap();
+        assert_eq!(inline["environment"]["python-version"], "3.13");
+        assert_eq!(
+            inline["environment"]["extra-paths"]
+                .as_array()
+                .unwrap()
+                .len(),
+            1
+        );
+        assert_eq!(
+            inline["environment"]["root"][0].as_str(),
+            view.join("inline-root").to_str()
+        );
+        merge_layer(&mut table, serde_json::from_value(inline.clone())?, true);
+        assert_eq!(config.python_version, "3.13");
+        assert_eq!(table["rules"]["invalid-assignment"].as_str(), Some("error"));
+        // ClientOptions.configuration is atomic between initialization and
+        // workspace settings, even though ty options merge with the file layer.
+        assert!(table["rules"].get("unresolved-reference").is_none());
+        let extras = table["environment"]["extra-paths"].as_array().unwrap();
+        assert_eq!(extras.len(), 4);
+        assert_eq!(extras[2].as_str(), view.join("file-shared").to_str());
+        assert_eq!(extras[3].as_str(), view.join("inline-shared").to_str());
+        assert_eq!(table["overrides"].as_array().unwrap().len(), 2);
+        assert!(config.selection.includes(&root.join("file-src/a.py"), ""));
+        assert!(config.selection.includes(&root.join("inline-src/a.py"), ""));
+        assert!(!config.selection.includes(&root.join("other/a.py"), ""));
+        options.insert("python-version".into(), "3.11".into());
+        assert_eq!(load(&root, &view, &stubs, &options)?.python_version, "3.11");
+        std::fs::remove_dir_all(root)?;
+        Ok(())
+    }
+
+    #[test]
+    fn editor_configuration_file_expands_paths_and_keeps_workspace_origin() -> Result<()> {
+        let root = editor_fixture("file")?;
+        std::fs::create_dir_all(root.join("settings"))?;
+        std::fs::write(
+            root.join("ty.toml"),
+            "[environment]\npython-version='3.10'\n",
+        )?;
+        std::fs::write(
+            root.join("pyproject.toml"),
+            "[project]\nrequires-python='>=3.11'\n",
+        )?;
+        std::fs::write(
+            root.join("settings/editor.toml"),
+            "[environment]\nextra-paths=['shared']\n",
+        )?;
+        let name = format!(
+            "TY_COMPANION_MISSING_CONFIG_VARIABLE_{}",
+            std::process::id()
+        );
+        assert!(std::env::var_os(&name).is_none());
+        let options = BTreeMap::from([(
+            "lsp-workspace-configuration".into(),
+            serde_json::json!({
+                "configurationFile": format!("${{{name}:-settings/editor.toml}}"),
+                "pythonExtension": {"activeEnvironment": {
+                    "executable": {"sysPrefix": root.join("selected-environment")},
+                    "version": {"major": 3, "minor": 13}
+                }}
+            })
+            .to_string(),
+        )]);
+        let view = root.join("generated/project");
+        let config = load(&root, &view, &root.join("generated/stubs"), &options)?;
+        assert_eq!(config.source, Some(root.join("settings/editor.toml")));
+        // An explicitly selected config bypasses automatic project metadata.
+        assert_eq!(config.python_version, "3.13");
+        let table: Table = toml::from_str(&config.text)?;
+        assert_eq!(
+            table["environment"]["extra-paths"][2].as_str(),
+            view.join("shared").to_str()
+        );
+        assert!(table["environment"].get("python-version").is_none());
+        assert!(table["environment"].get("python").is_none());
+        if let Ok(home) = std::env::var("HOME") {
+            assert_eq!(
+                expanded_editor_path("~/editor.toml", &root)?,
+                Path::new(&home).join("editor.toml")
+            );
+            assert_eq!(
+                expanded_editor_path("${HOME}/editor.toml", &root)?,
+                Path::new(&home).join("editor.toml")
+            );
+        }
+        std::fs::remove_dir_all(root)?;
+        Ok(())
+    }
+
+    #[test]
+    fn editor_python_is_fallback_and_drives_plugin_discovery() -> Result<()> {
+        let root = editor_fixture("environment")?;
+        let selected = root.join("selected-environment");
+        let package = selected.join("lib/python3.13/site-packages/example");
+        std::fs::create_dir_all(&package)?;
+        std::fs::write(
+            package.join("ty-plugin.json"),
+            r#"{"id":"example","runtime":{"kind":"monty","artifact":"plugin.py"},"stub-overlays":[]}"#,
+        )?;
+        std::fs::write(package.join("plugin.py"), "pass")?;
+        std::fs::write(root.join("ty.toml"), "[plugins]\nauto-discover=true\n")?;
+        let mut editor = serde_json::json!({"pythonExtension": {"activeEnvironment": {
+            "executable": {"sysPrefix": selected}, "version": {"major": 3, "minor": 13}
+        }}});
+        let mut options =
+            BTreeMap::from([("lsp-workspace-configuration".into(), editor.to_string())]);
+        let view = root.join("generated/project");
+        let stubs = root.join("generated/stubs");
+        let config = load(&root, &view, &stubs, &options)?;
+        assert_eq!(config.python_version, "3.13");
+        assert_eq!(config.plugins.len(), 1);
+        assert!(config.dependency_roots.contains(&selected));
+        let table: Table = toml::from_str(&config.text)?;
+        assert!(table["environment"].get("python").is_none());
+        assert!(table["environment"].get("python-version").is_none());
+        std::fs::write(
+            root.join("ty.toml"),
+            "[environment]\npython='project-environment'\npython-version='3.12'\n",
+        )?;
+        let config = load(&root, &view, &stubs, &options)?;
+        let table: Table = toml::from_str(&config.text)?;
+        assert_eq!(config.python_version, "3.12");
+        assert_eq!(
+            table["environment"]["python"].as_str(),
+            root.join("project-environment").to_str()
+        );
+        editor["configuration"] = serde_json::json!({"environment": {"python": "inline-environment", "python-version": "3.14"}});
+        options.insert("lsp-workspace-configuration".into(), editor.to_string());
+        let config = load(&root, &view, &stubs, &options)?;
+        let table: Table = toml::from_str(&config.text)?;
+        assert_eq!(config.python_version, "3.14");
+        assert_eq!(
+            table["environment"]["python"].as_str(),
+            root.join("project-environment").to_str()
+        );
+        assert_eq!(
+            config.editor_configuration.as_ref().unwrap()["environment"]["python"].as_str(),
+            root.join("inline-environment").to_str()
+        );
+        std::fs::remove_dir_all(root)?;
+        Ok(())
+    }
+
+    #[test]
+    fn editor_layers_keep_plugin_configuration_opaque_and_ignore_unsupported_versions() -> Result<()>
+    {
+        let mut table: Table =
+            toml::from_str("[plugins.config.example]\nold=true\nvalues=['old']\n")?;
+        merge_layer(
+            &mut table,
+            toml::from_str("[plugins.config.example]\nvalues=['new']\n")?,
+            true,
+        );
+        assert!(table["plugins"]["config"]["example"].get("old").is_none());
+        assert_eq!(
+            table["plugins"]["config"]["example"]["values"]
+                .as_array()
+                .unwrap()
+                .len(),
+            1
+        );
+        for version in [
+            serde_json::json!({"major": 2, "minor": 7}),
+            serde_json::json!({"major": 3, "minor": 99}),
+            serde_json::json!({"major": 3, "minor": -1}),
+        ] {
+            assert!(editor_python_version(&serde_json::json!({"pythonExtension": {"activeEnvironment": {"version": version}}})).is_none());
+        }
+        Ok(())
+    }
 
     #[test]
     fn windows_glob_paths_normalize_disk_and_unc_prefixes() {
@@ -1114,11 +2022,38 @@ mod tests {
         let mut options =
             BTreeMap::from([("ty".into(), std::env::var("TY_COMPANION_TEST_OFFICIAL")?)]);
         assert_eq!(load(&root, &view, &stubs, &options)?.python_version, "3.12");
+        let selected = root.join("selected-environment");
+        std::fs::create_dir_all(selected.join("lib/python3.13/site-packages"))?;
+        options.insert(
+            "lsp-initialization-options".into(),
+            serde_json::json!({"pythonExtension": {"activeEnvironment": {
+                "executable": {"sysPrefix": selected},
+                "version": {"major": 3, "minor": 13}
+            }}})
+            .to_string(),
+        );
+        let config = load(&root, &view, &stubs, &options)?;
+        assert_eq!(config.python_version, "3.12");
+        let table: Table = toml::from_str(&config.text)?;
+        assert_eq!(
+            table["environment"]["python-version"].as_str(),
+            Some("3.12")
+        );
+        assert!(table["environment"].get("python").is_none());
         options.insert(
             "cli-config".into(),
             serde_json::to_string(&["environment.python-version='3.13'"])?,
         );
         assert_eq!(load(&root, &view, &stubs, &options)?.python_version, "3.13");
+        options.remove("cli-config");
+        std::fs::write(
+            root.join("pyproject.toml"),
+            "[project]\nname='version-probe'\nversion='0.0.0'\n",
+        )?;
+        let config = load(&root, &view, &stubs, &options)?;
+        assert_eq!(config.python_version, "3.13");
+        let table: Table = toml::from_str(&config.text)?;
+        assert!(table["environment"].get("python-version").is_none());
         std::fs::remove_dir_all(root)?;
         Ok(())
     }

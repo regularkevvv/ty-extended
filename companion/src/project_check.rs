@@ -395,6 +395,31 @@ fn selected_paths(
     Ok(selected)
 }
 
+fn editor_configuration(options: &BTreeMap<String, String>) -> Result<Value> {
+    let read = |key: &str| -> Result<Value> {
+        Ok(options
+            .get(key)
+            .map(|text| serde_json::from_str(text))
+            .transpose()?
+            .unwrap_or(Value::Null))
+    };
+    Ok(crate::editor_options::effective(
+        &read("lsp-initialization-options")?,
+        &read("lsp-workspace-configuration")?,
+    ))
+}
+
+fn editor_backend_configuration(
+    options: &BTreeMap<String, String>,
+    configuration: Option<&Value>,
+) -> Result<Value> {
+    let mut settings = crate::editor_options::backend(&editor_configuration(options)?);
+    if let Some(configuration) = configuration {
+        settings["configuration"] = configuration.clone();
+    }
+    Ok(settings)
+}
+
 /// A reusable analysis session. Original files are never written, including unsaved buffers.
 pub struct Session {
     root: PathBuf,
@@ -449,6 +474,14 @@ pub struct ProjectDocument {
 
 impl Session {
     pub fn new(input: &Path, options: &BTreeMap<String, String>) -> Result<Self> {
+        Self::new_with_checker(input, options, None)
+    }
+
+    pub fn new_with_checker(
+        input: &Path,
+        options: &BTreeMap<String, String>,
+        checker: Option<crate::checker::ProjectChecker>,
+    ) -> Result<Self> {
         let required = |key: &str| options.get(key).with_context(|| format!("missing --{key}"));
         let mode = options
             .get("checker-mode")
@@ -558,18 +591,30 @@ impl Session {
         for root in checker_config.stub_roots.iter().rev() {
             base_project.add_source_tree(root)?;
         }
-        let server = if let Some(capabilities) = &capabilities {
-            Some(crate::checker::ProjectChecker::new_editor_with_options(
-                Path::new(required("ty")?),
-                &out,
-                &checker_config_path,
-                capabilities.clone(),
-                options
-                    .get("lsp-initialization-options")
-                    .map(|s| serde_json::from_str(s))
-                    .transpose()?
-                    .unwrap_or(json!({})),
-            )?)
+        let server = if let Some(mut checker) = checker {
+            checker.set_workspace_configuration(editor_backend_configuration(
+                options,
+                checker_config.editor_configuration.as_ref(),
+            )?);
+            Some(checker)
+        } else if let Some(capabilities) = &capabilities {
+            Some(
+                crate::checker::ProjectChecker::new_editor_with_configuration(
+                    Path::new(required("ty")?),
+                    &out,
+                    &checker_config_path,
+                    capabilities.clone(),
+                    options
+                        .get("lsp-initialization-options")
+                        .map(|s| serde_json::from_str(s))
+                        .transpose()?
+                        .unwrap_or(json!({})),
+                    Some(editor_backend_configuration(
+                        options,
+                        checker_config.editor_configuration.as_ref(),
+                    )?),
+                )?,
+            )
         } else {
             None
         };
@@ -760,8 +805,37 @@ impl Session {
     pub fn documents(&self) -> Vec<ProjectDocument> {
         self.documents.clone()
     }
+    pub fn generated_root(&self) -> &Path {
+        &self.out
+    }
+    pub fn original_root(&self) -> &Path {
+        &self.root
+    }
+    pub fn projected_root(&self) -> &Path {
+        &self.view
+    }
+    pub fn projected_stubs(&self) -> &Path {
+        &self.stubs
+    }
     pub fn checker_mut(&mut self) -> Option<&mut crate::checker::ProjectChecker> {
         self.server.as_mut()
+    }
+
+    pub fn set_editor_configuration(&mut self, configuration: Value) -> Result<bool> {
+        let previous = editor_configuration(&self.options)?;
+        self.options.insert(
+            "lsp-workspace-configuration".into(),
+            configuration.to_string(),
+        );
+        if previous == editor_configuration(&self.options)? {
+            return Ok(false);
+        }
+        self.invalidate();
+        // The pinned native server applies settings only during workspace
+        // initialization. A changed configuration therefore starts a new
+        // checker; unchanged replies retain the process and semantic caches.
+        self.server = None;
+        Ok(true)
     }
 
     pub fn names(&self) -> BTreeMap<String, String> {
@@ -782,20 +856,26 @@ impl Session {
         let config = project_config::load(&self.root, &self.view, &self.stubs, &self.options)?;
         let configuration_changed =
             std::fs::read_to_string(&self.checker_config_path)? != config.text;
-        if configuration_changed {
+        if configuration_changed || (self.capabilities.is_some() && self.server.is_none()) {
             write(&self.checker_config_path, &config.text)?;
             self.server = if let Some(capabilities) = &self.capabilities {
-                Some(crate::checker::ProjectChecker::new_editor_with_options(
-                    Path::new(&self.options["ty"]),
-                    &self.out,
-                    &self.checker_config_path,
-                    capabilities.clone(),
-                    self.options
-                        .get("lsp-initialization-options")
-                        .map(|s| serde_json::from_str(s))
-                        .transpose()?
-                        .unwrap_or(json!({})),
-                )?)
+                Some(
+                    crate::checker::ProjectChecker::new_editor_with_configuration(
+                        Path::new(&self.options["ty"]),
+                        &self.out,
+                        &self.checker_config_path,
+                        capabilities.clone(),
+                        self.options
+                            .get("lsp-initialization-options")
+                            .map(|s| serde_json::from_str(s))
+                            .transpose()?
+                            .unwrap_or(json!({})),
+                        Some(editor_backend_configuration(
+                            &self.options,
+                            config.editor_configuration.as_ref(),
+                        )?),
+                    )?,
+                )
             } else {
                 None
             };

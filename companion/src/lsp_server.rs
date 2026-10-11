@@ -13,7 +13,7 @@ use anyhow::{Context, Result, ensure};
 use serde_json::{Value, json};
 
 use crate::{
-    checker::{ProtocolError, file_uri, read_frame},
+    checker::{ProjectChecker, ProtocolError, file_uri, read_frame},
     lsp_mapping::{
         DocumentMap, LspSourceMaps, PositionEncoding, offset_to_position, position_to_offset,
     },
@@ -82,7 +82,14 @@ struct Buffer {
 }
 struct Workspace {
     root: PathBuf,
-    session: Session,
+    scope_uri: String,
+    options: BTreeMap<String, String>,
+    session: Option<Session>,
+    pending_checker: Option<ProjectChecker>,
+    settings: Value,
+    configuration_generation: u64,
+    configuration_pending: bool,
+    configuration_requested: bool,
     dirty: bool,
     revision: u64,
     diagnostics: BTreeMap<String, Vec<Value>>,
@@ -117,6 +124,12 @@ struct Editor {
     // survive only a globally unchanged/trivia-only refresh, never type edits.
     hint_cache: BTreeMap<(u32, String), Vec<Value>>,
     publications_pending: bool,
+    configuration_requests: BTreeMap<String, Vec<(String, u64)>>,
+    configuration_registered: bool,
+    configuration_epoch: u64,
+    global_settings: Value,
+    published_uris: BTreeSet<String>,
+    notifications: Vec<Value>,
 }
 
 pub fn uri_path(uri: &str) -> Result<PathBuf> {
@@ -244,10 +257,16 @@ impl Editor {
             timings: vec![],
             hint_cache: BTreeMap::new(),
             publications_pending: false,
+            configuration_requests: BTreeMap::new(),
+            configuration_registered: false,
+            configuration_epoch: 0,
+            global_settings: Value::Null,
+            published_uris: BTreeSet::new(),
+            notifications: vec![],
         }
     }
 
-    fn add_workspace(&mut self, root: PathBuf) -> Result<()> {
+    fn add_workspace(&mut self, root: PathBuf, scope_uri: Option<String>) -> Result<()> {
         let root = root.canonicalize().context("workspace root")?;
         if self.workspaces.iter().any(|w| w.root == root) {
             return Ok(());
@@ -266,10 +285,37 @@ impl Editor {
         options.insert("out".into(), out.display().to_string());
         options.insert("checker-mode".into(), "push".into());
         options.insert("lsp-capabilities".into(), self.capabilities.to_string());
-        let session = Session::new(&root, &options)?;
+        let initialization = self.initialization_options();
+        let settings = crate::editor_options::effective(&initialization, &Value::Null);
+        let configuration_pending = self.capabilities["workspace"]["configuration"] == true;
+        let (session, pending_checker) = if configuration_pending {
+            // The native workspace waits for configuration after initialize.
+            // Retain that process while requesting the original IDE settings;
+            // no project is parsed with a guessed environment in the interim.
+            let checker = ProjectChecker::new_editor_with_configuration(
+                Path::new(&options["ty"]),
+                &out,
+                &out.join("checker.toml"),
+                self.capabilities.clone(),
+                initialization,
+                Some(Value::Null),
+            )?;
+            (None, Some(checker))
+        } else {
+            (Some(Session::new(&root, &options)?), None)
+        };
+        let scope_uri = scope_uri.map_or_else(|| file_uri(&root), Ok)?;
+        self.configuration_epoch += 1;
         self.workspaces.push(Workspace {
             root,
+            scope_uri,
+            options,
             session,
+            pending_checker,
+            settings,
+            configuration_generation: self.configuration_epoch,
+            configuration_pending,
+            configuration_requested: false,
             dirty: true,
             revision: 0,
             diagnostics: BTreeMap::new(),
@@ -280,6 +326,180 @@ impl Editor {
         Ok(())
     }
 
+    fn initialization_options(&self) -> Value {
+        self.options
+            .get("lsp-initialization-options")
+            .and_then(|text| serde_json::from_str(text).ok())
+            .unwrap_or(Value::Null)
+    }
+
+    fn awaiting_configuration(&self) -> bool {
+        self.workspaces
+            .iter()
+            .any(|workspace| workspace.configuration_pending)
+    }
+
+    fn sync_configuration(&mut self, output: &mut impl Write) -> Result<()> {
+        if !self.client_ready || self.shutdown {
+            return Ok(());
+        }
+        if !self.configuration_registered
+            && self.capabilities["workspace"]["didChangeConfiguration"]["dynamicRegistration"]
+                == true
+        {
+            self.configuration_registered = true;
+            let id = format!("ty-companion-client-{}", self.next_client_request);
+            self.next_client_request += 1;
+            send(
+                output,
+                &json!({"jsonrpc":"2.0","id":id,"method":"client/registerCapability",
+                "params":{"registrations":[{"id":"ty-companion-configuration","method":"workspace/didChangeConfiguration"}]}}),
+            )?;
+        }
+        let pending: Vec<_> = self
+            .workspaces
+            .iter_mut()
+            .filter(|workspace| {
+                workspace.configuration_pending && !workspace.configuration_requested
+            })
+            .map(|workspace| {
+                workspace.configuration_requested = true;
+                (
+                    workspace.scope_uri.clone(),
+                    workspace.configuration_generation,
+                )
+            })
+            .collect();
+        if pending.is_empty() {
+            return Ok(());
+        }
+        let id = format!("ty-companion-configuration-{}", self.next_client_request);
+        self.next_client_request += 1;
+        let items: Vec<_> = pending
+            .iter()
+            .map(|(uri, _)| json!({"scopeUri":uri,"section":"ty"}))
+            .collect();
+        self.configuration_requests.retain(|_, requested| {
+            requested.iter().any(|(uri, generation)| {
+                self.workspaces.iter().any(|workspace| {
+                    workspace.scope_uri == *uri && workspace.configuration_generation == *generation
+                })
+            })
+        });
+        self.configuration_requests.insert(id.clone(), pending);
+        send(
+            output,
+            &json!({"jsonrpc":"2.0","id":id,"method":"workspace/configuration","params":{"items":items}}),
+        )
+    }
+
+    fn apply_global_settings(&mut self, settings: Value) {
+        // ty treats these options as window-wide: the last configured folder
+        // wins. Rules, environments and language services remain per workspace.
+        if self.global_settings["diagnosticMode"] != settings["diagnosticMode"]
+            || self.global_settings["showSyntaxErrors"] != settings["showSyntaxErrors"]
+        {
+            for workspace in &mut self.workspaces {
+                workspace.revision += 1;
+            }
+            self.publications_pending = true;
+        }
+        self.global_settings = settings;
+    }
+
+    fn apply_configuration(&mut self, index: usize, configuration: Value) -> Result<()> {
+        let settings =
+            crate::editor_options::effective(&self.initialization_options(), &configuration);
+        let workspace = &mut self.workspaces[index];
+        workspace.configuration_pending = false;
+        workspace.options.insert(
+            "lsp-workspace-configuration".into(),
+            configuration.to_string(),
+        );
+        let changed = if let Some(session) = &mut workspace.session {
+            session.set_editor_configuration(configuration)?
+        } else {
+            // A failed initial config may have allocated projection directories.
+            // They belong exclusively to this uninitialized workspace session.
+            let out = Path::new(&workspace.options["out"]);
+            for name in ["project", "stubs"] {
+                let path = out.join(name);
+                if path.exists() {
+                    std::fs::remove_dir_all(path)?;
+                }
+            }
+            workspace.session = Some(Session::new_with_checker(
+                &workspace.root,
+                &workspace.options,
+                workspace.pending_checker.take(),
+            )?);
+            true
+        };
+        workspace.settings = settings;
+        if changed {
+            workspace.dirty = true;
+            workspace.error = None;
+            self.hint_cache.clear();
+        }
+        Ok(())
+    }
+
+    fn configuration_response(&mut self, message: &Value, output: &mut impl Write) -> Result<()> {
+        if self.shutdown {
+            return Ok(());
+        }
+        let Some(id) = message["id"].as_str() else {
+            return Ok(());
+        };
+        let Some(requested) = self.configuration_requests.remove(id) else {
+            return Ok(());
+        };
+        let values = message["result"]
+            .as_array()
+            .filter(|values| values.len() == requested.len());
+        if values.is_none() {
+            send(
+                output,
+                &json!({"jsonrpc":"2.0","method":"window/logMessage","params":{"type":2,"message":"workspace/configuration failed or returned an invalid response; using initialization options"}}),
+            )?;
+        }
+        let mut global_settings = None;
+        for (position, (uri, generation)) in requested.into_iter().enumerate() {
+            let Some(index) = self.workspaces.iter().position(|workspace| {
+                workspace.scope_uri == uri && workspace.configuration_generation == generation
+            }) else {
+                continue;
+            };
+            let mut configuration = values
+                .and_then(|values| values.get(position))
+                .filter(|value| value.is_object())
+                .cloned()
+                .unwrap_or(Value::Null);
+            if let Err(error) = crate::editor_options::validate_workspace(&configuration) {
+                send(
+                    output,
+                    &json!({"jsonrpc":"2.0","method":"window/logMessage","params":{"type":1,"message":format!("{error:#}; using initialization options")}}),
+                )?;
+                configuration = Value::Null;
+            }
+            if let Err(error) = self.apply_configuration(index, configuration) {
+                self.workspaces[index].error = Some(format!("{error:#}"));
+                self.workspaces[index].dirty = false;
+                self.hint_cache.clear();
+                send(
+                    output,
+                    &json!({"jsonrpc":"2.0","method":"window/logMessage","params":{"type":1,"message":format!("{error:#}")}}),
+                )?;
+            } else {
+                global_settings = Some(self.workspaces[index].settings.clone());
+            }
+        }
+        if let Some(settings) = global_settings {
+            self.apply_global_settings(settings);
+        }
+        Ok(())
+    }
+
     fn initialize(&mut self, params: &Value, root: Option<&Path>) -> Result<Value> {
         ensure!(!self.initialized, "initialize called twice");
         self.capabilities = params
@@ -287,9 +507,15 @@ impl Editor {
             .cloned()
             .unwrap_or_else(|| json!({}));
         if let Some(options) = params.get("initializationOptions") {
+            let normalized = crate::editor_options::initialization(options)
+                .map_err(|error| protocol(-32602, &format!("{error:#}")))?;
+            if !options.is_null() && normalized != *options {
+                self.notifications.push(json!({"jsonrpc":"2.0","method":"window/logMessage","params":{"type":1,"message":"Invalid initialization options; using default options while preserving workspace trust"}}));
+            }
             self.options
-                .insert("lsp-initialization-options".into(), options.to_string());
+                .insert("lsp-initialization-options".into(), normalized.to_string());
         }
+        self.global_settings = self.initialization_options();
         self.encoding = self
             .capabilities
             .pointer("/general/positionEncodings")
@@ -311,7 +537,8 @@ impl Editor {
             .is_some();
         if let Some(folders) = params["workspaceFolders"].as_array() {
             for folder in folders {
-                self.add_workspace(uri_path(folder["uri"].as_str().context("workspace URI")?)?)?;
+                let uri = folder["uri"].as_str().context("workspace URI")?;
+                self.add_workspace(uri_path(uri)?, Some(uri.into()))?;
             }
         }
         if self.workspaces.is_empty() {
@@ -324,11 +551,14 @@ impl Editor {
             } else {
                 std::env::current_dir()?
             };
-            self.add_workspace(root)?;
+            self.add_workspace(root, params["rootUri"].as_str().map(str::to_owned))?;
         }
-        let mut result = self.workspaces[0]
+        let workspace = &mut self.workspaces[0];
+        let mut result = workspace
             .session
-            .checker_mut()
+            .as_mut()
+            .and_then(Session::checker_mut)
+            .or(workspace.pending_checker.as_mut())
             .context("project checker was not started")?
             .initialization()
             .clone();
@@ -379,10 +609,10 @@ impl Editor {
         }
         if crate::lsp_mapping::decode_file_uri(uri)?.is_some() {
             let path = uri_path(uri)?;
-            self.add_workspace(path.parent().context("document parent")?.to_owned())?;
+            self.add_workspace(path.parent().context("document parent")?.to_owned(), None)?;
         } else {
             if self.workspaces.is_empty() {
-                self.add_workspace(std::env::current_dir()?)?;
+                self.add_workspace(std::env::current_dir()?, None)?;
             }
             let root = &self.workspaces[0].root;
             loop {
@@ -419,6 +649,9 @@ impl Editor {
     }
 
     fn refresh_inner(&mut self) -> Result<bool> {
+        if !self.client_ready || self.awaiting_configuration() {
+            return Ok(false);
+        }
         let started = Instant::now();
         let mut changed = false;
         let mut reuse_native_hints = self.notebooks.is_empty();
@@ -455,10 +688,17 @@ impl Editor {
             {
                 workspace
                     .session
+                    .as_mut()
+                    .context("workspace configuration unavailable")?
                     .register_notebook_source(notebook.path())?;
                 overlays.insert(notebook.path().to_owned(), notebook.combined());
             }
-            let result = match workspace.session.check(&overlays) {
+            let result = match workspace
+                .session
+                .as_mut()
+                .context("workspace configuration unavailable")?
+                .check(&overlays)
+            {
                 Ok(result) => result,
                 Err(error) => {
                     workspace.dirty = false;
@@ -480,7 +720,11 @@ impl Editor {
             workspace.revision += 1;
             workspace.diagnostics.clear();
             workspace.raw_diagnostics.clear();
-            let documents = workspace.session.documents();
+            let documents = workspace
+                .session
+                .as_ref()
+                .context("workspace configuration unavailable")?
+                .documents();
             for document in &documents {
                 // Closed notebooks have no client cell URI/position mapping.
                 // Native ty also excludes them from closed-file requests.
@@ -580,10 +824,32 @@ impl Editor {
             let mut notebook_reports = Vec::new();
             let mut hint_reports = Vec::new();
             for (index, workspace) in self.workspaces.iter_mut().enumerate() {
-                for (generated, original) in workspace.session.names() {
+                let session = workspace
+                    .session
+                    .as_ref()
+                    .context("workspace configuration unavailable")?;
+                self.maps
+                    .add_path_prefix(session.projected_root(), &workspace.root)?;
+                self.maps.add_synthetic_path_prefix(
+                    session.projected_stubs(),
+                    "<plugin stub overlay>",
+                )?;
+                self.maps
+                    .add_synthetic_path_prefix(session.generated_root(), "<plugin analysis>")?;
+                for (generated, original) in workspace
+                    .session
+                    .as_ref()
+                    .context("workspace configuration unavailable")?
+                    .names()
+                {
                     self.maps.add_name(generated, original);
                 }
-                for document in workspace.session.documents() {
+                for document in workspace
+                    .session
+                    .as_ref()
+                    .context("workspace configuration unavailable")?
+                    .documents()
+                {
                     if let Some(notebook) = self
                         .notebooks
                         .values_mut()
@@ -591,6 +857,8 @@ impl Editor {
                     {
                         let checker = workspace
                             .session
+                            .as_mut()
+                            .context("workspace configuration unavailable")?
                             .checker_mut()
                             .context("notebook checker")?;
                         for map in notebook.project(&document, checker)? {
@@ -620,7 +888,12 @@ impl Editor {
                     let uri = original_uri(Path::new(&document.source.path))?;
                     let generated_uri = file_uri(&document.path)?;
                     if self.buffers.contains_key(&uri) {
-                        let checker = workspace.session.checker_mut().context("editor checker")?;
+                        let checker = workspace
+                            .session
+                            .as_mut()
+                            .context("workspace configuration unavailable")?
+                            .checker_mut()
+                            .context("editor checker")?;
                         let key = (checker.process_id(), generated_uri.clone());
                         let hints = if let Some(hints) = self.hint_cache.get(&key) {
                             hint_cache_hits += 1;
@@ -773,7 +1046,10 @@ impl Editor {
         }
         let mut patterns = BTreeSet::new();
         for workspace in &self.workspaces {
-            for path in workspace.session.watch_paths() {
+            let Some(session) = &workspace.session else {
+                continue;
+            };
+            for path in session.watch_paths() {
                 let mut pattern = watcher_glob(&path);
                 // Missing dependency roots must already watch their children:
                 // an installation can create the root and package atomically.
@@ -815,7 +1091,22 @@ impl Editor {
     }
 
     fn publish(&mut self, output: &mut impl Write) -> Result<()> {
+        self.sync_configuration(output)?;
         self.sync_watchers(output)?;
+        if !self.client_ready || self.awaiting_configuration() {
+            return Ok(());
+        }
+        for workspace in &mut self.workspaces {
+            if let Some(checker) = workspace.session.as_mut().and_then(Session::checker_mut) {
+                self.notifications.extend(checker.take_notifications());
+            }
+        }
+        for mut message in std::mem::take(&mut self.notifications) {
+            if let Some(text) = message["params"]["message"].as_str() {
+                message["params"]["message"] = json!(self.maps.clean_message(text));
+            }
+            send(output, &message)?;
+        }
         if !self.publications_pending {
             return Ok(());
         }
@@ -823,11 +1114,7 @@ impl Editor {
         for notebook in self.notebooks.values() {
             let workspace = &self.workspaces[self.workspace_index(notebook.uri())?];
             for cell in notebook.cells().iter().filter(|cell| cell.kind == 2) {
-                let diagnostics = workspace
-                    .diagnostics
-                    .get(&cell.uri)
-                    .cloned()
-                    .unwrap_or_default();
+                let diagnostics = self.visible_diagnostics(workspace, &cell.uri);
                 send(
                     output,
                     &json!({"jsonrpc":"2.0","method":"textDocument/publishDiagnostics","params":{"uri":cell.uri,"version":cell.version,"diagnostics":diagnostics}}),
@@ -855,16 +1142,51 @@ impl Editor {
             self.publications_pending = false;
             return Ok(());
         }
-        for (uri, buffer) in &self.buffers {
-            let workspace = &self.workspaces[self.workspace_index(uri)?];
-            let diagnostics = workspace.diagnostics.get(uri).cloned().unwrap_or_default();
+        let mut targets: BTreeSet<_> = self.buffers.keys().cloned().collect();
+        if self.global_settings["diagnosticMode"] == "workspace" {
+            targets.extend(self.workspaces.iter().flat_map(|workspace| {
+                workspace
+                    .diagnostics
+                    .keys()
+                    .filter(|uri| uri_path(uri).is_ok_and(|path| path.starts_with(&workspace.root)))
+                    .cloned()
+            }));
+        }
+        for uri in self.published_uris.difference(&targets) {
             send(
                 output,
-                &json!({"jsonrpc":"2.0","method":"textDocument/publishDiagnostics","params":{"uri":uri,"version":buffer.version,"diagnostics":diagnostics}}),
+                &json!({"jsonrpc":"2.0","method":"textDocument/publishDiagnostics","params":{"uri":uri,"diagnostics":[]}}),
             )?;
         }
+        for uri in &targets {
+            let workspace = &self.workspaces[self.workspace_index(uri)?];
+            let diagnostics = self.visible_diagnostics(workspace, uri);
+            let version = self.buffers.get(uri).map(|buffer| buffer.version);
+            send(
+                output,
+                &json!({"jsonrpc":"2.0","method":"textDocument/publishDiagnostics","params":{"uri":uri,"version":version,"diagnostics":diagnostics}}),
+            )?;
+        }
+        self.published_uris = targets;
         self.publications_pending = false;
         Ok(())
+    }
+
+    fn visible_diagnostics(&self, workspace: &Workspace, uri: &str) -> Vec<Value> {
+        if self.global_settings["diagnosticMode"] == "off" {
+            return vec![];
+        }
+        workspace
+            .diagnostics
+            .get(uri)
+            .into_iter()
+            .flatten()
+            .filter(|diagnostic| {
+                self.global_settings["showSyntaxErrors"] != false
+                    || diagnostic["code"] != "invalid-syntax"
+            })
+            .cloned()
+            .collect()
     }
 
     fn request(&mut self, method: &str, params: &Value) -> Result<Value> {
@@ -891,13 +1213,20 @@ impl Editor {
             return Ok(if params["previousResultId"] == id {
                 json!({"kind":"unchanged","resultId":id})
             } else {
-                json!({"kind":"full","resultId":id,"items":workspace.diagnostics.get(uri).cloned().unwrap_or_default()})
+                json!({"kind":"full","resultId":id,"items":self.visible_diagnostics(workspace, uri)})
             });
         }
         if method == "workspace/diagnostic" {
             let mut items = vec![];
+            if self.global_settings["diagnosticMode"] != "workspace" {
+                return Ok(json!({"items":items}));
+            }
             for workspace in &self.workspaces {
-                for (uri, diagnostics) in &workspace.diagnostics {
+                for uri in workspace.diagnostics.keys() {
+                    if !uri_path(uri).is_ok_and(|path| path.starts_with(&workspace.root)) {
+                        continue;
+                    }
+                    let diagnostics = self.visible_diagnostics(workspace, uri);
                     let id = workspace.revision.to_string();
                     let previous = params["previousResultIds"]
                         .as_array()
@@ -916,7 +1245,12 @@ impl Editor {
             let pids: Vec<_> = self
                 .workspaces
                 .iter_mut()
-                .filter_map(|w| w.session.checker_mut().map(|c| c.process_id()))
+                .filter_map(|w| {
+                    w.session
+                        .as_mut()
+                        .and_then(Session::checker_mut)
+                        .map(|c| c.process_id())
+                })
                 .collect();
             let notebooks:Vec<_>=self.notebooks.values().map(|book|json!({"uri":book.uri(),"version":book.version(),"python_cells":book.spans().len()})).collect();
             return Ok(
@@ -942,6 +1276,13 @@ impl Editor {
         }
         let mapped = self.maps.request(method, params)?;
         let uri = self.maps.request_uri(method, params)?;
+        if let Some(uri) = &uri
+            && self.workspaces[self.workspace_index(uri)?].settings["disableLanguageServices"]
+                == true
+            && let Some(response) = crate::editor_options::language_services_response(method)
+        {
+            return Ok(response);
+        }
         let indexes: Vec<usize> = if let Some(uri) = uri {
             vec![self.workspace_index(&uri)?]
         } else if method == "workspace/symbol" {
@@ -955,6 +1296,8 @@ impl Editor {
         for index in indexes {
             let checker = self.workspaces[index]
                 .session
+                .as_mut()
+                .context("workspace configuration unavailable")?
                 .checker_mut()
                 .context("project server missing")?;
             if method == "textDocument/references" {
@@ -1089,7 +1432,11 @@ impl Editor {
                     .context("notebook URI")?;
                 let index = self.workspace_index(uri)?;
                 if let Some(mut notebook) = self.notebooks.remove(uri) {
-                    if let Some(checker) = self.workspaces[index].session.checker_mut() {
+                    if let Some(checker) = self.workspaces[index]
+                        .session
+                        .as_mut()
+                        .and_then(Session::checker_mut)
+                    {
                         notebook.close(checker)?;
                     }
                     for cell in notebook.cells() {
@@ -1172,36 +1519,61 @@ impl Editor {
                     .filter_map(|change| change["uri"].as_str().and_then(|uri| uri_path(uri).ok()))
                     .collect();
                 for workspace in &mut self.workspaces {
-                    let watched = workspace.session.watch_paths();
+                    let Some(session) = &mut workspace.session else {
+                        continue;
+                    };
+                    let watched = session.watch_paths();
                     if paths.iter().any(|path| {
                         watched
                             .iter()
                             .any(|watch| path.starts_with(watch) || watch.starts_with(path))
                     }) {
-                        if let Some(checker) = workspace.session.checker_mut() {
+                        if let Some(checker) = session.checker_mut() {
                             // Dependencies live at their original paths in the
                             // official server too, including negative lookups.
                             checker.notify(method, params.clone())?;
                         }
                         if paths.iter().any(|path| {
-                            workspace.session.path_requires_reload(path)
+                            session.path_requires_reload(path)
                                 || watched.iter().any(|watch| {
                                     watch.starts_with(path) && !watch.starts_with(&workspace.root)
                                 })
                         }) {
-                            workspace.session.invalidate();
+                            session.invalidate();
                         }
                         workspace.dirty = true;
                     }
                 }
             }
             "workspace/didChangeConfiguration" => {
-                for workspace in &mut self.workspaces {
-                    if let Some(checker) = workspace.session.checker_mut() {
-                        checker.notify(method, params.clone())?;
+                if self.capabilities["workspace"]["configuration"] == true {
+                    self.configuration_epoch += 1;
+                    for workspace in &mut self.workspaces {
+                        workspace.configuration_generation = self.configuration_epoch;
+                        workspace.configuration_pending = true;
+                        workspace.configuration_requested = false;
                     }
-                    workspace.session.invalidate();
-                    workspace.dirty = true;
+                } else {
+                    let settings = params.get("settings").unwrap_or(&Value::Null);
+                    let settings = settings.get("ty").unwrap_or(settings);
+                    let settings = if let Err(error) =
+                        crate::editor_options::validate_workspace(settings)
+                    {
+                        send(
+                            output,
+                            &json!({"jsonrpc":"2.0","method":"window/logMessage","params":{"type":1,"message":format!("{error:#}; using initialization options")}}),
+                        )?;
+                        &Value::Null
+                    } else {
+                        settings
+                    };
+                    for index in 0..self.workspaces.len() {
+                        self.apply_configuration(index, settings.clone())?;
+                    }
+                    self.apply_global_settings(crate::editor_options::effective(
+                        &self.initialization_options(),
+                        settings,
+                    ));
                 }
             }
             "workspace/didChangeWorkspaceFolders" => {
@@ -1216,7 +1588,11 @@ impl Editor {
                     for uri in removed_books {
                         let index = self.workspace_index(&uri)?;
                         let mut book = self.notebooks.remove(&uri).unwrap();
-                        if let Some(checker) = self.workspaces[index].session.checker_mut() {
+                        if let Some(checker) = self.workspaces[index]
+                            .session
+                            .as_mut()
+                            .and_then(Session::checker_mut)
+                        {
                             book.close(checker)?;
                         }
                         for cell in book.cells() {
@@ -1245,9 +1621,10 @@ impl Editor {
                     self.aliases.retain(|_, path| !path.starts_with(&root));
                 }
                 for folder in params["event"]["added"].as_array().into_iter().flatten() {
-                    self.add_workspace(uri_path(
-                        folder["uri"].as_str().context("added folder URI")?,
-                    )?)?;
+                    self.add_workspace(
+                        uri_path(folder["uri"].as_str().context("added folder URI")?)?,
+                        folder["uri"].as_str().map(str::to_owned),
+                    )?;
                 }
                 // Rebuild maps after removal even if all remaining sessions
                 // have reusable projections. Removed documents must not be
@@ -1300,6 +1677,7 @@ pub fn run(root: Option<&Path>, mut options: BTreeMap<String, String>) -> Result
     let mut editor = Editor::new(options, cancelled);
     let mut output = io::stdout().lock();
     let mut pending = VecDeque::new();
+    let mut deferred = VecDeque::new();
     loop {
         let message = if let Some(message) = pending.pop_front() {
             message
@@ -1334,11 +1712,48 @@ pub fn run(root: Option<&Path>, mut options: BTreeMap<String, String>) -> Result
             }
         };
         let Some(method) = message["method"].as_str() else {
+            editor.configuration_response(&message, &mut output)?;
+            if !editor.awaiting_configuration() {
+                deferred.append(&mut pending);
+                std::mem::swap(&mut pending, &mut deferred);
+            }
             continue;
         };
         if method == "exit" {
             ensure!(editor.shutdown, "exit received before shutdown");
             break;
+        }
+        if method == "$/cancelRequest" {
+            let id = &message["params"]["id"];
+            if let Some(position) = deferred.iter().position(|message| {
+                message
+                    .as_ref()
+                    .is_ok_and(|message| message.get("id") == Some(id))
+            }) {
+                deferred.remove(position);
+                editor.cancelled.lock().unwrap().remove(&id.to_string());
+                response(&mut output, id, Err(protocol(-32800, "request cancelled")))?;
+            }
+        }
+        if editor.awaiting_configuration()
+            && !matches!(
+                method,
+                "initialize"
+                    | "initialized"
+                    | "shutdown"
+                    | "$/cancelRequest"
+                    | "workspace/didChangeConfiguration"
+                    | "workspace/didChangeWorkspaceFolders"
+            )
+        {
+            if let Some(id) = message.get("id")
+                && editor.cancelled.lock().unwrap().remove(&id.to_string())
+            {
+                response(&mut output, id, Err(protocol(-32800, "request cancelled")))?;
+                continue;
+            }
+            deferred.push_back(Ok(message));
+            continue;
         }
         let params = message.get("params").cloned().unwrap_or(Value::Null);
         if let Some(id) = message.get("id") {
@@ -1366,6 +1781,10 @@ pub fn run(root: Option<&Path>, mut options: BTreeMap<String, String>) -> Result
         // arrival order; an edit cannot overtake a preceding hover or rename.
         pending.extend(incoming.try_iter());
         editor.publish(&mut output)?;
+        if !editor.awaiting_configuration() && !deferred.is_empty() {
+            deferred.append(&mut pending);
+            std::mem::swap(&mut pending, &mut deferred);
+        }
     }
     // Drop sessions before removing their generated workspace and server logs.
     drop(editor);

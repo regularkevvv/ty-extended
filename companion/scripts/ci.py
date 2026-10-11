@@ -380,6 +380,7 @@ def main() -> int:
             )
         for script in (
             "lsp_acceptance",
+            "lsp_configuration",
             "lsp_differential",
             "lsp_lifecycle",
             "lsp_notebook_differential",

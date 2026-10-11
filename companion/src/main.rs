@@ -1,6 +1,7 @@
 mod checker;
 mod cli;
 mod cli_edits;
+mod editor_options;
 mod flow;
 mod lower;
 mod lsp_mapping;

@@ -11,11 +11,19 @@ import queue
 import subprocess
 import threading
 import time
+from collections.abc import Callable
 from pathlib import Path
 
 
 class Client:
-    def __init__(self, command: list[str], root: Path, stderr: Path):
+    def __init__(
+        self,
+        command: list[str],
+        root: Path,
+        stderr: Path,
+        *,
+        server_request_handler: Callable[[Client, dict], bool] | None = None,
+    ):
         self.log = stderr.open("wb")
         self.process = subprocess.Popen(
             command,
@@ -28,6 +36,7 @@ class Client:
         self.messages: queue.Queue = queue.Queue()
         self.notifications: list[dict] = []
         self.server_requests: list[dict] = []
+        self.server_request_handler = server_request_handler
         self.next_id = 1
         self.timings: list[dict] = []
         threading.Thread(target=self._read, daemon=True).start()
@@ -57,6 +66,17 @@ class Client:
     def notify(self, method: str, params: dict | None = None):
         self.send({"method": method, "params": params or {}})
 
+    def _handle_server_request(self, message: dict):
+        self.server_requests.append(message)
+        # Returning True also permits deliberately deferring a response while a
+        # protocol test drives another request. Existing clients use defaults.
+        if self.server_request_handler and self.server_request_handler(self, message):
+            return
+        result = None
+        if message["method"] == "workspace/configuration":
+            result = [None] * len(message["params"]["items"])
+        self.send({"id": message["id"], "result": result})
+
     def request(self, method: str, params: dict | None = None, *, retries: int = 2):
         started = time.perf_counter()
         ident = self.next_id
@@ -68,11 +88,7 @@ class Client:
                 raise message
             if "method" in message:
                 if "id" in message:
-                    self.server_requests.append(message)
-                    result = None
-                    if message["method"] == "workspace/configuration":
-                        result = [None] * len(message["params"]["items"])
-                    self.send({"id": message["id"], "result": result})
+                    self._handle_server_request(message)
                 else:
                     self.notifications.append(message)
                 continue

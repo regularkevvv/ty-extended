@@ -36,6 +36,10 @@ actions, and other supported ty editor requests. UTF-8, UTF-16, and UTF-32 posit
 are translated in both directions. Generated declarations are hidden from editor
 results; edits that cannot be mapped safely are rejected.
 
+Editor settings use each original workspace's `ty` configuration, including its
+selected Python environment, inline rules, inlay hints, and language services.
+Settings changes preserve unsaved buffers; unchanged settings retain the checker.
+
 `check --help` lists supported CLI options. The older `project` command and
 `check ... --out DIRECTORY` interface expose projection files and counters for
 regression testing. Their `--config` flag accepts plugin JSON; the normal `check`
