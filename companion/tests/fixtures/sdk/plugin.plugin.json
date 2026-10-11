@@ -1,0 +1,14 @@
+{
+  "id": "research.sdk",
+  "name": "Generic SDK semantics",
+  "version": "0.0.1",
+  "protocol-version": {"major": 0, "minor": 7},
+  "ty-compatibility": {"requirement": ">=0.84.4,<0.85.0"},
+  "runtime": {"kind": "monty", "artifact": "plugin.py"},
+  "capabilities": {"class-transform": true, "project-index": true, "call-return": true},
+  "claims": {
+    "modules": [{"name": "demo", "recursive": false}],
+    "classes": [{"kind": "exact", "qualified-name": "demo.Host"}],
+    "functions": [{"qualified-name": "demo.echo"}, {"qualified-name": "demo.raw"}]
+  }
+}

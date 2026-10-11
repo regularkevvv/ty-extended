@@ -1,0 +1,686 @@
+//! Generic project-aware lowering of plugin class, field and callable patches.
+use crate::{
+    mapping::Edits,
+    model::{Analysis, ClassInfo, Source, Span, call_site, expression_key, span},
+    runtime::{Runtime, call_request},
+    type_render::Types,
+};
+use anyhow::{Context, Result};
+use ruff_python_ast::{
+    Expr, ExprContext, Stmt,
+    visitor::{self, Visitor},
+};
+use serde_json::{Value, json};
+use std::collections::{BTreeMap, BTreeSet};
+
+fn descriptor(types: &mut Types, helper: &str, access: &Value) -> Result<String> {
+    let get = types.render(&access["instance-get-type"])?;
+    let class = if access.get("class-type").is_some() {
+        types.render(&access["class-type"])?
+    } else {
+        helper.into()
+    };
+    let typing = types.typing_alias();
+    let builtins = types.builtins_alias();
+    let mut code = format!(
+        "class {helper}:\n    @{typing}.overload\n    def __get__(self, obj: None, owner: {builtins}.type[{builtins}.object]) -> {class}: ...\n    @{typing}.overload\n    def __get__(self, obj: {builtins}.object, owner: {builtins}.type[{builtins}.object]) -> {get}: ...\n    def __get__(self, obj: {builtins}.object, owner: {builtins}.type[{builtins}.object]) -> {builtins}.object: raise {builtins}.NotImplementedError\n"
+    );
+    if access.get("instance-set-type").is_some() {
+        let set = types.render(&access["instance-set-type"])?;
+        code.push_str(&format!(
+            "    def __set__(self, obj: {builtins}.object, value: {set}) -> None: raise {builtins}.NotImplementedError\n"
+        ));
+    }
+    Ok(code)
+}
+fn member(
+    types: &mut Types,
+    prefix: &str,
+    index: usize,
+    patch: &Value,
+    class_scope: bool,
+) -> Result<(String, String)> {
+    let name = patch["name"].as_str().context("member patch name")?;
+    let access = &patch["access"];
+    Ok(match access["kind"].as_str().unwrap_or("value") {
+        "callable" => {
+            let signature = &access["signature"];
+            let params = types.parameter_list(
+                signature["parameters"]
+                    .as_array()
+                    .map(Vec::as_slice)
+                    .unwrap_or(&[]),
+                true,
+            )?;
+            let ty = types.render(&signature["return-type"])?;
+            let builtins = types.builtins_alias();
+            (
+                String::new(),
+                format!("def {name}({params}) -> {ty}: raise {builtins}.NotImplementedError\n"),
+            )
+        }
+        "descriptor" => {
+            let helper = format!("{prefix}descriptor_{index}");
+            (
+                descriptor(types, &helper, access)?,
+                format!("{name}: {helper} = {helper}()\n"),
+            )
+        }
+        _ => {
+            let ty = types.render(&access["type-expr"])?;
+            (
+                String::new(),
+                format!(
+                    "{name}: {}\n",
+                    if class_scope {
+                        format!("{}.ClassVar[{ty}]", types.typing_alias())
+                    } else {
+                        ty
+                    }
+                ),
+            )
+        }
+    })
+}
+
+#[expect(
+    clippy::too_many_arguments,
+    reason = "Keeps source, plugin state, type rendering, and mapped output borrows separate"
+)]
+fn class_patch(
+    source: &Source,
+    class: &ruff_python_ast::StmtClassDef,
+    qualified: &str,
+    runtime: &mut Runtime,
+    types: &mut Types,
+    edits: &mut Edits,
+    diagnostics: &mut Vec<Value>,
+    generated: &mut crate::mapping::GeneratedDeclarations,
+) -> Result<ClassInfo> {
+    let project = runtime.project.as_ref().unwrap();
+    let summary = project
+        .class_summary(qualified)
+        .cloned()
+        .unwrap_or(json!({"qualified-name":qualified}));
+    let mut response = runtime
+        .project_patches
+        .get(qualified)
+        .cloned()
+        .unwrap_or(json!({"kind":"no-change"}));
+    if response["kind"] == "no-change" {
+        response = runtime.execute(source, "analyze-class", json!({"class":summary}))?;
+        runtime
+            .project_patches
+            .insert(qualified.into(), response.clone());
+    }
+    let mut fields: BTreeMap<String, Value> = response["fields"]
+        .as_array()
+        .into_iter()
+        .flatten()
+        .map(|v| (v["name"].as_str().unwrap_or("").to_owned(), v.clone()))
+        .collect();
+    let mut members: BTreeMap<String, (Value, bool)> = BTreeMap::new();
+    for (key, class_scope) in [("class-members", true), ("instance-members", false)] {
+        for m in response[key].as_array().into_iter().flatten() {
+            members.insert(
+                m["name"].as_str().unwrap_or("").to_owned(),
+                (m.clone(), class_scope),
+            );
+        }
+    }
+    let mut constructor = response.get("constructor").cloned();
+    // Contributions are already ordered by the project hook. Conflicting patch
+    // keys are checked when the project index is installed.
+    for c in &runtime.project_contributions {
+        if c["target"]["qualified-name"] != qualified {
+            continue;
+        }
+        let patch = &c["patch"];
+        match patch["kind"].as_str() {
+            Some("field") => {
+                fields
+                    .entry(patch["name"].as_str().unwrap_or("").into())
+                    .or_insert_with(|| patch.clone());
+            }
+            Some("member") => {
+                members
+                    .entry(patch["name"].as_str().unwrap_or("").into())
+                    .or_insert_with(|| (patch.clone(), c["target"]["kind"] == "class"));
+            }
+            Some("constructor") => {
+                constructor.get_or_insert_with(|| patch.clone());
+            }
+            _ => {}
+        }
+    }
+    let first = class.body.first().context("empty class body")?;
+    let insertion = span(first).start;
+    let line = source.text[..insertion]
+        .rfind(['\r', '\n'])
+        .map_or(0, |i| i + 1);
+    let raw_indent = &source.text[line..insertion];
+    let indent = if raw_indent.chars().all(|c| c == ' ' || c == '\t') {
+        raw_indent.to_owned()
+    } else {
+        "    ".into()
+    };
+    let mut declared = BTreeMap::new();
+    let mut methods = BTreeSet::new();
+    for stmt in &class.body {
+        match stmt {
+            Stmt::Assign(a) => {
+                for target in &a.targets {
+                    if let Expr::Name(n) = target {
+                        declared.insert(n.id.to_string(), span(n));
+                    }
+                }
+            }
+            Stmt::AnnAssign(a) => {
+                if let Expr::Name(n) = a.target.as_ref() {
+                    declared.insert(n.id.to_string(), span(n));
+                }
+            }
+            Stmt::FunctionDef(f) => {
+                methods.insert(f.name.to_string());
+            }
+            _ => {}
+        }
+    }
+    let mut class_code = String::new();
+    let mut helper_code = String::new();
+    let mut field_types = BTreeMap::new();
+    let mut params = Vec::new();
+    let mut patched_names = BTreeSet::new();
+    for (index, (name, field)) in fields.iter().enumerate() {
+        if field["mode"] != "replace-existing" && declared.contains_key(name) {
+            continue;
+        }
+        let ty = types.render(&field["instance-get-type"])?;
+        field_types.insert(name.clone(), ty.clone());
+        let helper = format!("{}field_{}_{}", source.prefix, span(class).start, index);
+        let mut access = field
+            .get("descriptor")
+            .cloned()
+            .unwrap_or(json!({"kind":"descriptor","instance-get-type":field["instance-get-type"]}));
+        if let Some(set) = field.get("instance-set-type") {
+            access["instance-set-type"] = set.clone();
+        }
+        helper_code.push_str(&descriptor(types, &helper, &access)?);
+        class_code.push_str(&format!("{name}: {helper} = {helper}()\n"));
+        generated
+            .descriptors
+            .entry(qualified.to_owned())
+            .or_default()
+            .insert(name.clone());
+        patched_names.insert(name.clone());
+        if let Some(param) = field.get("constructor-parameter") {
+            params.push(param.clone());
+        }
+    }
+    for (index, (name, (patch, class_scope))) in members.iter().enumerate() {
+        if patch["mode"] != "replace-existing"
+            && (declared.contains_key(name) || methods.contains(name))
+        {
+            continue;
+        }
+        let (helper, code) = member(
+            types,
+            &format!("{}member_{}_", source.prefix, span(class).start),
+            index,
+            patch,
+            *class_scope,
+        )?;
+        helper_code.push_str(&helper);
+        class_code.push_str(&code);
+        if !*class_scope && patch["access"]["kind"] == "descriptor" {
+            generated
+                .descriptors
+                .entry(qualified.to_owned())
+                .or_default()
+                .insert(name.clone());
+        }
+        patched_names.insert(name.clone());
+    }
+    if !methods.contains("__init__") && (constructor.is_some() || !params.is_empty()) {
+        let params = constructor
+            .as_ref()
+            .and_then(|c| c["parameters"].as_array())
+            .unwrap_or(&params);
+        let signature = types.parameter_list(params, true)?;
+        let builtins = types.builtins_alias();
+        class_code.push_str(&format!(
+            "def __init__({signature}) -> None: raise {builtins}.NotImplementedError\n"
+        ));
+        generated.constructors.insert(qualified.to_owned());
+    }
+    // Preserve original RHS evaluation and argument checking under a hygienic
+    // binding; the declared plugin descriptor supplies accesses to this name.
+    for name in patched_names {
+        if let Some(target) = declared.get(&name) {
+            edits.replace(
+                *target,
+                format!("{}original_{}_{}", source.prefix, span(class).start, name),
+            );
+        }
+    }
+    if !class_code.is_empty() {
+        let indented = class_code
+            .lines()
+            .collect::<Vec<_>>()
+            .join(&format!("\n{indent}"));
+        edits.insert(insertion, format!("{indented}\n{indent}"));
+    }
+    types.definitions.push_str(&helper_code);
+    for diagnostic in response["diagnostics"].as_array().into_iter().flatten() {
+        diagnostics.push(json!({"diagnostic":diagnostic,"source":source.location(span(class))}));
+    }
+    Ok(ClassInfo {
+        fields: field_types.clone(),
+        methods,
+        insertion,
+        indent,
+        declared: field_types.keys().cloned().collect(),
+    })
+}
+
+#[derive(Default)]
+struct Bindings {
+    names: BTreeSet<String>,
+}
+impl<'a> Visitor<'a> for Bindings {
+    fn visit_stmt(&mut self, node: &'a Stmt) {
+        match node {
+            Stmt::FunctionDef(f) => {
+                self.names.insert(f.name.to_string());
+            }
+            Stmt::ClassDef(c) => {
+                self.names.insert(c.name.to_string());
+            }
+            Stmt::Import(i) => {
+                for alias in &i.names {
+                    self.names.insert(
+                        alias
+                            .asname
+                            .as_ref()
+                            .map(ToString::to_string)
+                            .unwrap_or_else(|| {
+                                alias.name.as_str().split('.').next().unwrap().to_string()
+                            }),
+                    );
+                }
+            }
+            Stmt::ImportFrom(i) => {
+                for alias in &i.names {
+                    self.names
+                        .insert(alias.asname.as_ref().unwrap_or(&alias.name).to_string());
+                }
+            }
+            _ => visitor::walk_stmt(self, node),
+        }
+    }
+    fn visit_expr(&mut self, node: &'a Expr) {
+        match node {
+            Expr::Name(name) if name.ctx == ExprContext::Store => {
+                self.names.insert(name.id.to_string());
+            }
+            Expr::Lambda(_) => {}
+            _ => visitor::walk_expr(self, node),
+        }
+    }
+}
+
+struct Calls<'a> {
+    source: &'a Source,
+    runtime: &'a Runtime,
+    calls: BTreeMap<Span, crate::model::CallSite>,
+    probes: BTreeMap<Span, String>,
+    intrinsics: BTreeSet<String>,
+    shadowed: BTreeSet<String>,
+}
+impl<'a> Visitor<'a> for Calls<'_> {
+    fn visit_annotation(&mut self, _node: &'a Expr) {}
+    fn visit_expr(&mut self, node: &'a Expr) {
+        if let Expr::Lambda(lambda) = node {
+            let previous = self.shadowed.clone();
+            if let Some(parameters) = &lambda.parameters {
+                self.shadowed.extend(
+                    parameters
+                        .iter()
+                        .map(|parameter| parameter.name().to_string()),
+                );
+            }
+            self.visit_expr(&lambda.body);
+            self.shadowed = previous;
+            return;
+        }
+        match node {
+            Expr::Attribute(a) => {
+                self.probes.insert(
+                    span(a.value.as_ref()),
+                    expression_key(span(a.value.as_ref())),
+                );
+            }
+            Expr::Subscript(s) => {
+                self.probes.insert(
+                    span(s.value.as_ref()),
+                    expression_key(span(s.value.as_ref())),
+                );
+            }
+            _ => {}
+        }
+        if let Expr::Call(call) = node {
+            let raw = self.source.slice(span(call.func.as_ref()));
+            let canonical = self.runtime.canonical_name(self.source, raw);
+            let last = raw.rsplit('.').next().unwrap_or(raw);
+            let root = raw.split('.').next().unwrap_or(raw);
+            let shadowed = self.shadowed.contains(root);
+            if !shadowed
+                && matches!(
+                    canonical.as_str(),
+                    "typing.assert_type"
+                        | "typing_extensions.assert_type"
+                        | "typing.reveal_type"
+                        | "typing_extensions.reveal_type"
+                )
+            {
+                if let Some(value) = call.arguments.args.first() {
+                    self.visit_expr(value);
+                }
+                return;
+            }
+            if !shadowed && matches!(canonical.as_str(), "typing.cast" | "typing_extensions.cast") {
+                if let Some(value) = call.arguments.args.get(1) {
+                    self.visit_expr(value);
+                }
+                return;
+            }
+            let claims = &self.runtime.manifest["claims"];
+            let method = matches!(call.func.as_ref(), Expr::Attribute(_))
+                && claims["methods"].as_array().into_iter().flatten().any(|c| {
+                    c["method-name"] == last
+                        || c["method-name-pattern"].as_str().is_some_and(|pattern| {
+                            ty_plugin_protocol::method_name_pattern_matches(pattern, last)
+                        })
+                });
+            let exact = !shadowed
+                && claims["functions"]
+                    .as_array()
+                    .into_iter()
+                    .flatten()
+                    .any(|c| c["qualified-name"] == canonical);
+            let constructor = !shadowed
+                && self.runtime.project.as_ref().is_some_and(|p| {
+                    claims["constructors"]
+                        .as_array()
+                        .into_iter()
+                        .flatten()
+                        .any(|c| {
+                            c["qualified-name"] == canonical
+                                || c["base-qualified-name"]
+                                    .as_str()
+                                    .is_some_and(|b| p.is_subclass(&canonical, b))
+                        })
+                });
+            if method || exact || constructor {
+                let mut site = call_site(call, canonical);
+                if let Expr::Attribute(a) = call.func.as_ref() {
+                    site.receiver_span = Some(span(a.value.as_ref()));
+                    if !shadowed {
+                        if let Some(receiver) = self.runtime.expression_type(self.source, &a.value)
+                        {
+                            site.receiver_type = receiver["expression"].as_str().map(str::to_owned);
+                        }
+                        let receiver = self
+                            .runtime
+                            .canonical_name(self.source, self.source.slice(span(a.value.as_ref())));
+                        if let Some(project) = &self.runtime.project
+                            && let Some(owner) = project.method_owner(&receiver, a.attr.as_str())
+                        {
+                            let class_method = project
+                                .class_summary(&owner)
+                                .and_then(|class| class["methods"].as_array())
+                                .and_then(|methods| {
+                                    methods
+                                        .iter()
+                                        .find(|method| method["name"] == a.attr.as_str())
+                                })
+                                .is_some_and(|method| {
+                                    method["decorators"].as_array().into_iter().flatten().any(
+                                        |decorator| {
+                                            matches!(
+                                                decorator["qualified-name"].as_str(),
+                                                Some("classmethod" | "builtins.classmethod")
+                                            )
+                                        },
+                                    )
+                                });
+                            if class_method {
+                                site.receiver_type = Some(format!("type[{receiver}]"));
+                            }
+                        }
+                    }
+                }
+                self.calls.insert(span(call), site);
+            }
+        }
+        visitor::walk_expr(self, node);
+    }
+    fn visit_stmt(&mut self, node: &'a Stmt) {
+        match node {
+            Stmt::FunctionDef(function) => {
+                for decorator in &function.decorator_list {
+                    self.visit_expr(&decorator.expression);
+                }
+                for parameter in function
+                    .parameters
+                    .posonlyargs
+                    .iter()
+                    .chain(&function.parameters.args)
+                    .chain(&function.parameters.kwonlyargs)
+                {
+                    if let Some(default) = &parameter.default {
+                        self.visit_expr(default);
+                    }
+                }
+                let previous = self.shadowed.clone();
+                let mut bindings = Bindings::default();
+                bindings.visit_body(&function.body);
+                self.shadowed.extend(bindings.names);
+                self.shadowed.extend(
+                    function
+                        .parameters
+                        .iter()
+                        .map(|parameter| parameter.name().to_string()),
+                );
+                self.visit_body(&function.body);
+                self.shadowed = previous;
+            }
+            Stmt::ClassDef(class) => self.visit_body(&class.body),
+            Stmt::AnnAssign(assignment) => {
+                self.visit_expr(&assignment.target);
+                if let Some(value) = &assignment.value {
+                    self.visit_expr(value);
+                }
+            }
+            Stmt::TypeAlias(_) => {}
+            Stmt::If(branch) => {
+                self.visit_expr(&branch.test);
+                let imports = self
+                    .runtime
+                    .project
+                    .as_ref()
+                    .and_then(|project| project.modules.get(&self.source.module))
+                    .map(|module| module.imports.clone())
+                    .unwrap_or_default();
+                for body in crate::project::branch_suites(branch, &imports) {
+                    self.visit_body(body);
+                }
+            }
+            Stmt::ImportFrom(import) => {
+                if import
+                    .module
+                    .as_ref()
+                    .is_some_and(|m| matches!(m.as_str(), "typing" | "typing_extensions"))
+                {
+                    for alias in &import.names {
+                        if matches!(alias.name.as_str(), "assert_type" | "reveal_type") {
+                            self.intrinsics
+                                .insert(alias.asname.as_ref().unwrap_or(&alias.name).to_string());
+                        }
+                    }
+                }
+            }
+            _ => visitor::walk_stmt(self, node),
+        }
+    }
+}
+
+pub fn analyze(source: &Source, suite: &[Stmt], runtime: &mut Runtime) -> Result<Analysis> {
+    let offset = crate::static_project::prelude_offset(source, suite);
+    let mut types = Types::with_project(
+        &format!("{}static_", source.prefix),
+        &source.module,
+        runtime.project.as_ref().unwrap(),
+    );
+    let mut edits = Edits::default();
+    let mut classes = BTreeMap::new();
+    let mut diagnostics = Vec::new();
+    let mut generated = crate::mapping::GeneratedDeclarations::default();
+    #[expect(
+        clippy::too_many_arguments,
+        reason = "Recursive traversal shares independent lowering outputs without owning them"
+    )]
+    fn classes_in(
+        source: &Source,
+        suite: &[Stmt],
+        prefix: &str,
+        runtime: &mut Runtime,
+        types: &mut Types,
+        edits: &mut Edits,
+        classes: &mut BTreeMap<String, ClassInfo>,
+        diagnostics: &mut Vec<Value>,
+        generated: &mut crate::mapping::GeneratedDeclarations,
+    ) -> Result<()> {
+        for stmt in suite {
+            match stmt {
+                Stmt::ClassDef(c) => {
+                    let name = format!("{prefix}.{}", c.name);
+                    let info = class_patch(
+                        source,
+                        c,
+                        &name,
+                        runtime,
+                        types,
+                        edits,
+                        diagnostics,
+                        generated,
+                    )?;
+                    classes.insert(c.name.to_string(), info);
+                    classes_in(
+                        source,
+                        &c.body,
+                        &name,
+                        runtime,
+                        types,
+                        edits,
+                        classes,
+                        diagnostics,
+                        generated,
+                    )?;
+                }
+                Stmt::If(i) => {
+                    let imports = runtime
+                        .project
+                        .as_ref()
+                        .and_then(|project| project.modules.get(&source.module))
+                        .map(|module| module.imports.clone())
+                        .unwrap_or_default();
+                    for body in crate::project::branch_suites(i, &imports) {
+                        classes_in(
+                            source,
+                            body,
+                            prefix,
+                            runtime,
+                            types,
+                            edits,
+                            classes,
+                            diagnostics,
+                            generated,
+                        )?;
+                    }
+                }
+                _ => {}
+            }
+        }
+        Ok(())
+    }
+    classes_in(
+        source,
+        suite,
+        &source.module,
+        runtime,
+        &mut types,
+        &mut edits,
+        &mut classes,
+        &mut diagnostics,
+        &mut generated,
+    )?;
+    let mut collector = Calls {
+        source,
+        runtime,
+        calls: BTreeMap::new(),
+        probes: BTreeMap::new(),
+        intrinsics: BTreeSet::new(),
+        shadowed: BTreeSet::new(),
+    };
+    collector.visit_body(suite);
+    let calls = collector.calls;
+    let expression_probes = collector.probes;
+    let intrinsics = collector.intrinsics;
+    let mut helpers = BTreeMap::new();
+    for call in calls.values() {
+        let response = call_request(runtime, source, "adjust-call-signature", call, None, None)?;
+        if response["kind"] == "call-signature-patch" {
+            let signature = &response["signature"];
+            let parameters = types.parameter_list(
+                signature["parameters"]
+                    .as_array()
+                    .map(Vec::as_slice)
+                    .unwrap_or(&[]),
+                false,
+            )?;
+            let result = types.render(&signature["return-type"])?;
+            let helper = format!("{}call_{}", source.prefix, call.span.start);
+            let builtins = types.builtins_alias();
+            types.definitions.push_str(&format!(
+                "def {helper}({parameters}) -> {result}: raise {builtins}.NotImplementedError\n"
+            ));
+            helpers.insert(helper.clone(), call.callee.clone());
+            // Keep the original callable expression available for checking and
+            // nested probes while selecting the plugin's callable signature.
+            edits.wrap(call.function, "(".into(), format!(", {helper})[1]"), None);
+        }
+        for diagnostic in response["diagnostics"].as_array().into_iter().flatten() {
+            diagnostics.push(json!({"diagnostic":diagnostic,"source":source.location(call.span)}));
+        }
+    }
+    edits.insert(
+        offset,
+        format!(
+            "from __future__ import annotations\nfrom typing import cast as {}\n{}",
+            source.cast_name(),
+            types.prelude()
+        ),
+    );
+    Ok(Analysis {
+        prelude_offset: offset,
+        classes,
+        intrinsics,
+        calls,
+        edits,
+        helpers,
+        expression_probes,
+        plugin_diagnostics: diagnostics,
+        generated_declarations: generated,
+    })
+}

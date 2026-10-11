@@ -1,0 +1,33 @@
+{
+  "kind": "known-upgrade-failure",
+  "version": "ty 0.86.0+147 (4429f1e88 2026-10-10)",
+  "fork_sha256": "b9abe43ba8ef0692c9d9804a0dc0c450800eb22436e0bc6097ae61b3e5335464",
+  "baseline_report_sha256": "f6f41d252cf754481009e50cefb212baac42db0495c859a5b39929e76473d5a4",
+  "unchanged_expectations": true,
+  "failed_cases": [
+    {
+      "case": "forms.model-forms/inherited-meta",
+      "diagnostics": [
+        {
+          "begin": {
+            "column": 11,
+            "line": 18
+          },
+          "code": "invalid-attribute-override",
+          "end": {
+            "column": 15,
+            "line": 18
+          },
+          "message": "invalid-attribute-override: Invalid override of attribute `Meta`: Type `<class 'Meta'>` is not assignable to inherited type `<class 'Meta'>`",
+          "path": "cases/extras.py",
+          "severity": "major"
+        }
+      ],
+      "expect": "pass",
+      "line": 18,
+      "passed": false,
+      "path": "cases/extras.py"
+    }
+  ],
+  "note": "Reference fork itself fails this unchanged Django assertion; Django companion compatibility is pinned to0.84.4/official0.0.84, while generic tests separately use0.86.0/official0.0.86."
+}

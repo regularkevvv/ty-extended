@@ -1,0 +1,151 @@
+{
+  "django-edges": {
+    "original_report": {
+      "artifact": "artifact:supplemental-django-edges",
+      "sha256": "88755dbbeb948e7bc8bbcd19ce63810ff1a31565494c2da972bbf11859c24026"
+    },
+    "result": {
+      "artifact": "artifact:supplemental-django-edges",
+      "ignored": 0,
+      "passed": 1,
+      "sha256": "88755dbbeb948e7bc8bbcd19ce63810ff1a31565494c2da972bbf11859c24026"
+    }
+  },
+  "protocol-inputs": {
+    "original_report": {
+      "artifact": "artifact:supplemental-protocol-inputs",
+      "sha256": "dc1e1cb8bacf1a68f0deed2536a40c6bf1cd152cdc4d0f30fd59cf3a0ba00c86"
+    },
+    "result": {
+      "corpus": {
+        "artifact": "artifact:protocol-inputs/oracle.jsonl.gz",
+        "decompression_matches_original": true,
+        "expected_responses_above_default_eight_mib": [
+          {
+            "expected_response_bytes": 12679265,
+            "record_index": 133,
+            "request_kind": "build-project-index"
+          }
+        ],
+        "gzip_bytes": 204431,
+        "gzip_mtime": 0,
+        "gzip_sha256": "b31b07372ccb87615e585e6e53d132c8cbe779429d5dad6ab77392d0bf4339cd",
+        "raw_bytes": 14384537,
+        "raw_sha256": "95a05273c371aa7866f60dac83911fb61821c2a4390d1f536ec1312d5d500498",
+        "records": 150,
+        "request_kinds": {
+          "adjust-call-return": 65,
+          "adjust-call-signature": 2,
+          "adjust-call-state": 49,
+          "analyze-class": 6,
+          "build-project-index": 26,
+          "validate-mutation": 2
+        },
+        "response_kinds": {
+          "call-return-patch": 55,
+          "call-signature-patch": 1,
+          "call-state-patch": 27,
+          "class-patch": 5,
+          "mutation-diagnostics": 1,
+          "no-change": 35,
+          "project-index": 26
+        }
+      },
+      "generator": {
+        "command_source": "scripts/check-monty-parity.sh",
+        "current_checked_in_regeneration_command": "DJANGO_TY_ORACLE_PATH=/path/to/new-oracle.jsonl cargo test --locked --test plugin",
+        "current_source_sha256": {
+          "Cargo.lock": "203bb028caf6050942870086ded6e6977435bc646662866dd711587bbc5d6aeb",
+          "Cargo.toml": "b783fda4061bc1bc67b663df59d295c3a6a7249482e7caa50ebc723ab1e1e3c7",
+          "scripts/check-monty-parity.sh": "08444a852a464fc20fb241f53afd84ba67d6ca53e0cf6cdb81e520c14c4dbc22",
+          "scripts/check_monty_parity.py": "ddbbc160970fd055f194fbcc7843689075dd0bff61bae51c6cc513be3b6853c0",
+          "src/apps.rs": "5a08609b7e0da019513a409ea97dbe8a16e1c322018751c3c88f653a8d02d5f9",
+          "src/bin/django_ty_package_manifest.rs": "aa44330a7e202a3059dc285d578aec8db38e184ce76ff7d989620b502342e7f2",
+          "src/constants.rs": "1404ca7ec40b7d9acba22960e37b7e43175039baf38084f5fb9f7da83e604461",
+          "src/diagnostics.rs": "c7c882970ec174ddc3d370d7a623347ee0f7d7caf66027fd6c73c4339dfcfc9c",
+          "src/fields.rs": "5ed1dcb69b3fd715721d4ce6a97202e1d53802c500f7185bf452e3e4de12cc6e",
+          "src/index.rs": "885044f15366f55d4bd7875a4b849a879a6e05ae985382cec03c1d2bb033f8fe",
+          "src/lib.rs": "f5829c5405b46a795ba7c700d503d679cd66f2338fd724fcc0c9128dee23261b",
+          "src/plugin.rs": "12e4545b177a62c3f1017b3fe2d59970342864b6e5992097e43d4a19ca10ac83",
+          "src/querysets.rs": "ffcd2c2ebf8e6bc3eb24dd525cbfb3814e4cebed92825ce77711487c9fa70a37",
+          "src/settings.rs": "6d6ad4646bcda9adb1e98b42d260b0cd673368f9ca147cfbeed2f821d878f7eb",
+          "src/state.rs": "f9e74780d0e3b139037cd247a8f8df9bccf566dacd55653cc374fa7e475b159d",
+          "src/types.rs": "77e9e6b0e92ca8a86e4e4beec6dbc3467747081378b7c3d7f40d5cc2007cc580",
+          "tests/plugin.rs": "784570af2c12e2d5e9aaecb644e5073362f63c40820750fc5a519eb618b945e3",
+          "tests/support/monty_oracle.rs": "7f98c389f8ea5b1daca1a590c8ebdf7365b199b242ab9032cc4b0421a89879a1"
+        },
+        "historical_creation_commit": null,
+        "historical_exact_invocation": null,
+        "historical_provenance_limit": "The retained original log identifies the checkout path, django-ty 0.5.0 and tests/plugin.rs with 33 passing tests. It does not record the generating commit or full command. Current source fingerprints do not assert those missing historical facts.",
+        "mechanism": "tests/plugin.rs calls the tests/support/monty_oracle.rs wrapper. With DJANGO_TY_ORACLE_PATH set, it appends request and actual Rust plugin response pairs as JSON lines under a mutex.",
+        "retained_original_log": "artifact:protocol-inputs/oracle-generation.log",
+        "retained_original_log_result": {
+          "failed": 0,
+          "ignored": 0,
+          "passed": 33
+        },
+        "retained_original_log_sha256": "2a32fbb7795090675cd04fc3a6041ff0dac516fadfb9a572eaa59f822f3b23a0"
+      },
+      "manifest_replay": "The host test adds one manifest request per replay; it is not part of the 150-line corpus.",
+      "passed": true,
+      "plugin": {
+        "checkout_commit": "9996e1b3e8a0656c988fd2b8deedb726b12fe575",
+        "manifest": "source:django-ty/python/django_ty/ty-plugin-monty.json",
+        "manifest_sha256": "2b9e31fc9f7d5a809b17f8719c31e17ccb97908f94bee096069a5a290c6dc55d",
+        "source": "source:django-ty/python/django_ty/monty.py",
+        "source_sha256": "288dbec1b392434e0587bbc8d80942ce14b2ea7d502bd80bb780611669b85a3e"
+      },
+      "scope": "Verified input inventory and lossless retained corpus; replay success is established separately by the final protocol test log."
+    }
+  },
+  "quality": {
+    "original_report": {
+      "artifact": "artifact:supplemental-quality",
+      "sha256": "bf6a375bdf3ca2a44698501f0dcd1f48a9232cfb8eda50daaa8145aa814427ab"
+    },
+    "result": {
+      "checks": {
+        "clippy": "all targets, warnings denied",
+        "python_harness_tests": 19,
+        "python_lint": "all checks passed",
+        "release_build": "Rust 1.98.0",
+        "rustfmt": "check"
+      },
+      "logs": {
+        "build-release-final.log": {
+          "path": "artifact:supplemental-sdk-directory/build-release-final.log",
+          "sha256": "4d248b8adae0a0a33547a3b2bfbded4390d3252cb00a6e764cd37a29b3e19dde"
+        },
+        "clippy-final.log": {
+          "path": "artifact:supplemental-sdk-directory/clippy-final.log",
+          "sha256": "38085c4cbf9884601209b23fdd648efacab5e64a6f50d38c61176371ed47558f"
+        },
+        "fmt-final.log": {
+          "path": "artifact:supplemental-sdk-directory/fmt-final.log",
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        "harness-release.log": {
+          "path": "artifact:supplemental-sdk-directory/harness-release.log",
+          "sha256": "3adb5d5b1d02ecd3b14c597f77cdda1e82e381541c2ae294f7f404037b1334c2"
+        },
+        "python-lint-release.log": {
+          "path": "artifact:supplemental-sdk-directory/python-lint-release.log",
+          "sha256": "82b3e6a6c090a57601d22943bd23fca9218d1031dbe5a7b754092f9a156b4f18"
+        }
+      },
+      "passed": true
+    }
+  },
+  "sdk": {
+    "original_report": {
+      "artifact": "artifact:supplemental-sdk",
+      "sha256": "fa67cc2409d17a6679b4486babf4e9a1fb8b4261c9a5f391dd793461d574b0b2"
+    },
+    "result": {
+      "artifact": "artifact:supplemental-sdk",
+      "ignored": 0,
+      "passed": 1,
+      "sha256": "fa67cc2409d17a6679b4486babf4e9a1fb8b4261c9a5f391dd793461d574b0b2"
+    }
+  }
+}

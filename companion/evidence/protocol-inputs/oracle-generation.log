@@ -1,0 +1,41 @@
+   Compiling django-ty v0.5.0 (/private/tmp/django-ty-monty-20261008)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 3.81s
+     Running tests/plugin.rs (/private/tmp/django-ty-release-0.5.0-20261008/rust/debug/deps/plugin-fe1ee0b5dcb0c2c8)
+
+running 33 tests
+test fresh_request_constructor_preserves_subclass_identity ... ok
+test class_signal_handlers_disable_model_state ... ok
+test concrete_inheritance_disables_state_while_proxy_models_keep_auto_keys ... ok
+test index_tracks_inherited_auto_keys_and_custom_loading ... ok
+test class_transform_adds_fields_managers_relation_ids_and_optional_constructor_args ... ok
+test from_queryset_signature_accepts_custom_querysets_and_preserves_the_manager_class ... ok
+test manifest_declares_django_orm_capabilities ... ok
+test non_models_and_non_manager_calls_do_not_change ... ok
+test auto_key_defaults_are_inherited_and_composite_keys_are_excluded ... ok
+test packaged_manifest_uses_the_wheel_artifact ... ok
+test database_defaults_have_sentinel_types_until_an_auto_key_is_set ... ok
+test lookup_validation_accepts_supported_shapes_and_reports_bad_values ... ok
+test auth_self_and_mutation_hooks_cover_success_and_safe_fallbacks ... ok
+test one_to_one_related_name_plus_and_unknown_scalar_fields_are_handled ... ok
+test project_index_builds_custom_queryset_managers_and_typed_settings_contributions ... ok
+test lazy_strings_custom_managers_and_queryset_subclasses_take_their_specific_paths ... ok
+test project_index_collects_models_settings_fields_virtual_types_and_reverse_relations ... ok
+test project_index_reports_unknown_targets_and_reverse_conflicts ... ok
+test relation_contribution_descriptor_shape_is_read_only_for_one_to_one ... ok
+test relation_targets_support_to_keyword_self_and_unresolved_enum_fallbacks ... ok
+test manager_receiver_variants_and_missing_project_index_take_safe_paths ... ok
+test project_index_inherits_models_tracks_query_names_and_contributes_choices ... ok
+test callable_defaults_validate_named_results_and_heterogeneous_values ... ok
+test sdk_json_dispatch_round_trips_manifest_and_project_index ... ok
+test signal_callbacks_and_explicit_opt_out_keep_nullable_ids ... ok
+test values_reports_unknown_field_names_and_invalid_flat_named_combo_no_changes ... ok
+test prefetch_create_bulk_save_and_metadata_hooks_are_specialized_and_validated ... ok
+test state_hooks_refine_only_successful_model_operations ... ok
+test constructor_state_respects_keys_defaults_and_custom_initialization ... ok
+test manager_and_queryset_methods_return_model_queryset_rows_and_async_wrappers ... ok
+test project_index_converges_on_wide_shallow_hierarchies ... ok
+test values_values_list_and_annotate_compute_row_types ... ok
+test state_hooks_reject_uncertain_saves_and_nonmodel_results ... ok
+
+test result: ok. 33 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 18.01s
+

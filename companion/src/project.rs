@@ -1,0 +1,2090 @@
+//! Project-wide syntax summaries and source forms for plugin-defined types.
+//!
+//! This module deliberately knows nothing about any particular framework. It
+//! consumes the public plugin protocol, imports, and Python syntax. Settings are
+//! interpreted statically; importing or executing a project's Python is forbidden.
+use std::{
+    collections::{BTreeMap, BTreeSet},
+    path::{Path, PathBuf},
+    sync::Arc,
+};
+
+use anyhow::{Context, Result, bail, ensure};
+use ruff_python_ast::{self as ast, Expr, Stmt};
+use serde_json::{Value, json};
+
+use crate::model::{Source, span, typ};
+
+#[derive(Clone)]
+pub struct Module {
+    pub source: Arc<Source>,
+    pub suite: Vec<Stmt>,
+    pub imports: BTreeMap<String, String>,
+    pub bindings: BTreeSet<String>,
+    pub assignments: BTreeMap<String, Expr>,
+    pub external: bool,
+}
+
+#[derive(Clone)]
+pub struct Project {
+    pub root: PathBuf,
+    pub modules: BTreeMap<String, Module>,
+    pub classes: BTreeMap<String, Value>,
+    pub config: Value,
+    pub manifest: Value,
+    /// Hygienic generated declaration name -> public protocol identity.
+    pub virtual_identities: BTreeMap<String, String>,
+    /// Modules proven unavailable by the official checker's environment. Absence
+    /// from the syntax index alone must never populate this set.
+    pub unavailable_modules: BTreeSet<String>,
+    assignments: Vec<Value>,
+    functions: Vec<Value>,
+    settings: Vec<Value>,
+}
+
+impl Project {
+    pub fn load(
+        root: &Path,
+        source_paths: &[PathBuf],
+        manifest: &Value,
+        config: Value,
+    ) -> Result<Self> {
+        let root = root
+            .canonicalize()
+            .with_context(|| format!("project root {}", root.display()))?;
+        let mut project = Self {
+            root,
+            modules: BTreeMap::new(),
+            classes: BTreeMap::new(),
+            config,
+            manifest: manifest.clone(),
+            virtual_identities: BTreeMap::new(),
+            unavailable_modules: BTreeSet::new(),
+            assignments: vec![],
+            functions: vec![],
+            settings: vec![],
+        };
+        let mut paths = source_paths.to_vec();
+        if paths.is_empty() {
+            collect_python(&project.root, &mut paths)?;
+        }
+        for path in paths {
+            let path = if path.is_absolute() {
+                path
+            } else {
+                project.root.join(path)
+            };
+            let path = path
+                .canonicalize()
+                .with_context(|| format!("source file {}", path.display()))?;
+            let module = module_name(&project.root, &path)?;
+            project.add_module(&module, &path, false)?;
+        }
+        // Claims select settings modules; they are dependencies even when user
+        // code never imports them directly.
+        for name in project.settings_modules() {
+            if let Some(path) = find_module(&project.root, &name) {
+                project.add_module(&name, &path, false)?;
+            }
+        }
+        project.load_imports()?;
+        project.rebuild()?;
+        Ok(project)
+    }
+
+    /// Add a stub/source overlay's import graph. External classes participate in
+    /// name and ancestry resolution but are not sent as user model declarations.
+    pub fn add_source_tree(&mut self, root: &Path) -> Result<()> {
+        let mut paths = vec![];
+        collect_python(root, &mut paths)?;
+        paths.sort_by_key(|p| p.extension().is_some_and(|x| x == "pyi"));
+        for path in paths {
+            let module = module_name(root, &path)?;
+            if self.modules.get(&module).is_some_and(|m| !m.external) {
+                continue;
+            }
+            self.add_module(&module, &path, true)?;
+        }
+        self.rebuild()
+    }
+
+    fn add_module(&mut self, name: &str, path: &Path, external: bool) -> Result<()> {
+        let text =
+            std::fs::read_to_string(path).with_context(|| format!("read {}", path.display()))?;
+        let parsed = ruff_python_parser::parse_module(&text)
+            .with_context(|| format!("parse {}", path.display()))?;
+        let suite = parsed.syntax().body.to_vec();
+        let source = Arc::new(Source::new(
+            text,
+            path.to_string_lossy().into_owned(),
+            name.to_owned(),
+        ));
+        let is_package = path.file_stem().is_some_and(|x| x == "__init__");
+        let mut module = Module {
+            source,
+            suite,
+            imports: BTreeMap::new(),
+            bindings: BTreeSet::new(),
+            assignments: BTreeMap::new(),
+            external,
+        };
+        collect_bindings(
+            &module.suite.clone(),
+            name,
+            is_package,
+            &mut module.imports,
+            &mut module.bindings,
+            &mut module.assignments,
+        );
+        self.modules.insert(name.to_owned(), module);
+        Ok(())
+    }
+
+    fn load_imports(&mut self) -> Result<()> {
+        loop {
+            let mut additions = BTreeMap::new();
+            for module in self.modules.values() {
+                for target in module.imports.values() {
+                    let mut candidate = target.as_str();
+                    loop {
+                        if !self.modules.contains_key(candidate)
+                            && let Some(path) = find_module(&self.root, candidate)
+                        {
+                            additions.insert(candidate.to_owned(), path);
+                        }
+                        let Some((parent, _)) = candidate.rsplit_once('.') else {
+                            break;
+                        };
+                        candidate = parent;
+                    }
+                }
+            }
+            if additions.is_empty() {
+                break;
+            }
+            for (name, path) in additions {
+                self.add_module(&name, &path, false)?;
+            }
+        }
+        Ok(())
+    }
+
+    fn rebuild(&mut self) -> Result<()> {
+        self.classes.clear();
+        self.assignments.clear();
+        self.functions.clear();
+        self.settings.clear();
+        // First register every class name, then resolve forward references.
+        for (name, module) in &self.modules {
+            register_class_names(&module.suite, name, &module.imports, &mut self.classes);
+        }
+        let mut classes = BTreeMap::new();
+        let mut assignments = vec![];
+        let mut functions = vec![];
+        for (name, module) in &self.modules {
+            self.summarize_body(
+                name,
+                module,
+                &module.suite,
+                &mut classes,
+                &mut assignments,
+                &mut functions,
+            )?;
+        }
+        self.classes = classes;
+        self.assignments = assignments;
+        self.functions = functions;
+        for name in self.settings_modules() {
+            if let Some(module) = self.modules.get(&name) {
+                let mut values = vec![];
+                let mut diagnostics = vec![];
+                let mut dependencies = BTreeSet::from([module.source.path.clone()]);
+                for statement in &module.suite {
+                    let pair = match statement {
+                        Stmt::Assign(assignment) => assignment.targets.first().and_then(|target| {
+                            if let Expr::Name(target) = target {
+                                Some((target, assignment.value.as_ref()))
+                            } else {
+                                None
+                            }
+                        }),
+                        Stmt::AnnAssign(assignment) => {
+                            if let (Expr::Name(target), Some(value)) =
+                                (assignment.target.as_ref(), assignment.value.as_deref())
+                            {
+                                Some((target, value))
+                            } else {
+                                None
+                            }
+                        }
+                        _ => None,
+                    };
+                    let Some((target, expression)) = pair else {
+                        continue;
+                    };
+                    let key = target.id.as_str();
+                    if !is_setting(key) {
+                        continue;
+                    }
+                    let value = self.settings_value(
+                        &name,
+                        expression,
+                        &mut BTreeSet::new(),
+                        &mut dependencies,
+                    );
+                    let mut location = module.source.location(span(target));
+                    location["qualified-name"] = json!(format!("{name}.{key}"));
+                    if value["kind"] == "unknown" {
+                        diagnostics.push(json!({"id":"ty.settings.unsupported-value","message":format!("Setting `{name}.{key}` is not a supported static literal"),"severity":self.settings_severity(),"location":{"file-path":module.source.path,"start":location["start"],"end":location["end"]}}));
+                    } else {
+                        values.push(json!({"name":key,"value":value,"source":location}));
+                    }
+                }
+                self.settings.push(json!({"module":name,"values":values,"dependencies":dependencies.into_iter().map(|path|json!({"path":path})).collect::<Vec<_>>(),"diagnostics":diagnostics,"source":{"module":name,"file-path":module.source.path}}));
+            } else {
+                self.settings.push(json!({"module":name,"values":[],"dependencies":[],"diagnostics":[{"id":"ty.settings.module-not-found","message":format!("Settings module `{name}` could not be resolved"),"severity":self.settings_severity()}],"source":{"module":name}}));
+            }
+        }
+        Ok(())
+    }
+
+    fn settings_modules(&self) -> Vec<String> {
+        let mut names = Vec::new();
+        for claim in self.manifest["claims"]["settings"]
+            .as_array()
+            .into_iter()
+            .flatten()
+        {
+            if let Some(key) = claim["config-key"].as_str() {
+                if let Some(name) = self.config[key].as_str() {
+                    names.push(name.to_owned());
+                }
+            } else if let Some(name) = claim["module"].as_str().filter(|name| !name.is_empty()) {
+                names.push(name.to_owned());
+            }
+        }
+        names
+    }
+
+    fn settings_severity(&self) -> &'static str {
+        if self.config["strict-settings"] == true || self.config["strict_settings"] == true {
+            "error"
+        } else {
+            "warning"
+        }
+    }
+
+    pub fn settings_diagnostics(&self) -> Vec<Value> {
+        self.settings
+            .iter()
+            .flat_map(|setting| {
+                setting["diagnostics"]
+                    .as_array()
+                    .into_iter()
+                    .flatten()
+                    .cloned()
+            })
+            .collect()
+    }
+
+    pub fn class_summary(&self, qualified: &str) -> Option<&Value> {
+        self.classes.get(qualified)
+    }
+
+    /// Original declaration provenance, independent of plugin field summaries.
+    /// In particular, SDK ClassSummary intentionally omits ClassVar members,
+    /// while receiver recovery still needs their declared generic types.
+    pub fn declared_member_type(&self, class: &str, member: &str) -> Option<Value> {
+        let class = class.split('[').next()?.trim();
+        let summary = self.classes.get(class)?;
+        let module_name = summary["source"]["module"].as_str()?;
+        let module = self.modules.get(module_name)?;
+        let path: Vec<_> = class
+            .strip_prefix(&format!("{module_name}."))?
+            .split('.')
+            .collect();
+        fn find<'a>(
+            suite: &'a [Stmt],
+            path: &[&str],
+            imports: &BTreeMap<String, String>,
+        ) -> Option<&'a ast::StmtClassDef> {
+            for statement in suite {
+                match statement {
+                    Stmt::ClassDef(class) if Some(class.name.as_str()) == path.first().copied() => {
+                        if path.len() == 1 {
+                            return Some(class);
+                        }
+                        if let Some(found) = find(&class.body, &path[1..], imports) {
+                            return Some(found);
+                        }
+                    }
+                    Stmt::If(branch) => {
+                        for suite in branch_suites(branch, imports) {
+                            if let Some(found) = find(suite, path, imports) {
+                                return Some(found);
+                            }
+                        }
+                    }
+                    _ => {}
+                }
+            }
+            None
+        }
+        let class = find(&module.suite, &path, &module.imports)?;
+        fn annotation<'a>(
+            suite: &'a [Stmt],
+            member: &str,
+            imports: &BTreeMap<String, String>,
+        ) -> Option<&'a Expr> {
+            for statement in suite {
+                match statement {
+                    Stmt::AnnAssign(assignment) if matches!(assignment.target.as_ref(),Expr::Name(name) if name.id.as_str()==member) =>
+                    {
+                        return Some(&assignment.annotation);
+                    }
+                    Stmt::If(branch) => {
+                        for suite in branch_suites(branch, imports) {
+                            if let Some(found) = annotation(suite, member, imports) {
+                                return Some(found);
+                            }
+                        }
+                    }
+                    _ => {}
+                }
+            }
+            None
+        }
+        annotation(&class.body, member, &module.imports)
+            .map(|expression| self.annotation(module_name, module, expression))
+    }
+
+    /// Resolve imported aliases throughout a type expression while preserving
+    /// literals and punctuation. Builtins stay unqualified, as in ty's protocol.
+    pub fn canonical_name(&self, module: &str, expression: &str) -> String {
+        rewrite_names(expression, |name| {
+            self.resolve_symbol(module, name, &mut BTreeSet::new())
+        })
+    }
+
+    fn resolve_symbol(&self, module: &str, name: &str, seen: &mut BTreeSet<String>) -> String {
+        if builtin(name) || name == "Self" {
+            return name.to_owned();
+        }
+        let key = format!("{module}:{name}");
+        if !seen.insert(key) {
+            return name.to_owned();
+        }
+        let (head, tail) = name.split_once('.').unwrap_or((name, ""));
+        if let Some(qualified) = self.virtual_identities.get(head) {
+            return if tail.is_empty() {
+                qualified.clone()
+            } else {
+                format!("{qualified}.{tail}")
+            };
+        }
+        if let Some((_, short)) = name.rsplit_once('.')
+            && let Some(qualified) = self.virtual_identities.get(short)
+        {
+            return qualified.clone();
+        }
+        if let Some(info) = self.modules.get(module) {
+            if let Some(target) = info.imports.get(head) {
+                let resolved = if tail.is_empty() {
+                    target.clone()
+                } else {
+                    format!("{target}.{tail}")
+                };
+                return self.resolve_qualified(&resolved, seen);
+            }
+            if info.bindings.contains(head) {
+                if let Some(value) = info.assignments.get(head) {
+                    fn symbol(expr: &Expr) -> Option<String> {
+                        match expr {
+                            Expr::Name(name) => Some(name.id.to_string()),
+                            Expr::Attribute(attr) => {
+                                Some(format!("{}.{}", symbol(&attr.value)?, attr.attr))
+                            }
+                            _ => None,
+                        }
+                    }
+                    if let Some(target) = symbol(value) {
+                        let resolved = self.resolve_symbol(module, &target, seen);
+                        return if tail.is_empty() {
+                            resolved
+                        } else {
+                            self.resolve_qualified(&format!("{resolved}.{tail}"), seen)
+                        };
+                    }
+                }
+                return format!("{module}.{name}");
+            }
+        }
+        if self.classes.contains_key(name)
+            || self
+                .modules
+                .keys()
+                .any(|m| name.starts_with(&format!("{m}.")))
+        {
+            return self.resolve_qualified(name, seen);
+        }
+        name.to_owned()
+    }
+
+    fn resolve_qualified(&self, name: &str, seen: &mut BTreeSet<String>) -> String {
+        // Expand re-exports using the longest known module prefix.
+        let mut positions: Vec<_> = name.match_indices('.').map(|(i, _)| i).collect();
+        positions.reverse();
+        for at in positions {
+            let (module, member) = (&name[..at], &name[at + 1..]);
+            if self.modules.contains_key(module) {
+                let resolved = self.resolve_symbol(module, member, seen);
+                if resolved != member {
+                    return resolved;
+                }
+            }
+        }
+        name.to_owned()
+    }
+
+    pub fn is_subclass(&self, class: &str, base: &str) -> bool {
+        let class = class.split('[').next().unwrap_or(class).trim();
+        let base = base.split('[').next().unwrap_or(base).trim();
+        let mut todo = vec![class.to_owned()];
+        let mut seen = BTreeSet::new();
+        while let Some(current) = todo.pop() {
+            if current == base {
+                return true;
+            }
+            if !seen.insert(current.clone()) {
+                continue;
+            }
+            if let Some(summary) = self.classes.get(&current) {
+                for parent in summary["bases"].as_array().into_iter().flatten() {
+                    if let Some(expression) = parent["expression"].as_str() {
+                        todo.push(
+                            expression
+                                .split('[')
+                                .next()
+                                .unwrap_or(expression)
+                                .trim()
+                                .to_owned(),
+                        );
+                    }
+                }
+            }
+        }
+        false
+    }
+
+    /// Python C3 linearization. Cyclic or inconsistent bases return no answer;
+    /// callers must not assume a mutation hook's target in that case.
+    pub fn mro(&self, class: &str) -> Option<Vec<String>> {
+        fn resolve(
+            project: &Project,
+            class: &str,
+            active: &mut BTreeSet<String>,
+        ) -> Option<Vec<String>> {
+            let class = class.split('[').next()?.trim();
+            if !active.insert(class.to_owned()) {
+                return None;
+            }
+            let bases: Vec<String> = project
+                .classes
+                .get(class)
+                .into_iter()
+                .flat_map(|s| s["bases"].as_array().into_iter().flatten())
+                .filter_map(|base| base["expression"].as_str())
+                .map(|base| base.split('[').next().unwrap_or(base).trim().to_owned())
+                .collect();
+            let mut sequences = vec![];
+            for base in &bases {
+                sequences.push(resolve(project, base, active)?);
+            }
+            sequences.push(bases);
+            let mut result = vec![class.to_owned()];
+            loop {
+                sequences.retain(|sequence| !sequence.is_empty());
+                if sequences.is_empty() {
+                    break;
+                }
+                let candidate = sequences
+                    .iter()
+                    .map(|sequence| &sequence[0])
+                    .find(|candidate| {
+                        sequences
+                            .iter()
+                            .all(|sequence| !sequence[1..].contains(candidate))
+                    })?
+                    .clone();
+                result.push(candidate.clone());
+                for sequence in &mut sequences {
+                    if sequence.first() == Some(&candidate) {
+                        sequence.remove(0);
+                    }
+                }
+            }
+            active.remove(class);
+            Some(result)
+        }
+        resolve(self, class, &mut BTreeSet::new())
+    }
+
+    pub fn method_owner(&self, class: &str, method: &str) -> Option<String> {
+        self.mro(class)?.into_iter().find(|name| {
+            self.classes.get(name).is_some_and(|summary| {
+                summary["methods"]
+                    .as_array()
+                    .into_iter()
+                    .flatten()
+                    .any(|candidate| candidate["name"] == method)
+            })
+        })
+    }
+
+    /// Constructor provenance is safe only when ordinary allocation and
+    /// metaclass calling are known to apply. Unknown ancestors and class
+    /// decorators deliberately decline rather than guessing a nominal result.
+    pub fn default_constructor_result(&self, class: &str) -> Option<String> {
+        let nominal = class.split('[').next()?.trim();
+        self.classes.get(nominal)?;
+        let mut metaclasses = BTreeSet::new();
+        for owner in self.mro(nominal)? {
+            if matches!(owner.as_str(), "object" | "builtins.object") {
+                continue;
+            }
+            let summary = self.classes.get(&owner)?;
+            if summary["decorators"]
+                .as_array()
+                .is_some_and(|values| !values.is_empty())
+                || declares_member(summary, "__new__")
+            {
+                return None;
+            }
+            if let Some(meta) = summary["metaclass"]["expression"].as_str() {
+                metaclasses.insert(meta);
+            }
+        }
+        for metaclass in metaclasses {
+            for owner in self.mro(metaclass)? {
+                if matches!(
+                    owner.as_str(),
+                    "type" | "builtins.type" | "object" | "builtins.object"
+                ) {
+                    continue;
+                }
+                let summary = self.classes.get(&owner)?;
+                if summary["decorators"]
+                    .as_array()
+                    .is_some_and(|values| !values.is_empty())
+                    || declares_member(summary, "__call__")
+                {
+                    return None;
+                }
+            }
+        }
+        Some(class.to_owned())
+    }
+
+    pub fn build_request(&self) -> Value {
+        let classes: Vec<_> = self
+            .classes
+            .values()
+            .filter(|c| {
+                let module = c["source"]["module"].as_str().unwrap_or("");
+                self.modules.get(module).is_some_and(|m| !m.external)
+            })
+            .cloned()
+            .collect();
+        json!({"kind":"build-project-index","context":{"root":self.root,"python-version":"3.13","platform":std::env::consts::OS.replace("macos","darwin"),"config":self.config},
+            "classes":classes,"settings":self.settings,"assignments":self.assignments,"functions":self.functions})
+    }
+
+    pub fn register_virtual_types(
+        &mut self,
+        definitions: &[Value],
+    ) -> Result<BTreeMap<PathBuf, String>> {
+        let mut prefix = String::from("_ty_ext_virtual_");
+        while self
+            .modules
+            .values()
+            .any(|module| module.source.text.contains(&prefix))
+            || definitions.iter().any(|definition| {
+                definition["name"]
+                    .as_str()
+                    .is_some_and(|name| name.contains(&prefix))
+            })
+        {
+            prefix.push('_');
+        }
+        let mut names = BTreeMap::new();
+        for definition in definitions {
+            let name = definition["name"]
+                .as_str()
+                .context("virtual type without name")?;
+            let internal = virtual_internal_name_with_prefix(name, &prefix);
+            self.virtual_identities
+                .insert(internal.clone(), name.to_owned());
+            names.insert(name.to_owned(), internal);
+            self.classes.insert(name.to_owned(),json!({"qualified-name":name,"bases":definition["shape"]["bases"].as_array().cloned().unwrap_or_default(),"virtual":true}));
+        }
+        let mut rendered_definitions = Value::Array(definitions.to_vec());
+        crate::type_render::replace_unavailable_types(
+            &mut rendered_definitions,
+            &self.unavailable_modules,
+        )?;
+        for definition in rendered_definitions.as_array().unwrap() {
+            let name = definition["name"].as_str().unwrap();
+            if let Some(summary) = self.classes.get_mut(name) {
+                summary["bases"] = json!(
+                    definition["shape"]["bases"]
+                        .as_array()
+                        .cloned()
+                        .unwrap_or_default()
+                );
+            }
+        }
+        render_virtual_types_with_names(
+            rendered_definitions.as_array().unwrap(),
+            &names,
+            Some(self),
+        )
+    }
+
+    /// Restore identities in oracle type expressions before plugin dispatch.
+    /// Quoted Literal values are intentionally preserved.
+    pub fn rewrite_virtual_identities(&self, text: &str) -> String {
+        rewrite_names(text, |name| {
+            self.resolve_symbol("", name, &mut BTreeSet::new())
+        })
+    }
+
+    fn summarize_body(
+        &self,
+        name: &str,
+        module: &Module,
+        suite: &[Stmt],
+        classes: &mut BTreeMap<String, Value>,
+        assignments: &mut Vec<Value>,
+        functions: &mut Vec<Value>,
+    ) -> Result<()> {
+        for stmt in suite {
+            match stmt {
+                Stmt::ClassDef(class) => {
+                    self.summarize_class(name, module, class, classes)?;
+                }
+                Stmt::FunctionDef(function) if !module.external => {
+                    functions.push(json!({"qualified-name":format!("{name}.{}",function.name),"decorators":function.decorator_list.iter().map(|d|self.decorator(name,module,&d.expression)).collect::<Vec<_>>(),"source":module.source.location(span(function))}));
+                }
+                Stmt::Assign(assignment) if !module.external => {
+                    for target in &assignment.targets {
+                        if let Expr::Name(target) = target {
+                            assignments.push(json!({"name":target.id.as_str(),"qualified-name":format!("{name}.{}",target.id),"assigned-value":self.assigned(name,module,&assignment.value),"source":module.source.location(span(target))}));
+                        }
+                    }
+                }
+                Stmt::AnnAssign(assignment) if !module.external => {
+                    if let (Expr::Name(target), Some(value)) =
+                        (assignment.target.as_ref(), assignment.value.as_ref())
+                    {
+                        assignments.push(json!({"name":target.id.as_str(),"qualified-name":format!("{name}.{}",target.id),"assigned-value":self.assigned(name,module,value),"inferred-type":self.annotation(name,module,&assignment.annotation),"source":module.source.location(span(target))}));
+                    }
+                }
+                Stmt::If(branch) => {
+                    for body in branch_suites(branch, &module.imports) {
+                        self.summarize_body(name, module, body, classes, assignments, functions)?;
+                    }
+                }
+                _ => {}
+            }
+        }
+        Ok(())
+    }
+
+    fn summarize_class(
+        &self,
+        parent: &str,
+        module: &Module,
+        class: &ast::StmtClassDef,
+        classes: &mut BTreeMap<String, Value>,
+    ) -> Result<()> {
+        let name = format!("{parent}.{}", class.name);
+        let module_name = &module.source.module;
+        let mut fields = vec![];
+        let mut methods = vec![];
+        let mut constants = vec![];
+        let mut nested = vec![];
+        for statement in &class.body {
+            match statement {
+                Stmt::Assign(assignment) => {
+                    for target in &assignment.targets {
+                        if let Expr::Name(target) = target {
+                            fields.push(json!({"name":target.id.as_str(),"assigned-value":self.assigned(module_name,module,&assignment.value),"has-default":true,"source":module.source.location(span(target))}));
+                            let value =
+                                self.value(module_name, &assignment.value, &mut BTreeSet::new());
+                            if value["kind"] != "unknown" {
+                                constants.push(json!({"name":target.id.as_str(),"value":value,"source":module.source.location(span(target))}));
+                            }
+                        }
+                    }
+                }
+                Stmt::AnnAssign(assignment) => {
+                    if let Expr::Name(target) = assignment.target.as_ref() {
+                        let mut field = json!({"name":target.id.as_str(),"annotation":self.annotation(module_name,module,&assignment.annotation),"has-default":assignment.value.is_some(),"source":module.source.location(span(target))});
+                        if let Some(value) = &assignment.value {
+                            field["assigned-value"] = self.assigned(module_name, module, value);
+                            let value = self.value(module_name, value, &mut BTreeSet::new());
+                            if value["kind"] != "unknown" {
+                                constants.push(json!({"name":target.id.as_str(),"value":value,"source":module.source.location(span(target))}));
+                            }
+                        }
+                        if !field["annotation"]["expression"]
+                            .as_str()
+                            .is_some_and(|ty| {
+                                ty.starts_with("typing.ClassVar[")
+                                    || ty.starts_with("dataclasses.InitVar[")
+                            })
+                        {
+                            fields.push(field);
+                        }
+                    }
+                }
+                Stmt::FunctionDef(function) => {
+                    let mut method = json!({"name":function.name.as_str(),"decorators":function.decorator_list.iter().map(|d|self.decorator(module_name,module,&d.expression)).collect::<Vec<_>>(),"parameters":self.parameters(module_name,module,&function.parameters),"is-public":!function.name.starts_with('_'),"source":module.source.location(span(function))});
+                    method["source"]["qualified-name"] = json!(format!("{name}.{}", function.name));
+                    if let Some(ret) = &function.returns {
+                        let annotation = self.annotation(module_name, module, ret);
+                        if annotation["expression"].as_str().is_some_and(|expression| {
+                            expression == "Self" || expression.ends_with(".Self")
+                        }) {
+                            method["return-type"] = json!({"expression":"Self","mode":"annotation","snapshot":{"kind":"self-type","bound":{"kind":"expression","expression":name,"mode":"annotation"}}});
+                        } else {
+                            method["return-type"] = annotation;
+                        }
+                    }
+                    methods.push(method);
+                }
+                Stmt::ClassDef(child) => {
+                    self.summarize_class(&name, module, child, classes)?;
+                    let child_name = format!("{name}.{}", child.name);
+                    let summary = &classes[&child_name];
+                    nested.push(json!({"name":child.name.as_str(),"qualified-name":child_name,"bases":summary["bases"],"class-constants":summary["class-constants"],"source":summary["source"]}));
+                }
+                _ => {}
+            }
+        }
+        let bases: Vec<_> = class
+            .arguments
+            .as_ref()
+            .into_iter()
+            .flat_map(|a| a.args.iter())
+            .map(|base| self.annotation(module_name, module, base))
+            .collect();
+        let mut summary = json!({"qualified-name":name,"bases":bases,"decorators":class.decorator_list.iter().map(|d|self.decorator(module_name,module,&d.expression)).collect::<Vec<_>>(),"fields":fields,"methods":methods,"nested-classes":nested,"class-constants":constants,"source":module.source.location(span(class))});
+        summary["source"]["qualified-name"] = json!(name);
+        if let Some(meta) = class.arguments.as_ref().and_then(|a| {
+            a.keywords
+                .iter()
+                .find(|kw| kw.arg.as_ref().is_some_and(|s| s == "metaclass"))
+        }) {
+            summary["metaclass"] = self.annotation(module_name, module, &meta.value);
+        }
+        classes.insert(name, summary);
+        Ok(())
+    }
+
+    pub fn annotation(&self, name: &str, module: &Module, expr: &Expr) -> Value {
+        let raw = if let Expr::StringLiteral(s) = expr {
+            s.value.to_str()
+        } else {
+            module.source.slice(span(expr))
+        };
+        typ(self.canonical_name(name, raw))
+    }
+
+    pub fn parameters(
+        &self,
+        name: &str,
+        module: &Module,
+        parameters: &ast::Parameters,
+    ) -> Vec<Value> {
+        let mut result = vec![];
+        for (kind, items) in [
+            ("positional-only", &parameters.posonlyargs),
+            ("positional-or-keyword", &parameters.args),
+        ] {
+            for parameter in items {
+                result.push(self.parameter(
+                    name,
+                    module,
+                    &parameter.parameter,
+                    kind,
+                    parameter.default.is_none(),
+                ));
+            }
+        }
+        if let Some(parameter) = &parameters.vararg {
+            result.push(self.parameter(name, module, parameter, "var-args", false));
+        }
+        for parameter in &parameters.kwonlyargs {
+            result.push(self.parameter(
+                name,
+                module,
+                &parameter.parameter,
+                "keyword-only",
+                parameter.default.is_none(),
+            ));
+        }
+        if let Some(parameter) = &parameters.kwarg {
+            result.push(self.parameter(name, module, parameter, "kwargs", false));
+        }
+        result
+    }
+
+    fn parameter(
+        &self,
+        name: &str,
+        module: &Module,
+        parameter: &ast::Parameter,
+        kind: &str,
+        required: bool,
+    ) -> Value {
+        let mut value = json!({"name":parameter.name.as_str(),"kind":kind,"required":required});
+        if let Some(annotation) = &parameter.annotation {
+            value["type-expr"] = self.annotation(name, module, annotation);
+        }
+        value
+    }
+
+    fn decorator(&self, name: &str, module: &Module, expr: &Expr) -> Value {
+        if let Expr::Call(call) = expr {
+            self.call(name, module, call)
+        } else if let Some(symbol) = self.symbol(name, expr) {
+            json!({"kind":"symbol","qualified-name":symbol})
+        } else {
+            json!({"kind":"other"})
+        }
+    }
+
+    pub fn assigned(&self, name: &str, module: &Module, expr: &Expr) -> Value {
+        match expr {
+            Expr::Call(call) => self.call(name, module, call),
+            Expr::Name(_) | Expr::Attribute(_) => {
+                json!({"kind":if matches!(expr,Expr::Name(_)){"name"}else{"attribute"},"qualified-name":self.symbol(name,expr).unwrap_or_default()})
+            }
+            _ => {
+                let value = self.value(name, expr, &mut BTreeSet::new());
+                if value["kind"] == "unknown" {
+                    json!({"kind":"other"})
+                } else {
+                    json!({"kind":"literal","value":value})
+                }
+            }
+        }
+    }
+
+    fn call(&self, name: &str, module: &Module, call: &ast::ExprCall) -> Value {
+        let callee = self.symbol(name, &call.func).unwrap_or_else(|| {
+            self.canonical_name(name, module.source.slice(span(call.func.as_ref())))
+        });
+        let mut arguments = vec![];
+        for expression in &call.arguments.args {
+            let (kind, expression) = if let Expr::Starred(star) = expression {
+                ("star-args", star.value.as_ref())
+            } else {
+                ("positional", expression)
+            };
+            arguments.push(self.argument(name, module, expression, kind, None));
+        }
+        for keyword in &call.arguments.keywords {
+            arguments.push(self.argument(
+                name,
+                module,
+                &keyword.value,
+                if keyword.arg.is_some() {
+                    "keyword"
+                } else {
+                    "star-kwargs"
+                },
+                keyword.arg.as_ref().map(|n| n.as_str()),
+            ));
+        }
+        let mut result =
+            json!({"kind":"call","callee":{"qualified-name":callee},"arguments":arguments});
+        if let Expr::Attribute(attribute) = call.func.as_ref()
+            && let Some(receiver) = self.symbol(name, &attribute.value)
+        {
+            result["receiver"] = json!({"symbol":{"qualified-name":receiver}});
+        }
+        result
+    }
+
+    fn argument(
+        &self,
+        name: &str,
+        module: &Module,
+        expr: &Expr,
+        kind: &str,
+        key: Option<&str>,
+    ) -> Value {
+        let mut argument = json!({"kind":kind,"value":self.value(name,expr,&mut BTreeSet::new()),"source":module.source.location(span(expr))});
+        if let Some(key) = key {
+            argument["name"] = json!(key);
+        }
+        if let Some(symbol) = self.symbol(name, expr) {
+            // Class arguments are intentionally represented as class names,
+            // matching the existing protocol's ClassRef contract.
+            if self.classes.contains_key(&symbol) {
+                argument["type-expr"] = typ(symbol);
+            }
+        }
+        argument
+    }
+
+    fn symbol(&self, module: &str, expr: &Expr) -> Option<String> {
+        fn raw(expr: &Expr) -> Option<String> {
+            match expr {
+                Expr::Name(n) => Some(n.id.to_string()),
+                Expr::Attribute(a) => Some(format!("{}.{}", raw(&a.value)?, a.attr)),
+                _ => None,
+            }
+        }
+        raw(expr).map(|name| self.canonical_name(module, &name))
+    }
+
+    fn setting(&self, module: &str, name: &str, seen: &mut BTreeSet<String>) -> Value {
+        let key = format!("{module}.{name}");
+        if !seen.insert(key.clone()) {
+            return json!({"kind":"unknown"});
+        }
+        let result = if let Some(info) = self.modules.get(module) {
+            if let Some(value) = info.assignments.get(name) {
+                self.value(module, value, seen)
+            } else if let Some(target) = info.imports.get(name) {
+                if let Some((owner, member)) = target.rsplit_once('.') {
+                    self.setting(owner, member, seen)
+                } else {
+                    json!({"kind":"unknown"})
+                }
+            } else {
+                json!({"kind":"unknown"})
+            }
+        } else {
+            json!({"kind":"unknown"})
+        };
+        seen.remove(&key);
+        result
+    }
+
+    fn settings_value(
+        &self,
+        module: &str,
+        expression: &Expr,
+        seen: &mut BTreeSet<String>,
+        dependencies: &mut BTreeSet<String>,
+    ) -> Value {
+        match expression {
+            Expr::Name(name) => {
+                let symbol = self
+                    .modules
+                    .get(module)
+                    .and_then(|info| info.imports.get(name.id.as_str()))
+                    .cloned()
+                    .unwrap_or_else(|| format!("{module}.{}", name.id));
+                let Some((owner, key)) = symbol.rsplit_once('.') else {
+                    return json!({"kind":"unknown"});
+                };
+                if !seen.insert(symbol.clone()) {
+                    return json!({"kind":"unknown"});
+                }
+                let result = if let Some(info) = self.modules.get(owner) {
+                    dependencies.insert(info.source.path.clone());
+                    if is_setting(key) {
+                        info.assignments.get(key).map_or_else(
+                            || json!({"kind":"unknown"}),
+                            |value| self.settings_value(owner, value, seen, dependencies),
+                        )
+                    } else {
+                        json!({"kind":"unknown"})
+                    }
+                } else {
+                    json!({"kind":"unknown"})
+                };
+                seen.remove(&symbol);
+                result
+            }
+            Expr::Attribute(_) => {
+                let symbol = self.symbol(module, expression).unwrap_or_default();
+                if let Some((owner, key)) = symbol.rsplit_once('.')
+                    && let Some(info) = self.modules.get(owner)
+                    && is_setting(key)
+                    && seen.insert(symbol.clone())
+                {
+                    dependencies.insert(info.source.path.clone());
+                    let result = info.assignments.get(key).map_or_else(
+                        || json!({"kind":"unknown"}),
+                        |value| self.settings_value(owner, value, seen, dependencies),
+                    );
+                    seen.remove(&symbol);
+                    return result;
+                }
+                json!({"kind":"unknown"})
+            }
+            Expr::Tuple(values) => {
+                json!({"kind":"tuple","items":values.elts.iter().map(|value|self.settings_value(module,value,seen,dependencies)).collect::<Vec<_>>()})
+            }
+            Expr::List(values) => {
+                json!({"kind":"list","items":values.elts.iter().map(|value|self.settings_value(module,value,seen,dependencies)).collect::<Vec<_>>()})
+            }
+            Expr::Dict(values) => {
+                json!({"kind":"dict","entries":values.items.iter().filter_map(|item|item.key.as_ref().map(|key|json!({"key":self.settings_value(module,key,seen,dependencies),"value":self.settings_value(module,&item.value,seen,dependencies)}))).collect::<Vec<_>>()})
+            }
+            Expr::BinOp(binary) if binary.op == ast::Operator::Add => add_literals(
+                self.settings_value(module, &binary.left, seen, dependencies),
+                self.settings_value(module, &binary.right, seen, dependencies),
+            ),
+            Expr::UnaryOp(_) => json!({"kind":"unknown"}),
+            _ => self.value(module, expression, seen),
+        }
+    }
+
+    fn value(&self, module: &str, expr: &Expr, seen: &mut BTreeSet<String>) -> Value {
+        match expr {
+            Expr::StringLiteral(value) => json!({"kind":"str","value":value.value.to_str()}),
+            Expr::BooleanLiteral(value) => json!({"kind":"bool","value":value.value}),
+            Expr::NoneLiteral(_) => json!({"kind":"none"}),
+            Expr::NumberLiteral(value) => match &value.value {
+                ast::Number::Int(i) => i.as_i64().map_or_else(
+                    || json!({"kind":"unknown"}),
+                    |n| json!({"kind":"int","value":n}),
+                ),
+                _ => json!({"kind":"unknown"}),
+            },
+            Expr::Tuple(values) => {
+                json!({"kind":"tuple","items":values.elts.iter().map(|e|self.value(module,e,seen)).collect::<Vec<_>>()})
+            }
+            Expr::List(values) => {
+                json!({"kind":"list","items":values.elts.iter().map(|e|self.value(module,e,seen)).collect::<Vec<_>>()})
+            }
+            Expr::Dict(values) => {
+                json!({"kind":"dict","entries":values.items.iter().filter_map(|e|e.key.as_ref().map(|key|json!({"key":self.value(module,key,seen),"value":self.value(module,&e.value,seen)}))).collect::<Vec<_>>()})
+            }
+            Expr::Name(name) => {
+                let value = self.setting(module, name.id.as_str(), seen);
+                if value["kind"] != "unknown" {
+                    return value;
+                }
+                let symbol = self.canonical_name(module, name.id.as_str());
+                json!({"kind":if self.classes.contains_key(&symbol){"class-ref"}else{"symbol-ref"},"qualified-name":symbol})
+            }
+            Expr::Attribute(_) => {
+                let symbol = self.symbol(module, expr).unwrap_or_default();
+                if let Some((owner, key)) = symbol.rsplit_once('.') {
+                    let value = self.setting(owner, key, seen);
+                    if value["kind"] != "unknown" {
+                        return value;
+                    }
+                }
+                json!({"kind":if self.classes.contains_key(&symbol){"class-ref"}else{"symbol-ref"},"qualified-name":symbol})
+            }
+            Expr::BinOp(binary) if binary.op == ast::Operator::Add => add_literals(
+                self.value(module, &binary.left, seen),
+                self.value(module, &binary.right, seen),
+            ),
+            Expr::UnaryOp(unary) if unary.op == ast::UnaryOp::USub => {
+                let value = self.value(module, &unary.operand, seen);
+                value["value"]
+                    .as_i64()
+                    .and_then(i64::checked_neg)
+                    .map_or_else(
+                        || json!({"kind":"unknown"}),
+                        |n| json!({"kind":"int","value":n}),
+                    )
+            }
+            _ => json!({"kind":"unknown"}),
+        }
+    }
+}
+
+fn is_setting(name: &str) -> bool {
+    name.chars().next().is_some_and(|c| c.is_ascii_uppercase())
+        && name
+            .chars()
+            .all(|c| c.is_ascii_uppercase() || c.is_ascii_digit() || c == '_')
+}
+
+fn declares_member(summary: &Value, name: &str) -> bool {
+    ["methods", "fields"].iter().any(|kind| {
+        summary[*kind]
+            .as_array()
+            .into_iter()
+            .flatten()
+            .any(|member| member["name"] == name)
+    })
+}
+
+fn add_literals(left: Value, right: Value) -> Value {
+    if left["kind"] == "str" && right["kind"] == "str" {
+        json!({"kind":"str","value":format!("{}{}",left["value"].as_str().unwrap(),right["value"].as_str().unwrap())})
+    } else if left["kind"] == right["kind"]
+        && matches!(left["kind"].as_str(), Some("list" | "tuple"))
+    {
+        let mut items = left["items"].as_array().unwrap().clone();
+        items.extend(right["items"].as_array().unwrap().iter().cloned());
+        json!({"kind":left["kind"],"items":items})
+    } else if left["kind"] == "int" && right["kind"] == "int" {
+        left["value"]
+            .as_i64()
+            .and_then(|left| {
+                right["value"]
+                    .as_i64()
+                    .and_then(|right| left.checked_add(right))
+            })
+            .map_or_else(
+                || json!({"kind":"unknown"}),
+                |value| json!({"kind":"int","value":value}),
+            )
+    } else {
+        json!({"kind":"unknown"})
+    }
+}
+
+fn collect_python(root: &Path, files: &mut Vec<PathBuf>) -> Result<()> {
+    for item in std::fs::read_dir(root)? {
+        let item = item?;
+        let path = item.path();
+        let name = item.file_name();
+        let name = name.to_string_lossy();
+        if item.file_type()?.is_dir() {
+            if !name.starts_with('.')
+                && !matches!(name.as_ref(), "__pycache__" | "target" | "node_modules")
+            {
+                collect_python(&path, files)?;
+            }
+        } else if path.extension().is_some_and(|e| e == "py" || e == "pyi") {
+            files.push(path);
+        }
+    }
+    Ok(())
+}
+
+pub fn module_name(root: &Path, path: &Path) -> Result<String> {
+    let relative = path
+        .strip_prefix(root)
+        .with_context(|| format!("{} is outside project {}", path.display(), root.display()))?;
+    let mut parts: Vec<String> = relative
+        .with_extension("")
+        .components()
+        .map(|c| c.as_os_str().to_string_lossy().into_owned())
+        .collect();
+    if parts.last().is_some_and(|p| p == "__init__") {
+        parts.pop();
+    }
+    ensure!(
+        !parts.is_empty(),
+        "project root cannot be its own package module"
+    );
+    Ok(parts.join("."))
+}
+
+fn find_module(root: &Path, name: &str) -> Option<PathBuf> {
+    let base = root.join(name.replace('.', "/"));
+    [
+        base.with_extension("pyi"),
+        base.with_extension("py"),
+        base.join("__init__.pyi"),
+        base.join("__init__.py"),
+    ]
+    .into_iter()
+    .find(|p| p.is_file())
+}
+
+fn relative_import(module: &str, is_package: bool, level: u32, target: Option<&str>) -> String {
+    if level == 0 {
+        return target.unwrap_or("").to_owned();
+    }
+    let mut parts: Vec<_> = module.split('.').collect();
+    if !is_package {
+        parts.pop();
+    }
+    for _ in 1..level {
+        parts.pop();
+    }
+    if let Some(target) = target {
+        parts.extend(target.split('.'));
+    }
+    parts.join(".")
+}
+
+fn collect_bindings(
+    suite: &[Stmt],
+    module: &str,
+    is_package: bool,
+    imports: &mut BTreeMap<String, String>,
+    bindings: &mut BTreeSet<String>,
+    assignments: &mut BTreeMap<String, Expr>,
+) {
+    for stmt in suite {
+        match stmt {
+            Stmt::Import(import) => {
+                for alias in &import.names {
+                    let (bound, target) = if let Some(alias_name) = &alias.asname {
+                        (alias_name.to_string(), alias.name.to_string())
+                    } else {
+                        let head = alias.name.split('.').next().unwrap().to_owned();
+                        (head.clone(), head)
+                    };
+                    imports.insert(bound, target);
+                }
+            }
+            Stmt::ImportFrom(import) => {
+                let target = relative_import(
+                    module,
+                    is_package,
+                    import.level,
+                    import.module.as_ref().map(|n| n.as_str()),
+                );
+                for alias in &import.names {
+                    if alias.name.as_str() == "*" {
+                        continue;
+                    }
+                    imports.insert(
+                        alias.asname.as_ref().unwrap_or(&alias.name).to_string(),
+                        format!("{target}.{}", alias.name)
+                            .trim_start_matches('.')
+                            .to_owned(),
+                    );
+                }
+            }
+            Stmt::ClassDef(class) => {
+                bindings.insert(class.name.to_string());
+            }
+            Stmt::FunctionDef(function) => {
+                bindings.insert(function.name.to_string());
+            }
+            Stmt::Assign(assignment) => {
+                for target in &assignment.targets {
+                    if let Expr::Name(name) = target {
+                        bindings.insert(name.id.to_string());
+                        assignments.insert(name.id.to_string(), (*assignment.value).clone());
+                    }
+                }
+            }
+            Stmt::AnnAssign(assignment) => {
+                if let Expr::Name(name) = assignment.target.as_ref() {
+                    bindings.insert(name.id.to_string());
+                    if let Some(value) = &assignment.value {
+                        assignments.insert(name.id.to_string(), (**value).clone());
+                    }
+                }
+            }
+            Stmt::If(branch) => {
+                for body in branch_suites(branch, imports) {
+                    collect_bindings(body, module, is_package, imports, bindings, assignments);
+                }
+            }
+            _ => {}
+        }
+    }
+}
+
+fn register_class_names(
+    suite: &[Stmt],
+    parent: &str,
+    imports: &BTreeMap<String, String>,
+    classes: &mut BTreeMap<String, Value>,
+) {
+    for statement in suite {
+        match statement {
+            Stmt::ClassDef(class) => {
+                let name = format!("{parent}.{}", class.name);
+                classes.insert(name.clone(), json!({}));
+                register_class_names(&class.body, &name, imports, classes);
+            }
+            Stmt::If(branch) => {
+                for body in branch_suites(branch, imports) {
+                    register_class_names(body, parent, imports, classes);
+                }
+            }
+            _ => {}
+        }
+    }
+}
+
+pub fn branch_suites<'a>(
+    branch: &'a ast::StmtIf,
+    imports: &BTreeMap<String, String>,
+) -> Vec<&'a [Stmt]> {
+    fn truth(expr: &Expr, imports: &BTreeMap<String, String>) -> Option<bool> {
+        match expr {
+            Expr::BooleanLiteral(value) => Some(value.value),
+            Expr::Name(name) => matches!(
+                imports.get(name.id.as_str()).map(String::as_str),
+                Some("typing.TYPE_CHECKING" | "typing_extensions.TYPE_CHECKING")
+            )
+            .then_some(true),
+            Expr::Attribute(attribute) if attribute.attr.as_str() == "TYPE_CHECKING" => {
+                if let Expr::Name(owner) = attribute.value.as_ref() {
+                    matches!(
+                        imports.get(owner.id.as_str()).map(String::as_str),
+                        Some("typing" | "typing_extensions")
+                    )
+                    .then_some(true)
+                } else {
+                    None
+                }
+            }
+            Expr::UnaryOp(unary) if unary.op == ast::UnaryOp::Not => {
+                truth(&unary.operand, imports).map(|value| !value)
+            }
+            _ => None,
+        }
+    }
+    let mut suites = vec![];
+    match truth(&branch.test, imports) {
+        Some(true) => return vec![branch.body.as_slice()],
+        Some(false) => {}
+        None => suites.push(branch.body.as_slice()),
+    }
+    for clause in &branch.elif_else_clauses {
+        match clause
+            .test
+            .as_ref()
+            .and_then(|test| truth(test, imports))
+            .or_else(|| clause.test.is_none().then_some(true))
+        {
+            Some(true) => {
+                suites.push(clause.body.as_slice());
+                break;
+            }
+            Some(false) => {}
+            None => suites.push(clause.body.as_slice()),
+        }
+    }
+    suites
+}
+
+fn builtin(name: &str) -> bool {
+    matches!(
+        name,
+        "int"
+            | "str"
+            | "float"
+            | "complex"
+            | "bool"
+            | "bytes"
+            | "bytearray"
+            | "memoryview"
+            | "object"
+            | "type"
+            | "list"
+            | "tuple"
+            | "set"
+            | "frozenset"
+            | "dict"
+            | "None"
+            | "True"
+            | "False"
+            | "classmethod"
+            | "staticmethod"
+            | "property"
+            | "Exception"
+            | "BaseException"
+            | "NotImplementedError"
+            | "super"
+            | "len"
+    )
+}
+
+/// Token-level rewriting avoids accidentally editing quoted literals or a name
+/// merely because its spelling is a substring of another identifier.
+pub(crate) fn rewrite_names(text: &str, mut rewrite: impl FnMut(&str) -> String) -> String {
+    let mut output = String::new();
+    let mut at = 0;
+    while at < text.len() {
+        let c = text[at..].chars().next().unwrap();
+        if c == '\'' || c == '"' {
+            let start = at;
+            at += c.len_utf8();
+            let mut escaped = false;
+            while at < text.len() {
+                let next = text[at..].chars().next().unwrap();
+                at += next.len_utf8();
+                if next == c && !escaped {
+                    break;
+                }
+                escaped = next == '\\' && !escaped;
+            }
+            output.push_str(&text[start..at]);
+        } else if c == '_' || c.is_alphabetic() {
+            let start = at;
+            at += c.len_utf8();
+            while at < text.len() {
+                let next = text[at..].chars().next().unwrap();
+                if next == '_' || next == '.' || next.is_alphanumeric() {
+                    at += next.len_utf8();
+                } else {
+                    break;
+                }
+            }
+            output.push_str(&rewrite(&text[start..at]));
+        } else {
+            output.push(c);
+            at += c.len_utf8();
+        }
+    }
+    output
+}
+
+pub fn substitute_self(expression: &str, concrete: &str) -> String {
+    rewrite_names(expression, |name| {
+        if matches!(name, "Self" | "typing.Self" | "typing_extensions.Self") {
+            concrete.to_owned()
+        } else {
+            name.to_owned()
+        }
+    })
+}
+
+/// Preserve TypeExpr's lexical import bindings when the host needs to pass its
+/// expression through a receiver summary or another expression-only channel.
+pub fn type_expression(value: &Value) -> Option<String> {
+    let expression = value["expression"].as_str()?;
+    let bindings: BTreeMap<_, _> = value["imports"]
+        .as_array()
+        .into_iter()
+        .flatten()
+        .filter_map(|binding| {
+            let module = binding["module"].as_str()?;
+            let name = binding["name"].as_str()?;
+            let alias = binding["alias"].as_str().unwrap_or(name);
+            Some((alias, format!("{module}.{name}")))
+        })
+        .collect();
+    Some(rewrite_names(expression, |name| {
+        let head = name.split('.').next().unwrap_or(name);
+        bindings.get(head).map_or_else(
+            || name.to_owned(),
+            |qualified| format!("{qualified}{}", &name[head.len()..]),
+        )
+    }))
+}
+
+/// Render definitions into importable module stubs. Qualified plugin names are
+/// module paths, never identifiers containing dots.
+#[cfg(test)]
+pub fn render_virtual_types(definitions: &[Value]) -> Result<BTreeMap<PathBuf, String>> {
+    let names = definitions
+        .iter()
+        .filter_map(|definition| definition["name"].as_str())
+        .map(|name| (name.to_owned(), virtual_internal_name(name)))
+        .collect();
+    render_virtual_types_with_names(definitions, &names, None)
+}
+
+fn render_virtual_types_with_names(
+    definitions: &[Value],
+    names: &BTreeMap<String, String>,
+    project: Option<&Project>,
+) -> Result<BTreeMap<PathBuf, String>> {
+    let mut groups: BTreeMap<String, Vec<&Value>> = BTreeMap::new();
+    for definition in definitions {
+        let qualified = definition["name"]
+            .as_str()
+            .context("virtual type without name")?;
+        let (module, _) = qualified
+            .rsplit_once('.')
+            .unwrap_or(("_ty_ext_virtual", qualified));
+        groups
+            .entry(module.to_owned())
+            .or_default()
+            .push(definition);
+    }
+    let modules: Vec<_> = groups.keys().cloned().collect();
+    let mut files = BTreeMap::new();
+    for (module, definitions) in groups {
+        let first_name = definitions[0]["name"].as_str().unwrap();
+        let prefix = format!("{}_", names[first_name]);
+        let mut types = project.map_or_else(
+            || crate::type_render::Types::new(&prefix, &module),
+            |project| crate::type_render::Types::with_project(&prefix, &module, project),
+        );
+        for module in &modules {
+            types.add_module(module);
+        }
+        let mut body = String::new();
+        for definition in definitions {
+            let qualified = definition["name"].as_str().unwrap();
+            let public_name = qualified.rsplit('.').next().unwrap();
+            ensure!(
+                valid_identifier(public_name),
+                "virtual type has invalid identifier {public_name}"
+            );
+            let name = names
+                .get(qualified)
+                .context("missing generated virtual identity")?;
+            let shape = &definition["shape"];
+            match shape["kind"]
+                .as_str()
+                .context("virtual type has no shape")?
+            {
+                "class" => {
+                    let bases: Vec<_> = shape["bases"]
+                        .as_array()
+                        .into_iter()
+                        .flatten()
+                        .map(|v| types.render(v))
+                        .collect::<Result<_>>()?;
+                    body.push_str(&format!(
+                        "class {name}({}):\n",
+                        if bases.is_empty() {
+                            format!("{}.object", types.builtins_alias())
+                        } else {
+                            bases.join(", ")
+                        }
+                    ));
+                    let members = shape["members"]
+                        .as_array()
+                        .map(Vec::as_slice)
+                        .unwrap_or(&[]);
+                    if members.is_empty() {
+                        body.push_str("    pass\n");
+                    }
+                    for (index, member) in members.iter().enumerate() {
+                        body.push_str(&render_virtual_member(
+                            member,
+                            &format!("{name}_descriptor_{index}"),
+                            &mut types,
+                        )?);
+                    }
+                }
+                "typed-dict" | "named-tuple" => {
+                    let kind = shape["kind"].as_str().unwrap();
+                    let base = if kind == "typed-dict" {
+                        format!("{}.TypedDict", types.typing_extensions_alias())
+                    } else {
+                        format!("{}.NamedTuple", types.typing_alias())
+                    };
+                    let total = if kind == "typed-dict" && shape["total"] == false {
+                        ", total=False"
+                    } else {
+                        ""
+                    };
+                    let closed = if kind == "typed-dict" {
+                        ", closed=True"
+                    } else {
+                        ""
+                    };
+                    let fields = shape["fields"].as_array().map(Vec::as_slice).unwrap_or(&[]);
+                    let mut rendered_fields = Vec::new();
+                    for field in fields {
+                        let field_name = field["name"]
+                            .as_str()
+                            .context("virtual field without name")?;
+                        let mut annotation = types.render(&field["type-expr"])?;
+                        if kind == "typed-dict" {
+                            if field["read-only"] == true {
+                                annotation = format!(
+                                    "{}.ReadOnly[{annotation}]",
+                                    types.typing_extensions_alias()
+                                );
+                            }
+                            if field["required"] == false {
+                                annotation = format!(
+                                    "{}.NotRequired[{annotation}]",
+                                    types.typing_extensions_alias()
+                                );
+                            }
+                        }
+                        rendered_fields.push((field_name, annotation));
+                    }
+                    if kind == "typed-dict"
+                        && rendered_fields
+                            .iter()
+                            .any(|(field, _)| !valid_identifier(field))
+                    {
+                        let fields = rendered_fields
+                            .iter()
+                            .map(|(field, ty)| {
+                                Ok(format!("{}: {ty}", serde_json::to_string(field)?))
+                            })
+                            .collect::<Result<Vec<_>>>()?
+                            .join(", ");
+                        body.push_str(&format!(
+                            "{name} = {base}(\"{name}\", {{{fields}}}{total}{closed})\n"
+                        ));
+                    } else {
+                        body.push_str(&format!("class {name}({base}{total}{closed}):\n"));
+                        if rendered_fields.is_empty() {
+                            body.push_str("    pass\n");
+                        }
+                        for (field, annotation) in rendered_fields {
+                            ensure!(
+                                valid_identifier(field),
+                                "virtual field has invalid identifier {field}"
+                            );
+                            body.push_str(&format!("    {field}: {annotation}\n"));
+                        }
+                    }
+                }
+                kind => bail!("unsupported virtual type shape {kind}"),
+            }
+            body.push_str(&format!("{public_name} = {name}\n\n"));
+        }
+        let mut prelude = format!("from __future__ import annotations\n{}\n", types.prelude());
+        prelude.push_str(&body);
+        ruff_python_parser::parse_module(&prelude).context("invalid generated virtual stub")?;
+        files.insert(
+            PathBuf::from(module.replace('.', "/")).with_extension("pyi"),
+            prelude,
+        );
+    }
+    Ok(files)
+}
+
+fn render_virtual_member(
+    member: &Value,
+    helper: &str,
+    types: &mut crate::type_render::Types,
+) -> Result<String> {
+    let name = member["name"].as_str().context("member without name")?;
+    ensure!(valid_identifier(name), "member has invalid name {name}");
+    let access = &member["access"];
+    match access["kind"].as_str().context("member without access")? {
+        "value" => Ok(format!(
+            "    {name}: {}\n",
+            types.render(&access["type-expr"])?
+        )),
+        "callable" => {
+            let signature = &access["signature"];
+            let parameters = types.parameter_list(
+                signature["parameters"]
+                    .as_array()
+                    .map(Vec::as_slice)
+                    .unwrap_or(&[]),
+                true,
+            )?;
+            let return_type = types.render(&signature["return-type"])?;
+            Ok(format!(
+                "    def {name}({parameters}) -> {return_type}: ...\n"
+            ))
+        }
+        "descriptor" => {
+            let get = types.render(&access["instance-get-type"])?;
+            if access["class-type"].is_object() {
+                let class_type = types.render(&access["class-type"])?;
+                let typing = types.typing_alias();
+                let builtins = types.builtins_alias();
+                // The fork's virtual-class builder contributes independent
+                // class and instance members. Instance reads union both; writes
+                // use the class member. It ignores setter/read-only metadata.
+                // Preserve that behavior rather than strengthen its contract.
+                let definition = format!(
+                    "class {helper}:\n    @{typing}.overload\n    def __get__(self, obj: None, owner: {builtins}.type[{builtins}.object]) -> {class_type}: ...\n    @{typing}.overload\n    def __get__(self, obj: {builtins}.object, owner: {builtins}.type[{builtins}.object]) -> ({class_type}) | ({get}): ...\n    def __set__(self, obj: {builtins}.object, value: {class_type}) -> None: ...\n"
+                );
+                types.definitions.push_str(&definition);
+                Ok(format!("    {name}: {helper}\n"))
+            } else {
+                // An instance annotation in a method, unlike a property or a
+                // class-body annotation, is absent from the class namespace.
+                // A private method avoids changing an inherited constructor.
+                Ok(format!(
+                    "    def {helper}_declare(self) -> None:\n        self.{name}: {get}\n"
+                ))
+            }
+        }
+        kind => bail!("unsupported member access {kind}"),
+    }
+}
+
+/// Reversible encoding avoids hash collisions and is stable when unrelated
+/// definitions are added. Only generated declarations use these names.
+#[cfg(test)]
+pub fn virtual_internal_name(qualified: &str) -> String {
+    virtual_internal_name_with_prefix(qualified, "_ty_ext_virtual_")
+}
+fn virtual_internal_name_with_prefix(qualified: &str, prefix: &str) -> String {
+    let mut name = prefix.to_owned();
+    use std::fmt::Write as _;
+    for byte in qualified.bytes() {
+        write!(name, "{byte:02x}").expect("writing to a String cannot fail");
+    }
+    name
+}
+
+fn valid_identifier(name: &str) -> bool {
+    crate::type_render::identifier(name)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    struct Fixture(PathBuf);
+    impl Fixture {
+        fn new(files: &[(&str, &str)]) -> Self {
+            let nonce = std::time::SystemTime::now()
+                .duration_since(std::time::UNIX_EPOCH)
+                .unwrap()
+                .as_nanos();
+            let root = std::env::temp_dir().join(format!(
+                "ty-companion-project-{}-{nonce}",
+                std::process::id()
+            ));
+            for (name, text) in files {
+                let path = root.join(name);
+                std::fs::create_dir_all(path.parent().unwrap()).unwrap();
+                std::fs::write(path, text).unwrap();
+            }
+            Self(root)
+        }
+        fn project(&self, manifest: Value, config: Value) -> Project {
+            Project::load(&self.0, &[self.0.join("models.py")], &manifest, config).unwrap()
+        }
+    }
+    impl Drop for Fixture {
+        fn drop(&mut self) {
+            let _ = std::fs::remove_dir_all(&self.0);
+        }
+    }
+
+    #[test]
+    fn project_imports_fields_decorators_and_nested_metadata_are_protocol_valid() {
+        let fixture = Fixture::new(&[
+            (
+                "base.py",
+                "class Entity: pass\nclass Field: pass\ndef receiver(*args, **kwargs): pass\n",
+            ),
+            (
+                "models.py",
+                "from base import Entity as Base, Field, receiver\nclass Parent(Base):\n    key = Field(default=7, nullable=True)\n    class Meta:\n        abstract = True\n    def save(self, *, force: bool = False) -> None: pass\nclass Child(Parent): pass\n@receiver(sender=Child)\ndef event(sender: type[Child]) -> None: pass\n",
+            ),
+        ]);
+        let project = fixture.project(json!({}), json!({}));
+        let summary = project.class_summary("models.Parent").unwrap();
+        assert_eq!(summary["bases"][0]["expression"], "base.Entity");
+        assert_eq!(
+            summary["fields"][0]["assigned-value"]["callee"]["qualified-name"],
+            "base.Field"
+        );
+        assert_eq!(
+            summary["fields"][0]["assigned-value"]["arguments"][0]["value"],
+            json!({"kind":"int","value":7})
+        );
+        assert_eq!(
+            summary["nested-classes"][0]["class-constants"][0]["value"],
+            json!({"kind":"bool","value":true})
+        );
+        assert_eq!(
+            summary["methods"][0]["parameters"][1]["kind"],
+            "keyword-only"
+        );
+        assert_eq!(
+            project.method_owner("models.Child", "save").as_deref(),
+            Some("models.Parent")
+        );
+        let request = project.build_request();
+        let event = request["functions"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .find(|f| f["qualified-name"] == "models.event")
+            .unwrap();
+        assert_eq!(
+            event["decorators"][0]["arguments"][0]["value"]["qualified-name"],
+            "models.Child"
+        );
+        serde_json::from_value::<ty_plugin_protocol::PluginRequest>(request).unwrap();
+    }
+
+    #[test]
+    fn settings_imports_are_interpreted_without_executing_source() {
+        let fixture = Fixture::new(&[
+            ("models.py", "class Thing: pass\n"),
+            ("base_settings.py", "PREFIX = 'user'\nITEMS = ['one']\n"),
+            (
+                "settings.py",
+                "from base_settings import PREFIX, ITEMS\nAUTH_MODEL = PREFIX + '.Person'\nCHOICES = ITEMS + ['two']\nFLAG = True\nraise RuntimeError('must not execute')\n",
+            ),
+        ]);
+        let project = fixture.project(
+            json!({"claims":{"settings":[{"config-key":"settings-module"}]}}),
+            json!({"settings-module":"settings"}),
+        );
+        let request = project.build_request();
+        let values = request["settings"][0]["values"].as_array().unwrap();
+        assert_eq!(
+            values.iter().find(|v| v["name"] == "AUTH_MODEL").unwrap()["value"],
+            json!({"kind":"str","value":"user.Person"})
+        );
+        assert_eq!(
+            values.iter().find(|v| v["name"] == "CHOICES").unwrap()["value"],
+            json!({"kind":"list","items":[{"kind":"str","value":"one"},{"kind":"str","value":"two"}]})
+        );
+    }
+
+    #[test]
+    fn c3_diamond_preserves_python_method_owner_order() {
+        let fixture = Fixture::new(&[(
+            "models.py",
+            "class A:\n    def save(self): pass\nclass B(A): pass\nclass C(A):\n    def save(self): pass\nclass D(B, C): pass\n",
+        )]);
+        let project = fixture.project(json!({}), json!({}));
+        assert_eq!(
+            project.mro("models.D").unwrap(),
+            vec!["models.D", "models.B", "models.C", "models.A"]
+        );
+        assert_eq!(
+            project.method_owner("models.D", "save").as_deref(),
+            Some("models.C")
+        );
+    }
+
+    #[test]
+    fn virtual_type_modules_preserve_qualified_identity_and_members() {
+        let definitions = vec![
+            json!({"name":"plugin.virtual.models.Thing.Manager","shape":{"kind":"class","bases":[typ("library.Manager[models.Thing]")],"members":[{"name":"active","access":{"kind":"callable","signature":{"parameters":[{"name":"limit","kind":"keyword-only","required":false,"type-expr":typ("int")}],"return-type":typ("models.Thing")},"fallback-type":typ("object")}}]}}),
+            json!({"name":"plugin.virtual.models.Thing.Row","shape":{"kind":"typed-dict","fields":[{"name":"label","type-expr":typ("str"),"read-only":true,"required":false}]}}),
+        ];
+        let rendered = render_virtual_types(&definitions).unwrap();
+        let text = &rendered[&PathBuf::from("plugin/virtual/models/Thing.pyi")];
+        let imported = |module: &str| {
+            text.lines()
+                .find_map(|line| line.strip_prefix(&format!("import {module} as ")))
+                .unwrap()
+                .to_owned()
+        };
+        let models = imported("models");
+        let library = imported("library");
+        let typing = imported("typing");
+        let typing_extensions = imported("typing_extensions");
+        let builtins = imported("builtins");
+        let internal = virtual_internal_name("plugin.virtual.models.Thing.Manager");
+        assert!(text.contains(&format!(
+            "class {internal}({library}.Manager[{models}.Thing]):"
+        )));
+        assert!(text.contains(&format!("Manager = {internal}")));
+        assert!(text.contains(&format!("def active(self, *, limit: {builtins}.int = {typing}.cast({typing}.Any, ...)) -> {models}.Thing: ...")));
+        assert!(text.contains(&format!(
+            "label: {typing_extensions}.NotRequired[{typing_extensions}.ReadOnly[{builtins}.str]]"
+        )));
+    }
+
+    #[test]
+    fn unique_virtual_names_restore_protocol_identity_without_literal_rewriting() {
+        let fixture = Fixture::new(&[("models.py", "class Thing: pass\n")]);
+        let mut project = fixture.project(json!({}), json!({}));
+        let definitions = vec![
+            json!({"name":"left.Manager","shape":{"kind":"class"}}),
+            json!({"name":"right.Manager","shape":{"kind":"class"}}),
+        ];
+        let rendered = project.register_virtual_types(&definitions).unwrap();
+        let left = virtual_internal_name("left.Manager");
+        let right = virtual_internal_name("right.Manager");
+        assert_ne!(left, right);
+        assert!(rendered[&PathBuf::from("left.pyi")].contains(&format!("Manager = {left}")));
+        assert_eq!(
+            project.canonical_name("models", &format!("tuple[{left}, {right}]")),
+            "tuple[left.Manager, right.Manager]"
+        );
+        assert_eq!(
+            project.rewrite_virtual_identities(&format!("Literal['{left}'] | {left}")),
+            format!("Literal['{left}'] | left.Manager")
+        );
+    }
+
+    #[test]
+    fn official_checker_keeps_virtual_alias_identity_generics_and_self() {
+        let checker = std::env::var_os("TY_COMPANION_TEST_OFFICIAL")
+            .expect("TY_COMPANION_TEST_OFFICIAL must name the unchanged official ty binary");
+        let fixture = Fixture::new(&[
+            (
+                "base.pyi",
+                "from typing_extensions import Self\nclass Base[T]:\n    value: T\n    def same(self) -> Self: ...\n",
+            ),
+            (
+                "models.py",
+                "from typing import assert_type, reveal_type\nfrom left import Manager as Left\nfrom right import Manager as Right\nleft = Left()\nright = Right()\nassert_type(left.value, int)\nassert_type(left.same(), Left)\nreveal_type(left)\nreveal_type(right)\nwrong: Left = right\n",
+            ),
+        ]);
+        let definitions = vec![
+            json!({"name":"left.Manager","shape":{"kind":"class","bases":[typ("base.Base[int]")]}}),
+            json!({"name":"right.Manager","shape":{"kind":"class","bases":[typ("base.Base[int]")]}}),
+        ];
+        for (path, text) in render_virtual_types(&definitions).unwrap() {
+            std::fs::write(fixture.0.join(path), text).unwrap();
+        }
+        let output = std::process::Command::new(checker)
+            .args([
+                "check",
+                "--python-version",
+                "3.13",
+                "--output-format",
+                "gitlab",
+                "models.py",
+            ])
+            .current_dir(&fixture.0)
+            .env("TY_UV", "0")
+            .output()
+            .unwrap();
+        assert_eq!(
+            output.status.code(),
+            Some(1),
+            "{}",
+            String::from_utf8_lossy(&output.stderr)
+        );
+        let diagnostics: Vec<Value> = serde_json::from_slice(&output.stdout).unwrap();
+        let codes: Vec<_> = diagnostics
+            .iter()
+            .map(|d| d["check_name"].as_str().unwrap())
+            .collect();
+        assert_eq!(
+            codes,
+            vec!["revealed-type", "revealed-type", "invalid-assignment"],
+            "{diagnostics:#?}"
+        );
+        assert!(
+            diagnostics[0]["description"]
+                .as_str()
+                .unwrap()
+                .contains(&virtual_internal_name("left.Manager"))
+        );
+        assert!(
+            diagnostics[1]["description"]
+                .as_str()
+                .unwrap()
+                .contains(&virtual_internal_name("right.Manager"))
+        );
+    }
+
+    #[test]
+    fn virtual_identity_prefix_escapes_existing_project_identifiers() {
+        let colliding = virtual_internal_name("left.Manager");
+        let source = format!("class {colliding}: pass\n");
+        let fixture = Fixture::new(&[("models.py", &source)]);
+        let mut project = fixture.project(json!({}), json!({}));
+        let output = project
+            .register_virtual_types(&[json!({"name":"left.Manager","shape":{"kind":"class"}})])
+            .unwrap();
+        let internal = project
+            .virtual_identities
+            .iter()
+            .find_map(|(key, value)| (value == "left.Manager").then_some(key))
+            .unwrap();
+        assert_ne!(internal, &colliding);
+        assert!(output[&PathBuf::from("left.pyi")].contains(&format!("Manager = {internal}")));
+        assert_eq!(project.canonical_name("models", internal), "left.Manager");
+        assert_eq!(
+            project.canonical_name("models", &colliding),
+            format!("models.{colliding}")
+        );
+    }
+
+    #[test]
+    fn classvar_declaration_provenance_survives_sdk_field_filtering() {
+        let fixture = Fixture::new(&[
+            (
+                "models.py",
+                "from typing import ClassVar\nfrom typing_extensions import Self\nfrom external import Metadata\nclass Parent:\n    metadata: ClassVar[Metadata[Self]]\nclass Child(Parent): pass\n",
+            ),
+            ("external.pyi", "class Metadata[T]: pass\n"),
+        ]);
+        let project = fixture.project(json!({}), json!({}));
+        assert!(
+            project.class_summary("models.Parent").unwrap()["fields"]
+                .as_array()
+                .unwrap()
+                .is_empty()
+        );
+        assert_eq!(
+            project
+                .declared_member_type("models.Parent", "metadata")
+                .unwrap()["expression"],
+            "typing.ClassVar[external.Metadata[Self]]"
+        );
+        assert_eq!(
+            substitute_self(
+                "tuple[Self, typing.Self, typing_extensions.Self, Literal['Self', 'typing.Self']]",
+                "models.Child",
+            ),
+            "tuple[models.Child, models.Child, models.Child, Literal['Self', 'typing.Self']]"
+        );
+        assert_eq!(type_expression(&json!({"expression":"tuple[Alias, Alias.Nested, Literal['Alias']]", "imports":[{"module":"vendor","name":"Container","alias":"Alias"}]})).as_deref(), Some("tuple[vendor.Container, vendor.Container.Nested, Literal['Alias']]"));
+    }
+
+    #[test]
+    fn nominal_constructor_provenance_rejects_unknown_allocation_or_metaclass_calls() {
+        let fixture = Fixture::new(&[(
+            "models.py",
+            "class Normal: pass\nclass Meta(type): pass\nclass Parent(metaclass=Meta): pass\nclass Child(Parent): pass\nclass CustomNew:\n    def __new__(cls) -> str: return 'other'\nclass InheritedNew(CustomNew): pass\nclass CallingMeta(type):\n    def __call__(cls) -> str: return 'other'\nclass CustomCall(metaclass=CallingMeta): pass\nclass InheritedCall(CustomCall): pass\nclass UnknownBase(Missing): pass\n",
+        )]);
+        let project = fixture.project(json!({}), json!({}));
+        for name in ["Normal", "Parent", "Child"] {
+            assert_eq!(
+                project.default_constructor_result(&format!("models.{name}")),
+                Some(format!("models.{name}"))
+            );
+        }
+        for name in [
+            "CustomNew",
+            "InheritedNew",
+            "CustomCall",
+            "InheritedCall",
+            "UnknownBase",
+        ] {
+            assert_eq!(
+                project.default_constructor_result(&format!("models.{name}")),
+                None
+            );
+        }
+    }
+
+    #[test]
+    fn official_checker_supports_virtual_descriptor_and_arbitrary_typed_dict_keys() {
+        let binary = std::env::var_os("TY_COMPANION_TEST_OFFICIAL")
+            .expect("TY_COMPANION_TEST_OFFICIAL must point to the unchanged official checker");
+        let fixture = Fixture::new(&[(
+            "models.py",
+            "from typing import assert_type\nfrom generated import Row, Value\ndef check(row: Row) -> None:\n    assert_type(row['x-y'], int)\n    assert_type(row['nested']['value'], str)\ncheck({'x-y': 1, 'nested': {'value': 'ok'}})\nvalue = Value()\nassert_type(value.number, str | int)\nassert_type(Value.number, str)\nvalue.number = 'class contract'\nwrong: int = Value.number\n",
+        )]);
+        let ty = |expression: &str| json!({"expression":expression,"mode":"annotation"});
+        let definitions = vec![
+            json!({"name":"generated.Row","shape":{"kind":"typed-dict","fields":[
+                {"name":"x-y","type-expr":ty("int")},
+                {"name":"class","type-expr":ty("str"),"required":false,"read-only":true},
+                {"name":"nested","type-expr":ty("TypedDict({'value': str})")}
+            ]}}),
+            json!({"name":"generated.Value","shape":{"kind":"class","members":[
+                {"name":"number","access":{"kind":"descriptor","class-type":ty("str"),"instance-get-type":ty("int"),"instance-set-type":ty("int")}}
+            ]}}),
+        ];
+        for (path, text) in render_virtual_types(&definitions).unwrap() {
+            let path = fixture.0.join(path);
+            std::fs::create_dir_all(path.parent().unwrap()).unwrap();
+            std::fs::write(path, text).unwrap();
+        }
+        let output = std::process::Command::new(binary)
+            .args([
+                "check",
+                "--python-version",
+                "3.13",
+                "--output-format",
+                "gitlab",
+                "models.py",
+                "generated.pyi",
+            ])
+            .current_dir(&fixture.0)
+            .env("TY_UV", "0")
+            .output()
+            .unwrap();
+        assert_eq!(
+            output.status.code(),
+            Some(1),
+            "{}",
+            String::from_utf8_lossy(&output.stderr)
+        );
+        let diagnostics: Vec<Value> = serde_json::from_slice(&output.stdout).unwrap();
+        assert_eq!(diagnostics.len(), 1, "{diagnostics:#?}");
+        assert_eq!(diagnostics[0]["check_name"], "invalid-assignment");
+        assert_eq!(diagnostics[0]["location"]["positions"]["begin"]["line"], 11);
+    }
+}

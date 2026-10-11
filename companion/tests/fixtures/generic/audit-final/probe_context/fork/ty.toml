@@ -1,0 +1,8 @@
+[plugins]
+enabled = true
+[[plugins.plugin]]
+id = "research.generic"
+path = "plugin.py"
+runtime = "monty"
+manifest-path = "plugin.plugin.json"
+trusted = true
