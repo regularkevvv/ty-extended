@@ -59,4 +59,5 @@ jobs:
             ${{ runner.temp }}/companion-ci-evidence/**/summary.json
             ${{ runner.temp }}/companion-ci-evidence/**/acceptance.json
             ${{ runner.temp }}/companion-ci-evidence/**/*.stderr
+            ${{ runner.temp }}/companion-ci-evidence/**/*.stdout
             ${{ runner.temp }}/companion-ci-evidence/**/stderr.log

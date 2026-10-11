@@ -1,23 +1,14 @@
 //! Run every existing generic acceptance fixture through production project mode.
-use anyhow::{Context, Result, ensure};
-use serde_json::{Value, json};
+use anyhow::{Result, ensure};
+use serde_json::Value;
 use std::{
     fs,
     path::{Path, PathBuf},
     process::Command,
 };
 
-fn normalize(diagnostics: &Value, root: &Path) -> Result<Vec<Value>> {
-    let mut values = Vec::new();
-    for diagnostic in diagnostics.as_array().context("diagnostic array")? {
-        let mut location = diagnostic["location"].clone();
-        let path = Path::new(location["path"].as_str().context("diagnostic path")?);
-        location["path"] = json!(path.strip_prefix(root).unwrap_or(path));
-        values.push(json!({"code":diagnostic["check_name"],"description":diagnostic["description"],"severity":diagnostic["severity"],"location":location}));
-    }
-    values.sort_by_key(Value::to_string);
-    Ok(values)
-}
+mod support;
+use support::normalize;
 
 #[test]
 #[ignore = "requires TY_COMPANION_TEST_FORK and TY_COMPANION_TEST_OFFICIAL"]

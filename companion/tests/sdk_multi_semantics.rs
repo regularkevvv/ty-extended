@@ -1,23 +1,10 @@
 //! Multiple real Monty plugins compared with the integrated checker.
-use anyhow::{Context, Result, ensure};
+use anyhow::{Result, ensure};
 use serde_json::{Value, json};
-use std::{
-    fs,
-    path::{Path, PathBuf},
-    process::Command,
-};
+use std::{fs, path::PathBuf, process::Command};
 
-fn diagnostics(value: &Value, root: &Path) -> Result<Vec<Value>> {
-    let mut result = Vec::new();
-    for item in value.as_array().context("diagnostics array")? {
-        let mut location = item["location"].clone();
-        let path = Path::new(location["path"].as_str().context("diagnostic path")?);
-        location["path"] = json!(path.strip_prefix(root).unwrap_or(path));
-        result.push(json!({"description":item["description"],"code":item["check_name"],"severity":item["severity"],"location":location}));
-    }
-    result.sort_by_key(Value::to_string);
-    Ok(result)
-}
+mod support;
+use support::normalize;
 
 #[test]
 #[ignore = "requires TY_COMPANION_TEST_FORK and TY_COMPANION_TEST_OFFICIAL"]
@@ -88,7 +75,7 @@ fn multiple_plugins_keep_precedence_config_and_virtual_types() -> Result<()> {
         String::from_utf8_lossy(&baseline.stdout),
         String::from_utf8_lossy(&baseline.stderr)
     );
-    let expected = diagnostics(&serde_json::from_slice(&baseline.stdout)?, &root)?;
+    let expected = normalize(&serde_json::from_slice(&baseline.stdout)?, &root)?;
     ensure!(
         expected.is_empty(),
         "fork should accept every multi-plugin assertion"
@@ -118,7 +105,7 @@ fn multiple_plugins_keep_precedence_config_and_virtual_types() -> Result<()> {
         );
         let response: Value = serde_json::from_slice(&result.stdout)?;
         ensure!(
-            diagnostics(&response["diagnostics"], &root)? == expected,
+            normalize(&response["diagnostics"], &root)? == expected,
             "{mode} differs from fork"
         );
     }

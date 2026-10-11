@@ -20,7 +20,7 @@ Release artifact: source `5e4b65cd9081b1281d05ae2035bfd75120eda326`, SHA-256
 | Editor behavior         | Six acceptance sessions, 105 ordinary and 66 notebook comparisons across UTF-8/16/32; multiworkspace/configuration/unsaved-file lifecycle checks                                                                       |
 | Django editor           | 28 baseline diagnostics with exact source spans; unsaved negative controls; ten comment and ten semantic revisions, preserving original files                                                                          |
 
-Source checks: 119 Rust unit/configuration checks, 28 Python harness tests, and
+Source checks: 123 Rust unit/configuration checks, 28 Python harness tests, and
 150 replayed Django requests. The 8 MiB limit rejects one oversized response as
 expected; the explicit 16 MiB limit accepts all.
 

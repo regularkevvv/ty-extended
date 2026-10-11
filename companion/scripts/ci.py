@@ -213,7 +213,11 @@ def main() -> None:
     official = install(output / "official", "ty==0.0.86", env)
     fork = reference_checker(output, env)
     env.update(
-        TY_COMPANION_TEST_OFFICIAL=str(official), TY_COMPANION_TEST_FORK=str(fork)
+        TY_COMPANION_TEST_OFFICIAL=str(official),
+        TY_COMPANION_TEST_FORK=str(fork),
+        TY_COMPANION_GENERIC_PROJECT_OUTPUT=str(output / "generic-project"),
+        TY_COMPANION_EXTENDED_OUTPUT=str(output / "sdk-extended"),
+        TY_COMPANION_MULTI_OUTPUT=str(output / "sdk-multi"),
     )
     run([*cargo, "test", "--locked", "--manifest-path", str(manifest)], env=env)
     run(
