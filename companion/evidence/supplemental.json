@@ -2186,7 +2186,7 @@
   "lsp": {
     "original_report": {
       "artifact": "artifact:supplemental-lsp",
-      "sha256": "590a349c0929de86a1ba7c899c76d257f84673918c5c83095bf2e9d986bb6595"
+      "sha256": "cf787190f7c31d128f71d15a9d108b2c63674e69bac1a24977adeac6a8ff4427"
     },
     "result": {
       "artifact": "binary:companion",
@@ -2196,7 +2196,7 @@
         "sha256": "b9abe43ba8ef0692c9d9804a0dc0c450800eb22436e0bc6097ae61b3e5335464",
         "version": "ty 0.86.0+147 (4429f1e88 2026-10-10)"
       },
-      "harness_source_commit": "72bdf0c3efc8b228296853d06ee47520af20d7e2",
+      "harness_source_commit": "0e9dd965b08ed34e81234825f2d0fa911d9efc3a",
       "official": {
         "path": "binary:generic-official",
         "sha256": "d6cd23ef6b3bdcb91dc2c67da0bc120c25668102c231ac7a9c405342a06558ef",
@@ -2223,11 +2223,11 @@
           "output": "artifact:lsp-acceptance",
           "passed": true,
           "script": "source:companion/scripts/lsp_acceptance.py",
-          "script_sha256": "3ab929f76ce1c9b28f3c71354c825b79a181012f88d22bf78eedea45bc96d201",
-          "seconds": 0.7352164999465458,
+          "script_sha256": "e2f10c84f60a101fc17e2cb344ff2ac2b989810f2c26d0cc93fba94270a35e57",
+          "seconds": 0.7613365830038674,
           "sessions": 6,
           "summary": "artifact:lsp-acceptance/summary.json",
-          "summary_sha256": "1e071441d265abfed14985e75b5eda49a6fb3fad6884c14445a0d64cc83e7024"
+          "summary_sha256": "4128f3c26c1b26d7e66d25faa5efeafa1401c20f128977a28f30e3ea2a61ebdf"
         },
         {
           "command": [
@@ -2254,10 +2254,10 @@
           "output": "artifact:lsp-differential",
           "passed": true,
           "script": "source:companion/scripts/lsp_differential.py",
-          "script_sha256": "7b36a37eb530c72f71c4759d23c2b383a41d2df3c27151c74fb76856a4e8b927",
-          "seconds": 1.3340755419922061,
+          "script_sha256": "82ce8a03bac05b952fafa60e96c00f1bcc3ea7bf946824959bb7cb693ce124c7",
+          "seconds": 1.32344737497624,
           "summary": "artifact:lsp-differential/summary.json",
-          "summary_sha256": "8464ebfbb603b45c04ea7718f943863b52a1e3a8e4c420152959accc935e16fc"
+          "summary_sha256": "c210eeecb3da2888c266eb695a2a8f82eeb0772008ff0bf32105d5b433549ba2"
         },
         {
           "command": [
@@ -2284,10 +2284,10 @@
           "output": "artifact:lsp-notebook_differential",
           "passed": true,
           "script": "source:companion/scripts/lsp_notebook_differential.py",
-          "script_sha256": "52d6268c5d377e1f9017f415ff732cf1538f25a5900632eed686a89a7a7500f1",
-          "seconds": 0.5168171250261366,
+          "script_sha256": "e7583fd3c797c8b6a4523cd4bf598e0b14b5439e5a123f629871026b3118c070",
+          "seconds": 0.546264540986158,
           "summary": "artifact:lsp-notebook_differential/summary.json",
-          "summary_sha256": "2ff0410cbf2893f947589ad2c89d791877b7ee6a62e0b973823d32e5defd1665"
+          "summary_sha256": "9520d29def010339496e4dceea5e9f904907c5b4314f49a6863e9789b04ed505"
         },
         {
           "command": [
@@ -2307,9 +2307,9 @@
           "passed": true,
           "script": "source:companion/scripts/lsp_lifecycle.py",
           "script_sha256": "8494c324fa9fe851674bc0dd5278a89377c93a7aa642d4409a6a311ba57f07ea",
-          "seconds": 0.3447724580182694,
+          "seconds": 0.3863722079549916,
           "summary": "artifact:lsp-lifecycle/evidence.json",
-          "summary_sha256": "8108d66bd550c871d255421a6fe82ee65a2185ccf5b50dbe95d3fb6be6e228ea"
+          "summary_sha256": "fa22393d36613412a55fbc7334bf1576f0fee42eb58be31497dd364da39b84c8"
         }
       ]
     }
@@ -5780,6 +5780,52 @@
       "source_sha256": "0730a61dd779fe0931bf17326e734f2b58f77f3de05e7874e548204c99795056",
       "source_unchanged": true,
       "validated_secondary_path_count": 4
+    }
+  },
+  "python-target-regression": {
+    "original_report": {
+      "artifact": "artifact:supplemental-python-target-regression",
+      "sha256": "9ac5099aaf9192993ffd2d045513ef5348d8877b7ccc9fb7151f452fcdb002ae"
+    },
+    "result": {
+      "artifact": "binary:companion",
+      "baseline_log": "artifact:python-target-regression/before.log",
+      "baseline_reproduced": true,
+      "harness_source_commit": "0e9dd965b08ed34e81234825f2d0fa911d9efc3a",
+      "parent_requires_python": ">=3.8",
+      "passed": true,
+      "results": [
+        {
+          "log": "artifact:python-target-regression/acceptance.log",
+          "name": "acceptance",
+          "output": "artifact:python-target-regression/after-acceptance",
+          "passed": true,
+          "script_sha256": "e2f10c84f60a101fc17e2cb344ff2ac2b989810f2c26d0cc93fba94270a35e57"
+        },
+        {
+          "log": "artifact:python-target-regression/differential.log",
+          "name": "differential",
+          "output": "artifact:python-target-regression/after-differential",
+          "passed": true,
+          "script_sha256": "82ce8a03bac05b952fafa60e96c00f1bcc3ea7bf946824959bb7cb693ce124c7"
+        },
+        {
+          "log": "artifact:python-target-regression/notebook_differential.log",
+          "name": "notebook_differential",
+          "output": "artifact:python-target-regression/after-notebook_differential",
+          "passed": true,
+          "script_sha256": "e7583fd3c797c8b6a4523cd4bf598e0b14b5439e5a123f629871026b3118c070"
+        },
+        {
+          "log": "artifact:python-target-regression/lifecycle.log",
+          "name": "lifecycle",
+          "output": "artifact:python-target-regression/after-lifecycle",
+          "passed": true,
+          "script_sha256": "8494c324fa9fe851674bc0dd5278a89377c93a7aa642d4409a6a311ba57f07ea"
+        }
+      ],
+      "sha256": "75b7804e9c0e49efa9f0ff3f1e21f20ee3ffe310b824e9b2609618fb0a132110",
+      "source_commit": "4ce52071c8901e06b5c4e30a22b03487cfe416ed"
     }
   }
 }

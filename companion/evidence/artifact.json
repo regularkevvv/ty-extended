@@ -6,6 +6,6 @@
   "gzip_sha256": "7cbe5b70f22b28be9bc989bd423e106b72fd81054d3e89c60d80b54daa9e6e65",
   "target": "aarch64-apple-darwin",
   "upstream_checker_included": false,
-  "validation_source_commit": "72bdf0c3efc8b228296853d06ee47520af20d7e2",
+  "validation_source_commit": "0e9dd965b08ed34e81234825f2d0fa911d9efc3a",
   "production_inputs_unchanged_since_build": true
 }
