@@ -822,6 +822,9 @@ impl Project<'_> {
                         let setter = self.types.render(&setter)?;
                         self.types.set_self_context(previous);
                         let helper = format!("{}setter_{}", self.source.prefix, span(target).start);
+                        self.runtime
+                            .projected_receivers
+                            .insert(format!("{}.{}", self.source.module, helper), owner);
                         let typing = self.types.typing_alias();
                         self.types.definitions.push_str(&format!(
                             "class {helper}({typing}.Protocol):\n    {}: {setter}\n",

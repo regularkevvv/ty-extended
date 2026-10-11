@@ -2295,7 +2295,7 @@ impl Session {
                     .map(|name| probe_types.text(name))
                     .collect::<Result<Vec<_>>>()?;
                 let mut code = format!(
-                    "from typing import reveal_type as _ty_snapshot_reveal\n{}",
+                    "from typing_extensions import reveal_type as _ty_snapshot_reveal\n{}",
                     probe_types.prelude()
                 );
                 let mut lines = BTreeMap::new();
@@ -2849,6 +2849,52 @@ pub fn run(input: &Path, options: &BTreeMap<String, String>) -> Result<Value> {
 
 #[cfg(test)]
 mod tests {
+    #[test]
+    fn setter_receiver_views_keep_factory_return_identity() -> Result<()> {
+        let binary = std::env::var_os("TY_COMPANION_TEST_OFFICIAL").expect("official checker");
+        let directory =
+            std::env::temp_dir().join(format!("ty-setter-receiver-cycle-{}", std::process::id()));
+        let root = directory.join("project");
+        write(
+            &root.join("demo.py"),
+            "class Model: pass\ndef make() -> Model: return Model()\nmodel = make()\nmodel.value = 'first'\nmodel.value = 'second'\n",
+        )?;
+        let plugin = directory.join("plugin.py");
+        write(
+            &plugin,
+            "@on_class_transform\ndef transform(request):\n    return {'kind':'class-patch','fields':[{'name':'value','mode':'fill-on-miss','instance-get-type':{'expression':'int','mode':'annotation'},'instance-set-type':{'expression':'str','mode':'annotation'},'has-default':True}]}\n",
+        )?;
+        let manifest = directory.join("plugin.json");
+        write(&manifest,&json!({"id":"setter.identity","name":"Setter identity","version":"0.0.0","protocol-version":{"major":0,"minor":7},"ty-compatibility":{"requirement":">=0.86.0,<0.87.0"},"runtime":{"kind":"monty","artifact":"plugin.py"},"capabilities":{"class-transform":true},"claims":{"classes":[{"kind":"exact","qualified-name":"demo.Model"}]}}).to_string())?;
+        let options = BTreeMap::from([
+            (
+                "out".into(),
+                directory.join("output").to_string_lossy().into_owned(),
+            ),
+            (
+                "ty".into(),
+                PathBuf::from(binary).to_string_lossy().into_owned(),
+            ),
+            ("plugin".into(), plugin.to_string_lossy().into_owned()),
+            ("manifest".into(), manifest.to_string_lossy().into_owned()),
+            ("checker-mode".into(), "push".into()),
+            ("python-version".into(), "3.13".into()),
+        ]);
+        let mut session = Session::new(&root, &options)?;
+        let result = session.check(&BTreeMap::new())?;
+        assert_eq!(result["diagnostics"], json!([]), "{result:#}");
+        let path = root.join("demo.py").canonicalize()?;
+        let invalid = std::fs::read_to_string(&path)?.replace("'second'", "17");
+        let result = session.check(&BTreeMap::from([(path, invalid)]))?;
+        let diagnostics = result["diagnostics"]
+            .as_array()
+            .context("setter diagnostics")?;
+        assert_eq!(diagnostics.len(), 1, "{result:#}");
+        assert_eq!(diagnostics[0]["check_name"], "invalid-assignment");
+        drop(session);
+        std::fs::remove_dir_all(directory)?;
+        Ok(())
+    }
 
     #[test]
     fn nominal_snapshot_cache_tracks_equal_length_generic_header_edits() -> Result<()> {
@@ -3319,6 +3365,58 @@ mod tests {
         );
         assert_eq!(session.runtime.executions, 0);
         drop(session);
+        std::fs::remove_dir_all(directory)?;
+        Ok(())
+    }
+
+    #[test]
+    fn structural_return_nominal_probes_work_before_typing_reveal_type_exists() -> Result<()> {
+        let binary = std::env::var("TY_COMPANION_TEST_OFFICIAL")?;
+        let directory = std::env::temp_dir().join(format!(
+            "ty-snapshot-old-target-{}-{}",
+            std::process::id(),
+            std::time::SystemTime::now()
+                .duration_since(std::time::UNIX_EPOCH)?
+                .as_nanos()
+        ));
+        let root = directory.join("input");
+        std::fs::create_dir_all(&root)?;
+        write(
+            &root.join("models.py"),
+            "from typing_extensions import assert_type\ndef row() -> object: return {}\nassert_type(row()['title'], str)\nwrong: int = row()['title']\n",
+        )?;
+        let manifest = directory.join("plugin.json");
+        let plugin = directory.join("plugin.py");
+        write(&manifest, &json!({"id":"test.old-target", "name":"Old target snapshot", "version":"0.0.0", "protocol-version":{"major":0,"minor":7}, "ty-compatibility":{"requirement":">=0.84.0"}, "runtime":{"kind":"monty","artifact":"plugin.py"}, "capabilities":{"call-return":true}, "claims":{"functions":[{"qualified-name":"models.row"}]}}).to_string())?;
+        write(
+            &plugin,
+            "@on_call_return\ndef returns(request):\n    return call_return_patch({'expression':'object', 'mode':'annotation', 'snapshot':{'kind':'typed-dict', 'fields':[{'name':'title', 'type-snapshot':{'kind':'nominal', 'qualified-name':'builtins.str', 'arguments':[]}, 'required':True, 'read-only':False}], 'closed':True}})\n",
+        )?;
+        for version in ["3.10", "3.14"] {
+            let mut session = Session::new(
+                &root,
+                &BTreeMap::from([
+                    ("ty".into(), binary.clone()),
+                    (
+                        "out".into(),
+                        directory.join(version).to_string_lossy().into_owned(),
+                    ),
+                    ("plugin".into(), plugin.to_string_lossy().into_owned()),
+                    ("manifest".into(), manifest.to_string_lossy().into_owned()),
+                    ("python-version".into(), version.into()),
+                    ("checker-mode".into(), "push".into()),
+                ]),
+            )?;
+            let result = session.check(&BTreeMap::new())?;
+            let diagnostics = result["diagnostics"].as_array().unwrap();
+            assert_eq!(diagnostics.len(), 1, "{version}: {result:#}");
+            assert_eq!(
+                diagnostics[0]["check_name"], "invalid-assignment",
+                "{version}: {result:#}"
+            );
+            assert_eq!(diagnostics[0]["location"]["positions"]["begin"]["line"], 4);
+            assert!(session.base_project.snapshot_nominals["builtins.str"].is_some());
+        }
         std::fs::remove_dir_all(directory)?;
         Ok(())
     }
