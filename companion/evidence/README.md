@@ -1,11 +1,11 @@
 # Companion evidence
 
 Frozen release source:
-`5e4b65cd9081b1281d05ae2035bfd75120eda326`, SHA-256
-`9cc9b5aecb5df2fff1bc5e709383a5d193eee8536fe362586d6f0e1b82b75e05`.
-Its macOS arm64 size is 13,972,912 bytes, or 6,221,558 bytes with gzip.
+`a7ac9fc5bb46a92225eb35ae43c7578ded258185`, SHA-256
+`59e0634f6219b32190b1efce851775de1ef80f3ca667443a267a2231340cba63`.
+Its macOS arm64 size is 13,972,992 bytes, or 6,223,690 bytes with gzip.
 The separately installed official ty executable is excluded. Combined, the two
-executables occupy **40,308,864 bytes**, versus **37,518,400 bytes** for the reference
+executables occupy **40,308,944 bytes**, versus **37,518,400 bytes** for the reference
 fork. The companion artifact is smaller; the combined installation is larger.
 
 - `artifact.json` and `provenance.json`: executable, source, checker and dependency identities.
@@ -22,10 +22,10 @@ and external note paths. Internal `project` timings are separate from public CLI
 performance. Editor measurements reuse the checker; fresh invocations may reuse
 OS caches. Neither establishes cold-disk timing.
 
-Earlier runs overlapping another project's tests are retained separately in
-`supplemental.json`. The final timings retain all seven samples after the two
-scheduled warmups. The old and new executables had comparable timings in an
-interleaved comparison after that load ended.
+The final timings retain all seven samples after the scheduled warmups, with no
+other companion tests running. Measurements come from a normal desktop session;
+they are not dedicated-lab or cold-disk results. Earlier builds and measurements
+remain in repository history and the retained local proof archives.
 
 Checker pins: Django uses official 0.0.84 / fork 0.84.4; generic/editor
 differentials use official 0.0.86 / fork 0.86.0. Separate reference failures:

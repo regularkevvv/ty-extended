@@ -3,14 +3,14 @@
 The companion runs Monty semantic plugins and delegates checking to unchanged
 official ty. CLI and LSP map projected locations and edits back to original files.
 
-The macOS arm64 executable is **13,972,912 bytes** (gzip: **6,221,558 bytes**).
-Official ty is separate: together they occupy **40,308,864 bytes**, versus
+The macOS arm64 executable is **13,972,992 bytes** (gzip: **6,223,690 bytes**).
+Official ty is separate: together they occupy **40,308,944 bytes**, versus
 **37,518,400 bytes** for the reference fork. Our artifact is smaller; total installed
 executables are larger. This build uses Ruff parser/SDK crates and embedded Monty;
 it excludes ty’s semantic engine, Salsa, Wasmtime and the Python worker.
 
-Release artifact: source `5e4b65cd9081b1281d05ae2035bfd75120eda326`, SHA-256
-`9cc9b5aecb5df2fff1bc5e709383a5d193eee8536fe362586d6f0e1b82b75e05`.
+Release artifact: source `a7ac9fc5bb46a92225eb35ae43c7578ded258185`, SHA-256
+`59e0634f6219b32190b1efce851775de1ef80f3ca667443a267a2231340cba63`.
 
 | Passed release gates    | Coverage                                                                                                                                                                                                               |
 | ----------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -20,7 +20,7 @@ Release artifact: source `5e4b65cd9081b1281d05ae2035bfd75120eda326`, SHA-256
 | Editor behavior         | Six acceptance sessions, 105 ordinary and 66 notebook comparisons across UTF-8/16/32; multiworkspace/configuration/unsaved-file lifecycle checks                                                                       |
 | Django editor           | 28 baseline diagnostics with exact source spans; unsaved negative controls; ten comment and ten semantic revisions, preserving original files                                                                          |
 
-Source checks: 123 Rust unit/configuration checks, 28 Python harness tests, and
+Source checks: 125 Rust unit/configuration checks, 31 Python harness tests, and
 150 replayed Django requests. The 8 MiB limit rejects one oversized response as
 expected; the explicit 16 MiB limit accepts all.
 
@@ -32,15 +32,18 @@ On the Django conformance project, fresh-process public `check` medians were:
 
 | Output    | Companion | Reference fork | Companion / fork |
 | --------- | --------- | -------------- | ---------------- |
-| `full`    | 2.986 s   | 0.722 s        | 4.14×            |
-| `concise` | 2.767 s   | 0.722 s        | 3.83×            |
+| `full`    | 3.262 s   | 0.700 s        | 4.66×            |
+| `concise` | 3.045 s   | 0.709 s        | 4.30×            |
 
 Seven measured runs follow two warmups. All 36 invocations preserve accepted
 diagnostics and exit status; `full` includes the secondary checker for notes.
 
-Persistent-editor medians: **32 ms comment edits**, **479 ms semantic edits**
+Persistent-editor medians: **34 ms comment edits**, **488 ms semantic edits**
 (seven measured revisions after three warmups). Comment edits make no Monty calls
 or native hint queries.
+
+A matched, interleaved comparison of the pre-fix and final binaries found a
+0.04% difference in CLI medians; all 20 invocations preserved accepted results.
 
 Two reference-fork failures remain separate from companion results: 0.86 rejects
 the unchanged inherited ModelForm `Meta` case; 0.84.4’s warm Django editor benchmark

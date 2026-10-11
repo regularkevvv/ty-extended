@@ -2,7 +2,7 @@
   "binaries": {
     "companion": {
       "path": "binary:companion",
-      "sha256": "9cc9b5aecb5df2fff1bc5e709383a5d193eee8536fe362586d6f0e1b82b75e05"
+      "sha256": "59e0634f6219b32190b1efce851775de1ef80f3ca667443a267a2231340cba63"
     },
     "fork": {
       "path": "binary:django-fork",
@@ -955,13 +955,13 @@
           "requests": 150
         }
       ],
-      "sha256": "67c6ca82701bf6ada7f163623cb6408d7ca40a41b534722d3149a83390913486"
+      "sha256": "44dcbed554a2f9651ce65cad3ca76aa70f8d6292779c58fa9879b4e455313cd6"
     },
     "unit": {
       "artifact": "artifact:unit-test-log",
       "ignored": 11,
-      "passed": 118,
-      "sha256": "a20eb4d0a97e679077985cc4191141a85783fcb076e6763e1b66a876147b7662"
+      "passed": 124,
+      "sha256": "623828fe9c9f8ef765968812f902ee5dc6ba2d300e19e511eff4aa48f303d8a4"
     }
   },
   "generic_fixture_sha256": {
@@ -1031,35 +1031,35 @@
   "original_artifacts": {
     "generic-cli": {
       "artifact": "artifact:generic-cli-results",
-      "sha256": "5e56c03a8ba9013f8d727fd617afb053ffe0c10b71d25d4535195d643b316881"
+      "sha256": "dacd90175f904f9df7977bc09528a6c458704e6427b572cde0010205cb3b8210"
     },
     "generic-lsp": {
       "artifact": "artifact:generic-lsp-results",
-      "sha256": "17381a1f61e5354f717bd0aa17256dc21f0e4c3fa0cb0bee53236b7156e88ab4"
+      "sha256": "ba282d6d0415922c0bab573137425e9d0507ce25bc40bcbaac6c9b3a8bb5f93a"
     },
     "generic-push": {
       "artifact": "artifact:generic-push-results",
-      "sha256": "935afbe83b1300d7cfd1f9bb25a92e8e6247e75036016a250b25964ad9600c88"
+      "sha256": "c9ab1d892114c5f40e4162e1a04bbb59a8648b41c10f0d13bb1252536fd6cf79"
     },
     "matrix-cli": {
       "artifact": "artifact:matrix-cli",
-      "sha256": "6b04f9ee16c4dfb460d14d9a3fd87dac6e19dd5b1e9425878c2e1aa356d7fb00"
+      "sha256": "8ef940b5d469af9b242445ec29fe9db0d2a41d26152a59d87abeca4e324751b2"
     },
     "matrix-push": {
       "artifact": "artifact:matrix-push",
-      "sha256": "612634732a8f6131f239de7bf0cc14e2bfc38f88407b7d7d49c486659d2cc9ec"
+      "sha256": "493ba14b91697d665cb58c2f54669c3c15d194f9e2ff374ef0898b15066185fb"
     }
   },
   "schema": 1,
   "source": {
     "commits": {
-      "repository": "5e4b65cd9081b1281d05ae2035bfd75120eda326",
+      "repository": "a7ac9fc5bb46a92225eb35ae43c7578ded258185",
       "ruff": "601b36e9d1884d058535f9daa888eb637f0cc488"
     },
     "source_sha256": {
       "Cargo.lock": "cdb4e6839c7a8883cc335c72e99816e54455e40516e151433d367254fb546000",
       "Cargo.toml": "8f9ee3a13e1bd2bd3162e2aaaf933659ddc13386e4f274efc7f1e5f55c394b5b",
-      "scripts/ci.py": "f59a4070c66e51174dba0697d6a99acfe29c0bb62f4c431c3ce183d1af89e340",
+      "scripts/ci.py": "df59fdccf32c6d6cc766e874d094ee60123bf2d81717cb6d48cb9a13f21abe13",
       "scripts/collect_evidence.py": "1d04552eeaac50c118290c95aa64e19ead7bde6d3e00071213d7373cafa5337f",
       "scripts/django_acceptance.py": "a953af94c0981bbea5d7b7c1e8db0015cc245095b9b178ae1d5fffd085cb8349",
       "scripts/django_benchmark.py": "cbdca177e104ff8cd731dbe152786c511caea80dc613f2438f100140fc719908",
@@ -1071,7 +1071,7 @@
       "scripts/lsp_notebook_differential.py": "e7583fd3c797c8b6a4523cd4bf598e0b14b5439e5a123f629871026b3118c070",
       "src/checker.rs": "fa94b73fa9fb82ebba64acf82032be0a53d595566a0bf8059f42de979c5bca40",
       "src/cli.rs": "ce3a233e119ebf325c72709b6ba828f00f5dd92e5fe1cf9b2d9f355edea372cd",
-      "src/cli_edits.rs": "3798cc57306018636615f51790510b570952e0a448d151b9f63c662fa05da3ae",
+      "src/cli_edits.rs": "01543f2a5d63f7a66545923b6ccd25e06161b6e3fd9b2936d09073768902c444",
       "src/flow.rs": "aeb7a9a873b8468650709369fd148c744ca16aedf4a8ad2fb9080a6e755ffcfb",
       "src/lower.rs": "ce0e98a01f8fbcb11e0e8af7d573a69ec79662e64a673af5551f8ec8ec837db2",
       "src/lsp_mapping.rs": "4f1f7d116dd33357ddd08d77499430c7917660285056fd468856f92ecc9bbeff",
@@ -1081,14 +1081,14 @@
       "src/model.rs": "d299e52619a80bdf9faa8e615876e232127a82bb60c4ff10d35e99d12d55da35",
       "src/notebook.rs": "9a12ae49794573b05662125390c295f852b49e4c8d1cd05ead6a1d78fffc2749",
       "src/project.rs": "a4dbac27f2bc69db684fcdc84536e9ac3be46e630794b8c2c355d52fed53c418",
-      "src/project_check.rs": "74c8da6aa8590a7776fe098de45d03461d98d2a2b94b25004e80e3f296ff88bc",
+      "src/project_check.rs": "1a281c79ea4e9fa74fa1aacadacccad265fbe90e0018fbb452e116fe49101e5c",
       "src/project_config.rs": "4ce2e9c889ce51f6cf0160e0b454aa1cbb388cc4cc21d230f2cfcf9a179a3acd",
       "src/runtime.rs": "4ff14505ba186a6075e584f00b62006d1f9d2edbde1045d67dc0db15cc50ab7b",
       "src/static_project.rs": "a74a12a167897e1b06fdc15dd2e9bdeebd30d1fabe94a0f784c8b4236e7affad",
       "src/type_render.rs": "ae5ccb8e5461c9c66410317e98754810196215f9051dbe2090a7156c282e6a46",
       "src/verify.rs": "e7708860ec0bd32cdfb8d6a171a53b2c12d5a67703f5a5b4322fa72d1592603d",
       "tests/cli_acceptance.rs": "0489f2cec9a3636a12bac7852ad0673a0dc4105e3fcd46f67a9b9aa529ad248a",
-      "tests/cli_edits.rs": "2712873f60b605173f3c28e4daeada1fbcc3a8d928e06bc025bd6c8e010c4767",
+      "tests/cli_edits.rs": "17fb6b47baeda4d35d932e072518327268a0337ade71a2734702bdce46bc0baf",
       "tests/cli_watch.rs": "d4985c8442664e2fb8192acf1387a9c5d3699078489538af939b16e878ec4e27",
       "tests/django_frontend_edges.rs": "404eed7b097915fdf0967da42019357363f4d9cff325e7a5544eee4c57b00069",
       "tests/django_monty_parity.rs": "e68a40139f55b4001a4590b5e9b5267050f6e79aaf647d1207c9535b32ddf6cf",
@@ -1145,10 +1145,12 @@
       "tests/fixtures/sdk_extended/demo.py": "5f53118329933bd546c2d9409650cb9a3c6dc2d40de9f417d0947a298e7091f0",
       "tests/fixtures/sdk_extended/plugin.plugin.json": "c80f832e536184fb4667f570f7f29a8e8d479680a132e624f59d2844573cd2f6",
       "tests/fixtures/sdk_extended/plugin.py": "da3c39300cc0533edafba0443ea3c3235c027a478f8ab41dab0f6eb82c5f3471",
-      "tests/generic_project_semantics.rs": "3e14066f45f8157545904e8e2b4364cd5aab3bd2f93313a5aeec6fa5ebbb107f",
-      "tests/sdk_extended_semantics.rs": "3e55fce59f8af8403643e52dbf9d75f5075bb28393ade2fee6be39cce53d6de5",
-      "tests/sdk_multi_semantics.rs": "8c45d1f8ede5c8d41e6da4bb9477b54024ee5a37ef636fafbd0f287087b4af3f",
-      "tests/sdk_virtual_semantics.rs": "0fc06ec10e2093366fcd8f0101394289c4e60f3874234c78e93f4d62ce25d36b",
+      "tests/generic_project_semantics.rs": "b1403fe83f0bed5a8dbf3bf2359bacde2ac5a6dede8591b17f64e4b14d1e01a4",
+      "tests/sdk_extended_semantics.rs": "a743781be0d0f191a781a6494b8a643324c175ac4f13624e1d1b5f697e89b54c",
+      "tests/sdk_multi_semantics.rs": "e498db4f82d8eb2794008af3cb6510299141c8a81b56585122297bbc62e2b1d0",
+      "tests/sdk_virtual_semantics.rs": "209aa77f553ab06217721de16b733b8f21aea9711b7949e6f3b8d6e077cf9a68",
+      "tests/support/mod.rs": "c7caaa7a0843bd101ed7d9e69f4afb27c512da734fbe9e9c764550c8504e7279",
+      "tests/test_ci.py": "871502b45f4a4c807b22a63952a46e6c62e42ab6cf65ed018c97bf26f44898af",
       "tests/test_collect_evidence.py": "c1f65415ad0af1bf73ff51d6c239dce4319e53d45702597cf31b710f2eeffbea",
       "tests/test_django_acceptance.py": "78eb7f1473d4b121fa216c7b4ed16e4a25ca231a1963aa8a02c5e8ef789ac733",
       "tests/test_django_benchmark.py": "bc79bba6c484f1bb0b960b3cd16f9b14844e250064dc6dc522ac361474d89676",
