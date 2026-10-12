@@ -4,16 +4,18 @@ The companion runs embedded Monty semantic plugins with unchanged official ty.
 CLI and LSP map diagnostics, positions and edits back to original files. WASM and
 the optional Python worker are outside this build.
 
-Final source: `b054f63bc4229f7da44d6b4262337ec1e8e87f40`. Executable SHA-256:
-`2bd50e242456d56e0dd0ff7a04edcf3cc4e13d073666bc91699d7deae16d650d`.
+Measured source: `ce12535f2c1be7f56945b1be15d6ef020ea86ec6`. Executable SHA-256:
+`ca3e6c4b0cd20f4cab5fbca46949ac2331ff017aa59f817e7228344c0c4f3c2c`.
 
-The complete corpus below was recorded on `a475315`. The final follow-up changes
-Windows configuration path spelling and preserves those original results. It
-passed 173 local Rust tests, two live-checker tests, 55 exact configuration
-comparisons, both Django 6.1.1/Python 3.13 checker modes, all five CLI formats,
-Clippy and repository checks. [Follow-up evidence](evidence/windows-path-followup/validation.json)
-and fresh timings retain the final executable identity. Hosted platform CI is
-linked separately below.
+This build repeats the complete Django matrix and SDK/editor gates below. It
+also passes 183 Rust unit tests, two live-checker unit tests, all integration
+suites, 37 Python harness tests, formatting and Clippy.
+
+The optimization shares immutable metadata, caches type expressions and class
+ancestry, batches imported modules, and reuses unchanged projection passes.
+Renderers retain lightweight name sets instead of old project maps. Regression
+tests cover cache invalidation, aliases, project edits, failed import retries,
+protocol decoding and metadata lifetime.
 
 | Passed gates  | Coverage                                                                                                                                                                                                 |
 | ------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -29,8 +31,7 @@ ran unchanged**, **90 public contracts passed through companion adapters**, and
 194 executed companion tests. The ledger records differences in internal hook
 and index counters; public results match the accepted fixtures.
 
-The base corpus also passed 37 Python harness tests and both 150-request Django
-protocol replays:
+Both 150-request Django protocol replays pass:
 8 MiB rejects one oversized response as expected; 16 MiB accepts all.
 Windows regressions cover CLI/LSP self-import type identity and exact diagnostic
 paths, including nested Unicode names, UNC and paths requiring verbatim prefixes.
@@ -41,25 +42,42 @@ by this corpus and the embedded-Monty runtime.
 
 Fresh-process public `check` medians on the Django conformance project:
 
-| Output    | Companion | Reference fork | Companion / fork |
-| --------- | --------- | -------------- | ---------------- |
-| `full`    | 4.313 s   | 0.729 s        | 5.91×            |
-| `concise` | 4.102 s   | 0.727 s        | 5.64×            |
+| Output    | Before  | After   | Reference fork | Speedup |
+| --------- | ------- | ------- | -------------- | ------- |
+| `full`    | 4.336 s | 2.256 s | 0.736 s        | 1.92×   |
+| `concise` | 4.137 s | 2.045 s | 0.733 s        | 2.02×   |
 
-These are seven measured runs after two warmups; all 36 invocations preserve
-accepted output. Persistent-editor medians are **34 ms for comment edits** and
-**737 ms for semantic edits**, with seven measurements after three warmups.
-The measured trailing-comment edits make no Monty calls or native hint queries.
+These are seven measured runs after two warmups, with rotating backend order.
+All 54 invocations preserve accepted output; the two companion builds have
+identical stdout, stderr and exit status. Startup remains 2.79–3.07× the fork on
+this workload. Full output includes another official checker session to recover
+related diagnostic notes while preserving primary diagnostic wording.
 
-The earlier alternating comparison against the binary before the final `NoneType` query prefetch retained all 60
-invocations: prefetching `NoneType` with the other native queries reduced positive/negative e2e medians by
-**17.2% / 17.3%**; conformance changed by **-0.39%**. Fresh-process overhead remains:
-internal `project` e2e-negative medians are 3.110 s versus 0.306 s for the fork
-(10.18×); persistent-checker mode within each invocation takes 3.073 s (10.06×).
-These desktop measurements do not establish cold-disk or universally optimal performance.
+Persistent-editor semantic edits improved from **747 ms to 441 ms** (1.69×).
+Comment edits remain around **33 ms**. Three alternating before/after session
+pairs retain 21 measured edits per kind and backend after warmup, with identical
+diagnostic items and report kinds. Measured trailing-comment edits make no Monty
+calls or native hint queries.
 
-The macOS arm64 executable is **14,948,064 bytes** (gzip: **6,576,246 bytes**).
-With separately installed official ty, executables total **41,284,016 bytes**,
+The internal checker workloads improve by **1.83–2.07×** across CLI and persistent
+modes. The negative-e2e case remains 5.45× the fork: 1.726 s versus 0.317 s.
+All 162 invocations preserve diagnostics and exit status.
+
+Scaling uses django-ty's existing generator with eight character fields and three
+queries per added model, plus constructor/save/load/delete/alias assertions:
+
+| Added models | Before   | After    | Reference fork | Speedup |
+| ------------ | -------- | -------- | -------------- | ------- |
+| 0            | 3.231 s  | 1.732 s  | 0.784 s        | 1.87×   |
+| 25           | 10.254 s | 4.513 s  | 1.846 s        | 2.27×   |
+| 100          | 35.870 s | 16.191 s | 9.110 s        | 2.22×   |
+
+All 81 invocations pass with zero diagnostics. Measurements use one macOS arm64
+host, fixed parallelism, two warmups and seven measured runs. They do not measure
+cold-disk performance or establish a universal speed ceiling.
+
+The macOS arm64 executable is **15,196,128 bytes** (gzip: **6,694,058 bytes**).
+With separately installed official ty, executables total **41,532,080 bytes**,
 versus **37,518,400 bytes** for the fork. Distribution is independent; total
 installed size is larger. The companion includes Ruff parser/SDK crates and Monty,
 excluding ty's semantic engine, Salsa, Wasmtime and the Python worker.
