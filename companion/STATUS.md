@@ -9,7 +9,13 @@ Measured source: `ce12535f2c1be7f56945b1be15d6ef020ea86ec6`. Executable SHA-256:
 
 This build repeats the complete Django matrix and SDK/editor gates below. It
 also passes 183 Rust unit tests, two live-checker unit tests, all integration
-suites, 37 Python harness tests, formatting and Clippy.
+suites, 38 Python harness tests, formatting and Clippy.
+
+A [validation followup](evidence/speedup/overlay-revision-followup.json) makes
+watched-file edits produce distinct modification timestamps. A Windows reference
+check returned stale diagnostics; equal timestamps reproduce that behavior.
+Normal and forced-collision runs pass with unchanged diagnostic expectations.
+This fixture change leaves the measured executable and timings unchanged.
 
 The optimization shares immutable metadata, caches type expressions and class
 ancestry, batches imported modules, and reuses unchanged projection passes.

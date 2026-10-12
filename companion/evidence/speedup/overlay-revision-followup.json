@@ -1,0 +1,287 @@
+{
+  "forced_equal_timestamp_writes": {
+    "binaries": {
+      "companion": "ca3e6c4b0cd20f4cab5fbca46949ac2331ff017aa59f817e7228344c0c4f3c2c",
+      "fork": "bc96b7a1749b0ca352ed6f83a21beb064a18efba86a094692863df455a114468",
+      "official": "d6cd23ef6b3bdcb91dc2c67da0bc120c25668102c231ac7a9c405342a06558ef"
+    },
+    "checks": [
+      "installed-source-definition",
+      "overlay-live-change",
+      "overlay-live-restore",
+      "partial-marker-live-remove",
+      "partial-marker-live-restore",
+      "original12-package-function-definition-to-installed-source",
+      "original194-overlay-document-diagnostic-watch-update",
+      "inline-extra-before-synthetic-roots"
+    ],
+    "original_contracts": [
+      "first_party_precedes_plugin_stub_overlay",
+      "plugin_stub_overlay_precedes_site_packages",
+      "stdlib_precedes_plugin_stub_overlay",
+      "partial_plugin_stub_overlay_falls_back_to_site_packages_submodule",
+      "real_module_resolution_ignores_plugin_stub_overlay"
+    ],
+    "passed": true,
+    "report_sha256": "94f991f5b2173ebebfc3e6bbc3ab134868a01f8e18e2a744addd0ac8f7d4e4d3",
+    "runner_sha256": "3c3d6e6d22a6618591855119183dd055c06c702ebade6bf9ab4da0c7b958fdc4",
+    "watched_writes": [
+      {
+        "annotation": "int",
+        "backend": "fork",
+        "before_ns": 1791766047514090480,
+        "case": "plugin_stub_overlay_precedes_site_packages",
+        "final_ns": 1791766049514090480,
+        "write_ns": 1791766047514090480
+      },
+      {
+        "annotation": "str",
+        "backend": "fork",
+        "before_ns": 1791766049514090480,
+        "case": "plugin_stub_overlay_precedes_site_packages",
+        "final_ns": 1791766051514090480,
+        "write_ns": 1791766049514090480
+      },
+      {
+        "annotation": "int",
+        "backend": "companion",
+        "before_ns": 1791766051514090480,
+        "case": "plugin_stub_overlay_precedes_site_packages",
+        "final_ns": 1791766053514090480,
+        "write_ns": 1791766051514090480
+      },
+      {
+        "annotation": "str",
+        "backend": "companion",
+        "before_ns": 1791766053514090480,
+        "case": "plugin_stub_overlay_precedes_site_packages",
+        "final_ns": 1791766055514090480,
+        "write_ns": 1791766053514090480
+      },
+      {
+        "annotation": "str",
+        "backend": "fork",
+        "before_ns": 1791766048372332460,
+        "case": "original194",
+        "final_ns": 1791766050372332460,
+        "write_ns": 1791766048372332460
+      },
+      {
+        "annotation": "str",
+        "backend": "companion",
+        "before_ns": 1791766050372332460,
+        "case": "original194",
+        "final_ns": 1791766052372332460,
+        "write_ns": 1791766050372332460
+      }
+    ]
+  },
+  "normal_revisions": {
+    "binaries": {
+      "companion": "ca3e6c4b0cd20f4cab5fbca46949ac2331ff017aa59f817e7228344c0c4f3c2c",
+      "fork": "bc96b7a1749b0ca352ed6f83a21beb064a18efba86a094692863df455a114468",
+      "official": "d6cd23ef6b3bdcb91dc2c67da0bc120c25668102c231ac7a9c405342a06558ef"
+    },
+    "checks": [
+      "installed-source-definition",
+      "overlay-live-change",
+      "overlay-live-restore",
+      "partial-marker-live-remove",
+      "partial-marker-live-restore",
+      "original12-package-function-definition-to-installed-source",
+      "original194-overlay-document-diagnostic-watch-update",
+      "inline-extra-before-synthetic-roots"
+    ],
+    "original_contracts": [
+      "first_party_precedes_plugin_stub_overlay",
+      "plugin_stub_overlay_precedes_site_packages",
+      "stdlib_precedes_plugin_stub_overlay",
+      "partial_plugin_stub_overlay_falls_back_to_site_packages_submodule",
+      "real_module_resolution_ignores_plugin_stub_overlay"
+    ],
+    "passed": true,
+    "report_sha256": "5b5391f156d71fe786e8ec9cf9321635b617ff04448a2c61d310a88ee4297e2b",
+    "runner_sha256": "3c3d6e6d22a6618591855119183dd055c06c702ebade6bf9ab4da0c7b958fdc4",
+    "watched_writes": [
+      {
+        "annotation": "int",
+        "backend": "fork",
+        "before_ns": 1791766012655986558,
+        "case": "plugin_stub_overlay_precedes_site_packages",
+        "final_ns": 1791766012792884015,
+        "write_ns": 1791766012792884015
+      },
+      {
+        "annotation": "str",
+        "backend": "fork",
+        "before_ns": 1791766012792884015,
+        "case": "plugin_stub_overlay_precedes_site_packages",
+        "final_ns": 1791766012793695768,
+        "write_ns": 1791766012793695768
+      },
+      {
+        "annotation": "int",
+        "backend": "companion",
+        "before_ns": 1791766012793695768,
+        "case": "plugin_stub_overlay_precedes_site_packages",
+        "final_ns": 1791766012854897620,
+        "write_ns": 1791766012854897620
+      },
+      {
+        "annotation": "str",
+        "backend": "companion",
+        "before_ns": 1791766012854897620,
+        "case": "plugin_stub_overlay_precedes_site_packages",
+        "final_ns": 1791766012902291181,
+        "write_ns": 1791766012902291181
+      },
+      {
+        "annotation": "str",
+        "backend": "fork",
+        "before_ns": 1791766013448862131,
+        "case": "original194",
+        "final_ns": 1791766013475340545,
+        "write_ns": 1791766013475340545
+      },
+      {
+        "annotation": "str",
+        "backend": "companion",
+        "before_ns": 1791766013484110030,
+        "case": "original194",
+        "final_ns": 1791766013534974392,
+        "write_ns": 1791766013534974392
+      }
+    ]
+  },
+  "passed": true,
+  "python_harness": {
+    "command": [
+      "python3",
+      "-B",
+      "-m",
+      "unittest",
+      "discover",
+      "-s",
+      "companion/tests",
+      "-p",
+      "test_*.py"
+    ],
+    "log_sha256": "b8f4284432ccdafed224f9afce0ced01e0377ed84ff135080859bb17cd5d7c90",
+    "passed": true,
+    "tests": 38
+  },
+  "raw_archive": {
+    "bytes": 63952,
+    "filename": "overlay-followup-raw.tar.gz",
+    "files": 29,
+    "manifest_sha256": "411b4b537b933ffd69df8db1cf2fc7cb455d355d6010e0a6b8633e2c8672d115",
+    "sha256": "2884c2f3b58d5442147b0a77569d66344359cbb8ac7692345230a7b53304a7ac",
+    "verified_all_file_contents": true
+  },
+  "same_session_control": {
+    "fork": "<task>/fork086/bin/ty",
+    "passed": true,
+    "records": [
+      {
+        "items": [],
+        "mtime_ns": 1791765899741010478,
+        "step": "initial-str"
+      },
+      {
+        "items": [
+          {
+            "code": "type-assertion-failure",
+            "codeDescription": {
+              "href": "https://ty.dev/rules#type-assertion-failure"
+            },
+            "message": "Type `int` does not match asserted type `str`\n\ninfo: `str` and `int` are not equivalent types",
+            "range": {
+              "end": {
+                "character": 29,
+                "line": 2
+              },
+              "start": {
+                "character": 0,
+                "line": 2
+              }
+            },
+            "severity": 1,
+            "source": "ty"
+          }
+        ],
+        "mtime_ns": 1791765901741010478,
+        "step": "int-new-mtime"
+      },
+      {
+        "items": [
+          {
+            "code": "type-assertion-failure",
+            "codeDescription": {
+              "href": "https://ty.dev/rules#type-assertion-failure"
+            },
+            "message": "Type `int` does not match asserted type `str`\n\ninfo: `str` and `int` are not equivalent types",
+            "range": {
+              "end": {
+                "character": 29,
+                "line": 2
+              },
+              "start": {
+                "character": 0,
+                "line": 2
+              }
+            },
+            "severity": 1,
+            "source": "ty"
+          }
+        ],
+        "mtime_ns": 1791765901741010478,
+        "step": "str-held-mtime"
+      },
+      {
+        "items": [],
+        "mtime_ns": 1791765903741010478,
+        "step": "str-advanced-mtime"
+      }
+    ],
+    "server_requests": [
+      {
+        "id": 0,
+        "jsonrpc": "2.0",
+        "method": "client/registerCapability",
+        "params": {
+          "registrations": [
+            {
+              "id": "ty/workspace/didChangeWatchedFiles/0",
+              "method": "workspace/didChangeWatchedFiles",
+              "registerOptions": {
+                "watchers": [
+                  {
+                    "globPattern": "**"
+                  }
+                ]
+              }
+            }
+          ]
+        }
+      }
+    ]
+  },
+  "scope": "Validation fixture and regression test only; production Rust, measured binary and timed helpers are unchanged.",
+  "source_sha256": {
+    "companion/scripts/sdk_overlay_inventory.py": "3c3d6e6d22a6618591855119183dd055c06c702ebade6bf9ab4da0c7b958fdc4",
+    "companion/tests/test_sdk_overlay_inventory.py": "68c2d99b2c8f2392dbb5ea2b1263914544276c9276e77147e174d4f49183151b"
+  },
+  "source_trace": [
+    "ruff/crates/ty_server/src/server/api/notifications/did_change_watched_files.rs",
+    "ruff/crates/ruff_db/src/files.rs:531",
+    "ruff/crates/ruff_db/src/system/os.rs:72"
+  ],
+  "trigger": {
+    "backend": "reference fork",
+    "failed_gate": "sdk_overlay_inventory",
+    "head": "22394583b7570a77b74a5b1f244b85ac35b21c2b",
+    "job": "https://github.com/regularkevvv/ty-extended/actions/runs/38187580837/job/114613151149",
+    "limitation": "The original CI run did not record mtimes; the equal-mtime mechanism was reproduced separately.",
+    "observation": "Restoring the str return annotation produced stale int diagnostics."
+  }
+}

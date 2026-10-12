@@ -64,6 +64,20 @@ def put(path: Path, text: str) -> None:
     path.write_text(text, encoding="utf-8")
 
 
+def put_watched(path: Path, text: str) -> dict[str, int]:
+    """Give an existing disk file a distinct revision before notifying ty."""
+    before = path.stat().st_mtime_ns
+    put(path, text)
+    written = path.stat()
+    # ty keys closed-file source invalidation by modification time. Fast writes
+    # can share a timestamp, including an equal-length int/str restoration.
+    if written.st_mtime_ns == before:
+        os.utime(path, ns=(written.st_atime_ns, before + 2_000_000_000))
+    final = path.stat().st_mtime_ns
+    assert final != before, (path, before, written.st_mtime_ns, final)
+    return {"before_ns": before, "write_ns": written.st_mtime_ns, "final_ns": final}
+
+
 def setup(case: Path, sources: dict, stubs: dict, installed: dict, main: str) -> Path:
     root = case / "project"
     overlay = case / "stubs"
@@ -153,6 +167,7 @@ def main() -> int:
         },
         "cases": [],
         "checks": [],
+        "watched_writes": [],
     }
     env = {**os.environ, "TY_UV": "0", "TY_MAX_PARALLELISM": "1"}
 
@@ -245,7 +260,17 @@ def main() -> int:
                         )
                         for annotation, expected in [("int", 1), ("str", 0)]:
                             changed = case / "stubs/foo.pyi"
-                            put(changed, f"def value() -> {annotation}: ...\n")
+                            revision = put_watched(
+                                changed, f"def value() -> {annotation}: ...\n"
+                            )
+                            result["watched_writes"].append(
+                                {
+                                    "case": name,
+                                    "backend": backend,
+                                    "annotation": annotation,
+                                    **revision,
+                                }
+                            )
                             client.notify(
                                 "workspace/didChangeWatchedFiles",
                                 {"changes": [{"uri": changed.as_uri(), "type": 2}]},
@@ -386,7 +411,15 @@ def main() -> int:
                 path = root194 / "main.py"
                 before = diagnostics(client, path)
                 assert before == [], (backend, before)
-                put(overlay194, "def make() -> str: ...\n")
+                revision = put_watched(overlay194, "def make() -> str: ...\n")
+                result["watched_writes"].append(
+                    {
+                        "case": "original194",
+                        "backend": backend,
+                        "annotation": "str",
+                        **revision,
+                    }
+                )
                 client.notify(
                     "workspace/didChangeWatchedFiles",
                     {"changes": [{"uri": overlay194.as_uri(), "type": 2}]},

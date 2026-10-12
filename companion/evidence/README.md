@@ -14,6 +14,12 @@ The latest optimization evidence is in [`speedup/`](speedup/):
     gates, 18 SDK/editor script gates, and all 18 Django/Python pairs in both modes.
 - `timings.json`: every timing sample, warmup, execution order, output hash and
     work counter for public CLI, internal checker, editor and scaling comparisons.
+- [`overlay-revision-followup.json`](speedup/overlay-revision-followup.json):
+    a watched-file fixture correction and regression test, bringing the Python
+    harness suite from 37 to 38 tests. A Windows reference check returned stale
+    diagnostics. Equal modification timestamps reproduce the failure; normal
+    and forced-collision runs pass after ensuring a distinct file revision.
+    Diagnostic expectations, production code and timed runners are unchanged.
 - [`runners/README.md`](speedup/runners/README.md): commands and portable runners.
 
 CLI and scaling comparisons use two warmups and seven measured runs per backend
