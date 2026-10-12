@@ -1,0 +1,65 @@
+name: Companion
+
+permissions:
+  contents: read
+
+on:
+  pull_request:
+    paths:
+      - companion/**
+      - ruff
+      - .github/workflows/companion.yml
+  push:
+    branches: [main]
+    paths:
+      - companion/**
+      - ruff
+      - .github/workflows/companion.yml
+  workflow_dispatch:
+
+concurrency:
+  group: companion-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  compatibility:
+    name: Compatibility (${{ matrix.os }})
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 90
+    env:
+      CARGO_TARGET_DIR: ${{ github.workspace }}/companion/target
+      CARGO_NET_RETRY: 10
+      CARGO_INCREMENTAL: 0
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+          submodules: recursive
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: "3.13"
+      - name: Install pinned Rust toolchain
+        run: rustup toolchain install 1.98.0 --profile minimal --component rustfmt --component clippy
+      - name: Run compiler, SDK, and real editor checks
+        # Keep staged projects outside the repository's inherited Python config.
+        run: python companion/scripts/ci.py --output "${{ runner.temp }}/companion-ci-evidence"
+      - name: Preserve compatibility reports
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: companion-${{ matrix.os }}
+          retention-days: 5
+          path: |
+            ${{ runner.temp }}/companion-ci-evidence/ci.json
+            ${{ runner.temp }}/companion-ci-evidence/**/evidence.json
+            ${{ runner.temp }}/companion-ci-evidence/**/summary.json
+            ${{ runner.temp }}/companion-ci-evidence/**/acceptance.json
+            ${{ runner.temp }}/companion-ci-evidence/**/*.stderr
+            ${{ runner.temp }}/companion-ci-evidence/**/*.stdout
+            ${{ runner.temp }}/companion-ci-evidence/**/stderr.log
+            ${{ runner.temp }}/companion-ci-evidence/gates/*.log
+            ${{ runner.temp }}/companion-ci-evidence/cli-edits/**

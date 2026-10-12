@@ -1,0 +1,854 @@
+{
+  "arrays": {
+    "0454f71b44bcafde82185b84c007dda452bc56ed33ae4a88a358f10f8467d1c3": [
+      {
+        "begin": {
+          "column": 14,
+          "line": 12
+        },
+        "code": "plugin-configuration",
+        "end": {
+          "column": 50,
+          "line": 12
+        },
+        "message": "plugin-configuration: Unknown Django lookup `missing_field` for model `library.models.Book`: django-ty.unknown-lookup",
+        "path": "typechecks/negative.py",
+        "severity": "major"
+      },
+      {
+        "begin": {
+          "column": 18,
+          "line": 10
+        },
+        "code": "plugin-configuration",
+        "end": {
+          "column": 56,
+          "line": 10
+        },
+        "message": "plugin-configuration: Unknown Django lookup `missing_field` for model `library.models.Book`: django-ty.unknown-lookup",
+        "path": "typechecks/negative.py",
+        "severity": "major"
+      },
+      {
+        "begin": {
+          "column": 18,
+          "line": 8
+        },
+        "code": "invalid-assignment",
+        "end": {
+          "column": 54,
+          "line": 8
+        },
+        "message": "invalid-assignment: Object of type `str` is not assignable to `int`",
+        "path": "typechecks/negative.py",
+        "severity": "major"
+      },
+      {
+        "begin": {
+          "column": 19,
+          "line": 13
+        },
+        "code": "plugin-configuration",
+        "end": {
+          "column": 71,
+          "line": 13
+        },
+        "message": "plugin-configuration: Unknown Django lookup `missing_field` for model `library.models.Book`: django-ty.unknown-lookup",
+        "path": "typechecks/negative.py",
+        "severity": "major"
+      },
+      {
+        "begin": {
+          "column": 20,
+          "line": 9
+        },
+        "code": "plugin-configuration",
+        "end": {
+          "column": 64,
+          "line": 9
+        },
+        "message": "plugin-configuration: Invalid Django lookup value for `pages__icontains` on `library.models.Book.pages`; expected `int | None`: django-ty.invalid-lookup-value",
+        "path": "typechecks/negative.py",
+        "severity": "major"
+      },
+      {
+        "begin": {
+          "column": 23,
+          "line": 11
+        },
+        "code": "plugin-configuration",
+        "end": {
+          "column": 63,
+          "line": 11
+        },
+        "message": "plugin-configuration: Unknown Django lookup `author__missing` for model `library.models.Book`: django-ty.unknown-lookup",
+        "path": "typechecks/negative.py",
+        "severity": "major"
+      },
+      {
+        "begin": {
+          "column": 5,
+          "line": 17
+        },
+        "code": "plugin-configuration",
+        "end": {
+          "column": 11,
+          "line": 17
+        },
+        "message": "plugin-configuration: Conflicting Django reverse relation `library.models.Author.duplicate_books`: django-ty.reverse-relation-conflict",
+        "path": "caveats/models.py",
+        "severity": "major"
+      },
+      {
+        "begin": {
+          "column": 5,
+          "line": 5
+        },
+        "code": "plugin-configuration",
+        "end": {
+          "column": 11,
+          "line": 5
+        },
+        "message": "plugin-configuration: Unknown Django relation target `missing.App` for field `caveats.models.BrokenLink.target`: django-ty.unknown-relation-target",
+        "path": "caveats/models.py",
+        "severity": "major"
+      },
+      {
+        "begin": {
+          "column": 6,
+          "line": 7
+        },
+        "code": "invalid-argument-type",
+        "end": {
+          "column": 15,
+          "line": 7
+        },
+        "message": "invalid-argument-type: Argument is incorrect: Expected `str`, found `Literal[123]`",
+        "path": "typechecks/negative.py",
+        "severity": "major"
+      }
+    ],
+    "1a424f6c62059bfc0050801ff8e89c9f14cb22a4e11712adb3ea05cd0a08d448": [
+      {
+        "begin": {
+          "column": 5,
+          "line": 13
+        },
+        "code": "plugin-configuration",
+        "end": {
+          "column": 22,
+          "line": 13
+        },
+        "message": "plugin-configuration: Token entries cannot be assigned: immutable-token",
+        "path": "demo.py",
+        "severity": "major"
+      }
+    ],
+    "1fb6bf816132d5ef066388ee5129aa5af55ffd9fa55b3a44a11c24de1a567ca3": [
+      {
+        "begin": {
+          "column": 1,
+          "line": 6
+        },
+        "code": "plugin-configuration",
+        "end": {
+          "column": 18,
+          "line": 6
+        },
+        "message": "plugin-configuration: Django request query parameters are immutable: django-ty.immutable-querydict-write",
+        "path": "case.py",
+        "severity": "major"
+      }
+    ],
+    "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945": [],
+    "541aa2aae27c6c8475bb230d9b2b00ccce229386f5f1e168932e4bdcf9960920": [
+      {
+        "begin": {
+          "column": 12,
+          "line": 12
+        },
+        "code": "invalid-return-type",
+        "end": {
+          "column": 26,
+          "line": 12
+        },
+        "message": "invalid-return-type: Return type does not match returned value: expected `bytes`, found `int`",
+        "path": "demo.py",
+        "severity": "major"
+      }
+    ],
+    "546edb1e7dd29f1b2769ef2d8339056312fb9a1ee037d1d20f174cb6b8537024": [
+      {
+        "begin": {
+          "column": 12,
+          "line": 19
+        },
+        "code": "invalid-return-type",
+        "end": {
+          "column": 27,
+          "line": 19
+        },
+        "message": "invalid-return-type: Return type does not match returned value: expected `str`, found `str | None`",
+        "path": "demo.py",
+        "severity": "major"
+      }
+    ],
+    "6a43d38b3b1ff17a4be92b1695405747c16af4d3b0c24cdaa5bc13551b3a975a": [
+      {
+        "begin": {
+          "column": 12,
+          "line": 12
+        },
+        "code": "invalid-return-type",
+        "end": {
+          "column": 27,
+          "line": 12
+        },
+        "message": "invalid-return-type: Return type does not match returned value: expected `str`, found `None`",
+        "path": "demo.py",
+        "severity": "major"
+      }
+    ],
+    "6ed9d096b828eb08ddc5ece1bb3b5fb9510cfc09b41de2c1be2f30650c8a4c10": [
+      {
+        "begin": {
+          "column": 12,
+          "line": 12
+        },
+        "code": "invalid-return-type",
+        "end": {
+          "column": 27,
+          "line": 12
+        },
+        "message": "invalid-return-type: Return type does not match returned value: expected `str`, found `str | None`",
+        "path": "demo.py",
+        "severity": "major"
+      }
+    ],
+    "75beb7385e8b63aa1e93c35ea3f24e6f61e3aa60e6c917bd0939cf3890de52a9": [
+      {
+        "begin": {
+          "column": 12,
+          "line": 69
+        },
+        "code": "invalid-argument-type",
+        "end": {
+          "column": 14,
+          "line": 69
+        },
+        "message": "invalid-argument-type: Argument is incorrect: Expected `str`, found `Literal[42]`",
+        "path": "demo.py",
+        "severity": "major"
+      },
+      {
+        "begin": {
+          "column": 19,
+          "line": 71
+        },
+        "code": "invalid-assignment",
+        "end": {
+          "column": 31,
+          "line": 71
+        },
+        "message": "invalid-assignment: Object of type `int` is not assignable to `str`",
+        "path": "demo.py",
+        "severity": "major"
+      }
+    ],
+    "8129d7a7edafb4273fe44232defddcd84dfc95cadb060f5eb7da885d5ac22b27": [
+      {
+        "begin": {
+          "column": 12,
+          "line": 5
+        },
+        "code": "unsupported-operator",
+        "end": {
+          "column": 28,
+          "line": 5
+        },
+        "message": "unsupported-operator: Operator `+` is not supported between objects of type `str` and `Literal[1]`",
+        "path": "demo.py",
+        "severity": "major"
+      }
+    ],
+    "82a35a1d66f28d25dfab28697cdbafa3348404f64b8cbcdf8e302f1fada28e47": [
+      {
+        "begin": {
+          "column": 19,
+          "line": 71
+        },
+        "code": "invalid-assignment",
+        "end": {
+          "column": 31,
+          "line": 71
+        },
+        "message": "invalid-assignment: Object of type `int` is not assignable to `str`",
+        "path": "demo.py",
+        "severity": "major"
+      }
+    ],
+    "9ceea1d5b0f0cf69137f64f19c57e141ad003d11586598883b449ec58a5b7cf1": [
+      {
+        "begin": {
+          "column": 12,
+          "line": 2833
+        },
+        "code": "invalid-argument-type",
+        "end": {
+          "column": 14,
+          "line": 2833
+        },
+        "message": "invalid-argument-type: Argument is incorrect: Expected `str`, found `Literal[42]`",
+        "path": "demo.py",
+        "severity": "major"
+      },
+      {
+        "begin": {
+          "column": 19,
+          "line": 2835
+        },
+        "code": "invalid-assignment",
+        "end": {
+          "column": 31,
+          "line": 2835
+        },
+        "message": "invalid-assignment: Object of type `int` is not assignable to `str`",
+        "path": "demo.py",
+        "severity": "major"
+      }
+    ],
+    "bee2d8b175b46fa7a7fd75ebf1789dadc9fe69a1f652d664c7b5f2aa06b5d96c": [
+      {
+        "begin": {
+          "column": 1,
+          "line": 10
+        },
+        "code": "plugin-configuration",
+        "end": {
+          "column": 34,
+          "line": 10
+        },
+        "message": "plugin-configuration: Invalid Django lookup value for `age` on `conformance_models.models.Author.age`; expected `int | None`: django-ty.invalid-lookup-value",
+        "path": "cases/lookups.py",
+        "severity": "major"
+      },
+      {
+        "begin": {
+          "column": 1,
+          "line": 11
+        },
+        "code": "plugin-configuration",
+        "end": {
+          "column": 33,
+          "line": 11
+        },
+        "message": "plugin-configuration: Invalid Django lookup value for `age__in` on `conformance_models.models.Author.age`; expected `int | None`: django-ty.invalid-lookup-value",
+        "path": "cases/lookups.py",
+        "severity": "major"
+      },
+      {
+        "begin": {
+          "column": 1,
+          "line": 13
+        },
+        "code": "plugin-configuration",
+        "end": {
+          "column": 67,
+          "line": 13
+        },
+        "message": "plugin-configuration: Invalid Django lookup value for `age` on `conformance_models.models.Author.age`; expected `int | None`: django-ty.invalid-lookup-value",
+        "path": "cases/lookups.py",
+        "severity": "major"
+      },
+      {
+        "begin": {
+          "column": 1,
+          "line": 14
+        },
+        "code": "plugin-configuration",
+        "end": {
+          "column": 32,
+          "line": 14
+        },
+        "message": "plugin-configuration: Unknown Django lookup `missing` for model `conformance_models.models.Book`: django-ty.unknown-lookup",
+        "path": "cases/settings_metadata.py",
+        "severity": "major"
+      },
+      {
+        "begin": {
+          "column": 1,
+          "line": 14
+        },
+        "code": "plugin-configuration",
+        "end": {
+          "column": 70,
+          "line": 14
+        },
+        "message": "plugin-configuration: Invalid Django lookup value for `age` on `conformance_models.models.Author.age`; expected `int | None`: django-ty.invalid-lookup-value",
+        "path": "cases/lookups.py",
+        "severity": "major"
+      },
+      {
+        "begin": {
+          "column": 1,
+          "line": 16
+        },
+        "code": "invalid-assignment",
+        "end": {
+          "column": 13,
+          "line": 16
+        },
+        "message": "invalid-assignment: Object of type `list[str]` is not assignable to attribute `title` of type `str`",
+        "path": "cases/models_fields.py",
+        "severity": "major"
+      },
+      {
+        "begin": {
+          "column": 1,
+          "line": 16
+        },
+        "code": "plugin-configuration",
+        "end": {
+          "column": 34,
+          "line": 16
+        },
+        "message": "plugin-configuration: Unknown Django lookup `missing` for model `conformance_models.models.Article`: django-ty.unknown-lookup",
+        "path": "cases/lookups.py",
+        "severity": "major"
+      },
+      {
+        "begin": {
+          "column": 1,
+          "line": 17
+        },
+        "code": "plugin-configuration",
+        "end": {
+          "column": 50,
+          "line": 17
+        },
+        "message": "plugin-configuration: Unknown Django lookup `missing` for model `conformance_models.models.Article`: django-ty.unknown-lookup",
+        "path": "cases/lookups.py",
+        "severity": "major"
+      },
+      {
+        "begin": {
+          "column": 1,
+          "line": 20
+        },
+        "code": "plugin-configuration",
+        "end": {
+          "column": 50,
+          "line": 20
+        },
+        "message": "plugin-configuration: Unknown Django lookup `unknown_book__title` for model `conformance_models.models.Author`: django-ty.unknown-lookup",
+        "path": "cases/relations.py",
+        "severity": "major"
+      },
+      {
+        "begin": {
+          "column": 1,
+          "line": 23
+        },
+        "code": "plugin-configuration",
+        "end": {
+          "column": 39,
+          "line": 23
+        },
+        "message": "plugin-configuration: Invalid Django lookup value for `title` on `conformance_models.models.Article.title`; expected `str`: django-ty.invalid-lookup-value",
+        "path": "cases/models_fields.py",
+        "severity": "major"
+      },
+      {
+        "begin": {
+          "column": 1,
+          "line": 24
+        },
+        "code": "plugin-configuration",
+        "end": {
+          "column": 83,
+          "line": 24
+        },
+        "message": "plugin-configuration: Invalid Django lookup value for `age` on `conformance_models.models.Author.age`; expected `int | None`: django-ty.invalid-lookup-value",
+        "path": "cases/lookups.py",
+        "severity": "major"
+      },
+      {
+        "begin": {
+          "column": 1,
+          "line": 26
+        },
+        "code": "plugin-configuration",
+        "end": {
+          "column": 43,
+          "line": 26
+        },
+        "message": "plugin-configuration: Unknown Django lookup `missing` for model `conformance_models.models.Book`: django-ty.unknown-lookup",
+        "path": "cases/extras.py",
+        "severity": "major"
+      },
+      {
+        "begin": {
+          "column": 1,
+          "line": 32
+        },
+        "code": "plugin-configuration",
+        "end": {
+          "column": 36,
+          "line": 32
+        },
+        "message": "plugin-configuration: Invalid Django lookup value for `age__in` on `conformance_models.models.Author.age`; expected `int | None`: django-ty.invalid-lookup-value",
+        "path": "cases/lookups.py",
+        "severity": "major"
+      },
+      {
+        "begin": {
+          "column": 1,
+          "line": 48
+        },
+        "code": "plugin-configuration",
+        "end": {
+          "column": 81,
+          "line": 48
+        },
+        "message": "plugin-configuration: Invalid Django lookup value for `age` on `conformance_models.models.Author.age`; expected `int | None`: django-ty.invalid-lookup-value",
+        "path": "cases/lookups.py",
+        "severity": "major"
+      },
+      {
+        "begin": {
+          "column": 1,
+          "line": 49
+        },
+        "code": "plugin-configuration",
+        "end": {
+          "column": 79,
+          "line": 49
+        },
+        "message": "plugin-configuration: Invalid Django lookup value for `age` on `conformance_models.models.Author.age`; expected `int | None`: django-ty.invalid-lookup-value",
+        "path": "cases/lookups.py",
+        "severity": "major"
+      },
+      {
+        "begin": {
+          "column": 1,
+          "line": 50
+        },
+        "code": "plugin-configuration",
+        "end": {
+          "column": 84,
+          "line": 50
+        },
+        "message": "plugin-configuration: Invalid Django lookup value for `age` on `conformance_models.models.Author.age`; expected `int | None`: django-ty.invalid-lookup-value",
+        "path": "cases/lookups.py",
+        "severity": "major"
+      },
+      {
+        "begin": {
+          "column": 1,
+          "line": 52
+        },
+        "code": "plugin-configuration",
+        "end": {
+          "column": 33,
+          "line": 52
+        },
+        "message": "plugin-configuration: Unknown Django lookup `missing` for model `conformance_models.models.Book`: django-ty.unknown-lookup",
+        "path": "cases/managers_querysets.py",
+        "severity": "major"
+      },
+      {
+        "begin": {
+          "column": 1,
+          "line": 53
+        },
+        "code": "plugin-configuration",
+        "end": {
+          "column": 29,
+          "line": 53
+        },
+        "message": "plugin-configuration: Unknown Django lookup `missing` for model `conformance_models.models.Book`: django-ty.unknown-lookup",
+        "path": "cases/managers_querysets.py",
+        "severity": "major"
+      },
+      {
+        "begin": {
+          "column": 1,
+          "line": 54
+        },
+        "code": "plugin-configuration",
+        "end": {
+          "column": 125,
+          "line": 54
+        },
+        "message": "plugin-configuration: Invalid Django lookup value for `age` on `conformance_models.models.Author.age`; expected `int | None`: django-ty.invalid-lookup-value",
+        "path": "cases/lookups.py",
+        "severity": "major"
+      },
+      {
+        "begin": {
+          "column": 1,
+          "line": 55
+        },
+        "code": "plugin-configuration",
+        "end": {
+          "column": 52,
+          "line": 55
+        },
+        "message": "plugin-configuration: Unknown Django lookup `missing` for model `conformance_models.models.Book`: django-ty.unknown-lookup",
+        "path": "cases/managers_querysets.py",
+        "severity": "major"
+      },
+      {
+        "begin": {
+          "column": 1,
+          "line": 8
+        },
+        "code": "plugin-configuration",
+        "end": {
+          "column": 50,
+          "line": 8
+        },
+        "message": "plugin-configuration: Unknown Django lookup `parent__missing__exact` for model `conformance_models.models.Category`: django-ty.unknown-lookup",
+        "path": "cases/lookups.py",
+        "severity": "major"
+      },
+      {
+        "begin": {
+          "column": 11,
+          "line": 60
+        },
+        "code": "plugin-configuration",
+        "end": {
+          "column": 92,
+          "line": 60
+        },
+        "message": "plugin-configuration: Invalid Django lookup value for `age` on `conformance_models.models.Author.age`; expected `int | None`: django-ty.invalid-lookup-value",
+        "path": "cases/lookups.py",
+        "severity": "major"
+      },
+      {
+        "begin": {
+          "column": 15,
+          "line": 32
+        },
+        "code": "invalid-assignment",
+        "end": {
+          "column": 17,
+          "line": 32
+        },
+        "message": "invalid-assignment: Invalid assignment to data descriptor attribute `code` on type `Book`: Expected `str`, found `Literal[42]`",
+        "path": "cases/models_fields.py",
+        "severity": "major"
+      },
+      {
+        "begin": {
+          "column": 21,
+          "line": 9
+        },
+        "code": "invalid-assignment",
+        "end": {
+          "column": 62,
+          "line": 9
+        },
+        "message": "invalid-assignment: Object of type `type[Book]` is not assignable to `type[User]`",
+        "path": "cases/apps.py",
+        "severity": "major"
+      },
+      {
+        "begin": {
+          "column": 26,
+          "line": 56
+        },
+        "code": "invalid-argument-type",
+        "end": {
+          "column": 33,
+          "line": 56
+        },
+        "message": "invalid-argument-type: Argument to bound method `Manager.bulk_create` is incorrect: Expected `Iterable[Book]`, found `list[Tag]`",
+        "path": "cases/managers_querysets.py",
+        "severity": "major"
+      },
+      {
+        "begin": {
+          "column": 5,
+          "line": 39
+        },
+        "code": "plugin-configuration",
+        "end": {
+          "column": 24,
+          "line": 39
+        },
+        "message": "plugin-configuration: Django request query parameters are immutable: django-ty.immutable-querydict-write",
+        "path": "cases/extras.py",
+        "severity": "major"
+      },
+      {
+        "begin": {
+          "column": 6,
+          "line": 19
+        },
+        "code": "invalid-argument-type",
+        "end": {
+          "column": 20,
+          "line": 19
+        },
+        "message": "invalid-argument-type: Argument is incorrect: Expected `str`, found `list[str]`",
+        "path": "cases/models_fields.py",
+        "severity": "major"
+      },
+      {
+        "begin": {
+          "column": 6,
+          "line": 20
+        },
+        "code": "unknown-argument",
+        "end": {
+          "column": 23,
+          "line": 20
+        },
+        "message": "unknown-argument: Argument `unknown_field` does not match any known parameter",
+        "path": "cases/models_fields.py",
+        "severity": "major"
+      }
+    ],
+    "c736a8f0cb4c5f8e9a5a3473e016f5d030e6437c10099dde68efa51a781164e2": [
+      {
+        "begin": {
+          "column": 12,
+          "line": 12
+        },
+        "code": "invalid-return-type",
+        "end": {
+          "column": 24,
+          "line": 12
+        },
+        "message": "invalid-return-type: Return type does not match returned value: expected `str`, found `str | None`",
+        "path": "demo.py",
+        "severity": "major"
+      }
+    ],
+    "d419fb8e926d04d8790f96249430c8d3eb784f62166fe9902a3a12cd75614fe0": [
+      {
+        "begin": {
+          "column": 12,
+          "line": 313
+        },
+        "code": "invalid-argument-type",
+        "end": {
+          "column": 14,
+          "line": 313
+        },
+        "message": "invalid-argument-type: Argument is incorrect: Expected `str`, found `Literal[42]`",
+        "path": "demo.py",
+        "severity": "major"
+      },
+      {
+        "begin": {
+          "column": 19,
+          "line": 315
+        },
+        "code": "invalid-assignment",
+        "end": {
+          "column": 31,
+          "line": 315
+        },
+        "message": "invalid-assignment: Object of type `int` is not assignable to `str`",
+        "path": "demo.py",
+        "severity": "major"
+      }
+    ],
+    "db79e641ae857f8fda2d49fb72b46d056edc36a1720e8e386d70a7a9d7d6d805": [
+      {
+        "begin": {
+          "column": 12,
+          "line": 13
+        },
+        "code": "invalid-return-type",
+        "end": {
+          "column": 27,
+          "line": 13
+        },
+        "message": "invalid-return-type: Return type does not match returned value: expected `str`, found `str | None`",
+        "path": "demo.py",
+        "severity": "major"
+      }
+    ],
+    "e55d4fbc177db8d3b2bd5d2a7e1f229adadf7e4e69d43ea2e485f98746cb300f": [
+      {
+        "begin": {
+          "column": 1,
+          "line": 7
+        },
+        "code": "unused-awaitable",
+        "end": {
+          "column": 10,
+          "line": 7
+        },
+        "message": "unused-awaitable: Object of type `CoroutineType[Any, Any, int]` is not awaited",
+        "path": "demo.py",
+        "severity": "minor"
+      }
+    ],
+    "e5774aa23838c12f0f6230d64bb1532ec99d463d609498da4b604a3a56815706": [
+      {
+        "begin": {
+          "column": 17,
+          "line": 10
+        },
+        "code": "revealed-type",
+        "end": {
+          "column": 26,
+          "line": 10
+        },
+        "message": "revealed-type: Revealed type: `list[int]`",
+        "path": "demo.py",
+        "severity": "info"
+      },
+      {
+        "begin": {
+          "column": 17,
+          "line": 9
+        },
+        "code": "revealed-type",
+        "end": {
+          "column": 25,
+          "line": 9
+        },
+        "message": "revealed-type: Revealed type: `list[int]`",
+        "path": "demo.py",
+        "severity": "info"
+      }
+    ],
+    "fa839baf6a521a8de1d77dd1ffc4a7e741123c9031862b14e10320006e2c4a65": [
+      {
+        "begin": {
+          "column": 24,
+          "line": 69
+        },
+        "code": "invalid-argument-type",
+        "end": {
+          "column": 26,
+          "line": 69
+        },
+        "message": "invalid-argument-type: Argument is incorrect: Expected `str`, found `Literal[42]`",
+        "path": "demo.py",
+        "severity": "major"
+      },
+      {
+        "begin": {
+          "column": 31,
+          "line": 71
+        },
+        "code": "invalid-assignment",
+        "end": {
+          "column": 43,
+          "line": 71
+        },
+        "message": "invalid-assignment: Object of type `int` is not assignable to `str`",
+        "path": "demo.py",
+        "severity": "major"
+      }
+    ]
+  },
+  "hash_algorithm": "sha256 of sorted-key compact JSON of normalized diagnostic array"
+}

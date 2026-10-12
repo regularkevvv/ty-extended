@@ -1,0 +1,81 @@
+{
+  "id": "research.generic",
+  "name": "Generic external projection research",
+  "version": "0.0.1",
+  "protocol-version": {
+    "major": 0,
+    "minor": 7
+  },
+  "ty-compatibility": {
+    "requirement": ">=0.86.0,<0.87.0"
+  },
+  "runtime": {
+    "kind": "monty",
+    "artifact": "plugin.py"
+  },
+  "capabilities": {
+    "class-transform": true,
+    "instance-member": true,
+    "call-signature": true,
+    "call-return": true,
+    "call-state": true,
+    "mutation-validation": true
+  },
+  "claims": {
+    "modules": [
+      {
+        "name": "demo",
+        "recursive": false
+      }
+    ],
+    "classes": [
+      {
+        "kind": "exact",
+        "qualified-name": "demo.Resource"
+      }
+    ],
+    "constructors": [
+      {
+        "kind": "exact",
+        "qualified-name": "demo.Resource"
+      }
+    ],
+    "functions": [
+      {
+        "qualified-name": "demo.decode"
+      },
+      {
+        "qualified-name": "demo.apply"
+      },
+      {
+        "qualified-name": "demo.echo"
+      }
+    ],
+    "methods": [
+      {
+        "kind": "exact",
+        "class-qualified-name": "demo.Resource",
+        "method-name": "activate"
+      },
+      {
+        "kind": "exact",
+        "class-qualified-name": "demo.Resource",
+        "method-name": "release"
+      }
+    ],
+    "attributes": [
+      {
+        "kind": "exact",
+        "owner-qualified-name": "demo.Resource",
+        "attribute-name": "token",
+        "scope": "instance"
+      }
+    ],
+    "mutations": [
+      {
+        "kind": "exact",
+        "qualified-name": "demo.Resource"
+      }
+    ]
+  }
+}

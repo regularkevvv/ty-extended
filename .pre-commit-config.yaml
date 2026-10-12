@@ -102,7 +102,8 @@ repos:
         # `python/ty/plugin_sdk.py` is generated from the `ruff` submodule (see
         # `scripts/autogenerate_files.sh`) and must not gain linter-driven imports.
         # Plugin artifacts under `.ty/` are Monty sandbox code, not project source.
-        exclude: (?x)^(python/ty/plugin_sdk\.py)|(\.ty/)
+        # Differential fixtures include negative syntax and fixed source coordinates.
+        exclude: (?x)^(python/ty/plugin_sdk\.py)|(\.ty/)|(companion/tests/fixtures/)
         priority: 1
 
   # Priority 2: Second-pass fixers run after both formatters.
@@ -115,7 +116,8 @@ repos:
         # `python/ty/plugin_sdk.py` is generated from the `ruff` submodule (see
         # `scripts/autogenerate_files.sh`) and must not gain linter-driven imports.
         # Plugin artifacts under `.ty/` use ambient sandbox-prelude names.
-        exclude: (?x)^(python/ty/plugin_sdk\.py)|(\.ty/)
+        # Differential fixtures include negative syntax and fixed source coordinates.
+        exclude: (?x)^(python/ty/plugin_sdk\.py)|(\.ty/)|(companion/tests/fixtures/)
         require_serial: true
         priority: 2
 

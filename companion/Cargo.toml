@@ -1,0 +1,42 @@
+[package]
+name = "ty-companion-rust"
+version = "0.1.0"
+edition = "2024"
+
+[workspace]
+
+[dependencies]
+anyhow = "1"
+serde = { version = "1", features = ["derive", "rc"] }
+serde_json = "1.0.151"
+sha2 = "0.10"
+toml = "0.9"
+globset = "0.4"
+ignore = "0.4"
+notify = "8.2"
+ctrlc = "3.5"
+shellexpand = { version = "=3.1.2", default-features = false, features = ["base-0", "tilde"] }
+ty_plugin_host = { path = "../ruff/crates/ty_plugin_host", default-features = false, features = ["plugins-monty"] }
+ty_plugin_protocol = { path = "../ruff/crates/ty_plugin_protocol" }
+ruff_python_parser = { path = "../ruff/crates/ruff_python_parser" }
+ruff_python_ast = { path = "../ruff/crates/ruff_python_ast" }
+ruff_text_size = { path = "../ruff/crates/ruff_text_size" }
+ruff_notebook = { path = "../ruff/crates/ruff_notebook" }
+ruff_diagnostics = { path = "../ruff/crates/ruff_diagnostics" }
+
+[target.'cfg(windows)'.dependencies]
+dunce = { version = "=1.0.5", default-features = false }
+
+[profile.release]
+lto = "fat"
+codegen-units = 16
+strip = true
+
+[profile.dev]
+debug = 0
+
+[profile.iteration]
+inherits = "release"
+opt-level = 1
+lto = false
+codegen-units = 256
