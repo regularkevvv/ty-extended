@@ -1,5 +1,20 @@
 # Installing ty-extended
 
+## Prebuilt platforms
+
+ty-extended publishes wheels and standalone binaries for these eight targets:
+
+| Platform            | Architectures                     |
+| ------------------- | --------------------------------- |
+| Linux glibc         | x86-64, ARM64                     |
+| Linux musl (Alpine) | x86-64, ARM64                     |
+| macOS               | Intel x86-64, Apple Silicon ARM64 |
+| Windows             | x64, ARM64                        |
+
+Other platforms, including 32-bit x86, ARMv6, ARMv7, PowerPC64LE, s390x, and RISC-V64, have no
+prebuilt wheels. pip and uv build them from the source distribution, which requires a Rust
+toolchain.
+
 ## Running ty without installation
 
 Use [uvx](https://docs.astral.sh/uv/guides/tools/) to quickly get started with ty:
