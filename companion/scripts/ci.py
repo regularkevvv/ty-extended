@@ -441,6 +441,7 @@ def main() -> int:
             "sdk_state_inventory",
             "sdk_function_inventory",
             "sdk_overlay_inventory",
+            "overlay_reload_probe",
             "sdk_cli_inventory",
             "sdk_class_inventory",
             "sdk_method_inventory",

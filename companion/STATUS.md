@@ -18,6 +18,15 @@ are separate release acceptance checks, linked from the release. The full
 installed-wheel version sweep passes; the ledger identifies its wheel and
 executable hashes. Packaging and performance changes receive separate checks.
 
+The [directory-revision followup](evidence/overlay-directory-revisions-2026-11-06.json)
+also checks the actual CI wheel across all 16 checker versions. Independent
+macOS and Windows probes force a delete/recreate to share a directory timestamp:
+the legacy reference retains a stale listing, while the companion restores the
+partial stub overlay with both ty endpoints. The comparison fixture now gives
+structural edits distinct directory revisions, retains bounded diagnostic pulls,
+and verifies Windows definition URIs against the exact physical source. Diagnostic
+and negative-control assertions remain unchanged. The collision probe runs in CI.
+
 The [installed-wheel scalability regression](evidence/scalability-2026-11-06.json)
 checks 7,082 Python files and 2,501 related Django models with positive and negative
 typing controls. Both pass in approximately 58 seconds, with sampled combined

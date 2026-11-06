@@ -36,6 +36,11 @@ A second sweep against ty 0.0.99 passed **42 complete runs** across all 18
 Django/Python combinations in Django's version matrix and Django 6.1.3 on
 Python 3.12, 3.13 and 3.14. Each combination runs both checker modes.
 
+The CI-built wheel independently passes the same 288-gate version sweep.
+Additional [filesystem revision probes](https://github.com/regularkevvv/ty-extended/blob/main/companion/evidence/overlay-directory-revisions-2026-11-06.json)
+verify partial-overlay deletion and restoration under forced directory timestamp
+collisions on macOS and Windows, using both endpoints of the qualified range.
+
 The dependency range is `ty>=0.0.84,<0.1`. Versions after 0.0.99 within that range
 are accepted by the resolver but are not covered by this recorded sweep. Weekly
 CI installs the newest available version and repeats the regression gates.
