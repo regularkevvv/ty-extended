@@ -1,5 +1,5 @@
 name: Question
-description: Ask a question about ty
+description: Ask a question about the ty-extended Monty companion
 labels: ["question"]
 body:
   - type: textarea
@@ -11,8 +11,16 @@ body:
 
   - type: input
     attributes:
-      label: Version
-      description: What version of ty are you using? (see `ty version`)
-      placeholder: e.g., ty 0.0.1 (ff9000864 2025-05-06)
+      label: Companion version
+      description: Output of `ty-extended --version`.
+      placeholder: e.g., ty-extended 0.87.0
+    validations:
+      required: false
+
+  - type: input
+    attributes:
+      label: Official ty version
+      description: Output of `ty --version`.
+      placeholder: e.g., ty 0.0.99
     validations:
       required: false
