@@ -16,6 +16,10 @@ permissions:
         description: Successful Build binaries run containing the Windows x64 native archive
         type: string
         default: ""
+      inventory_repetitions:
+        description: Number of full inventory repetitions after the focused probe
+        type: string
+        default: "100"
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref_name }}-${{ github.event.pull_request.number || github.sha }}
   cancel-in-progress: true
@@ -204,6 +208,7 @@ jobs:
         shell: bash
         env:
           OFFICIAL_VERSION: ${{ matrix.ty }}
+          REPETITIONS: ${{ inputs.inventory_repetitions }}
         run: |
           python -m pip install "ty==$OFFICIAL_VERSION"
           python - <<'PY'
@@ -227,7 +232,9 @@ jobs:
           repetitions = root / "repetitions"
           repetitions.mkdir()
           results = []
-          for index in range(100):
+          requested = int(os.environ["REPETITIONS"])
+          assert 0 <= requested <= 100
+          for index in range(requested):
               output = Path(os.environ["RUNNER_TEMP"]) / "companion-ci-evidence/sdk_overlay_inventory"
               command = [sys.executable, "companion/scripts/sdk_overlay_inventory.py", "--companion", str(companion), "--official", find_ty_bin(), "--fork", str(reference), "--output", str(output)]
               process = subprocess.run(command, capture_output=True, text=True)
@@ -242,7 +249,7 @@ jobs:
               if process.returncode:
                   break
           (repetitions / "results.json").write_text(json.dumps(results, indent=2))
-          assert len(results) == 100 and all(row["exit"] == 0 for row in results), results
+          assert len(results) == requested and all(row["exit"] == 0 for row in results), results
           PY
       - name: Preserve probe results
         if: always()

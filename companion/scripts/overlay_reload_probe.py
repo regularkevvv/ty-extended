@@ -74,13 +74,19 @@ def main() -> int:
 
     name, sources, stubs, installed, main_source = CASES[3]
     for backend in ("companion", "fork"):
-        for mode in ("normal", "distinct-marker-time", "delay"):
+        for mode in ("normal", "same-directory-time", "distinct-directory-time"):
             case = args.output / f"{backend}-{mode}" / name
             root = setup(case, sources, stubs, installed, main_source)
             path = root / "main.py"
             marker = case / "stubs/foo/py.typed"
             initial_stamp = marker.stat().st_mtime_ns
-            row = {"backend": backend, "mode": mode, "initial_marker_ns": initial_stamp}
+            initial_directory_stamp = marker.parent.stat().st_mtime_ns
+            row = {
+                "backend": backend,
+                "mode": mode,
+                "initial_marker_ns": initial_stamp,
+                "initial_directory_ns": initial_directory_stamp,
+            }
             result["runs"].append(row)
             for checker in ("fork", "companion"):
                 command = [str(getattr(args, checker)), "check"]
@@ -103,19 +109,35 @@ def main() -> int:
             try:
                 row["initial"] = pulls(client, path, lambda items: items == [])
                 marker.unlink()
+                if mode != "normal":
+                    os.utime(
+                        marker.parent,
+                        ns=(
+                            marker.parent.stat().st_atime_ns,
+                            initial_directory_stamp + 2_000_000_000,
+                        ),
+                    )
+                row["removed_directory_ns"] = marker.parent.stat().st_mtime_ns
                 client.notify(
                     "workspace/didChangeWatchedFiles",
                     {"changes": [{"uri": marker.as_uri(), "type": 3}]},
                 )
                 row["removed"] = pulls(client, path, bool)
-                if mode == "delay":
-                    time.sleep(2.1)
                 put(marker, "partial\n")
-                if mode == "distinct-marker-time":
-                    os.utime(
-                        marker,
-                        ns=(marker.stat().st_atime_ns, initial_stamp + 2_000_000_000),
+                if mode != "normal":
+                    increment = (
+                        2_000_000_000
+                        if mode == "same-directory-time"
+                        else 4_000_000_000
                     )
+                    os.utime(
+                        marker.parent,
+                        ns=(
+                            marker.parent.stat().st_atime_ns,
+                            initial_directory_stamp + increment,
+                        ),
+                    )
+                row["restored_directory_ns"] = marker.parent.stat().st_mtime_ns
                 client.notify(
                     "workspace/didChangeWatchedFiles",
                     {"changes": [{"uri": marker.as_uri(), "type": 1}]},
