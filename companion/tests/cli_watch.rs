@@ -34,10 +34,46 @@ fn wait_for(
             .with_context(|| {
                 format!("watch stage {stage:?} missing {pending:?}; received {lines:?}")
             })?;
-        pending.retain(|needle| !line.contains(needle));
+        pending.retain(|needle| {
+            !line.contains(needle)
+                && !(*needle == "error[unresolved-import]"
+                    && line.contains("error[import-not-found]"))
+        });
         lines.push(line);
     }
     Ok(lines)
+}
+
+#[test]
+fn import_rule_renames_preserve_watch_diagnostic_controls() -> Result<()> {
+    for code in [
+        "unresolved-import",
+        "import-not-found",
+        "invalid-assignment",
+    ] {
+        let (sender, receiver) = mpsc::channel();
+        let actual = format!("dependency.py:1:6: error[{code}] missing module");
+        sender.send(actual.clone())?;
+        drop(sender);
+        let result = wait_for(
+            &receiver,
+            "import diagnostic",
+            &["error[unresolved-import]"],
+        );
+        if code == "invalid-assignment" {
+            assert!(
+                result.is_err(),
+                "a different diagnostic must not satisfy the control"
+            );
+        } else {
+            assert_eq!(
+                result?,
+                vec![actual],
+                "preserve the actual upstream diagnostic in evidence"
+            );
+        }
+    }
+    Ok(())
 }
 
 #[test]

@@ -370,6 +370,7 @@ def main() -> int:
             "sdk_extended_semantics",
             "sdk_multi_semantics",
             "sdk_snapshots",
+            "sdk_virtual_semantics",
             "cli_acceptance",
             "cli_edits",
             "cli_watch",

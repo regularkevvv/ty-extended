@@ -40,6 +40,15 @@ The dependency range is `ty>=0.0.84,<0.1`. Versions after 0.0.99 within that ran
 are accepted by the resolver but are not covered by this recorded sweep. Weekly
 CI installs the newest available version and repeats the regression gates.
 
+## Scope of checker compatibility
+
+Qualification covers the companion's documented CLI, editor and plugin surface.
+Official ty's new diagnostic-baseline options are preview features and are not
+part of this qualification; baseline matching against transformed plugin views
+needs its own validation. Checker diagnostics and rule severities remain owned
+by the installed official version. New optional checker features can need a
+companion adapter even when existing checking workflows remain compatible.
+
 ## Plugin compatibility
 
 The companion runs embedded Monty plugins using protocol 0.7. Plugin package

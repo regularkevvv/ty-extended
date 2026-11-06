@@ -55,7 +55,7 @@ jobs:
       - name: Build wheels
         uses: PyO3/maturin-action@e83996d129638aa358a18fbd1dfb82f0b0fb5d3b
         with:
-          args: --release --locked --out dist
+          args: --release --locked --target-dir companion/target --out dist
           rust-toolchain: 1.98.0
           maturin-version: v1.16.0
       - name: Audit standalone binary wheel tags

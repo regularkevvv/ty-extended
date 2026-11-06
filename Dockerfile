@@ -44,7 +44,8 @@ COPY companion/Cargo.toml companion/Cargo.lock companion/
 COPY companion/src companion/src
 RUN cargo zigbuild --locked --manifest-path companion/Cargo.toml --bin ty-extended --target $(cat rust_target.txt) --release \
     && cp companion/target/$(cat rust_target.txt)/release/ty-extended /ty-extended \
-    && cargo clean --manifest-path companion/Cargo.toml
+    && cargo clean --manifest-path companion/Cargo.toml \
+    && mkdir -m 1777 /runtime-tmp
 
 # Bundle an unchanged official checker. Its version is independent of the companion.
 RUN case "$TARGETPLATFORM" in \
@@ -60,6 +61,7 @@ RUN case "$TARGETPLATFORM" in \
     && rm -rf /tmp/official-ty.tar.gz "/tmp/ty-${target}"
 
 FROM scratch
+COPY --from=build --chmod=1777 /runtime-tmp /tmp
 COPY --from=build /ty-extended /ty-extended
 COPY --from=build /ty /ty
 WORKDIR /io

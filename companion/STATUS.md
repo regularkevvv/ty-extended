@@ -9,8 +9,9 @@ checks with official ty 0.0.99 installed separately. The complete Django editor
 corpus also passes on ty 0.0.99, including unsaved edits and exact source spans.
 
 This is local qualification. Cross-platform CI, published-package acceptance and
-the complete final artifact version sweep must pass before release. The ledger identifies the
-measured executable; packaging and performance changes receive separate checks.
+the final published artifacts must pass before release acceptance. The full
+installed-wheel version sweep passes; the ledger identifies its wheel and
+executable hashes. Packaging and performance changes receive separate checks.
 
 The [installed-wheel scalability regression](evidence/scalability-2026-11-06.json)
 checks 7,082 Python files and 2,501 related Django models with positive and negative
