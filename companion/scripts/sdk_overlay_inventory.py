@@ -8,6 +8,7 @@ import hashlib
 import json
 import os
 import subprocess
+import time
 from pathlib import Path
 
 from harness_paths import file_uri_matches
@@ -255,9 +256,9 @@ def main() -> int:
                             / ("Lib" if os.name == "nt" else "lib/python3.13")
                             / "site-packages/foo.py"
                         )
-                        assert file_uri_matches(declaration[0]["uri"], expected_site), (
-                            declaration
-                        )
+                        assert len(declaration) == 1 and file_uri_matches(
+                            declaration[0]["uri"], expected_site
+                        ), declaration
                         for annotation, expected in [("int", 1), ("str", 0)]:
                             changed = case / "stubs/foo.pyi"
                             revision = put_watched(
@@ -280,7 +281,20 @@ def main() -> int:
                             assert len(items) == expected, (backend, annotation, items)
                     finally:
                         client.close()
-                assert reports["fork"] == reports["companion"], reports
+                # Both targets were checked against the exact installed source.
+                # Windows can spell the same directory as either Lib or lib.
+                # Preserve raw URIs in evidence; compare every other field exactly.
+                comparable = {
+                    backend: {
+                        **report,
+                        "definition": [
+                            {**item, "uri": expected_site.as_uri()}
+                            for item in report["definition"]
+                        ],
+                    }
+                    for backend, report in reports.items()
+                }
+                assert comparable["fork"] == comparable["companion"], reports
                 row["editor"] = reports
                 result["checks"].extend(
                     [
@@ -316,7 +330,20 @@ def main() -> int:
                             {"changes": [{"uri": marker.as_uri(), "type": 1}]},
                         )
                         restored = diagnostics(client, path)
-                        assert restored == [], restored
+                        pulls = [restored]
+                        row.setdefault("marker_restoration_pulls", {})[backend] = pulls
+                        # Watched-file processing can complete after the first
+                        # pull. Require convergence; never discard stale errors.
+                        deadline = time.monotonic() + 5
+                        while restored and time.monotonic() < deadline:
+                            time.sleep(0.025)
+                            restored = diagnostics(client, path)
+                            pulls.append(restored)
+                        assert restored == [], (
+                            backend,
+                            "partial marker restored",
+                            pulls,
+                        )
                         reports[backend] = {"removed": missing, "restored": restored}
                     finally:
                         client.close()
