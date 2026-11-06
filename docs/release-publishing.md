@@ -113,6 +113,11 @@ same reason: the fork and upstream both edit them.
 
 ## Release
 
+Build the eight [prebuilt targets](installation.md#prebuilt-platforms) listed in
+`dist-workspace.toml`. Keep `.github/workflows/build-binaries.yml` aligned with that list,
+including when merging upstream changes. Verify the release plan contains eight binary
+archive targets and the build produces eight wheels plus one source distribution.
+
 1. Ensure `.gitmodules` points `ruff` at `https://github.com/regularkevvv/ruff-extended`.
 1. Push the signed `ruff` commit to `regularkevvv/ruff-extended`.
 1. Push the signed `ty-extended` commit that records that submodule commit.
