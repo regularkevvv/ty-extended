@@ -186,6 +186,7 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
           persist-credentials: false
+          submodules: recursive
       - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97
         with:
           python-version: "3.13"
@@ -206,7 +207,7 @@ jobs:
         run: |
           python -m pip install "ty==$OFFICIAL_VERSION"
           python - <<'PY'
-          import hashlib, json, os, subprocess, sys, zipfile
+          import hashlib, json, os, shutil, subprocess, sys, zipfile
           from pathlib import Path
           from ty import find_ty_bin
           sys.path.insert(0, str(Path.cwd() / "companion/scripts"))
@@ -223,6 +224,22 @@ jobs:
               companion.write_bytes(payload.read("ty-extended.exe"))
           reference = reference_checker(root, dict(os.environ))
           subprocess.run([sys.executable, "companion/scripts/overlay_reload_probe.py", "--companion", str(companion), "--official", find_ty_bin(), "--fork", str(reference), "--output", str(root / "reports")], check=True)
+          repetitions = root / "repetitions"
+          repetitions.mkdir()
+          results = []
+          for index in range(20):
+              output = Path(os.environ["RUNNER_TEMP"]) / "companion-ci-evidence/sdk_overlay_inventory"
+              command = [sys.executable, "companion/scripts/sdk_overlay_inventory.py", "--companion", str(companion), "--official", find_ty_bin(), "--fork", str(reference), "--output", str(output)]
+              process = subprocess.run(command, capture_output=True, text=True)
+              results.append({"iteration": index, "exit": process.returncode})
+              (repetitions / f"{index}.stdout").write_text(process.stdout)
+              (repetitions / f"{index}.stderr").write_text(process.stderr)
+              if (output / "summary.json").is_file():
+                  shutil.copy2(output / "summary.json", repetitions / f"{index}-summary.json")
+              if output.exists():
+                  shutil.rmtree(output)
+              print("full inventory", index, process.returncode, flush=True)
+          (repetitions / "results.json").write_text(json.dumps(results, indent=2))
           PY
       - name: Preserve probe results
         if: always()
@@ -234,3 +251,4 @@ jobs:
             ${{ runner.temp }}/overlay-probe/source-run.json
             ${{ runner.temp }}/overlay-probe/reports/probe.json
             ${{ runner.temp }}/overlay-probe/reports/**/*.stderr
+            ${{ runner.temp }}/overlay-probe/repetitions/*

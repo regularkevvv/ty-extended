@@ -7,6 +7,7 @@ import argparse
 import hashlib
 import json
 import os
+import subprocess
 import time
 from pathlib import Path
 
@@ -71,16 +72,33 @@ def main() -> int:
                 return rows
             time.sleep(0.1)
 
-    _, sources, stubs, installed, main_source = CASES[3]
+    name, sources, stubs, installed, main_source = CASES[3]
     for backend in ("companion", "fork"):
         for mode in ("normal", "distinct-marker-time", "delay"):
-            case = args.output / f"{backend}-{mode}"
+            case = args.output / f"{backend}-{mode}" / name
             root = setup(case, sources, stubs, installed, main_source)
             path = root / "main.py"
             marker = case / "stubs/foo/py.typed"
             initial_stamp = marker.stat().st_mtime_ns
             row = {"backend": backend, "mode": mode, "initial_marker_ns": initial_stamp}
             result["runs"].append(row)
+            for checker in ("fork", "companion"):
+                command = [str(getattr(args, checker)), "check"]
+                if checker == "companion":
+                    command += ["--ty", str(args.official)]
+                subprocess.run(
+                    [
+                        *command,
+                        "main.py",
+                        "--project",
+                        ".",
+                        "--output-format",
+                        "gitlab",
+                    ],
+                    cwd=root,
+                    check=True,
+                    capture_output=True,
+                )
             client = start(backend, root, "warm")
             try:
                 row["initial"] = pulls(client, path, lambda items: items == [])
@@ -98,12 +116,12 @@ def main() -> int:
                         marker,
                         ns=(marker.stat().st_atime_ns, initial_stamp + 2_000_000_000),
                     )
-                row["restored_marker_ns"] = marker.stat().st_mtime_ns
                 client.notify(
                     "workspace/didChangeWatchedFiles",
                     {"changes": [{"uri": marker.as_uri(), "type": 1}]},
                 )
                 row["restored"] = pulls(client, path, lambda items: items == [])
+                row["restored_marker_ns"] = marker.stat().st_mtime_ns
                 row["normal_events_passed"] = (
                     row["initial"][-1] == []
                     and any(
