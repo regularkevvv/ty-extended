@@ -881,7 +881,9 @@ class Gate:
             self.evidence["raw"]["unresolved-import-paths"] = raw
             errors = {
                 backend: [
-                    d for d in result["items"] if d.get("code") == "unresolved-import"
+                    d
+                    for d in result["items"]
+                    if d.get("code") in {"unresolved-import", "import-not-found"}
                 ]
                 for backend, result in raw.items()
             }
@@ -961,8 +963,9 @@ class Gate:
                 "stdout": completed.stdout,
                 "stderr": completed.stderr,
             }
-            assert (
-                completed.returncode == 1 and "unresolved-import" in completed.stdout
+            assert completed.returncode == 1 and any(
+                code in completed.stdout
+                for code in ("unresolved-import", "import-not-found")
             ), raw
         self.evidence["raw"]["cli-unresolved-import-paths"] = raw
         shown = raw["companion"]["stdout"].replace("\\", "/")

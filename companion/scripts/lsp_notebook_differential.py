@@ -7,6 +7,7 @@ import argparse
 import json
 from pathlib import Path
 
+from harness_paths import stdlib_locations
 from lsp_acceptance import position
 from lsp_differential import (
     DifferentialClient,
@@ -324,7 +325,10 @@ def run(args, encoding):
             "end": {"line": len(SECOND.splitlines()), "character": 0},
         }
         check(
-            "inlay_hints", "textDocument/inlayHint", {**document, "range": whole_range}
+            "inlay_hints",
+            "textDocument/inlayHint",
+            {**document, "range": whole_range},
+            lambda value: stdlib_locations(canonical(value)),
         )
         semantic = check(
             "semantic_tokens_raw",

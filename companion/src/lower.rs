@@ -13,25 +13,92 @@ use ruff_python_ast::{
 use serde_json::{Value, json};
 use std::collections::{BTreeMap, BTreeSet};
 
+#[cfg(test)]
+mod descriptor_tests {
+    use super::*;
+    use crate::model::typ;
+    use std::path::Path;
+
+    #[test]
+    fn identical_descriptor_shapes_share_methods_without_merging_identities() -> Result<()> {
+        let mut types = Types::new("_ty_ext_", "demo");
+        let access = json!({"kind":"descriptor","instance-get-type":typ("str"),"instance-set-type":typ("str")});
+        let first = descriptor(&mut types, "_ty_ext_first", &access)?;
+        let second = descriptor(&mut types, "_ty_ext_second", &access)?;
+        let source = format!("{}\n{first}\n{second}", types.prelude());
+        assert!(source.contains("class _ty_ext_first"));
+        assert!(source.contains("class _ty_ext_second"));
+        assert_eq!(
+            source.matches("def __get__").count(),
+            3,
+            "Repeated field shapes must not duplicate descriptor methods"
+        );
+        assert_eq!(source.matches("def __set__").count(), 1);
+        Ok(())
+    }
+
+    #[test]
+    #[ignore = "requires an official ty executable"]
+    fn shared_descriptor_methods_preserve_instance_and_class_access() -> Result<()> {
+        let binary = std::env::var("TY_COMPANION_TEST_OFFICIAL")?;
+        let root =
+            std::env::temp_dir().join(format!("ty-descriptor-sharing-{}", std::process::id()));
+        let mut types = Types::new("_ty_ext_", "demo");
+        let access = json!({"kind":"descriptor","instance-get-type":typ("str"),"instance-set-type":typ("str")});
+        let first = descriptor(&mut types, "_ty_ext_first", &access)?;
+        let second = descriptor(&mut types, "_ty_ext_second", &access)?;
+        let source = format!(
+            "{}\n{first}\n{second}\nfrom typing import assert_type\nclass A:\n    value: _ty_ext_first = _ty_ext_first()\nclass B:\n    value: _ty_ext_second = _ty_ext_second()\nassert_type(A().value, str)\nassert_type(B().value, str)\nassert_type(A.value, _ty_ext_first)\nassert_type(B.value, _ty_ext_second)\nA().value = 1\nwrong: _ty_ext_first = B.value\n",
+            types.prelude()
+        );
+        for persistent in [false, true] {
+            let mut checker = crate::checker::Checker::new(Path::new(&binary), &root, persistent)?;
+            let diagnostics = checker.check(&root.join("demo.py"), &source)?;
+            assert_eq!(diagnostics.len(), 2, "{diagnostics:#?}");
+            assert!(
+                diagnostics
+                    .iter()
+                    .all(|d| d["check_name"] == "invalid-assignment"),
+                "{diagnostics:#?}"
+            );
+        }
+        std::fs::remove_dir_all(root)?;
+        Ok(())
+    }
+}
+
 fn descriptor(types: &mut Types, helper: &str, access: &Value) -> Result<String> {
     let get = types.render(&access["instance-get-type"])?;
     let class = if access.get("class-type").is_some() {
-        types.render(&access["class-type"])?
+        Some(types.render(&access["class-type"])?)
     } else {
-        helper.into()
+        None
     };
+    let set = access
+        .get("instance-set-type")
+        .map(|value| types.render(value))
+        .transpose()?;
+    let key = (get.clone(), class.clone(), set.clone());
+    if let Some(base) = types.descriptor_bases.get(&key) {
+        return Ok(format!("class {helper}({base}):\n    pass\n"));
+    }
+    let base = format!("{helper}_base");
+    // The fallback class-access type is the individual descriptor subclass,
+    // not its shared base. Self preserves the identity of every field.
+    let class = class.unwrap_or_else(|| format!("{}.Self", types.typing_extensions_alias()));
     let typing = types.typing_alias();
     let builtins = types.builtins_alias();
     let mut code = format!(
-        "class {helper}:\n    @{typing}.overload\n    def __get__(self, obj: None, owner: {builtins}.type[{builtins}.object]) -> {class}: ...\n    @{typing}.overload\n    def __get__(self, obj: {builtins}.object, owner: {builtins}.type[{builtins}.object]) -> {get}: ...\n    def __get__(self, obj: {builtins}.object, owner: {builtins}.type[{builtins}.object]) -> {builtins}.object: raise {builtins}.NotImplementedError\n"
+        "class {base}:\n    @{typing}.overload\n    def __get__(self, obj: None, owner: {builtins}.type[{builtins}.object]) -> {class}: ...\n    @{typing}.overload\n    def __get__(self, obj: {builtins}.object, owner: {builtins}.type[{builtins}.object]) -> {get}: ...\n    def __get__(self, obj: {builtins}.object, owner: {builtins}.type[{builtins}.object]) -> {builtins}.object: raise {builtins}.NotImplementedError\n"
     );
-    if access.get("instance-set-type").is_some() {
-        let set = types.render(&access["instance-set-type"])?;
+    if let Some(set) = set {
         code.push_str(&format!(
             "    def __set__(self, obj: {builtins}.object, value: {set}) -> None: raise {builtins}.NotImplementedError\n"
         ));
     }
-    Ok(code)
+    types.definitions.push_str(&code);
+    types.descriptor_bases.insert(key, base.clone());
+    Ok(format!("class {helper}({base}):\n    pass\n"))
 }
 fn member(
     types: &mut Types,
@@ -770,6 +837,35 @@ pub fn analyze_with_oracle(
             match stmt {
                 Stmt::ClassDef(c) => {
                     let name = format!("{prefix}.{}", c.name);
+                    let project = runtime.project.as_ref().unwrap();
+                    // ty accepts Child.Meta as type[Parent.Meta], but some
+                    // releases still reject that same explicit nested-class
+                    // inheritance as an attribute override. Limit the exception
+                    // to a single, known parent and undecorated nested classes.
+                    // Unrelated replacements and ordinary field overrides keep
+                    // the official checker's diagnostic.
+                    if prefix != source.module
+                        && let Some(owner) = project.class_summary(prefix)
+                        && let Some(parents) = owner["bases"].as_array()
+                        && parents.len() == 1
+                        && let Some(parent) = parents[0]["expression"].as_str()
+                        && let Some(nested) = project.class_summary(&name)
+                        && let Some(parent_nested) =
+                            project.class_summary(&format!("{parent}.{}", c.name))
+                        && nested["decorators"].as_array().is_some_and(Vec::is_empty)
+                        && parent_nested["decorators"]
+                            .as_array()
+                            .is_some_and(Vec::is_empty)
+                        && nested["bases"]
+                            .as_array()
+                            .is_some_and(|bases| bases.len() == 1)
+                        && project.is_subclass(&name, &format!("{parent}.{}", c.name))
+                    {
+                        edits.suppress_diagnostic(
+                            span(&c.name),
+                            "invalid-attribute-override".into(),
+                        );
+                    }
                     let info = class_patch(
                         source,
                         c,
@@ -877,6 +973,36 @@ pub fn analyze_with_oracle(
     }
     let expression_probes = collector.probes;
     let intrinsics = collector.intrinsics;
+    let mut context_free_arguments = BTreeSet::new();
+    for call in calls.values() {
+        for (index, argument) in call.arguments.iter().enumerate() {
+            if argument.literal["kind"] == "dict"
+                && argument.literal["entries"]
+                    .as_array()
+                    .is_some_and(|entries| !entries.is_empty())
+                && let Some(inferred) =
+                    oracle.and_then(|oracle| oracle.get(&call.argument_key(index)))
+            {
+                let (origin, arguments) = crate::runtime::generic_parts(inferred);
+                if matches!(origin, "dict" | "builtins.dict")
+                    && arguments.len() == 2
+                    && matches!(arguments[1], "Any" | "typing.Any")
+                {
+                    // Retain the decision for this revision's fixed point;
+                    // recovering the precise value must not toggle it back.
+                    runtime
+                        .context_free_arguments
+                        .insert((source.path.clone(), argument.span));
+                }
+            }
+            if runtime
+                .context_free_arguments
+                .contains(&(source.path.clone(), argument.span))
+            {
+                context_free_arguments.insert(argument.span);
+            }
+        }
+    }
     let mut helpers = BTreeMap::new();
     for call in calls.values() {
         let response = call_request(runtime, source, "adjust-call-signature", call, oracle, None)?;
@@ -943,6 +1069,7 @@ pub fn analyze_with_oracle(
         edits,
         helpers,
         expression_probes,
+        context_free_arguments,
         plugin_diagnostics: diagnostics,
         generated_declarations: generated,
     })

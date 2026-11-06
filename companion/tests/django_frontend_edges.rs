@@ -409,7 +409,7 @@ def conditional_break_skips_else_alias(values: list[int], condition: bool) -> No
     for mode in ["cli", "push"] {
         let projection = output.join(format!("projection-{mode}"));
         let candidate = run(
-            Command::new(env!("CARGO_BIN_EXE_ty-companion-rust"))
+            Command::new(env!("CARGO_BIN_EXE_ty-extended"))
                 .arg("project")
                 .arg(&root)
                 .arg("--plugin")

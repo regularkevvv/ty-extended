@@ -1,4 +1,20 @@
-# Rust companion validation
+# Current compatibility qualification
+
+The [2026-11-06 ledger](evidence/compatibility-2026-11-06.json) records the same
+companion's 288 generic gates across official ty 0.0.84–0.0.99, 32 complete Django
+checker-version runs, and 42 Django/Python matrix runs including Django 6.1.3.
+The current regression suite passes 186 Rust tests and 42 Python harness tests.
+Clean installed-wheel and source-archive rebuilds pass SDK, CLI and editor smoke
+checks with official ty 0.0.99 installed separately. The complete Django editor
+corpus also passes on ty 0.0.99, including unsaved edits and exact source spans.
+
+This is local qualification. Cross-platform CI, published-package acceptance and
+the dense-model stress gate must pass before release. The ledger identifies the
+measured executable; packaging and performance changes receive separate checks.
+
+## Earlier optimization evidence
+
+The following measurements describe the earlier source and binary recorded below.
 
 The companion runs embedded Monty semantic plugins with unchanged official ty.
 CLI and LSP map diagnostics, positions and edits back to original files. WASM and

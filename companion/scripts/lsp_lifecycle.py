@@ -152,7 +152,8 @@ def main():
         )
         missing = client.request("textDocument/diagnostic", dependency_document)
         assert any(
-            item.get("code") == "unresolved-import" for item in missing["items"]
+            item.get("code") in {"unresolved-import", "import-not-found"}
+            for item in missing["items"]
         ), missing
         installed = dependencies / "installed_later.py"
         installed.write_text("value = 42\n", encoding="utf-8")

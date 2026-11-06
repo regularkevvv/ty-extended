@@ -6,7 +6,7 @@ extend-exclude = []
 [default]
 extend-ignore-re = [
     # Content hashes and diagnostic fingerprints are opaque data.
-    "\\b[0-9a-fA-F]{16,64}\\b",
+    "\\b[0-9a-fA-F]{9,64}\\b",
     # Line ignore with trailing "spellchecker:disable-line"
     "(?Rm)^.*#\\s*spellchecker:disable-line$",
     "LICENSEs",

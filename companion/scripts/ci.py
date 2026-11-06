@@ -156,7 +156,7 @@ def django_gate(output: Path, binary: Path, env: dict[str, str], gates: Gates) -
         [*protocol, "--", "--ignored", "--nocapture"],
         env={**env, "DJANGO_TY_SOURCE": str(source), "DJANGO_TY_ORACLE": str(oracle)},
     )
-    official = install(output / "official084", "ty==0.0.84", env)
+    official = install(output / "django-official", "ty>=0.0.84,<0.1", env)
     archive = output / "reference084.tar.gz"
     urllib.request.urlretrieve(
         "https://github.com/regularkevvv/ty-extended/releases/download/v0.84.4/ty-x86_64-unknown-linux-gnu.tar.gz",
@@ -185,6 +185,7 @@ def django_gate(output: Path, binary: Path, env: dict[str, str], gates: Gates) -
         ],
         env=env,
     )
+    run([str(python), "-m", "pip", "install", "--upgrade", "Django>=6.1,<6.2"], env=env)
     for mode in ("cli", "push"):
         gates.run(
             f"django-{mode}",
@@ -233,6 +234,24 @@ def django_gate(output: Path, binary: Path, env: dict[str, str], gates: Gates) -
         ],
         env=env,
     )
+    gates.run(
+        "django-scalability",
+        [
+            sys.executable,
+            "companion/scripts/django_scalability.py",
+            "--companion",
+            str(binary),
+            "--official",
+            str(official),
+            "--django",
+            str(source),
+            "--python",
+            str(environment),
+            "--output",
+            str(output / "django-scalability"),
+        ],
+        env=env,
+    )
 
 
 def main() -> int:
@@ -276,7 +295,7 @@ def main() -> int:
             ],
             env=env,
         )
-        official = install(output / "official", "ty==0.0.86", env)
+        official = install(output / "official", "ty>=0.0.84,<0.1", env)
         fork = reference_checker(output, env)
         env.update(
             TY_COMPANION_TEST_OFFICIAL=str(official),
@@ -311,7 +330,7 @@ def main() -> int:
                 "--manifest-path",
                 str(manifest),
                 "--bin",
-                "ty-companion-rust",
+                "ty-extended",
                 "--",
                 "--ignored",
             ],
@@ -381,7 +400,7 @@ def main() -> int:
         binary = (
             target
             / "release"
-            / ("ty-companion-rust.exe" if os.name == "nt" else "ty-companion-rust")
+            / ("ty-extended.exe" if os.name == "nt" else "ty-extended")
         ).resolve()
         gates.evidence.update(
             {

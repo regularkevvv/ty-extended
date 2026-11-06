@@ -74,7 +74,7 @@ fn virtual_descriptors_and_inherited_generics_match_the_fork() -> Result<()> {
         "generic assertions must pass: {expected:#?}"
     );
     for mode in ["cli", "push"] {
-        let result = Command::new(env!("CARGO_BIN_EXE_ty-companion-rust"))
+        let result = Command::new(env!("CARGO_BIN_EXE_ty-extended"))
             .arg("project")
             .arg(&root)
             .arg("--plugin")

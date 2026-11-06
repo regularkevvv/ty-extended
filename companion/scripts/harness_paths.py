@@ -4,8 +4,45 @@ from __future__ import annotations
 
 import ntpath
 import posixpath
+import re
 from pathlib import Path, PurePath, PurePosixPath, PureWindowsPath
 from urllib.parse import unquote, urlsplit
+from urllib.request import url2pathname
+
+
+def stdlib_locations(value):
+    """Compare actual stdlib targets across bundled typeshed revisions.
+
+    Preserve the target module, declaration source, selected characters and all
+    project locations. Only typeshed's cache hash and preceding line count vary.
+    Reading the returned target also verifies that its URI and range are usable.
+    """
+    if isinstance(value, list):
+        return [stdlib_locations(item) for item in value]
+    if not isinstance(value, dict):
+        return value
+    result = {key: stdlib_locations(item) for key, item in value.items()}
+    uri = value.get("uri", "")
+    if not isinstance(uri, str):
+        return result
+    parts = urlsplit(uri)
+    match = re.search(r"/vendored/typeshed/[^/]+/stdlib/(.+)$", unquote(parts.path))
+    if parts.scheme != "file" or not match or "range" not in value:
+        return result
+    target = Path(url2pathname(parts.path))
+    if parts.netloc:
+        target = Path("//" + parts.netloc + str(target))
+    lines = target.read_text(encoding="utf-8").splitlines()
+    start, end = value["range"]["start"], value["range"]["end"]
+    assert 0 <= start["line"] <= end["line"] < len(lines), value
+    assert start["line"] != end["line"] or start["character"] <= end["character"], value
+    result["uri"] = "typeshed://stdlib/" + match[1]
+    result["target_source"] = lines[start["line"] : end["line"] + 1]
+    result["range"] = {
+        "start": {**start, "line": 0},
+        "end": {**end, "line": end["line"] - start["line"]},
+    }
+    return result
 
 
 def _ordinary(path: PurePath) -> PurePath:

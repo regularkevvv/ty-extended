@@ -13,6 +13,7 @@ import json
 import re
 from pathlib import Path
 
+from harness_paths import stdlib_locations
 from lsp_acceptance import Client, position
 
 
@@ -420,7 +421,10 @@ def run(args, encoding):
             "end": {"line": len(SOURCE.splitlines()), "character": 0},
         }
         check(
-            "inlay_hints", "textDocument/inlayHint", {**document, "range": whole_range}
+            "inlay_hints",
+            "textDocument/inlayHint",
+            {**document, "range": whole_range},
+            lambda value: stdlib_locations(canonical(value)),
         )
         contexts = {
             backend: {

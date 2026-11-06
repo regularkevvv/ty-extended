@@ -1,13 +1,15 @@
-# Mini-Django: one plugin, two runtimes
+# Mini-Django Monty companion example
 
-This example ships the same realistic semantic plugin twice:
+The `monty/` implementation runs with the current `ty-extended` companion.
+The `wasm/` implementation is retained as a historical reference for versions
+through 0.86.x; the companion supports embedded Monty.
 
-|            | `monty/`                        | `wasm/`                                              |
-| ---------- | ------------------------------- | ---------------------------------------------------- |
-| Language   | Python (`ty.plugin_sdk`)        | Rust (`ty_plugin_sdk`)                               |
-| Runtime    | `monty` (sandboxed interpreter) | `wasm` (Wasmtime)                                    |
-| Artifact   | `.ty/plugins/minidjango.py`     | `.ty/plugins/minidjango.wasm`                        |
-| Build step | none                            | `./build-plugin.sh` (needs `wasm32-unknown-unknown`) |
+|            | `monty/`                          | `wasm/`                                              |
+| ---------- | --------------------------------- | ---------------------------------------------------- |
+| Language   | Python (`ty_extended.plugin_sdk`) | Rust (`ty_plugin_sdk`)                               |
+| Runtime    | `monty` (sandboxed interpreter)   | `wasm` (Wasmtime)                                    |
+| Artifact   | `.ty/plugins/minidjango.py`       | `.ty/plugins/minidjango.wasm`                        |
+| Build step | none                              | `./build-plugin.sh` (needs `wasm32-unknown-unknown`) |
 
 The project under check lives once in `shared/` (`minidjango.py`,
 `minidjango_settings.py`, `models.py`, `app.py`); both runtime directories
@@ -33,9 +35,8 @@ reference `MiniDjangoPlugin` in `ruff/crates/ty_plugin_examples`.
 ## Try it
 
 ```console
-$ cd monty && path/to/ty check
-$ cd ../wasm && ./build-plugin.sh && path/to/ty check
-$ diff <(cd monty && ty check) <(cd wasm && ty check)   # identical
+$ cd monty
+$ ty-extended check
 ```
 
 On Windows, symlinked checkouts need Git's `core.symlinks` support; without it,
@@ -47,7 +48,7 @@ Expected diagnostics (all intentional): `minidjango.unknown-lookup`,
 
 ## Authoring notes
 
-The plugin source imports `ty.plugin_sdk` names under
+The plugin source imports `ty_extended.plugin_sdk` names under
 `typing.TYPE_CHECKING` — editors and `ty` resolve them for completions and
 type errors, while inside Monty the same names are ambient (the SDK prelude
 runs before the plugin) and the block never executes.

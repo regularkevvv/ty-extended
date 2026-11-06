@@ -781,13 +781,14 @@ impl Notebook {
         result
     }
 
-    /// Notebook highlights have no URI; upstream currently includes other
-    /// cells' highlights in the result. A one-cell aggregate view retains the
-    /// shared semantic context while making every returned range unambiguous.
-    pub fn document_highlights(
+    /// These responses have no cell URI. An aggregate Python document retains
+    /// cross-cell semantics while avoiding upstream cell-index inconsistencies
+    /// in highlights, prepareRename and selectionRange across checker releases.
+    pub fn local_ranges(
         &self,
         checker: &mut ProjectChecker,
         target: &str,
+        method: &str,
         mut params: Value,
     ) -> Result<Value> {
         let backend = self
@@ -810,31 +811,102 @@ impl Notebook {
             }
             text.push('\n');
         }
-        let span = target_span.context("highlight target is not a notebook cell")?;
+        let span = target_span.context("range target is not a notebook cell")?;
         let encoding = PositionEncoding::Utf32;
-        let local = position_to_offset(&backend.texts[target], &params["position"], encoding)?;
-        let uri = format!("{}.highlights.ipynb", backend.uri);
-        let cell = format!("{target}.highlights.py");
-        checker.notify("notebookDocument/didOpen",json!({"notebookDocument":{"uri":uri,"notebookType":self.notebook_type,"version":1,"metadata":self.metadata,"cells":[{"kind":2,"document":cell}]},"cellTextDocuments":[{"uri":cell,"languageId":"python","version":1,"text":text}]}))?;
+        if let Some(position) = params.get_mut("position") {
+            let local = position_to_offset(&backend.texts[target], position, encoding)?;
+            *position = offset_to_position(&text, span.start + local, encoding)?;
+        }
+        if let Some(positions) = params.get_mut("positions").and_then(Value::as_array_mut) {
+            for position in positions {
+                let local = position_to_offset(&backend.texts[target], position, encoding)?;
+                *position = offset_to_position(&text, span.start + local, encoding)?;
+            }
+        }
+        let cell = format!("{target}.local-ranges.py");
+        checker.notify(
+            "textDocument/didOpen",
+            json!({"textDocument":{"uri":cell,"languageId":"python","version":1,"text":text}}),
+        )?;
         params["textDocument"]["uri"] = json!(cell);
-        params["position"] = offset_to_position(&text, span.start + local, encoding)?;
-        let result = checker.request("textDocument/documentHighlight", params);
+        let result = checker.request(method, params);
         let close = checker.notify(
-            "notebookDocument/didClose",
-            json!({"notebookDocument":{"uri":uri},"cellTextDocuments":[{"uri":cell}]}),
+            "textDocument/didClose",
+            json!({"textDocument":{"uri":cell}}),
         );
         close?;
         let result = result?;
         if result.is_null() {
             return Ok(result);
         }
+        let local_range = |range: &Value, clip: bool| -> Result<Option<Value>> {
+            let start = position_to_offset(&text, &range["start"], encoding)?;
+            let end = position_to_offset(&text, &range["end"], encoding)?;
+            ensure!(start <= end, "reversed notebook response range");
+            if (!clip && (start < span.start || end > span.end))
+                || end < span.start
+                || start > span.end
+            {
+                return Ok(None);
+            }
+            Ok(Some(json!({
+                "start":offset_to_position(&backend.texts[target],start.max(span.start)-span.start,encoding)?,
+                "end":offset_to_position(&backend.texts[target],end.min(span.end)-span.start,encoding)?,
+            })))
+        };
+        if method == "textDocument/prepareRename" {
+            if result.get("defaultBehavior").is_some() {
+                return Ok(result);
+            }
+            return if result.get("range").is_some() {
+                let Some(range) = local_range(&result["range"], false)? else {
+                    return Ok(Value::Null);
+                };
+                let mut result = result;
+                result["range"] = range;
+                Ok(result)
+            } else {
+                Ok(local_range(&result, false)?.unwrap_or(Value::Null))
+            };
+        }
+        if method == "textDocument/selectionRange" {
+            fn selection(
+                value: &Value,
+                local_range: &impl Fn(&Value, bool) -> Result<Option<Value>>,
+            ) -> Result<Option<Value>> {
+                let parent = value
+                    .get("parent")
+                    .map(|parent| selection(parent, local_range))
+                    .transpose()?
+                    .flatten();
+                let Some(range) = local_range(&value["range"], true)? else {
+                    return Ok(parent);
+                };
+                let mut value = json!({"range":range});
+                if let Some(parent) = parent
+                    && parent["range"] != value["range"]
+                {
+                    value["parent"] = parent;
+                }
+                Ok(Some(value))
+            }
+            return Ok(json!(
+                result
+                    .as_array()
+                    .context("notebook selection response")?
+                    .iter()
+                    .map(|value| {
+                        selection(value, &local_range)?
+                            .context("selection range is outside the requested cell")
+                    })
+                    .collect::<Result<Vec<_>>>()?
+            ));
+        }
         let mut output = vec![];
         for value in result.as_array().context("notebook highlights response")? {
-            let start = position_to_offset(&text, &value["range"]["start"], encoding)?;
-            let end = position_to_offset(&text, &value["range"]["end"], encoding)?;
-            if span.start <= start && end <= span.end {
+            if let Some(range) = local_range(&value["range"], false)? {
                 let mut value = value.clone();
-                value["range"] = json!({"start":offset_to_position(&backend.texts[target],start-span.start,encoding)?,"end":offset_to_position(&backend.texts[target],end-span.start,encoding)?});
+                value["range"] = range;
                 output.push(value);
             }
         }

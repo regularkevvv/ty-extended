@@ -307,7 +307,8 @@ def main() -> int:
                         )
                         missing = diagnostics(client, path)
                         assert any(
-                            d.get("code") == "unresolved-import" for d in missing
+                            d.get("code") in {"unresolved-import", "import-not-found"}
+                            for d in missing
                         ), missing
                         put(marker, "partial\n")
                         client.notify(
@@ -319,7 +320,30 @@ def main() -> int:
                         reports[backend] = {"removed": missing, "restored": restored}
                     finally:
                         client.close()
-                assert reports["fork"] == reports["companion"], reports
+
+                # Upstream renamed this rule; messages, severities,
+                # source locations and every other diagnostic remain exact.
+                def rule_aliases(value):
+                    if isinstance(value, list):
+                        return [rule_aliases(item) for item in value]
+                    if isinstance(value, dict):
+                        result = {
+                            key: rule_aliases(item) for key, item in value.items()
+                        }
+                        if result.get("code") == "unresolved-import":
+                            result["code"] = "import-not-found"
+                            if "codeDescription" in result:
+                                result["codeDescription"]["href"] = result[
+                                    "codeDescription"
+                                ]["href"].replace(
+                                    "#unresolved-import", "#import-not-found"
+                                )
+                        return result
+                    return value
+
+                assert rule_aliases(reports["fork"]) == rule_aliases(
+                    reports["companion"]
+                ), reports
                 row["editor"] = reports
                 result["checks"].extend(
                     ["partial-marker-live-remove", "partial-marker-live-restore"]

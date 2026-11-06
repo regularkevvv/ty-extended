@@ -119,6 +119,7 @@ pub struct Analysis {
     pub edits: Edits,
     pub helpers: BTreeMap<String, String>,
     pub expression_probes: BTreeMap<Span, String>,
+    pub context_free_arguments: BTreeSet<Span>,
     pub plugin_diagnostics: Vec<Value>,
     pub generated_declarations: crate::mapping::GeneratedDeclarations,
 }

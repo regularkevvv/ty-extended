@@ -9,12 +9,60 @@ import unittest
 from pathlib import Path, PureWindowsPath
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "scripts"))
-from harness_paths import file_uri_matches, relative_path
+from harness_paths import file_uri_matches, relative_path, stdlib_locations
 from plugin_configuration_differential import diagnostics
 from plugin_error_differential import cli_diagnostics
 
 
 class HarnessPathsTests(unittest.TestCase):
+    def test_typeshed_revision_comparison_verifies_the_actual_target(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary) / "vendored/typeshed"
+            locations = []
+            for revision, prefix in [("old", ""), ("new", "# added upstream\n")]:
+                target = root / revision / "stdlib/builtins.pyi"
+                target.parent.mkdir(parents=True)
+                target.write_text(prefix + "class int: ...\n", encoding="utf-8")
+                line = prefix.count("\n")
+                locations.append(
+                    {
+                        "uri": target.as_uri(),
+                        "range": {
+                            "start": {"line": line, "character": 6},
+                            "end": {"line": line, "character": 9},
+                        },
+                    }
+                )
+            self.assertEqual(
+                stdlib_locations(locations[0]), stdlib_locations(locations[1])
+            )
+            target.write_text(prefix + "class str: ...\n", encoding="utf-8")
+            self.assertNotEqual(
+                stdlib_locations(locations[0]), stdlib_locations(locations[1])
+            )
+            target.unlink()
+            with self.assertRaises(FileNotFoundError):
+                stdlib_locations(locations[1])
+
+    def test_typeshed_comparison_retains_project_coordinates_and_rejects_bad_ranges(
+        self,
+    ):
+        project = {
+            "uri": "file:///src/project.py",
+            "range": {
+                "start": {"line": 2, "character": 1},
+                "end": {"line": 2, "character": 4},
+            },
+        }
+        self.assertEqual(stdlib_locations(project), project)
+        with tempfile.TemporaryDirectory() as temporary:
+            target = Path(temporary) / "vendored/typeshed/new/stdlib/builtins.pyi"
+            target.parent.mkdir(parents=True)
+            target.write_text("class int: ...\n", encoding="utf-8")
+            project["uri"] = target.as_uri()
+            with self.assertRaises(AssertionError):
+                stdlib_locations(project)
+
     def test_windows_drive_verbatim_rooted_relative_and_unc(self):
         project = PureWindowsPath(r"D:\a\project")
         for value in (

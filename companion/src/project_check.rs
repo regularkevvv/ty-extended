@@ -23,7 +23,11 @@ use std::{
 
 fn phase(phases: &mut BTreeMap<&'static str, f64>, name: &'static str, previous: &mut Instant) {
     let now = Instant::now();
-    *phases.entry(name).or_default() += now.duration_since(*previous).as_secs_f64();
+    let seconds = now.duration_since(*previous).as_secs_f64();
+    *phases.entry(name).or_default() += seconds;
+    if std::env::var_os("TY_COMPANION_TRACE_PHASES").is_some() {
+        eprintln!("companion phase {name}: {seconds:.3}s");
+    }
     *previous = now;
 }
 
@@ -176,8 +180,7 @@ fn stdlib_overlay_modules(
             "python-platform": config.platform,
             "root": [probe_root],
             "extra-paths": []
-        },
-        "rules": {"unresolved-import": "error"}
+        }
     });
     if let Some(typeshed) = &config.typeshed {
         probe_config["environment"]["typeshed"] = json!(typeshed);
@@ -209,7 +212,10 @@ fn stdlib_overlay_modules(
     )?;
     let mut available = candidates.iter().cloned().collect::<BTreeSet<_>>();
     for diagnostic in diagnostics {
-        if diagnostic["check_name"] == "unresolved-import" {
+        if matches!(
+            diagnostic["check_name"].as_str(),
+            Some("unresolved-import" | "import-not-found")
+        ) {
             let line = diagnostic
                 .pointer("/location/positions/begin/line")
                 .and_then(Value::as_u64)
@@ -459,6 +465,8 @@ fn diagnostic_origins(
     project: &Project,
     generated: &GeneratedDeclarations,
     virtual_scope: Option<&str>,
+    virtual_names: &Arc<BTreeMap<String, String>>,
+    nominal_names: &Arc<BTreeMap<String, String>>,
 ) -> DiagnosticOrigins {
     use crate::model::{expression_key, span};
     use ruff_python_ast::{
@@ -466,23 +474,11 @@ fn diagnostic_origins(
         visitor::{self, Visitor},
     };
     let mut origins = DiagnosticOrigins {
-        virtual_names: project.virtual_identities.clone(),
+        virtual_names: virtual_names.clone(),
+        nominal_names: nominal_names.clone(),
         virtual_scope: virtual_scope.map(str::to_owned),
         ..DiagnosticOrigins::default()
     };
-    let mut nominal_names: BTreeMap<&str, Vec<&str>> = BTreeMap::new();
-    for (qualified, class) in project.classes.iter() {
-        if class["virtual"] != true
-            && let Some(short) = qualified.rsplit('.').next()
-        {
-            nominal_names.entry(short).or_default().push(qualified);
-        }
-    }
-    origins.nominal_names = nominal_names
-        .into_iter()
-        .filter(|(_, names)| names.len() == 1)
-        .map(|(short, names)| (short.to_owned(), names[0].to_owned()))
-        .collect();
     for (span, class) in &unit.analysis.constructor_calls {
         if generated.constructors.contains(class) {
             origins.constructor_calls.insert(*span, class.clone());
@@ -1693,6 +1689,7 @@ impl Session {
     }
 
     pub fn check(&mut self, overlays: &BTreeMap<PathBuf, String>) -> Result<Value> {
+        self.runtime.context_free_arguments.clear();
         let started = Instant::now();
         let mut phases = BTreeMap::new();
         let mut phase_started = started;
@@ -2249,8 +2246,10 @@ impl Session {
                 let mut changed = false;
                 for diagnostic in unavailable {
                     ensure!(
-                        diagnostic["check_name"] == "unresolved-import"
-                            && path_of(&diagnostic, &view) == preflight,
+                        matches!(
+                            diagnostic["check_name"].as_str(),
+                            Some("unresolved-import" | "import-not-found")
+                        ) && path_of(&diagnostic, &view) == preflight,
                         "unexpected type-import preflight diagnostic: {diagnostic}"
                     );
                     let line = diagnostic["location"]["positions"]["begin"]["line"]
@@ -2758,30 +2757,68 @@ impl Session {
             generated_declarations.extend(&unit.analysis.generated_declarations);
         }
         let virtual_scope = runtime.selected_virtual_scope.as_deref();
+        // One immutable name context and one diagnostic partition per project,
+        // rather than cloning every class name and scanning every diagnostic
+        // again for each selected file.
+        let virtual_names = Arc::new(project.virtual_identities.clone());
+        let mut nominal_candidates: BTreeMap<&str, Vec<&str>> = BTreeMap::new();
+        for (qualified, class) in project.classes.iter() {
+            if class["virtual"] != true
+                && let Some(short) = qualified.rsplit('.').next()
+            {
+                nominal_candidates.entry(short).or_default().push(qualified);
+            }
+        }
+        let nominal_names = Arc::new(
+            nominal_candidates
+                .into_iter()
+                .filter(|(_, names)| names.len() == 1)
+                .map(|(short, names)| (short.to_owned(), names[0].to_owned()))
+                .collect::<BTreeMap<_, _>>(),
+        );
+        let mut raw_by_path = BTreeMap::<PathBuf, Vec<Value>>::new();
+        for diagnostic in raw {
+            raw_by_path
+                .entry(path_of(&diagnostic, &view))
+                .or_default()
+                .push(diagnostic);
+        }
+        let mut project_by_path = BTreeMap::<&str, Vec<&Value>>::new();
+        for diagnostic in &project_diagnostics {
+            if let Some(path) = diagnostic["location"]["file-path"].as_str() {
+                project_by_path.entry(path).or_default().push(diagnostic);
+            }
+        }
         for unit in units.values().filter(|u| u.selected) {
-            let local: Vec<_> = raw
-                .iter()
-                .filter(|d| path_of(d, &view) == unit.path)
-                .cloned()
-                .collect();
+            let local = raw_by_path
+                .get(&unit.path)
+                .map(Vec::as_slice)
+                .unwrap_or(&[]);
             let mut plugin = unit.analysis.plugin_diagnostics.clone();
             plugin.extend(unit.diagnostics.clone());
             plugin.extend(unit.flow_diagnostics.clone());
             plugin.extend(
-                project_diagnostics
-                    .iter()
-                    .filter(|d| d["location"]["file-path"] == unit.source.path)
+                project_by_path
+                    .get(unit.source.path.as_str())
+                    .into_iter()
+                    .flatten()
                     .map(|d| json!({"diagnostic":d,"source":d["location"]})),
             );
-            let origins =
-                diagnostic_origins(unit, &project, &generated_declarations, virtual_scope);
+            let origins = diagnostic_origins(
+                unit,
+                &project,
+                &generated_declarations,
+                virtual_scope,
+                &virtual_names,
+                &nominal_names,
+            );
             let mut display_names = unit.analysis.helpers.clone();
             display_names.extend(unit.names.clone());
             display_names.extend(unit.types.display_names());
             let (mapped, hidden) = map_diagnostics_with_origins(
                 &unit.source,
                 unit.rendered.as_ref().unwrap(),
-                &local,
+                local,
                 &display_names,
                 &plugin,
                 &origins,
@@ -2923,6 +2960,105 @@ pub fn run(input: &Path, options: &BTreeMap<String, String>) -> Result<Value> {
 
 #[cfg(test)]
 mod tests {
+    #[test]
+    fn dictionary_probe_context_is_recovered_and_reset_after_signature_edits() -> Result<()> {
+        let binary = std::env::var("TY_COMPANION_TEST_OFFICIAL")?;
+        let directory =
+            std::env::temp_dir().join(format!("ty-dict-context-{}", std::process::id()));
+        let root = directory.join("project");
+        let source = "from typing import Any, TypedDict, assert_type\nclass Model: pass\nclass Row(TypedDict):\n    age: Model\ndef consume(value: dict[str, Any]) -> object: return value\nassert_type(consume({'age': Model()}), dict[str, Model])\n";
+        write(&root.join("demo.py"), source)?;
+        let plugin = directory.join("plugin.py");
+        write(
+            &plugin,
+            "@on_call_return_of('demo.consume')\ndef consume(request):\n    args = positional_arguments(request)\n    return call_return_patch(argument_type(args[0])) if args and argument_type(args[0]) else None\n",
+        )?;
+        let manifest = directory.join("plugin.json");
+        write(&manifest, &json!({"id":"dictionary","name":"Dictionary context regression","version":"0.0.0","protocol-version":{"major":0,"minor":7},"ty-compatibility":{"requirement":">=0.86.0"},"runtime":{"kind":"monty","artifact":"plugin.py"},"capabilities":{"call-return":true},"claims":{"functions":[{"qualified-name":"demo.consume"}]}}).to_string())?;
+        let options = BTreeMap::from([
+            ("ty".into(), binary),
+            (
+                "out".into(),
+                directory.join("output").to_string_lossy().into_owned(),
+            ),
+            ("plugin".into(), plugin.to_string_lossy().into_owned()),
+            ("manifest".into(), manifest.to_string_lossy().into_owned()),
+            ("checker-mode".into(), "push".into()),
+            ("python-version".into(), "3.13".into()),
+        ]);
+        let mut session = Session::new(&root, &options)?;
+        let result = session.check(&BTreeMap::new())?;
+        assert_eq!(result["diagnostics"], json!([]), "{result:#}");
+        // Keep the dictionary at identical offsets while changing its expected
+        // type to a TypedDict. A previous context-free decision must expire.
+        let changed = source
+            .replace(
+                "value: dict[str, Any]",
+                &format!("value: {:width$}", "Row", width = "dict[str, Any]".len()),
+            )
+            .replace(", dict[str, Model])", ", Row)");
+        assert_eq!(
+            source.find("{'age': Model()}"),
+            changed.find("{'age': Model()}")
+        );
+        let path = root.join("demo.py").canonicalize()?;
+        let result = session.check(&BTreeMap::from([(path, changed)]))?;
+        assert_eq!(result["diagnostics"], json!([]), "{result:#}");
+        assert_eq!(std::fs::read_to_string(root.join("demo.py"))?, source);
+        drop(session);
+        std::fs::remove_dir_all(directory)?;
+        Ok(())
+    }
+
+    #[test]
+    fn nested_subclass_workaround_preserves_unrelated_authored_overrides() -> Result<()> {
+        let binary = std::env::var("TY_COMPANION_TEST_OFFICIAL")?;
+        let directory =
+            std::env::temp_dir().join(format!("ty-nested-override-{}", std::process::id()));
+        let root = directory.join("project");
+        let source = "class Parent:\n    field: int = 1\n    class Meta: pass\nclass Valid(Parent):\n    class Meta(Parent.Meta): pass\nclass Wrong(Parent):\n    field: str = ''\n    class Meta: pass\n";
+        write(&root.join("demo.py"), source)?;
+        let plugin = directory.join("plugin.py");
+        write(
+            &plugin,
+            "@on_class_transform\ndef transform(request):\n    return {'kind': 'no-change'}\n",
+        )?;
+        let manifest = directory.join("plugin.json");
+        write(&manifest, &json!({"id":"nested","name":"Nested override regression","version":"0.0.0","protocol-version":{"major":0,"minor":7},"ty-compatibility":{"requirement":">=0.86.0"},"runtime":{"kind":"monty","artifact":"plugin.py"},"capabilities":{"class-transform":true},"claims":{"classes":[{"kind":"exact","qualified-name":"demo.Parent"}]}}).to_string())?;
+        for mode in ["cli", "push"] {
+            let options = BTreeMap::from([
+                ("ty".into(), binary.clone()),
+                (
+                    "out".into(),
+                    directory.join(mode).to_string_lossy().into_owned(),
+                ),
+                ("plugin".into(), plugin.to_string_lossy().into_owned()),
+                ("manifest".into(), manifest.to_string_lossy().into_owned()),
+                ("checker-mode".into(), mode.into()),
+                ("python-version".into(), "3.13".into()),
+            ]);
+            let result = Session::new(&root, &options)?.check(&BTreeMap::new())?;
+            let diagnostics = result["diagnostics"]
+                .as_array()
+                .context("nested override diagnostics")?;
+            assert_eq!(diagnostics.len(), 2, "{mode}: {result:#}");
+            let mut lines = diagnostics
+                .iter()
+                .map(|item| {
+                    assert_eq!(item["check_name"], "invalid-attribute-override", "{item}");
+                    item["location"]["positions"]["begin"]["line"]
+                        .as_u64()
+                        .unwrap()
+                })
+                .collect::<Vec<_>>();
+            lines.sort();
+            assert_eq!(lines, [7, 8], "{mode}");
+        }
+        assert_eq!(std::fs::read_to_string(root.join("demo.py"))?, source);
+        std::fs::remove_dir_all(directory)?;
+        Ok(())
+    }
+
     #[test]
     #[ignore = "requires TY_COMPANION_TEST_OFFICIAL"]
     fn native_cli_and_lsp_preserve_canonical_self_import_identity() -> Result<()> {
@@ -3156,7 +3292,18 @@ mod tests {
             )]),
             ..Default::default()
         };
-        let origins = diagnostic_origins(&unit, &project, &generated, None);
+        let virtual_names = Arc::new(project.virtual_identities.clone());
+        let nominal_names = Arc::new(BTreeMap::from([("Target".into(), "owner.Target".into())]));
+        let origins = diagnostic_origins(
+            &unit,
+            &project,
+            &generated,
+            None,
+            &virtual_names,
+            &nominal_names,
+        );
+        assert!(Arc::ptr_eq(&origins.virtual_names, &virtual_names));
+        assert!(Arc::ptr_eq(&origins.nominal_names, &nominal_names));
         assert_eq!(origins.descriptor_assignments.len(), 1);
         let found = &origins.descriptor_assignments[0];
         assert_eq!(found.owner, "owner.Target");
@@ -3289,7 +3436,10 @@ mod tests {
                 .as_array()
                 .unwrap()
                 .iter()
-                .any(|d| d["check_name"] == "unresolved-import"),
+                .any(|d| matches!(
+                    d["check_name"].as_str(),
+                    Some("unresolved-import" | "import-not-found")
+                )),
             "{result:#}"
         );
         assert!(!session.stubs.join("partial/py.typed").exists());

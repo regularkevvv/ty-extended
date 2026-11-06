@@ -1,96 +1,12 @@
 #!/usr/bin/env sh
-#
-# Prepare a release.
-#
-# Usage
-#
-#   ./scripts/release.sh [rooster-args ...]
-#
+# Prepare an independent companion release; official ty and Ruff stay pinned.
 set -eu
-
-if [ ! -e ruff/.git ]; then
-    echo "Initializing Ruff submodule..."
-    git submodule update --init --recursive ruff
-fi
-
-echo "Checking Ruff submodule status..."
-if git -C ruff diff --quiet; then
-    echo "Ruff submodule is clean; continuing..."
-else
-    echo "Ruff submodule has uncommitted changes; aborting!"
-    exit 1
-fi
-
-# This script pulls the submodule's `origin`. A fresh `git submodule update`
-# sets that to the `.gitmodules` URL, but a checkout that added remotes by hand
-# can have `origin` pointing at upstream astral-sh/ruff instead. Pulling that
-# would drag in upstream commits the release was never meant to include, and
-# `git add ruff` below would silently record the result.
-echo "Checking Ruff submodule remote..."
-declared_ruff_url=$(git config --file .gitmodules --get submodule.ruff.url)
-actual_ruff_url=$(git -C ruff config --get remote.origin.url)
-normalize_git_url() {
-    printf '%s' "$1" | sed -e 's|^git@github\.com:|https://github.com/|' -e 's|\.git$||'
-}
-if [ "$(normalize_git_url "$declared_ruff_url")" = "$(normalize_git_url "$actual_ruff_url")" ]; then
-    echo "Ruff submodule origin matches .gitmodules; continuing..."
-else
-    echo "Ruff submodule origin does not match .gitmodules; aborting!"
-    echo "  .gitmodules declares: ${declared_ruff_url}"
-    echo "  origin points at:     ${actual_ruff_url}"
-    exit 1
-fi
-
-# Read the typeshed source commit from the Ruff revision recorded by the
-# superproject, before switching the submodule to its local main branch.
-typeshed_commit_path="crates/ty_vendored/vendor/typeshed/source_commit.txt"
-typeshed_commit_file="ruff/${typeshed_commit_path}"
-old_ruff_commit=$(git rev-parse HEAD:ruff)
-old_typeshed_commit=$(git -C ruff show "${old_ruff_commit}:${typeshed_commit_path}" 2> /dev/null || true)
-
-ruff_head=$(git -C ruff rev-parse --abbrev-ref HEAD)
-case "${ruff_head}" in
-    "HEAD")
-        echo "Ruff submodule has detached HEAD; switching to main..."
-        git -C ruff checkout main > /dev/null 2>&1
-        ;;
-    "main")
-        echo "Ruff submodule is on main branch; continuing..."
-        ;;
-    *)
-        echo "Ruff submodule is on branch ${ruff_head} but must be on main; aborting!"
-        exit 1
-        ;;
-esac
-
-echo "Updating Ruff to the latest commit..."
-git -C ruff pull origin main
-git add ruff
-
 script_root="$(realpath "$(dirname "$0")")"
-project_root="$(dirname "$script_root")"
-
-echo "Running rooster..."
-cd "$project_root"
-
-# Generate the changelog and bump versions
-uv run --locked --isolated --only-group release --default-index https://pypi.org/simple \
-    rooster release "$@"
-
-# If the typeshed source commit changed and the changelog mentions a typeshed
-# sync, append a link to the typeshed diff so reviewers can see what changed.
-if [ -n "$old_typeshed_commit" ] && [ -f "$typeshed_commit_file" ]; then
-    new_typeshed_commit=$(cat "$typeshed_commit_file")
-    if [ "$old_typeshed_commit" != "$new_typeshed_commit" ]; then
-        typeshed_diff_link="[Typeshed diff](https://github.com/python/typeshed/compare/${old_typeshed_commit}...${new_typeshed_commit})"
-        # Match lines like "- Sync vendored typeshed stubs ([#NNNN](...))".
-        # The pattern anchors on the trailing "))$" so it won't match lines
-        # that already have a typeshed diff link appended.
-        # Use a temp file instead of `sed -i` for macOS/Linux portability.
-        sed "s|\(- Sync vendored typeshed stubs (.*)\))$|\1). ${typeshed_diff_link}|" CHANGELOG.md > CHANGELOG.md.tmp
-        mv CHANGELOG.md.tmp CHANGELOG.md
-    fi
+cd "$(dirname "$script_root")"
+if [ "$#" -ne 1 ]; then
+    echo "Usage: ./scripts/release.sh VERSION" >&2
+    exit 2
 fi
-
-"${script_root}/autogenerate_files.sh"
-git add ./docs/reference ./rust-toolchain.toml
+python3 scripts/prepare_companion_release.py "$1"
+uv lock --no-locked --default-index https://pypi.org/simple
+python3 scripts/generate_companion_files.py

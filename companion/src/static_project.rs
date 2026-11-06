@@ -526,6 +526,7 @@ pub fn analyze(source: &Source, suite: &[Stmt], runtime: &mut Runtime) -> Result
         edits,
         helpers,
         expression_probes: BTreeMap::new(),
+        context_free_arguments: BTreeSet::new(),
         plugin_diagnostics: diagnostics,
         generated_declarations: Default::default(),
     })

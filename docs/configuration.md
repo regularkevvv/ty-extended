@@ -37,4 +37,4 @@ For example, if a string, number, or boolean is present in both the project- and
 
 Settings provided via command line take precedence over persistent configuration.
 
-See the [configuration](./reference/configuration.md) reference for an enumeration of the available settings.
+See the [configuration](https://docs.astral.sh/ty/reference/configuration/) reference for an enumeration of the available settings.

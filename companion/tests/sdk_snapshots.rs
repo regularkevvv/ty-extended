@@ -111,7 +111,7 @@ fn structural_snapshot_contract_matches_the_fork() -> Result<()> {
         "snapshot contract diagnostics: {expected:#?}"
     );
     for mode in ["cli", "push"] {
-        let result = Command::new(env!("CARGO_BIN_EXE_ty-companion-rust"))
+        let result = Command::new(env!("CARGO_BIN_EXE_ty-extended"))
             .arg("project")
             .arg(&root)
             .arg("--plugin")

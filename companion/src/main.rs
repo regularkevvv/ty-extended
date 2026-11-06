@@ -94,10 +94,17 @@ fn build_edits(
     if probes {
         for call in analysis.calls.values() {
             for (index, arg) in call.arguments.iter().enumerate() {
+                let isolate_context = analysis.context_free_arguments.contains(&arg.span);
                 edits.wrap(
                     arg.span,
-                    format!("{probe_name}("),
-                    ")".to_owned(),
+                    // A tuple access blocks expected-type propagation from
+                    // the called API into this observation. Otherwise newer
+                    // ty releases widen e.g. dict[str, Model] to dict[str, Any]
+                    // before a plugin can validate the actual argument value.
+                    // Keep contextual inference for lambdas, empty containers
+                    // and TypedDicts. Isolate only a proven Any-widened dict.
+                    format!("{}{probe_name}(", if isolate_context { "(" } else { "" }),
+                    if isolate_context { "),)[0]" } else { ")" }.to_owned(),
                     Some(call.argument_key(index)),
                 );
             }
@@ -303,7 +310,7 @@ fn main() -> std::process::ExitCode {
         .first()
         .is_some_and(|arg| arg == "--version" || arg == "-V")
     {
-        println!("ty-companion-rust {}", env!("CARGO_PKG_VERSION"));
+        println!("ty-extended {}", env!("CARGO_PKG_VERSION"));
         return std::process::ExitCode::SUCCESS;
     }
     if arguments.first().is_some_and(|arg| arg == "check")
@@ -374,7 +381,7 @@ fn main() -> std::process::ExitCode {
         ) || arguments.len() < 2
         {
             bail!(
-                "Usage: ty-companion-rust check SOURCE --plugin FILE --manifest FILE --ty BINARY --out DIRECTORY [--module NAME] | project ROOT --plugin FILE --manifest FILE --stubs DIRECTORY --ty BINARY --out DIRECTORY | suite FIXTURES OUTPUT_DIR MODE OFFICIAL_TY REFERENCE_TY"
+                "Usage: ty-extended check SOURCE --plugin FILE --manifest FILE --ty BINARY --out DIRECTORY [--module NAME] | project ROOT --plugin FILE --manifest FILE --stubs DIRECTORY --ty BINARY --out DIRECTORY | suite FIXTURES OUTPUT_DIR MODE OFFICIAL_TY REFERENCE_TY"
             );
         }
         let mut options = BTreeMap::new();

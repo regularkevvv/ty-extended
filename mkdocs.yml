@@ -39,7 +39,7 @@ repo_name: ty-extended
 site_author: Kevin Castro
 site_url: https://regularkevvv.github.io/ty-extended/
 site_dir: site/ty
-site_description: ty-extended is a ty fork with semantic plugin support.
+site_description: ty-extended is a Monty plugin companion for official ty.
 markdown_extensions:
   - admonition
   - pymdownx.details
@@ -66,11 +66,10 @@ plugins:
       timezone: UTC # It can only be in UTC unless the ISO time can include timezone.
   - llmstxt:
       markdown_description: |
-        ty-extended is a fork of ty with semantic plugin support.
-        It can type check large Python codebases in seconds, providing fast feedback
-        during development.
+        ty-extended is a Monty plugin companion for unchanged official ty.
+        It runs Monty plugins and maps analysis results through public CLI and LSP interfaces.
 
-        ty-extended includes both a CLI (`ty check`) and a language server (`ty server`) for editor integration.
+        ty-extended provides `ty-extended check` and `ty-extended server` around a separately installed official ty.
 
         When fetching documentation, use explicit `index.md` paths for directories, e.g.,
         `https://regularkevvv.github.io/ty-extended/features/index.md`. This returns clean markdown instead
@@ -131,6 +130,7 @@ nav:
       - Rules: rules.md
       - Suppression: suppression.md
       - Plugin runtime: plugin-runtime.md
+      - Version compatibility: compatibility.md
   - Features:
       - Type system: features/type-system.md
       - Diagnostics: features/diagnostics.md
@@ -142,7 +142,10 @@ nav:
       - Exit codes: reference/exit-codes.md
       - Environment variables: reference/environment.md
       - Editor settings: reference/editor-settings.md
-      - Fork publishing: release-publishing.md
+      - Companion publishing: release-publishing.md
+  - Historical 0.86.x runtime:
+      - Plugin authoring: history/0.86/plugin-authoring.md
+      - Plugin runtime: history/0.86/plugin-runtime.md
 validation:
   omitted_files: warn
   absolute_links: warn

@@ -80,7 +80,7 @@ fn existing_generic_corpus_passes_through_project_frontend() -> Result<()> {
         );
         let expected = normalize(&serde_json::from_slice(&baseline.stdout)?, &root)?;
         for mode in ["cli", "push"] {
-            let result = Command::new(env!("CARGO_BIN_EXE_ty-companion-rust"))
+            let result = Command::new(env!("CARGO_BIN_EXE_ty-extended"))
                 .arg("project")
                 .arg(&root)
                 .arg("--manifest")

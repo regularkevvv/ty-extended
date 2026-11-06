@@ -2142,8 +2142,8 @@ dependencies = [
 ]
 
 [[package]]
-name = "ty-companion-rust"
-version = "0.1.0"
+name = "ty-extended"
+version = "0.87.0"
 dependencies = [
  "anyhow",
  "ctrlc",

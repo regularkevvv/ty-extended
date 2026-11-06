@@ -1,7 +1,7 @@
-"""Authoring surface for `ty` semantic plugins written in Python.
+"""Authoring surface for companion Monty plugins written in Python.
 
 Importable at authoring time so editors and type checkers resolve hook names and
-signatures; inside the sandbox `ty` prepends this file so its names are ambient.
+signatures; inside the sandbox the companion prepends this file so its names are ambient.
 Builders emit plain dicts in the kebab-case protocol wire format; hooks receive a
 request dict and return a response dict (or `None` for `no-change`).
 """

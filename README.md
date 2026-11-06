@@ -2,86 +2,78 @@
 
 [![PyPI](https://img.shields.io/pypi/v/ty-extended.svg)](https://pypi.org/project/ty-extended/)
 
-A fork of [Astral's ty](https://github.com/astral-sh/ty) with support for semantic plugins.
-It keeps the `ty` command and language server.
-
-## Getting started
-
-Run with [uvx](https://docs.astral.sh/uv/guides/tools/#running-tools):
-
-```shell
-uvx --from ty-extended ty check
-```
-
-Or add it to your project:
+A Monty plugin companion for [Astral's ty](https://github.com/astral-sh/ty).
+It runs plugins in embedded Monty and delegates checking to a separately installed,
+unchanged official ty. **The companion is not a fork of ty.**
 
 ```shell
 uv add --dev ty-extended
-uv run ty check
+uv run ty-extended check
 ```
 
-## Plugins
+For an isolated run:
 
-```mermaid
-flowchart LR
-    subgraph host["ty-extended"]
-        checker["ty semantic checker"] -->|claimed hook| router["Plugin router"]
-        router -->|validated patch| checker
-    end
-
-    project["Python project"] --> checker
-    config["ty.toml + plugin manifest"] --> router
-    router -->|JSON request| wasm["WASM plugin<br/>inside Wasmtime"]
-    wasm -->|declarative patch| router
-    router -->|JSON request| monty["Python plugin inside Monty<br/>embedded by default, optional worker"]
-    monty -->|declarative patch| router
-    checker --> output["Types + diagnostics"]
+```shell
+uvx ty-extended check
 ```
 
-- **Rust** plugins compile to WebAssembly and run in Wasmtime, using
-    [`ty_plugin_sdk`](https://crates.io/crates/ty_plugin_sdk).
-- **Python** plugins run in Monty, using the bundled `ty.plugin_sdk`. No compilation is needed.
+The package depends on official `ty`. Its executable and Python package use the
+separate names `ty-extended` and `ty_extended`; `ty` continues to run Astral's checker.
+Configure your editor to start `ty-extended server` for plugin support.
 
-Monty runs in-process by default, with no external runtime dependency. Separate
-[worker processes](./docs/plugin-runtime.md#monty-worker-processes) are opt-in through the
-`monty-workers` extra and project configuration.
+## Official ty compatibility
 
-Enable installed plugins in `ty.toml`:
+Companion versions are independent of official ty starting with 0.87.0. The same
+companion has passed the complete compatibility suite against **every ty release
+from 0.0.84 through 0.0.99** (16 releases), including Django CLI and editor checks.
+Updating official ty within a compatible group does not require a companion release.
+See [the compatibility policy and evidence](docs/compatibility.md) for the tested
+versions, dependency range and checks for future releases.
+
+## Monty plugins
+
+Python plugins use the bundled `ty_extended.plugin_sdk` and execute inside Monty.
+No separate Python plugin interpreter or worker package is needed.
 
 ```toml
+# ty.toml
 [plugins]
 auto-discover = true
 ```
 
-## Existing plugins
+The companion analyzes temporary copies and translates diagnostics, editor positions,
+and safe edits back to original files. The editor keeps its checker and plugin state
+between edits and supports unsaved buffers, notebooks and multiple workspaces.
 
-- [`django-ty`](https://github.com/regularkevvv/django-ty): Django ORM type support
-    ([PyPI](https://pypi.org/project/django-ty/)).
+```mermaid
+flowchart LR
+    project[Python project] --> companion[ty-extended companion]
+    editor[CLI or editor] <--> companion
+    companion <--> monty[Embedded Monty plugins]
+    companion <-->|Analysis copies and public LSP| ty[Unchanged official ty]
+```
 
-## Documentation
-
-- [Installation](./docs/installation.md) and [editor setup](./docs/editors.md)
-- [Plugin authoring](./docs/plugin-authoring.md) and [runtime configuration](./docs/plugin-runtime.md)
-- [FAQ](./docs/faq.md) and [changelog](./CHANGELOG.md)
-- [Upstream ty documentation](https://docs.astral.sh/ty/) for checker and typing features
-
-Report fork or plugin issues in the [issue tracker](https://github.com/regularkevvv/ty-extended/issues).
-
-## Contributing
-
-Rust implementation changes belong in [ruff-extended](https://github.com/regularkevvv/ruff-extended),
-which is pinned by the `ruff` submodule. See [CONTRIBUTING.md](./CONTRIBUTING.md).
+[`django-ty`](https://github.com/regularkevvv/django-ty) provides Django ORM support.
+See [installation and migration](docs/installation.md), [compatibility](docs/compatibility.md),
+[editor setup](docs/editors.md), [plugin authoring](docs/plugin-authoring.md),
+and [runtime behavior](docs/plugin-runtime.md).
 
 ## Version policy
 
-Versions track the upstream ty base: `ty-extended 0.86.0` builds on `ty 0.0.86`, with fork-only
-releases incrementing the patch. SDK and protocol crates are versioned independently; breaking
-changes may occur between their pre-1.0 releases.
+Starting with 0.87.0, companion versions are independent of ty versions. A companion
+release supports a group of official ty versions; ordinary ty updates do not require
+rebuilding or republishing the companion. The [compatibility policy](docs/compatibility.md)
+distinguishes tested releases from the dependency range and future upstream changes.
 
-## License
+Versions through 0.86.x shipped a modified checker and installed the `ty` command.
+See the [migration instructions](docs/installation.md#migrating-from-the-old-distribution)
+before replacing that package. WASM plugins and Monty worker mode belong to those
+historical releases; the companion runs embedded Monty plugins.
 
-MIT ([LICENSE](./LICENSE)).
+## Contributing and license
 
-Unless you explicitly state otherwise, any contribution intentionally submitted for inclusion in
-ty by you, as defined in the MIT license, shall be licensed as above, without any additional terms
-or conditions.
+The companion lives in [`companion/`](companion/README.md). See
+[contributing](CONTRIBUTING.md), [validation evidence](companion/STATUS.md), and
+[the changelog](CHANGELOG.md). Report companion or plugin issues in this repository.
+
+MIT ([LICENSE](LICENSE)). Astral's checker is developed and released by Astral.

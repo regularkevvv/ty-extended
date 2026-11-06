@@ -1,206 +1,72 @@
-# Installing ty-extended
+# Installing the Monty companion
 
-## Prebuilt platforms
-
-ty-extended publishes wheels and standalone binaries for these eight targets:
-
-| Platform            | Architectures                     |
-| ------------------- | --------------------------------- |
-| Linux glibc         | x86-64, ARM64                     |
-| Linux musl (Alpine) | x86-64, ARM64                     |
-| macOS               | Intel x86-64, Apple Silicon ARM64 |
-| Windows             | x64, ARM64                        |
-
-Other platforms, including 32-bit x86, ARMv6, ARMv7, PowerPC64LE, s390x, and RISC-V64, have no
-prebuilt wheels. pip and uv build them from the source distribution, which requires a Rust
-toolchain.
-
-## Running ty without installation
-
-Use [uvx](https://docs.astral.sh/uv/guides/tools/) to quickly get started with ty:
-
-```shell
-uvx --from ty-extended ty
-```
-
-## Installation methods
-
-### Adding ty-extended to your project
-
-!!! tip
-
-    Adding ty-extended as a dependency ensures that all developers on the project are using the
-    same version of ty.
-
-Use [uv](https://github.com/astral-sh/uv) (or your project manager of choice) to add ty-extended
-as a development dependency:
+The `ty-extended` distribution installs the `ty-extended` command and depends on
+Astral's official `ty` package. They coexist in one environment.
 
 ```shell
 uv add --dev ty-extended
+uv run ty-extended check
 ```
 
-Then, use `uv run` to invoke ty:
+Use `uvx ty-extended check` for an isolated run, `uv tool install ty-extended` for a
+persistent tool environment, or `pip install ty-extended` in an existing environment.
+`python -m ty_extended check` provides the same companion entry point.
+
+The companion finds official ty through `--ty PATH`, `TY_COMPANION_TY`, an adjacent
+installed `ty` executable, or `PATH`. The adjacent lookup supports isolated tool
+environments without requiring a global ty installation.
 
 ```shell
-uv run ty
+ty-extended check --ty /path/to/official/ty
 ```
 
-To update ty, use `--upgrade-package`:
+For editors, run `ty-extended server`; see [editor setup](editors.md).
+Enable trusted installed Monty plugins with `[plugins] auto-discover = true` in
+`ty.toml`, or `[tool.ty.plugins] auto-discover = true` in `pyproject.toml`.
+
+## Native archives and source builds
+
+[GitHub releases](https://github.com/regularkevvv/ty-extended/releases) provide native
+archives and shell/PowerShell installers for eight targets:
+
+| System       | Architectures | Archive   |
+| ------------ | ------------- | --------- |
+| macOS        | arm64, x86-64 | `.tar.gz` |
+| Linux glibc  | arm64, x86-64 | `.tar.gz` |
+| Linux musl   | arm64, x86-64 | `.tar.gz` |
+| Windows MSVC | arm64, x86-64 | `.zip`    |
+
+Native archives contain `ty-extended`; install official ty separately and make it
+available through one of the paths above. Archive names start with
+`ty-extended-`, and installers are named `ty-extended-installer.sh` and
+`ty-extended-installer.ps1`. Checksums accompany the release assets.
+
+Building the PyPI source distribution requires Rust 1.98 or later and a native
+C/C++ build toolchain. The source archive includes its pinned parser and Monty
+host sources, schema, Python SDK and wheel build backend.
+
+## Migrating from the old distribution
+
+Versions through 0.86.x installed a modified `ty` binary and the Python package
+`ty`. Remove that distribution before installing the companion and official ty,
+so an old installation cannot overwrite Astral's executable or module.
 
 ```shell
-uv lock --upgrade-package ty-extended
+uv remove --dev ty-extended
+uv add --dev ty-extended
+uv run ty --version
+uv run ty-extended --version
 ```
 
-### Installing globally with uv
+With pip, use `python -m pip uninstall ty-extended`, then
+`python -m pip install --upgrade --force-reinstall ty-extended ty`.
 
-Install ty-extended globally with uv:
+Change plugin-enabled commands and editor launchers from `ty` to `ty-extended`.
+Existing checker settings and Monty registrations remain in `ty.toml` or
+`[tool.ty]`; the companion separates plugin settings before passing checker
+configuration to official ty. Update Python SDK imports to `ty_extended.plugin_sdk`.
 
-```shell
-uv tool install ty-extended
-```
-
-To update ty, use `uv tool upgrade`:
-
-```shell
-uv tool upgrade ty-extended
-```
-
-### Installing with the standalone installer
-
-ty-extended includes standalone installers on GitHub releases.
-
-=== "macOS and Linux"
-
-    Use `curl` to download the script and execute it with `sh`:
-
-    ```console
-    $ curl -LsSf https://github.com/regularkevvv/ty-extended/releases/latest/download/ty-installer.sh | sh
-    ```
-
-    If your system doesn't have `curl`, you can use `wget`:
-
-    ```console
-    $ wget -qO- https://github.com/regularkevvv/ty-extended/releases/latest/download/ty-installer.sh | sh
-    ```
-
-    Request a specific version by including it in the URL:
-
-    ```console
-    $ curl -LsSf https://github.com/regularkevvv/ty-extended/releases/download/v0.86.0/ty-installer.sh | sh
-    ```
-
-=== "Windows"
-
-    Use `irm` to download the script and execute it with `iex`:
-
-    ```pwsh-session
-    PS> powershell -ExecutionPolicy ByPass -c "irm https://github.com/regularkevvv/ty-extended/releases/latest/download/ty-installer.ps1 | iex"
-    ```
-
-    Changing the [execution policy](https://learn.microsoft.com/en-us/powershell/module/microsoft.powershell.core/about/about_execution_policies?view=powershell-7.4#powershell-execution-policies) allows running a script from the internet.
-
-    Request a specific version by including it in the URL:
-
-    ```pwsh-session
-    PS> powershell -ExecutionPolicy ByPass -c "irm https://github.com/regularkevvv/ty-extended/releases/download/v0.86.0/ty-installer.ps1 | iex"
-    ```
-
-!!! tip
-
-    The installation script may be inspected before use:
-
-    === "macOS and Linux"
-
-        ```console
-        $ curl -LsSf https://github.com/regularkevvv/ty-extended/releases/latest/download/ty-installer.sh | less
-        ```
-
-    === "Windows"
-
-        ```pwsh-session
-        PS> powershell -c "irm https://github.com/regularkevvv/ty-extended/releases/latest/download/ty-installer.ps1 | more"
-        ```
-
-    Alternatively, the installer or binaries can be downloaded directly from [GitHub](#installing-from-github-releases).
-
-### Installing from GitHub Releases
-
-ty release artifacts can be downloaded directly from
-[GitHub Releases](https://github.com/regularkevvv/ty-extended/releases).
-
-Each release page includes binaries for all supported platforms as well as instructions for using
-the standalone installer via `github.com` instead of `astral.sh`.
-
-### Installing globally with pipx
-
-Install ty-extended globally with pipx:
-
-```shell
-pipx install ty-extended
-```
-
-To update ty, use `pipx upgrade`:
-
-```shell
-pipx upgrade ty-extended
-```
-
-### Installing with pip
-
-Install ty into your current Python environment with pip:
-
-```shell
-pip install ty-extended
-```
-
-### Using ty with Bazel
-
-[`aspect_rules_lint`](https://registry.bazel.build/modules/aspect_rules_lint/latest/docs/lint/ty.bzl/lint_ty_aspect)
-provides a Bazel lint aspect that runs ty. See its documentation for setup instructions.
-
-## Adding ty to your editor
-
-See the [editor integration](./editors.md) guide to add ty to your editor.
-
-## Shell autocompletion
-
-!!! tip
-
-    You can run `echo $SHELL` to help you determine your shell.
-
-To enable shell autocompletion for ty commands, run one of the following:
-
-=== "Bash"
-
-    ```bash
-    echo 'eval "$(ty generate-shell-completion bash)"' >> ~/.bashrc
-    ```
-
-=== "Zsh"
-
-    ```bash
-    echo 'eval "$(ty generate-shell-completion zsh)"' >> ~/.zshrc
-    ```
-
-=== "fish"
-
-    ```bash
-    echo 'ty generate-shell-completion fish | source' > ~/.config/fish/completions/ty.fish
-    ```
-
-=== "Elvish"
-
-    ```bash
-    echo 'eval (ty generate-shell-completion elvish | slurp)' >> ~/.elvish/rc.elv
-    ```
-
-=== "PowerShell / pwsh"
-
-    ```powershell
-    if (!(Test-Path -Path $PROFILE)) {
-      New-Item -ItemType File -Path $PROFILE -Force
-    }
-    Add-Content -Path $PROFILE -Value '(& ty generate-shell-completion powershell) | Out-String | Invoke-Expression'
-    ```
-
-Then restart the shell or source the shell config file.
+WASM artifacts and worker execution are unsupported by the companion. Install a
+Monty version of each plugin. The [historical runtime guide](history/0.86/plugin-runtime.md)
+describes the older package, and [compatibility](compatibility.md) describes the
+current version policy.

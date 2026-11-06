@@ -1,9 +1,16 @@
 [package]
-name = "ty-companion-rust"
-version = "0.1.0"
+name = "ty-extended"
+version = "0.87.0"
 edition = "2024"
+rust-version = "1.98"
+description = "Embedded Monty plugin companion for unchanged official ty"
+license = "MIT"
+repository = "https://github.com/regularkevvv/ty-extended"
+publish = false
+exclude = ["evidence/**"]
 
 [workspace]
+resolver = "3"
 
 [dependencies]
 anyhow = "1"

@@ -1300,7 +1300,7 @@ fn plugin_registrations(
                 .and_then(Value::as_str)
                 .unwrap_or("in-process")
                 == "in-process",
-            "This companion embeds Monty; plugins.monty-mode=worker is not supported. Select in-process or use ty-extended's worker runtime."
+            "This companion embeds Monty; plugins.monty-mode=worker is not supported. Select in-process. Worker execution belongs to historical checker-based releases."
         );
     }
     // Manifest host validation is atomic upstream: a malformed environment

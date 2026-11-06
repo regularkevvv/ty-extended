@@ -8,10 +8,10 @@ import sysconfig
 class TyNotFound(FileNotFoundError): ...
 
 
-def find_ty_bin() -> str:
-    """Return the ty binary path."""
+def find_ty_extended_bin() -> str:
+    """Return the companion binary path."""
 
-    ty_exe = "ty" + sysconfig.get_config_var("EXE")
+    ty_exe = "ty-extended" + sysconfig.get_config_var("EXE")
 
     targets = [
         # The scripts directory for the current Python
@@ -20,18 +20,23 @@ def find_ty_bin() -> str:
         sysconfig.get_path("scripts", vars={"base": sys.base_prefix}),
         # Above the package root, e.g., from `pip install --prefix` or `uv run --with`
         (
-            # On Windows, with module path `<prefix>/Lib/site-packages/ty`
-            _join(_matching_parents(_module_path(), "Lib/site-packages/ty"), "Scripts")
+            # On Windows, with module path `<prefix>/Lib/site-packages/ty_extended`
+            _join(
+                _matching_parents(_module_path(), "Lib/site-packages/ty_extended"),
+                "Scripts",
+            )
             if sys.platform == "win32"
-            # On Unix,  with module path `<prefix>/lib/python3.13/site-packages/ty`
+            # On Unix,  with module path `<prefix>/lib/python3.13/site-packages/ty_extended`
             else _join(
-                _matching_parents(_module_path(), "lib/python*/site-packages/ty"),
+                _matching_parents(
+                    _module_path(), "lib/python*/site-packages/ty_extended"
+                ),
                 "bin",
             )
         ),
         # Adjacent to the package root, e.g., from `pip install --target`
         # with module path `<target>/ty`
-        _join(_matching_parents(_module_path(), "ty"), "bin"),
+        _join(_matching_parents(_module_path(), "ty_extended"), "bin"),
         # The user scheme scripts directory, e.g., `~/.local/bin`
         sysconfig.get_path("scripts", scheme=_user_scheme()),
     ]
@@ -49,7 +54,7 @@ def find_ty_bin() -> str:
 
     locations = "\n".join(f" - {target}" for target in seen)
     raise TyNotFound(
-        f"Could not find the ty binary in any of the following locations:\n{locations}\n"
+        f"Could not find the ty-extended binary in any of the following locations:\n{locations}\n"
     )
 
 

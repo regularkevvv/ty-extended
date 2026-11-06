@@ -130,7 +130,7 @@ fn safe_fixes_and_suppressions_match_reference_source_edits() -> Result<()> {
         let mut results = vec![];
         for (backend, binary) in [
             ("fork", fork.as_str()),
-            ("companion", env!("CARGO_BIN_EXE_ty-companion-rust")),
+            ("companion", env!("CARGO_BIN_EXE_ty-extended")),
         ] {
             fs::write(&path, &source)?;
             let mut command = Command::new(binary);

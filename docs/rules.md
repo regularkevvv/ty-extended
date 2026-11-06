@@ -6,7 +6,7 @@ specific pattern and can be turned on or off depending on your project’s needs
 
 !!! tip
 
-    See the [rules reference](./reference/rules.md) for an enumeration of all supported rules.
+    See the [rules reference](https://docs.astral.sh/ty/reference/rules/) for an enumeration of all supported rules.
 
 ## Rule levels
 
@@ -23,7 +23,7 @@ You can configure the level for each rule on the command line using the `--warn`
 
 ```shell
 
-ty check \
+ty-extended check \
   --warn unused-ignore-comment \        # Make `unused-ignore-comment` a warning
   --ignore redundant-cast \             # Disable `redundant-cast`
   --error possibly-missing-attribute \  # Error on `possibly-missing-attribute`
@@ -32,7 +32,7 @@ ty check \
 
 The options can be repeated. Subsequent options override earlier options.
 
-Rule levels can also be changed in the [`rules`](./reference/configuration.md#rules) section of a
+Rule levels can also be changed in the [`rules`](https://docs.astral.sh/ty/reference/configuration/#rules) section of a
 [configuration file](./configuration.md).
 
 For example, the following is equivalent to the command above:
@@ -63,10 +63,10 @@ On the command line you can use `--error all`, `--warn all`, or `--ignore all`. 
 
 ```shell
 
-ty check --error all
+ty-extended check --error all
 ```
 
-You can also configure this setting in the [`rules`](./reference/configuration.md#rules) section of a
+You can also configure this setting in the [`rules`](https://docs.astral.sh/ty/reference/configuration/#rules) section of a
 [configuration file](./configuration.md).
 
 For example, the following is equivalent to the command above:

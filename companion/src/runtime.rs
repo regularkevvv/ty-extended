@@ -1,4 +1,4 @@
-use crate::model::{CallSite, Oracle, Source, typ};
+use crate::model::{CallSite, Oracle, Source, Span, typ};
 use crate::project::Project;
 use anyhow::{Context, Result, bail};
 use serde_json::{Value, json};
@@ -31,6 +31,7 @@ pub struct Runtime {
     pub selected_virtual_scope: Option<String>,
     pub nominal_candidates: BTreeSet<String>,
     pub annotation_candidates: BTreeSet<String>,
+    pub context_free_arguments: BTreeSet<(String, Span)>,
     cache: RequestCache,
     type_cache: RefCell<RequestCache>,
     projection_generation: u64,
@@ -383,6 +384,7 @@ impl Runtime {
             selected_virtual_scope: None,
             nominal_candidates: BTreeSet::new(),
             annotation_candidates: BTreeSet::new(),
+            context_free_arguments: BTreeSet::new(),
             cache: RequestCache::default(),
             type_cache: RefCell::default(),
             projection_generation: 0,

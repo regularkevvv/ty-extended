@@ -3,11 +3,11 @@ from __future__ import annotations
 import os
 import sys
 
-from ty import find_ty_bin
+from ty_extended import find_ty_extended_bin
 
 
 def _run() -> None:
-    ty = find_ty_bin()
+    ty = find_ty_extended_bin()
 
     if sys.platform == "win32":
         import subprocess

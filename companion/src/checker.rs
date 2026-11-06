@@ -20,6 +20,18 @@ use serde_json::{Value, json};
 const RESPONSE_TIMEOUT: Duration = Duration::from_secs(10);
 const MAX_FRAME: usize = 64 * 1024 * 1024;
 
+/// Tool installers expose the companion command without adding dependency
+/// executables to the user's PATH. Prefer official ty beside the real installed
+/// executable; source builds continue to use PATH when no sibling exists.
+pub(crate) fn adjacent_official_checker() -> Option<PathBuf> {
+    let executable = std::env::current_exe().ok()?.canonicalize().ok()?;
+    let candidate = executable
+        .parent()?
+        .join(if cfg!(windows) { "ty.exe" } else { "ty" });
+    let candidate = candidate.canonicalize().ok()?;
+    (candidate.is_file() && candidate != executable).then_some(candidate)
+}
+
 /// Match the native resolver's canonical path spelling at the CLI boundary.
 /// On Windows, explicit verbatim paths and simplified import roots otherwise
 /// become distinct File identities in ty. Keep paths that require verbatim

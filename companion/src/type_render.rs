@@ -63,6 +63,9 @@ impl RenderContext {
 pub struct Types {
     pub imports: BTreeSet<String>,
     pub definitions: String,
+    /// Reuse method bodies for equal descriptor access types. Each field still
+    /// has its own subclass, so class-access identity remains distinct.
+    pub(crate) descriptor_bases: BTreeMap<(String, Option<String>, Option<String>), String>,
     prefix: String,
     module: String,
     unimportable_module: bool,
@@ -88,6 +91,7 @@ impl Types {
         Self {
             imports: BTreeSet::new(),
             definitions: String::new(),
+            descriptor_bases: BTreeMap::new(),
             prefix: prefix.into(),
             module: module.into(),
             unimportable_module: false,

@@ -1,6 +1,6 @@
 """A Mini-Django semantic plugin, authored in Python.
 
-Port of the reference `MiniDjangoPlugin` (Rust -> WASM) to `ty.plugin_sdk`: same
+Port of the reference `MiniDjangoPlugin` (Rust -> WASM) to `ty_extended.plugin_sdk`: same
 claims, same responses, no Rust toolchain. See the example README for what each
 hook implements.
 """
@@ -12,7 +12,7 @@ import typing
 
 if typing.TYPE_CHECKING:
     # IDE-only import; inside Monty these names are ambient.
-    from ty.plugin_sdk import (
+    from ty_extended.plugin_sdk import (
         Request,
         Response,
         attribute_claim_contribution_target,

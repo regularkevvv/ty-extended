@@ -16,6 +16,8 @@ on:
       - ruff
       - .github/workflows/companion.yml
   workflow_dispatch:
+  schedule:
+    - cron: "17 9 * * 1"
 
 concurrency:
   group: companion-${{ github.ref }}
@@ -58,8 +60,14 @@ jobs:
             ${{ runner.temp }}/companion-ci-evidence/**/evidence.json
             ${{ runner.temp }}/companion-ci-evidence/**/summary.json
             ${{ runner.temp }}/companion-ci-evidence/**/acceptance.json
+            ${{ runner.temp }}/companion-ci-evidence/**/scalability.json
             ${{ runner.temp }}/companion-ci-evidence/**/*.stderr
             ${{ runner.temp }}/companion-ci-evidence/**/*.stdout
             ${{ runner.temp }}/companion-ci-evidence/**/stderr.log
             ${{ runner.temp }}/companion-ci-evidence/gates/*.log
             ${{ runner.temp }}/companion-ci-evidence/cli-edits/**
+
+      - name: Clean build artifacts
+        if: always()
+        shell: bash
+        run: cargo clean --manifest-path companion/Cargo.toml

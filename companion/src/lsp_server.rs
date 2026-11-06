@@ -50,7 +50,11 @@ pub(crate) fn default_checker(options: &mut BTreeMap<String, String>) -> Result<
         .get("ty")
         .cloned()
         .or_else(|| std::env::var("TY_COMPANION_TY").ok())
-        .unwrap_or_else(|| "ty".into());
+        .unwrap_or_else(|| {
+            crate::checker::adjacent_official_checker()
+                .map(|path| path.to_string_lossy().into_owned())
+                .unwrap_or_else(|| "ty".into())
+        });
     let requested_path = Path::new(&requested);
     let resolved = if requested_path.components().count() > 1 || requested_path.is_absolute() {
         requested_path.canonicalize()?
@@ -588,8 +592,7 @@ impl Editor {
         if !caps["semanticTokensProvider"].is_null() {
             caps["semanticTokensProvider"]["full"] = json!(true);
         }
-        result["serverInfo"] =
-            json!({"name":"ty-companion-rust","version":env!("CARGO_PKG_VERSION")});
+        result["serverInfo"] = json!({"name":"ty-extended","version":env!("CARGO_PKG_VERSION")});
         self.initialized = true;
         Ok(result)
     }
@@ -1364,16 +1367,21 @@ impl Editor {
                     continue;
                 }
             }
-            let result = if method == "textDocument/documentHighlight"
-                && let Some(notebook) = params["textDocument"]["uri"]
-                    .as_str()
-                    .and_then(|uri| self.notebooks.values().find(|book| book.contains_cell(uri)))
+            let result = if matches!(
+                method,
+                "textDocument/documentHighlight"
+                    | "textDocument/prepareRename"
+                    | "textDocument/selectionRange"
+            ) && let Some(notebook) = params["textDocument"]["uri"]
+                .as_str()
+                .and_then(|uri| self.notebooks.values().find(|book| book.contains_cell(uri)))
             {
-                notebook.document_highlights(
+                notebook.local_ranges(
                     checker,
                     mapped["textDocument"]["uri"]
                         .as_str()
                         .context("mapped notebook cell")?,
+                    method,
                     mapped.clone(),
                 )?
             } else if method == "textDocument/documentSymbol"

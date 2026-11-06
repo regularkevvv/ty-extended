@@ -29,7 +29,7 @@ fn normal_check_discovers_plugins_respects_options_and_cleans_temporary_files() 
         "[environment]\npython-version='3.13'\n[src]\nexclude=['excluded.py', 'plugin.py']\n[plugins]\nenabled=true\nauto-discover=false\n[[plugins.plugin]]\nid='test.cli'\nruntime='monty'\ntrusted=true\npath='plugin.py'\nmanifest-path='plugin.json'\n",
     )?;
     let run = |arguments: &[&str]| -> Result<(i32, String)> {
-        let child = Command::new(env!("CARGO_BIN_EXE_ty-companion-rust"))
+        let child = Command::new(env!("CARGO_BIN_EXE_ty-extended"))
             .args(["check", "--ty", &official])
             .args(arguments)
             .env("TY_UV", "0")

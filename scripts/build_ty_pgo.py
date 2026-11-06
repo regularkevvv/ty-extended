@@ -1,4 +1,8 @@
-"""Build ty with profile-guided optimization using pinned ecosystem projects."""
+"""Build ty with profile-guided optimization using pinned ecosystem projects.
+
+Historical tool for checker-based releases through 0.86.x. The current
+companion release pipeline does not use this script.
+"""
 
 # /// script
 # requires-python = ">=3.11"

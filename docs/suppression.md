@@ -95,7 +95,7 @@ result = calculate()  # fmt: off  # ty: ignore[invalid-argument-type]
 
 ## Unused suppression comments
 
-If the [`unused-ignore-comment`](./reference/rules.md#unused-ignore-comment) rule is enabled, ty
+If the [`unused-ignore-comment`](https://docs.astral.sh/ty/reference/rules/#unused-ignore-comment) rule is enabled, ty
 will report unused `ty: ignore` and `type: ignore` comments.
 
 `unused-ignore-comment` violations can only be suppressed using `# ty: ignore[unused-ignore-comment]`.

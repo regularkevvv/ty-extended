@@ -97,7 +97,7 @@ fn watch_rechecks_source_plugin_config_and_dependencies() -> Result<()> {
     let source = "class Resource: pass\nvalue: str = Resource().extra\n";
     fs::write(root.join("demo.py"), source)?;
     let mut child = Running(
-        Command::new(env!("CARGO_BIN_EXE_ty-companion-rust"))
+        Command::new(env!("CARGO_BIN_EXE_ty-extended"))
             .args([
                 "check",
                 "--watch",
