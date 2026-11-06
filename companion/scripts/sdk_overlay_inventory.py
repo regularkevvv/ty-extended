@@ -79,6 +79,20 @@ def put_watched(path: Path, text: str) -> dict[str, int]:
     return {"before_ns": before, "write_ns": written.st_mtime_ns, "final_ns": final}
 
 
+def revise_directory(path: Path, before: int) -> dict[str, int]:
+    """Give a structural fixture edit a distinct resolver directory revision."""
+    written = path.stat()
+    # The legacy reference keys directory listings by directory mtime. A rapid
+    # delete/recreate can share that revision, leaving its listing cached even
+    # after a watched-file notification. Keep the comparison fixture coherent;
+    # overlay_reload_probe.py tests the companion with forced collisions too.
+    if written.st_mtime_ns == before:
+        os.utime(path, ns=(written.st_atime_ns, before + 2_000_000_000))
+    final = path.stat().st_mtime_ns
+    assert final != before, (path, before, written.st_mtime_ns, final)
+    return {"before_ns": before, "write_ns": written.st_mtime_ns, "final_ns": final}
+
+
 def setup(case: Path, sources: dict, stubs: dict, installed: dict, main: str) -> Path:
     root = case / "project"
     overlay = case / "stubs"
@@ -314,7 +328,9 @@ def main() -> int:
                         path = root / "main.py"
                         assert diagnostics(client, path) == []
                         marker = case / "stubs/foo/py.typed"
+                        before = marker.parent.stat().st_mtime_ns
                         marker.unlink()
+                        removed_revision = revise_directory(marker.parent, before)
                         client.notify(
                             "workspace/didChangeWatchedFiles",
                             {"changes": [{"uri": marker.as_uri(), "type": 3}]},
@@ -324,7 +340,13 @@ def main() -> int:
                             d.get("code") in {"unresolved-import", "import-not-found"}
                             for d in missing
                         ), missing
+                        before = marker.parent.stat().st_mtime_ns
                         put(marker, "partial\n")
+                        restored_revision = revise_directory(marker.parent, before)
+                        row.setdefault("marker_directory_revisions", {})[backend] = {
+                            "removed": removed_revision,
+                            "restored": restored_revision,
+                        }
                         client.notify(
                             "workspace/didChangeWatchedFiles",
                             {"changes": [{"uri": marker.as_uri(), "type": 1}]},
