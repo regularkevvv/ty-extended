@@ -1,0 +1,49 @@
+{
+  "schema_version": 1,
+  "source": "7e1956a2df4960f616543cc699f3fa91e0ee65c9",
+  "production_source": "d9064c50d5ab96a00fedf3d6d02fa58883c1e371",
+  "rust": {
+    "latest_checker": "0.0.99",
+    "units_including_live": 190,
+    "integration_tests": 17,
+    "passed": 207,
+    "failed": 0,
+    "pinned_django_frontend_regression": {
+      "official": "0.0.84",
+      "reference": "0.84.4",
+      "passed": 1
+    }
+  },
+  "clippy_all_targets": "passed -D warnings",
+  "installed_python_versions": [
+    "3.8.20",
+    "3.9.13",
+    "3.13"
+  ],
+  "installed_checks": [
+    "SDK import",
+    "separate official ty installation",
+    "module launcher",
+    "CLI positive and negative controls",
+    "source preservation",
+    "embedded Monty without worker",
+    "LSP diagnostics and hover"
+  ],
+  "django_editor": {
+    "passed": true,
+    "companion_sha256": "c52a7b8d06b1d294ee9377b31d938c943aff01f7861895f3d4f8205aaf3f7969",
+    "official_sha256": "34688103a83c3123d9eb0f4d85cdaa15f06ff16ce422d8a42616e6b1c885200e",
+    "baseline_diagnostic_count": 28,
+    "warm_comment_median_seconds": 0.031243750010617077,
+    "warm_semantic_median_seconds": 0.36786787502933294
+  },
+  "log_sha256": {
+    "all-rust-latest-final-configured.log": "818655b36d99dd3964911fc01030f56d8ccde522112b2271a83c589a3fdd85d4",
+    "django-frontend-final.log": "59223fdb337d431d69a6734048943cacfb454f89a74a2c7bd5d61fc9b06fc730",
+    "clippy-final-tests.log": "203e46df8b9f58e70897b4d398c2c6b25865412c627e7723caa67252e3ff01f3",
+    "django-editor-final-wheel.log": "c73061d1edc8e4961ba3a7f976ab0a855a9d50da2d37df5e649e430dd9ee6fb6",
+    "python38-wheel-test.log": "3f7af2b1f900db14a8ab9bc7f8c46c2a742883dbec7c29013f44b5b2e7c4a1d8",
+    "python39-wheel-test.log": "3f7af2b1f900db14a8ab9bc7f8c46c2a742883dbec7c29013f44b5b2e7c4a1d8"
+  },
+  "scope": "Local receipts. Hosted CI and published artifacts are separate release acceptance checks."
+}

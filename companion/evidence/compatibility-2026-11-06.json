@@ -1,7 +1,7 @@
 {
   "schema_version": 2,
   "qualification_date": "2026-11-06",
-  "status": "final-wheel-local-qualified-hosted-ci-pending",
+  "status": "final-wheel-local-qualified",
   "binary": {
     "path": "/private/tmp/ty-companion-release-audit/installed-companion/bin/ty-extended",
     "sha256": "c52a7b8d06b1d294ee9377b31d938c943aff01f7861895f3d4f8205aaf3f7969",
