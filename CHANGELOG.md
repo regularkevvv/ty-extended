@@ -9,6 +9,7 @@ Entries below 0.74.0 say "extension" where they now would say "plugin"; the term
 
 ## 0.87.0
 
+- Embed Monty 1.5.0 and run the unchanged SDK/runtime tests with the companion's selected runtime.
 - Replace the modified checker distribution with a Rust companion and separately installed official ty.
 - Install the `ty-extended` command and `ty_extended` SDK package alongside official `ty`.
 - Run semantic plugins in embedded Monty, with CLI, watch/fix/ignore, persistent editor sessions and notebook source mapping.

@@ -3,13 +3,15 @@
 The [2026-11-06 ledger](evidence/compatibility-2026-11-06.json) records the same
 companion's 288 generic gates across official ty 0.0.84–0.0.99, 32 complete Django
 checker-version runs, and 42 Django/Python matrix runs including Django 6.1.3.
-The current regression suite passes 187 Rust unit tests, three live-checker
+The measured wheel embeds Monty **1.5.0**. The current regression suite passes 187 Rust unit tests, three live-checker
 units, 18 integration tests and 42 Python harness tests.
 [Final-wheel checks](evidence/final-wheel-checks-2026-11-06.json) also record
 installed SDK/CLI/editor smoke tests on Python 3.8, 3.9 and 3.13.
 Clean installed-wheel and source-archive rebuilds pass SDK, CLI and editor smoke
-checks with official ty 0.0.99 installed separately. The complete Django editor
-corpus also passes on ty 0.0.99, including unsaved edits and exact source spans.
+checks with official ty 0.0.99 installed separately. The unchanged SDK/runtime
+suite passes 75 tests and three documentation examples with the selected Monty
+version; its build directory is cleaned after the gate. The complete Django editor
+corpus also passes on ty 0.0.99 with Django 6.1.3, including unsaved edits and exact source spans.
 
 These are local receipts. Cross-platform CI and installed published artifacts
 are separate release acceptance checks, linked from the release. The full
@@ -18,7 +20,7 @@ executable hashes. Packaging and performance changes receive separate checks.
 
 The [installed-wheel scalability regression](evidence/scalability-2026-11-06.json)
 checks 7,082 Python files and 2,501 related Django models with positive and negative
-typing controls. Both pass in approximately 57 seconds, with sampled combined
+typing controls. Both pass in approximately 58 seconds, with sampled combined
 companion/checker RSS below 2.8 GiB. Each run preserves source bytes and enforces
 180-second/3-GiB test limits. These measurements qualify this generated workload;
 they are not a global memory limit or proof about an unavailable private project.

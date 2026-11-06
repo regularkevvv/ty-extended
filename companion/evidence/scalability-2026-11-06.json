@@ -4,8 +4,8 @@
   "files": 7082,
   "models": 2501,
   "companion": {
-    "path": "/private/tmp/ty-companion-release-audit/installed-companion/bin/ty-extended",
-    "sha256": "c52a7b8d06b1d294ee9377b31d938c943aff01f7861895f3d4f8205aaf3f7969",
+    "path": "/private/tmp/ty-companion-release-audit/installed-monty15/bin/ty-extended",
+    "sha256": "8b5e131c71279088e9b0b0c104545003d3202c99bacb81f395eac89ff1f8df7c",
     "version": "ty-extended 0.87.0"
   },
   "official": {
@@ -18,7 +18,7 @@
   "runs": [
     {
       "command": [
-        "/private/tmp/ty-companion-release-audit/installed-companion/bin/ty-extended",
+        "/private/tmp/ty-companion-release-audit/installed-monty15/bin/ty-extended",
         "check",
         "--ty",
         "/private/tmp/ty-companion-release-audit/official099/bin/ty",
@@ -27,35 +27,35 @@
         "--no-progress",
         "--output-format",
         "gitlab",
-        "/private/tmp/ty-companion-release-audit/scalability-final-wheel/project"
+        "/private/tmp/ty-companion-release-audit/scalability-monty15/project"
       ],
       "exit": 0,
-      "seconds": 57.67938962497283,
-      "peak_process_tree_rss_kib": 2836704,
+      "seconds": 58.48163449997082,
+      "peak_process_tree_rss_kib": 2782864,
       "peak_processes_pid_ppid_rss_kib": [
         [
-          16254,
-          16212,
-          1596480
+          18826,
+          18819,
+          1636304
         ],
         [
-          17246,
-          16254,
-          1240224
+          19887,
+          18826,
+          1146560
         ]
       ],
       "stopped": null,
-      "source_sha256": "a7814d2ef6e3ef1e9bb68710af8fb16b4f5916ac522fa32a3d493ed1143ebe0f",
+      "source_sha256": "045280652c4fca6ceef5a3e4a12c68c69bc28bcef79d1b8ff0efeaacdcebe2d1",
       "source_preserved": true,
-      "stdout": "/private/tmp/ty-companion-release-audit/scalability-final-wheel/positive/stdout.json",
-      "stderr": "/private/tmp/ty-companion-release-audit/scalability-final-wheel/positive/stderr.log",
+      "stdout": "/private/tmp/ty-companion-release-audit/scalability-monty15/positive/stdout.json",
+      "stderr": "/private/tmp/ty-companion-release-audit/scalability-monty15/positive/stderr.log",
       "negative": false,
       "diagnostic_codes": [],
       "passed": true
     },
     {
       "command": [
-        "/private/tmp/ty-companion-release-audit/installed-companion/bin/ty-extended",
+        "/private/tmp/ty-companion-release-audit/installed-monty15/bin/ty-extended",
         "check",
         "--ty",
         "/private/tmp/ty-companion-release-audit/official099/bin/ty",
@@ -64,33 +64,38 @@
         "--no-progress",
         "--output-format",
         "gitlab",
-        "/private/tmp/ty-companion-release-audit/scalability-final-wheel/project"
+        "/private/tmp/ty-companion-release-audit/scalability-monty15/project"
       ],
       "exit": 1,
-      "seconds": 57.055517833912745,
-      "peak_process_tree_rss_kib": 2809488,
+      "seconds": 57.09610108297784,
+      "peak_process_tree_rss_kib": 2806224,
       "peak_processes_pid_ppid_rss_kib": [
         [
-          18049,
-          16212,
-          1698912
+          20930,
+          18819,
+          1610000
         ],
         [
-          19388,
-          18049,
-          1110576
+          22128,
+          20930,
+          1196224
         ]
       ],
       "stopped": null,
-      "source_sha256": "b0e1ee4ad108e006bd4411dc15b657093a0578b3490744f07fa5f727021b3bc8",
+      "source_sha256": "9865f90fd9085aa0f594663321bba7eacf1405e3d78f43c443856c492b8346da",
       "source_preserved": true,
-      "stdout": "/private/tmp/ty-companion-release-audit/scalability-final-wheel/negative/stdout.json",
-      "stderr": "/private/tmp/ty-companion-release-audit/scalability-final-wheel/negative/stderr.log",
+      "stdout": "/private/tmp/ty-companion-release-audit/scalability-monty15/negative/stdout.json",
+      "stderr": "/private/tmp/ty-companion-release-audit/scalability-monty15/negative/stderr.log",
       "negative": true,
       "diagnostic_codes": [
         "invalid-assignment"
       ],
       "passed": true
     }
-  ]
+  ],
+  "runtime_dependencies": {
+    "Django": "6.1.3",
+    "ty": "0.0.99",
+    "ty-extended": "0.87.0"
+  }
 }

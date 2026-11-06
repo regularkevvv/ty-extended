@@ -1,7 +1,7 @@
 {
-  "schema_version": 1,
-  "source": "7e1956a2df4960f616543cc699f3fa91e0ee65c9",
-  "production_source": "d9064c50d5ab96a00fedf3d6d02fa58883c1e371",
+  "schema_version": 2,
+  "production_tree_sha256": "bfbead7502cbcd263c3fbd927229f96b2d228a7775585ea78786e6b57506165e",
+  "embedded_monty": "1.5.0",
   "rust": {
     "latest_checker": "0.0.99",
     "units_including_live": 190,
@@ -14,6 +14,13 @@
       "passed": 1
     }
   },
+  "sdk_runtime": {
+    "tests_passed": 75,
+    "doctests_passed": 3,
+    "ignored_wasm_export_doctests": 1,
+    "evidence": "embedded-runtime-2026-11-06.json"
+  },
+  "python_harness_tests_passed": 42,
   "clippy_all_targets": "passed -D warnings",
   "installed_python_versions": [
     "3.8.20",
@@ -27,23 +34,38 @@
     "CLI positive and negative controls",
     "source preservation",
     "embedded Monty without worker",
-    "LSP diagnostics and hover"
+    "LSP diagnostics and hover",
+    "uv tool symlinks with empty PATH",
+    "uvx",
+    "migration from published 0.86.0"
   ],
+  "migration": {
+    "passed": true,
+    "previous_binary": "ty 0.86.0 (4429f1e88 2026-10-10)",
+    "wheel_sha256": "71d9ff02093cf761c36331873ff1e0eaa670f55d68197d7b0c8f3ef2fe090428",
+    "checks": "installed SDK, namespace/binary ownership, official ty coexistence, CLI controls, embedded Monty and LSP"
+  },
   "django_editor": {
     "passed": true,
-    "companion_sha256": "c52a7b8d06b1d294ee9377b31d938c943aff01f7861895f3d4f8205aaf3f7969",
+    "companion_sha256": "8b5e131c71279088e9b0b0c104545003d3202c99bacb81f395eac89ff1f8df7c",
     "official_sha256": "34688103a83c3123d9eb0f4d85cdaa15f06ff16ce422d8a42616e6b1c885200e",
     "baseline_diagnostic_count": 28,
-    "warm_comment_median_seconds": 0.031243750010617077,
-    "warm_semantic_median_seconds": 0.36786787502933294
+    "warm_comment_median_seconds": 0.03179475001525134,
+    "warm_semantic_median_seconds": 0.38760474999435246
   },
   "log_sha256": {
-    "all-rust-latest-final-configured.log": "818655b36d99dd3964911fc01030f56d8ccde522112b2271a83c589a3fdd85d4",
-    "django-frontend-final.log": "59223fdb337d431d69a6734048943cacfb454f89a74a2c7bd5d61fc9b06fc730",
-    "clippy-final-tests.log": "203e46df8b9f58e70897b4d398c2c6b25865412c627e7723caa67252e3ff01f3",
-    "django-editor-final-wheel.log": "c73061d1edc8e4961ba3a7f976ab0a855a9d50da2d37df5e649e430dd9ee6fb6",
-    "python38-wheel-test.log": "3f7af2b1f900db14a8ab9bc7f8c46c2a742883dbec7c29013f44b5b2e7c4a1d8",
-    "python39-wheel-test.log": "3f7af2b1f900db14a8ab9bc7f8c46c2a742883dbec7c29013f44b5b2e7c4a1d8"
+    "monty15-all-rust.log": "a17589df77455ab4b3a349296e9168d43dc0d405cf77c6fea610bf0c63ee76c7",
+    "monty15-django-frontend.log": "eb5e6bc4a09d6661b130f690d819c8b69ad4cb3098d108992c2b99a8e40590b4",
+    "monty15-clippy.log": "ec2215403d5b61838b5dd338031a09b27aaa4edadecb68859afbd0bb11af29ca",
+    "django-editor-monty15.log": "5de061a4582bf590bc265e1896a7fe3837b6a9275ecb93fdd91f334138e0a8a3",
+    "monty15-python38-wheel-test.log": "3f7af2b1f900db14a8ab9bc7f8c46c2a742883dbec7c29013f44b5b2e7c4a1d8",
+    "monty15-python39-wheel-test.log": "3f7af2b1f900db14a8ab9bc7f8c46c2a742883dbec7c29013f44b5b2e7c4a1d8",
+    "monty15-wheel-installed.log": "3f7af2b1f900db14a8ab9bc7f8c46c2a742883dbec7c29013f44b5b2e7c4a1d8",
+    "monty15-uv-tool-test.log": "3f7af2b1f900db14a8ab9bc7f8c46c2a742883dbec7c29013f44b5b2e7c4a1d8",
+    "monty15-uvx-test.log": "67fd1b306c1619b7e29a06d2592659db7759bfd4318492046c3b473c1183de7c",
+    "monty15-python-harness.log": "f5f8de4e724aed334191a9cee6c78b03ea4b09ab29d54b36e9677e6ec18cb17d",
+    "migration-monty15.log": "09c6b54dc7083f992038700878f9db0f590c071ebdbfe53fed6482e09e114e4b",
+    "monty15-embedded-runtime-production-lock.log": "407fcace7027364ff834b77cca36d9a2c26a5d3bbfc021036e079d69519acccd"
   },
   "scope": "Local receipts. Hosted CI and published artifacts are separate release acceptance checks."
 }

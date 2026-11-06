@@ -15,6 +15,7 @@ import tarfile
 import time
 import urllib.request
 import venv
+import zipfile
 from pathlib import Path
 
 
@@ -96,32 +97,27 @@ def install(root: Path, package: str, env: dict[str, str]) -> Path:
 def reference_checker(output: Path, env: dict[str, str]) -> Path:
     if os.name != "nt":
         return install(output / "fork", "ty-extended==0.86.0", env)
-    # The 0.86.0 publication has no Windows wheel. Build the exact pinned
-    # reference engine instead of silently testing a different release.
-    target = output / "reference-target"
-    run(
-        [
-            "cargo",
-            "+1.98.0",
-            "build",
-            "--locked",
-            "--release",
-            "--manifest-path",
-            "ruff/Cargo.toml",
-            "--package",
-            "ty",
-            "--features",
-            "plugins-monty",
-        ],
-        env={**env, "CARGO_TARGET_DIR": str(target)},
+    # PyPI has no Windows wheel for this release, but its native archive ships
+    # the same published Monty reference as the Linux/macOS wheels.
+    archive = output / "reference086-windows.zip"
+    urllib.request.urlretrieve(
+        "https://github.com/regularkevvv/ty-extended/releases/download/v0.86.0/ty-x86_64-pc-windows-msvc.zip",
+        archive,
     )
+    actual = hashlib.sha256(archive.read_bytes()).hexdigest()
+    expected = "af76b8823a6a8788603d7dfbf5e9bab3f626c17000d9324e824473fa0a659bf6"
+    if actual != expected:
+        raise RuntimeError(f"reference checker archive hash changed: {actual}")
     reference = output / "reference" / "ty.exe"
     reference.parent.mkdir()
-    shutil.copy2(target / "release/ty.exe", reference)
-    run(
-        ["cargo", "+1.98.0", "clean", "--manifest-path", "ruff/Cargo.toml"],
-        env={**env, "CARGO_TARGET_DIR": str(target)},
-    )
+    with zipfile.ZipFile(archive) as compressed:
+        if compressed.namelist() != ["ty.exe"]:
+            raise RuntimeError("reference archive must contain exactly ty.exe")
+        reference.write_bytes(compressed.read("ty.exe"))
+    archive.unlink()
+    version = subprocess.check_output([str(reference), "--version"], text=True)
+    if not version.startswith("ty 0.86.0 ") or "4429f1e88" not in version:
+        raise RuntimeError(f"unexpected published Windows reference: {version}")
     return reference
 
 
@@ -346,22 +342,10 @@ def main() -> int:
         gates.run(
             "original-sdk-monty",
             [
-                *cargo,
-                "test",
-                "--locked",
-                "--manifest-path",
-                "ruff/Cargo.toml",
-                "-p",
-                "ty_plugin_protocol",
-                "-p",
-                "ty_plugin_sdk",
-                "-p",
-                "ty_plugin_examples",
-                "-p",
-                "ty_plugin_host",
-                "--no-default-features",
-                "--features",
-                "ty_plugin_host/plugins-monty,ty_plugin_host/mock",
+                sys.executable,
+                "companion/scripts/embedded_runtime_tests.py",
+                "--output",
+                str(output / "embedded-runtime"),
             ],
             env=env,
         )
