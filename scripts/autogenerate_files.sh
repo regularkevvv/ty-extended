@@ -4,7 +4,7 @@
 #
 # Usage
 #
-#   ./scripts/autogenerate-files.sh
+#   ./scripts/autogenerate_files.sh
 #
 set -eu
 

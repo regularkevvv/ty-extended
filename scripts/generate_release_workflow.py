@@ -29,13 +29,28 @@ WorkflowLoader.yaml_implicit_resolvers = copy.deepcopy(
 )
 for key, resolvers in WorkflowLoader.yaml_implicit_resolvers.items():
     WorkflowLoader.yaml_implicit_resolvers[key] = [
-        (tag, pattern) for tag, pattern in resolvers if tag != "tag:yaml.org,2002:bool"
+        (tag, pattern)
+        for tag, pattern in resolvers
+        if tag not in {"tag:yaml.org,2002:bool", "tag:yaml.org,2002:int"}
     ]
 WorkflowLoader.add_implicit_resolver(
     "tag:yaml.org,2002:bool",
     re.compile(r"^(?:true|false|True|False|TRUE|FALSE)$"),
     list("tTfF"),
 )
+WorkflowLoader.add_implicit_resolver(
+    "tag:yaml.org,2002:int",
+    re.compile(r"^[-+]?(?:0o[0-7]+|0x[0-9a-fA-F]+|[0-9]+)$"),
+    list("-+0123456789"),
+)
+
+
+def integer(loader, node):
+    value = loader.construct_scalar(node)
+    return int(value, 0 if value.lstrip("-+").startswith(("0o", "0x")) else 10)
+
+
+WorkflowLoader.add_constructor("tag:yaml.org,2002:int", integer)
 
 
 class WorkflowDumper(yaml.SafeDumper):

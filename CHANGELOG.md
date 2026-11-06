@@ -16,7 +16,8 @@ Entries below 0.74.0 say "extension" where they now would say "plugin"; the term
 - Handle upstream diagnostic renames, plugin stub precedence, contextual dictionary inference and notebook coordinate differences.
 - Preserve original source diagnostics and reject unsafe mapped edits. Cover the inherited nested-class checker regression while retaining unrelated override errors.
 - Remove WASM and worker execution from the current distribution; preserve historical guides and provide migration instructions.
-- Build companion wheels and native archives without compiling or bundling ty's semantic engine.
+- Share descriptor method bodies and diagnostic name maps, and partition diagnostics once per project. Add a bounded 7,082-file/2,501-model regression with positive and negative controls.
+- Build companion wheels, native archives and Docker binaries without compiling ty's semantic engine. Docker includes a separately verified official checker.
 
 ## 0.86.0
 

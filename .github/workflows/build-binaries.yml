@@ -103,7 +103,7 @@ jobs:
           sccache: false
           maturin-version: v1.16.0
           target: x86_64
-          args: --release --locked --out dist --compatibility pypi
+          args: --release --locked --out dist --interpreter python3.13 --compatibility pypi
           rust-toolchain: 1.98.0
         env:
           RUSTFLAGS: -C linker=rust-lld -C linker-flavor=ld64.lld -C link-arg=--icf=safe
@@ -162,7 +162,7 @@ jobs:
           maturin-version: v1.16.0
           target: aarch64
           rust-toolchain: 1.98.0
-          args: --release --locked --out dist --compatibility pypi
+          args: --release --locked --out dist --interpreter python3.13 --compatibility pypi
         env:
           CFLAGS: -fno-profile-generate -fno-profile-use
           CXXFLAGS: -fno-profile-generate -fno-profile-use
@@ -226,7 +226,6 @@ jobs:
           architecture: ${{ matrix.platform.arch }}
       - name: Install LLVM inspection tools
         id: pgo-toolchain
-        if: ${{ matrix.platform.target == 'x86_64-pc-windows-msvc' }}
         working-directory: companion
         shell: bash
         run: |
@@ -241,7 +240,7 @@ jobs:
           maturin-version: v1.16.0
           target: ${{ matrix.platform.target }}
           rust-toolchain: 1.98.0
-          args: --release --locked --out dist --compatibility pypi
+          args: --release --locked --out dist --interpreter python3.13 --compatibility pypi
         env:
           XWIN_VERSION: 16
       - name: Audit standalone binary wheel tags
@@ -250,16 +249,16 @@ jobs:
           python -m pip install "wheel>=0.46,<0.47"
           python build_backend.py dist
       - name: Verify static Windows runtime
-        if: ${{ matrix.platform.target == 'x86_64-pc-windows-msvc' }}
         working-directory: companion
         shell: bash
         run: |
-          LLVM_READOBJ="$(rustc --print sysroot)/lib/rustlib/${{ matrix.platform.target }}/bin/llvm-readobj.exe"
+          RUST_HOST="$(rustc -vV | sed -n 's/^host: //p')"
+          LLVM_READOBJ="$(rustc --print sysroot)/lib/rustlib/$RUST_HOST/bin/llvm-readobj.exe"
           IMPORTS_FILE="$RUNNER_TEMP/ty-coff-imports.txt"
           "$LLVM_READOBJ" --coff-imports "target/${{ matrix.platform.target }}/release/ty-extended.exe" > "$IMPORTS_FILE"
 
-          if grep -Eiq 'vcruntime[[:digit:]_]*\.dll|api-ms-win-crt-' "$IMPORTS_FILE"; then
-            echo "ty must not dynamically link the Visual C++ runtime" >&2
+          if grep -Eiq 'vcruntime[[:digit:]_]*\.dll|api-ms-win-crt-|python[[:digit:]_]*\.dll' "$IMPORTS_FILE"; then
+            echo "The standalone companion must not link Python or the dynamic Visual C++ runtime" >&2
             exit 1
           fi
       - name: Test wheel
@@ -321,8 +320,8 @@ jobs:
           maturin-version: v1.16.0
           target: ${{ matrix.target }}
           rust-toolchain: 1.98.0
-          manylinux: 217
-          args: --release --locked --out dist --compatibility pypi
+          manylinux: "2_17"
+          args: --release --locked --out dist --interpreter python3.13 --compatibility pypi
       - name: Audit standalone binary wheel tags
         shell: bash
         run: |
@@ -392,9 +391,9 @@ jobs:
           maturin-version: v1.16.0
           target: aarch64-unknown-linux-gnu
           rust-toolchain: 1.98.0
-          manylinux: 217
+          manylinux: "2_17"
           docker-options: -e JEMALLOC_SYS_WITH_LG_PAGE=16
-          args: --release --locked --out dist --compatibility pypi
+          args: --release --locked --out dist --interpreter python3.13 --compatibility pypi
       - name: Audit standalone binary wheel tags
         shell: bash
         run: |
@@ -466,7 +465,7 @@ jobs:
           maturin-version: v1.16.0
           target: ${{ matrix.target }}
           manylinux: musllinux_1_2
-          args: --release --locked --out dist --compatibility pypi
+          args: --release --locked --out dist --interpreter python3.13 --compatibility pypi
           rust-toolchain: 1.98.0
       - name: Audit standalone binary wheel tags
         shell: bash
@@ -540,7 +539,7 @@ jobs:
           maturin-version: v1.16.0
           target: ${{ matrix.platform.target }}
           manylinux: musllinux_1_2
-          args: --release --locked --out dist --compatibility pypi
+          args: --release --locked --out dist --interpreter python3.13 --compatibility pypi
           docker-options: ${{ matrix.platform.maturin_docker_options }}
           rust-toolchain: 1.98.0
       - name: Audit standalone binary wheel tags

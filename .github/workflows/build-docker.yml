@@ -1,13 +1,5 @@
-# Build and publish a Docker image.
-#
-# Assumed to run as a subworkflow of .github/workflows/release.yml; specifically, as a local
-# artifacts job within `cargo-dist`.
-#
-# TODO(charlie): Ideally, the publish step would happen as a publish job within `cargo-dist`, but
-# sharing the built image as an artifact between jobs is challenging.
-name: "Build Docker image"
-
-on:
+name: Build Docker image
+"on":
   workflow_call:
     inputs:
       plan:
@@ -19,20 +11,17 @@ on:
       - Dockerfile
       - pyproject.toml
       - uv.lock
-
+      - companion/**
+      - ruff
+      - .dockerignore
 env:
   ACTIONS_CACHE_MODE: none
-  TY_BASE_IMG: ghcr.io/${{ github.repository_owner }}/ty
-
+  TY_BASE_IMG: ghcr.io/${{ github.repository_owner }}/ty-extended
 permissions:
   contents: read
-  # TODO(zanieb): Ideally, this would be `read` on dry-run but that will require
-  # significant changes to the workflow.
-  packages: write # zizmor: ignore[excessive-permissions]
-
 jobs:
   docker-build:
-    name: Build Docker image (ghcr.io/astral-sh/ty) for ${{ matrix.platform }}
+    name: Build companion Docker image for ${{ matrix.platform }}
     runs-on: ${{ github.repository == 'astral-sh/ty' && 'github-ubuntu-24.04-x86_64-4' || 'ubuntu-latest' }}
     env:
       DOCKERHUB_TOKEN_RO_AVAILABLE: ${{ secrets.DOCKERHUB_TOKEN_RO != '' }}
@@ -45,35 +34,30 @@ jobs:
           - linux/amd64
           - linux/arm64
     steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
           submodules: recursive
           persist-credentials: false
-
-      # Authenticate read-only pulls to avoid Docker Hub's anonymous rate limits.
       - name: Log in to Docker Hub
-        uses: docker/login-action@dbcb813823bdd20940b903addbd779551569679f # v4.6.0
+        uses: docker/login-action@dbcb813823bdd20940b903addbd779551569679f
         if: ${{ env.DOCKERHUB_TOKEN_RO_AVAILABLE == 'true' }}
         with:
           username: astralshbot
           password: ${{ secrets.DOCKERHUB_TOKEN_RO }}
-
-      - uses: docker/setup-buildx-action@37fe631027851001ddb9b187196cc803df7f5f0e # v4.3.0
-
-      - uses: docker/login-action@dbcb813823bdd20940b903addbd779551569679f # v4.6.0
+      - uses: docker/setup-buildx-action@37fe631027851001ddb9b187196cc803df7f5f0e
+      - uses: docker/login-action@dbcb813823bdd20940b903addbd779551569679f
         if: ${{ inputs.plan != '' && !fromJson(inputs.plan).announcement_tag_is_implicit }}
         with:
           registry: ghcr.io
           username: ${{ github.repository_owner }}
           password: ${{ secrets.GITHUB_TOKEN }}
-
       - name: Check tag consistency
         if: ${{ inputs.plan != '' && !fromJson(inputs.plan).announcement_tag_is_implicit }}
         env:
           TAG: ${{ inputs.plan != '' && fromJson(inputs.plan).announcement_tag || 'dry-run' }}
         run: |
           version=$(grep -m 1 "^version = " pyproject.toml | sed -e 's/version = "\(.*\)"/\1/g')
-          if [ "${TAG}" != "${version}" ]; then
+          if [ "${TAG#v}" != "${version}" ]; then
             echo "The input tag does not match the version from pyproject.toml:" >&2
             echo "${TAG}" >&2
             echo "${version}" >&2
@@ -81,49 +65,68 @@ jobs:
           else
             echo "Releasing ${version}"
           fi
-
       - name: Extract metadata (tags, labels) for Docker
         id: meta
-        uses: docker/metadata-action@dc802804100637a589fabce1cb79ff13a1411302 # v6.2.0
+        uses: docker/metadata-action@dc802804100637a589fabce1cb79ff13a1411302
         with:
           images: ${{ env.TY_BASE_IMG }}
-          # Defining this makes sure the org.opencontainers.image.version OCI label becomes the actual release version and not the branch name
           tags: |
             type=raw,value=dry-run,enable=${{ inputs.plan == '' || fromJson(inputs.plan).announcement_tag_is_implicit }}
             type=pep440,pattern={{ version }},value=${{ inputs.plan != '' && fromJson(inputs.plan).announcement_tag || 'dry-run' }},enable=${{ inputs.plan != '' && !fromJson(inputs.plan).announcement_tag_is_implicit }}
-
       - name: Normalize Platform Pair (replace / with -)
         run: |
           platform=${{ matrix.platform }}
           echo "PLATFORM_TUPLE=${platform//\//-}" >> "$GITHUB_ENV"
-
-      # Adapted from https://docs.docker.com/build/ci/github-actions/multi-platform/
       - name: Build and push by digest
         id: build
-        uses: docker/build-push-action@53b7df96c91f9c12dcc8a07bcb9ccacbed38856a # v7.3.0
+        uses: docker/build-push-action@53b7df96c91f9c12dcc8a07bcb9ccacbed38856a
         with:
           context: .
           platforms: ${{ matrix.platform }}
           labels: ${{ steps.meta.outputs.labels }}
-          outputs: type=image,name=${{ env.TY_BASE_IMG }},push-by-digest=true,name-canonical=true,push=${{ inputs.plan != '' && !fromJson(inputs.plan).announcement_tag_is_implicit }}
-
+          outputs:
+            ${{ inputs.plan != '' && !fromJson(inputs.plan).announcement_tag_is_implicit && format('type=image,name={0},push-by-digest=true,name-canonical=true,push=true',
+            env.TY_BASE_IMG) || 'type=docker' }}
+          tags: ${{ env.TY_BASE_IMG }}:ci-${{ env.PLATFORM_TUPLE }}
+      - name: Verify companion and official checker in the image
+        if:
+          ${{ matrix.platform == 'linux/amd64' && (inputs.plan == '' || fromJson(inputs.plan).announcement_tag_is_implicit)
+          }}
+        env:
+          SMOKE_IMAGE: ${{ env.TY_BASE_IMG }}:ci-${{ env.PLATFORM_TUPLE }}
+        run: |
+          docker run --rm "$SMOKE_IMAGE" --version
+          docker run --rm --entrypoint /ty "$SMOKE_IMAGE" --version
+          project="$RUNNER_TEMP/companion-docker-smoke"
+          mkdir -p "$project"
+          cp -R examples/monty/. "$project/"
+          docker run --rm -v "$project:/io:ro" "$SMOKE_IMAGE" check --python-version 3.13 > "$RUNNER_TEMP/docker-positive.log"
+          grep -q Token "$RUNNER_TEMP/docker-positive.log"
+          printf '\nbad: int = token\n' >> "$project/app.py"
+          set +e
+          docker run --rm -v "$project:/io:ro" "$SMOKE_IMAGE" check --python-version 3.13 > "$RUNNER_TEMP/docker-negative.log"
+          status=$?
+          set -e
+          test "$status" -eq 1
+          grep -q invalid-assignment "$RUNNER_TEMP/docker-negative.log"
       - name: Export digests
         env:
           digest: ${{ steps.build.outputs.digest }}
         run: |
           mkdir -p /tmp/digests
           touch "/tmp/digests/${digest#sha256:}"
-
       - name: Upload digests
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
         with:
           name: digests-${{ env.PLATFORM_TUPLE }}
           path: /tmp/digests/*
           if-no-files-found: error
           retention-days: 1
-
+    permissions:
+      contents: read
+      packages: write
   docker-publish:
-    name: Publish Docker image (ghcr.io/astral-sh/ty)
+    name: Publish companion Docker image
     runs-on: ${{ github.repository == 'astral-sh/ty' && 'github-ubuntu-24.04-x86_64-4' || 'ubuntu-latest' }}
     environment:
       name: release
@@ -136,42 +139,32 @@ jobs:
       packages: write
     steps:
       - name: Download digests
-        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c
         with:
           path: /tmp/digests
           pattern: digests-*
           merge-multiple: true
-
-      - uses: docker/setup-buildx-action@37fe631027851001ddb9b187196cc803df7f5f0e # v4.3.0
-
+      - uses: docker/setup-buildx-action@37fe631027851001ddb9b187196cc803df7f5f0e
       - name: Extract metadata (tags, labels) for Docker
         id: meta
-        uses: docker/metadata-action@dc802804100637a589fabce1cb79ff13a1411302 # v6.2.0
+        uses: docker/metadata-action@dc802804100637a589fabce1cb79ff13a1411302
         with:
           images: ${{ env.TY_BASE_IMG }}
-          # Order is on purpose such that the label org.opencontainers.image.version has the first pattern with the full version
           tags: |
             type=pep440,pattern={{ version }},value=${{ fromJson(inputs.plan).announcement_tag }}
             type=pep440,pattern={{ major }}.{{ minor }},value=${{ fromJson(inputs.plan).announcement_tag }}
-
-      - uses: docker/login-action@dbcb813823bdd20940b903addbd779551569679f # v4.6.0
+      - uses: docker/login-action@dbcb813823bdd20940b903addbd779551569679f
         with:
           registry: ghcr.io
           username: ${{ github.repository_owner }}
           password: ${{ secrets.GITHUB_TOKEN }}
-
-      # Adapted from https://docs.docker.com/build/ci/github-actions/multi-platform/
       - name: Create manifest list and push
         working-directory: /tmp/digests
-        # The jq command expands the docker/metadata json "tags" array entry to `-t tag1 -t tag2 ...` for each tag in the array
-        # The printf will expand the base image with the `<TY_BASE_IMG>@sha256:<sha256> ...` for each sha256 in the directory
-        # The final command becomes `docker buildx imagetools create -t tag1 -t tag2 ... <TY_BASE_IMG>@sha256:<sha256_1> <TY_BASE_IMG>@sha256:<sha256_2> ...`
         run: |
           # shellcheck disable=SC2046
           docker buildx imagetools create \
             $(jq -cr '.tags | map("-t " + .) | join(" ")' <<< "$DOCKER_METADATA_OUTPUT_JSON") \
             $(printf "${TY_BASE_IMG}@sha256:%s " *)
-
       - name: Export manifest digest
         id: manifest-digest
         env:
@@ -185,13 +178,11 @@ jobs:
             | jq -r '.digest'
           )"
           echo "digest=${digest}" >> "$GITHUB_OUTPUT"
-
       - name: Generate artifact attestation
-        uses: actions/attest@1e69f48acb82d1966a394da916b4c1698aa569d6 # v4.2.2
+        uses: actions/attest@1e69f48acb82d1966a394da916b4c1698aa569d6
         with:
           subject-name: ${{ env.TY_BASE_IMG }}
           subject-digest: ${{ steps.manifest-digest.outputs.digest }}
-
   docker-publish-extra:
     name: Publish additional Docker image based on ${{ matrix.image-mapping }}
     runs-on: ${{ github.repository == 'astral-sh/ty' && 'github-ubuntu-24.04-x86_64-4' || 'ubuntu-latest' }}
@@ -207,28 +198,22 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        # Mapping of base image followed by a comma followed by one or more base tags (comma separated)
-        # Note, org.opencontainers.image.version label will use the first base tag (use the most specific tag first)
         image-mapping:
           - alpine:3.23,alpine3.23,alpine
           - debian:trixie-slim,trixie-slim,debian-slim
           - buildpack-deps:trixie,trixie,debian
     steps:
-      # Authenticate read-only pulls to avoid Docker Hub's anonymous rate limits.
       - name: Log in to Docker Hub
-        uses: docker/login-action@dbcb813823bdd20940b903addbd779551569679f # v4.6.0
+        uses: docker/login-action@dbcb813823bdd20940b903addbd779551569679f
         with:
           username: astralshbot
           password: ${{ secrets.DOCKERHUB_TOKEN_RO }}
-
-      - uses: docker/setup-buildx-action@37fe631027851001ddb9b187196cc803df7f5f0e # v4.3.0
-
-      - uses: docker/login-action@dbcb813823bdd20940b903addbd779551569679f # v4.6.0
+      - uses: docker/setup-buildx-action@37fe631027851001ddb9b187196cc803df7f5f0e
+      - uses: docker/login-action@dbcb813823bdd20940b903addbd779551569679f
         with:
           registry: ghcr.io
           username: ${{ github.repository_owner }}
           password: ${{ secrets.GITHUB_TOKEN }}
-
       - name: Generate Dynamic Dockerfile Tags
         shell: bash
         env:
@@ -242,9 +227,9 @@ jobs:
           # Generate Dockerfile content
           cat <<EOF > Dockerfile
           FROM ${BASE_IMAGE}
-          COPY --from=${TY_BASE_IMG}:latest /ty /usr/local/bin/ty
+          COPY --from=${TY_BASE_IMG}:latest /ty /ty-extended /usr/local/bin/
           ENTRYPOINT []
-          CMD ["/usr/local/bin/ty"]
+          CMD ["/usr/local/bin/ty-extended"]
           EOF
 
           # Initialize a variable to store all tag docker metadata patterns
@@ -270,11 +255,9 @@ jobs:
             echo -e "${TAG_PATTERNS}"
             echo EOF
           } >> "$GITHUB_ENV"
-
       - name: Extract metadata (tags, labels) for Docker
         id: meta
-        uses: docker/metadata-action@dc802804100637a589fabce1cb79ff13a1411302 # v6.2.0
-        # ghcr.io prefers index level annotations
+        uses: docker/metadata-action@dc802804100637a589fabce1cb79ff13a1411302
         env:
           DOCKER_METADATA_ANNOTATIONS_LEVELS: index
         with:
@@ -283,32 +266,23 @@ jobs:
             latest=false
           tags: |
             ${{ env.TAG_PATTERNS }}
-
       - name: Build and push
         id: build-and-push
-        uses: docker/build-push-action@53b7df96c91f9c12dcc8a07bcb9ccacbed38856a # v7.3.0
+        uses: docker/build-push-action@53b7df96c91f9c12dcc8a07bcb9ccacbed38856a
         with:
           context: .
           platforms: linux/amd64,linux/arm64
-          # We do not really need to cache here as the Dockerfile is tiny
-          #cache-from: type=gha,scope=ty-${{ env.IMAGE_REF }}
-          #cache-to: type=gha,mode=min,scope=ty-${{ env.IMAGE_REF }}
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
           annotations: ${{ steps.meta.outputs.annotations }}
-
       - name: Generate artifact attestation
-        uses: actions/attest@1e69f48acb82d1966a394da916b4c1698aa569d6 # v4.2.2
+        uses: actions/attest@1e69f48acb82d1966a394da916b4c1698aa569d6
         with:
           subject-name: ${{ env.TY_BASE_IMG }}
           subject-digest: ${{ steps.build-and-push.outputs.digest }}
-
-  # This is effectively a duplicate of `docker-publish` to make https://github.com/astral-sh/ty/pkgs/container/ty
-  # show the ty base image first since GitHub always shows the last updated image digests
-  # This works by annotating the original digests (previously non-annotated) which triggers an update to ghcr.io
   docker-republish:
-    name: Annotate Docker image (ghcr.io/astral-sh/ty)
+    name: Annotate companion Docker image
     runs-on: ${{ github.repository == 'astral-sh/ty' && 'github-ubuntu-24.04-x86_64-4' || 'ubuntu-latest' }}
     environment:
       name: release
@@ -321,39 +295,29 @@ jobs:
       packages: write
     steps:
       - name: Download digests
-        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c
         with:
           path: /tmp/digests
           pattern: digests-*
           merge-multiple: true
-
-      - uses: docker/setup-buildx-action@37fe631027851001ddb9b187196cc803df7f5f0e # v4.3.0
-
+      - uses: docker/setup-buildx-action@37fe631027851001ddb9b187196cc803df7f5f0e
       - name: Extract metadata (tags, labels) for Docker
         id: meta
-        uses: docker/metadata-action@dc802804100637a589fabce1cb79ff13a1411302 # v6.2.0
+        uses: docker/metadata-action@dc802804100637a589fabce1cb79ff13a1411302
         env:
           DOCKER_METADATA_ANNOTATIONS_LEVELS: index
         with:
           images: ${{ env.TY_BASE_IMG }}
-          # Order is on purpose such that the label org.opencontainers.image.version has the first pattern with the full version
           tags: |
             type=pep440,pattern={{ version }},value=${{ fromJson(inputs.plan).announcement_tag }}
             type=pep440,pattern={{ major }}.{{ minor }},value=${{ fromJson(inputs.plan).announcement_tag }}
-
-      - uses: docker/login-action@dbcb813823bdd20940b903addbd779551569679f # v4.6.0
+      - uses: docker/login-action@dbcb813823bdd20940b903addbd779551569679f
         with:
           registry: ghcr.io
           username: ${{ github.repository_owner }}
           password: ${{ secrets.GITHUB_TOKEN }}
-
-      # Adapted from https://docs.docker.com/build/ci/github-actions/multi-platform/
       - name: Create manifest list and push
         working-directory: /tmp/digests
-        # The readarray part is used to make sure the quoting and special characters are preserved on expansion (e.g. spaces)
-        # The jq command expands the docker/metadata json "tags" array entry to `-t tag1 -t tag2 ...` for each tag in the array
-        # The printf will expand the base image with the `<TY_BASE_IMG>@sha256:<sha256> ...` for each sha256 in the directory
-        # The final command becomes `docker buildx imagetools create -t tag1 -t tag2 ... <TY_BASE_IMG>@sha256:<sha256_1> <TY_BASE_IMG>@sha256:<sha256_2> ...`
         run: |
           readarray -t lines <<< "$DOCKER_METADATA_OUTPUT_ANNOTATIONS"; annotations=(); for line in "${lines[@]}"; do annotations+=(--annotation "$line"); done
 
@@ -362,7 +326,6 @@ jobs:
             "${annotations[@]}" \
             $(jq -cr '.tags | map("-t " + .) | join(" ")' <<< "$DOCKER_METADATA_OUTPUT_JSON") \
             $(printf "${TY_BASE_IMG}@sha256:%s " *)
-
       - name: Export manifest digest
         id: manifest-digest
         env:
@@ -376,9 +339,8 @@ jobs:
             | jq -r '.digest'
           )"
           echo "digest=${digest}" >> "$GITHUB_OUTPUT"
-
       - name: Generate artifact attestation
-        uses: actions/attest@1e69f48acb82d1966a394da916b4c1698aa569d6 # v4.2.2
+        uses: actions/attest@1e69f48acb82d1966a394da916b4c1698aa569d6
         with:
           subject-name: ${{ env.TY_BASE_IMG }}
           subject-digest: ${{ steps.manifest-digest.outputs.digest }}

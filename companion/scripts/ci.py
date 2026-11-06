@@ -115,7 +115,14 @@ def reference_checker(output: Path, env: dict[str, str]) -> Path:
         ],
         env={**env, "CARGO_TARGET_DIR": str(target)},
     )
-    return target / "release/ty.exe"
+    reference = output / "reference" / "ty.exe"
+    reference.parent.mkdir()
+    shutil.copy2(target / "release/ty.exe", reference)
+    run(
+        ["cargo", "+1.98.0", "clean", "--manifest-path", "ruff/Cargo.toml"],
+        env={**env, "CARGO_TARGET_DIR": str(target)},
+    )
+    return reference
 
 
 def django_gate(output: Path, binary: Path, env: dict[str, str], gates: Gates) -> None:

@@ -3,14 +3,26 @@
 The [2026-11-06 ledger](evidence/compatibility-2026-11-06.json) records the same
 companion's 288 generic gates across official ty 0.0.84–0.0.99, 32 complete Django
 checker-version runs, and 42 Django/Python matrix runs including Django 6.1.3.
-The current regression suite passes 186 Rust tests and 42 Python harness tests.
+The current regression suite passes 187 Rust tests and 42 Python harness tests.
 Clean installed-wheel and source-archive rebuilds pass SDK, CLI and editor smoke
 checks with official ty 0.0.99 installed separately. The complete Django editor
 corpus also passes on ty 0.0.99, including unsaved edits and exact source spans.
 
 This is local qualification. Cross-platform CI, published-package acceptance and
-the dense-model stress gate must pass before release. The ledger identifies the
+the complete final artifact version sweep must pass before release. The ledger identifies the
 measured executable; packaging and performance changes receive separate checks.
+
+The [installed-wheel scalability regression](evidence/scalability-2026-11-06.json)
+checks 7,082 Python files and 2,501 related Django models with positive and negative
+typing controls. Both pass in approximately 57 seconds, with sampled combined
+companion/checker RSS below 2.8 GiB. Each run preserves source bytes and enforces
+180-second/3-GiB test limits. These measurements qualify this generated workload;
+they are not a global memory limit or proof about an unavailable private project.
+
+Repeated descriptor shapes now share method bodies while retaining distinct
+field subclasses and class-access identities. Diagnostic names are shared for
+the immutable revision, and diagnostics are partitioned by source path once,
+removing repeated per-file scans and name-map copies.
 
 ## Earlier optimization evidence
 

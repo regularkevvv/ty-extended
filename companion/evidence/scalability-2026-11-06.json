@@ -1,0 +1,96 @@
+{
+  "passed": true,
+  "complete": true,
+  "files": 7082,
+  "models": 2501,
+  "companion": {
+    "path": "/private/tmp/ty-companion-release-audit/installed-companion/bin/ty-extended",
+    "sha256": "c52a7b8d06b1d294ee9377b31d938c943aff01f7861895f3d4f8205aaf3f7969",
+    "version": "ty-extended 0.87.0"
+  },
+  "official": {
+    "path": "/private/tmp/ty-companion-release-audit/official099/bin/ty",
+    "sha256": "34688103a83c3123d9eb0f4d85cdaa15f06ff16ce422d8a42616e6b1c885200e",
+    "version": "ty 0.0.99 (9b48f40c9 2026-11-06)"
+  },
+  "timeout_seconds": 180,
+  "max_memory_mib": 3072,
+  "runs": [
+    {
+      "command": [
+        "/private/tmp/ty-companion-release-audit/installed-companion/bin/ty-extended",
+        "check",
+        "--ty",
+        "/private/tmp/ty-companion-release-audit/official099/bin/ty",
+        "--color",
+        "never",
+        "--no-progress",
+        "--output-format",
+        "gitlab",
+        "/private/tmp/ty-companion-release-audit/scalability-final-wheel/project"
+      ],
+      "exit": 0,
+      "seconds": 57.67938962497283,
+      "peak_process_tree_rss_kib": 2836704,
+      "peak_processes_pid_ppid_rss_kib": [
+        [
+          16254,
+          16212,
+          1596480
+        ],
+        [
+          17246,
+          16254,
+          1240224
+        ]
+      ],
+      "stopped": null,
+      "source_sha256": "a7814d2ef6e3ef1e9bb68710af8fb16b4f5916ac522fa32a3d493ed1143ebe0f",
+      "source_preserved": true,
+      "stdout": "/private/tmp/ty-companion-release-audit/scalability-final-wheel/positive/stdout.json",
+      "stderr": "/private/tmp/ty-companion-release-audit/scalability-final-wheel/positive/stderr.log",
+      "negative": false,
+      "diagnostic_codes": [],
+      "passed": true
+    },
+    {
+      "command": [
+        "/private/tmp/ty-companion-release-audit/installed-companion/bin/ty-extended",
+        "check",
+        "--ty",
+        "/private/tmp/ty-companion-release-audit/official099/bin/ty",
+        "--color",
+        "never",
+        "--no-progress",
+        "--output-format",
+        "gitlab",
+        "/private/tmp/ty-companion-release-audit/scalability-final-wheel/project"
+      ],
+      "exit": 1,
+      "seconds": 57.055517833912745,
+      "peak_process_tree_rss_kib": 2809488,
+      "peak_processes_pid_ppid_rss_kib": [
+        [
+          18049,
+          16212,
+          1698912
+        ],
+        [
+          19388,
+          18049,
+          1110576
+        ]
+      ],
+      "stopped": null,
+      "source_sha256": "b0e1ee4ad108e006bd4411dc15b657093a0578b3490744f07fa5f727021b3bc8",
+      "source_preserved": true,
+      "stdout": "/private/tmp/ty-companion-release-audit/scalability-final-wheel/negative/stdout.json",
+      "stderr": "/private/tmp/ty-companion-release-audit/scalability-final-wheel/negative/stderr.log",
+      "negative": true,
+      "diagnostic_codes": [
+        "invalid-assignment"
+      ],
+      "passed": true
+    }
+  ]
+}

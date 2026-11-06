@@ -130,7 +130,9 @@ jobs:
           CARGO_DIST_VERSION: 0.31.0
           CARGO_DIST_CHECKSUM: cd355dab0b4c02fb59038fef87655550021d07f45f1d82f947a34ef98560abb8
       - name: Verify reproducible release workflow
-        run: uv run --only-group docs --locked python scripts/generate_release_workflow.py --check --dist "$HOME/.cargo/bin/dist"
+        run: |
+          uv run --only-group docs --locked python scripts/test_generate_release_workflow.py
+          uv run --only-group docs --locked python scripts/generate_release_workflow.py --check --dist "$HOME/.cargo/bin/dist"
       - name: Check for uncommitted changes
         run: |
           if [[ -n "$(git status --porcelain)" ]]; then
