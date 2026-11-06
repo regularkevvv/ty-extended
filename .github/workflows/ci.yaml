@@ -227,7 +227,7 @@ jobs:
           repetitions = root / "repetitions"
           repetitions.mkdir()
           results = []
-          for index in range(20):
+          for index in range(100):
               output = Path(os.environ["RUNNER_TEMP"]) / "companion-ci-evidence/sdk_overlay_inventory"
               command = [sys.executable, "companion/scripts/sdk_overlay_inventory.py", "--companion", str(companion), "--official", find_ty_bin(), "--fork", str(reference), "--output", str(output)]
               process = subprocess.run(command, capture_output=True, text=True)
@@ -239,7 +239,10 @@ jobs:
               if output.exists():
                   shutil.rmtree(output)
               print("full inventory", index, process.returncode, flush=True)
+              if process.returncode:
+                  break
           (repetitions / "results.json").write_text(json.dumps(results, indent=2))
+          assert len(results) == 100 and all(row["exit"] == 0 for row in results), results
           PY
       - name: Preserve probe results
         if: always()
