@@ -24,7 +24,7 @@ Configure your editor to start `ty-extended server` for plugin support.
 ## Official ty compatibility
 
 Companion versions are independent of official ty starting with 0.87.0. The same
-0.88.0 companion binary has passed the complete compatibility suite against **every ty release
+0.89.0 companion CI binary has passed the complete compatibility suite against **every ty release
 from 0.0.84 through 0.0.99** (16 releases), including Django CLI and editor checks.
 Updating official ty within a compatible group does not require a companion release.
 See [the compatibility policy and evidence](docs/compatibility.md) for the tested
