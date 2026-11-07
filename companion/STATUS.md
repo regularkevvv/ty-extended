@@ -8,7 +8,7 @@ CI wheel separately checks the largest project in 6.282 seconds versus MyPy's
 preservation. The largest case remains close to parity. The failed public 0.88
 follow-up is retained in the same receipt.
 
-The final-version suite passes **207 Rust unit tests**, **50 Python harness tests**,
+The final-version suite passes **208 Rust unit tests**, **50 Python harness tests**,
 and **83 original SDK/host tests** with embedded Monty 1.5.0. The SDK suite retains
 one explicitly excluded WASM doctest. Django's independent native baseline
 matches 152 responses in CPython and standalone Monty; embedded replay also checks

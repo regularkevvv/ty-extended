@@ -570,8 +570,16 @@ impl ProjectChecker {
                         "disk projection outside generated workspace: {}",
                         path.display()
                     );
-                    let revision =
-                        advance_disk_revision(path, previous.map(|(_, revision)| *revision))?;
+                    let revision = if previous.is_none() && self.documents.contains_key(path) {
+                        // The initial projection can replace a discovery-stage
+                        // memory overlay. Closing it below changes ty's source
+                        // revision independently of disk timestamps; a retained
+                        // query buffer receives a forced didChange instead.
+                        // Avoid touching thousands of already synchronized files.
+                        path.metadata()?.modified()?
+                    } else {
+                        advance_disk_revision(path, previous.map(|(_, revision)| *revision))?
+                    };
                     changes.push(
                         json!({"uri":file_uri(path)?,"type":if previous.is_some() {2} else {1}}),
                     );
@@ -588,8 +596,13 @@ impl ProjectChecker {
             .keys()
             .filter(|path| !current.contains_key(*path))
         {
-            changes.push(json!({"uri":file_uri(path)?,"type":if path.exists() {2} else {3}}));
-            structural_changes.insert(path.clone());
+            let exists = path.exists();
+            changes.push(json!({"uri":file_uri(path)?,"type":if exists {2} else {3}}));
+            // A preflight can leave the queried source map while remaining on
+            // disk. Its directory inventory has not changed.
+            if !exists {
+                structural_changes.insert(path.clone());
+            }
         }
         let mut directories = BTreeSet::new();
         for path in &structural_changes {
@@ -1441,6 +1454,14 @@ mod tests {
         );
         assert_eq!(peer.metadata()?.modified()?, file_revision);
         assert_eq!(root.metadata()?.modified()?, directory_revision);
+        sources.remove(&peer);
+        assert!(
+            server
+                .check_files(&sources, std::slice::from_ref(&consumer))?
+                .is_empty()
+        );
+        assert_eq!(root.metadata()?.modified()?, directory_revision);
+        sources.insert(peer.clone(), "value: str\n".into());
 
         sources.insert(
             consumer.clone(),
@@ -1504,6 +1525,45 @@ mod tests {
         assert_eq!(original.metadata()?.modified()?, revision);
         assert_eq!(fs::read_to_string(&original)?, "value: int = 1\n");
         drop(server);
+        fs::remove_dir_all(base)?;
+        Ok(())
+    }
+
+    #[test]
+    fn initial_disk_projection_invalidates_open_and_closed_imports() -> Result<()> {
+        let binary = std::env::var("TY_COMPANION_TEST_OFFICIAL")?;
+        let base =
+            std::env::temp_dir().join(format!("ty-initial-projection-{}", std::process::id()));
+        for open_peer in [false, true] {
+            let root = base.join(if open_peer { "open" } else { "closed" });
+            fs::create_dir_all(&root)?;
+            let config = root.join("ty.toml");
+            fs::write(&config, "[environment]\npython-version = '3.13'\n")?;
+            let peer = root.join("peer.py");
+            let consumer = root.join("consumer.py");
+            fs::write(&peer, "value: int\n")?;
+            let revision = peer.metadata()?.modified()?;
+            let mut sources = BTreeMap::from([(
+                consumer.clone(),
+                "from peer import value\nanswer: str = value\n".into(),
+            )]);
+            fs::write(&consumer, &sources[&consumer])?;
+            if open_peer {
+                sources.insert(peer.clone(), "value: int\n".into());
+            }
+            let mut server = ProjectChecker::new(Path::new(&binary), &root, &config)?;
+            let old = server.check(&sources, std::slice::from_ref(&consumer))?;
+            assert_eq!(old.len(), 1, "{old:#?}");
+            sources.insert(peer.clone(), "value: str\n".into());
+            fs::write(&peer, &sources[&peer])?;
+            set_disk_modified(&peer, revision)?;
+            let current = server.check_files(&sources, std::slice::from_ref(&consumer))?;
+            assert!(current.is_empty(), "open_peer={open_peer}: {current:#?}");
+            assert!(!server.documents.contains_key(&peer));
+            if open_peer {
+                assert_eq!(peer.metadata()?.modified()?, revision);
+            }
+        }
         fs::remove_dir_all(base)?;
         Ok(())
     }

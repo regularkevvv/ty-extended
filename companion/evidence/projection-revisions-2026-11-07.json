@@ -1,7 +1,7 @@
 {
   "scope": "Deterministic filesystem revision regression and local validation before final cross-platform and public artifact acceptance.",
   "base_commit": "fcf5ec8483e14bf030239f46db1d1c1fe9e963ce",
-  "checker_source_sha256": "088bd532bdd361d1192e230500127f5d4a57e86b03498cb4db90cff0a7f4ffb7",
+  "checker_source_sha256": "20e377f3fda72e8a5cf5570fd2fe7dbec188bf84cb492892667a2fe331de0e4c",
   "original_ci_failure": "https://github.com/regularkevvv/ty-extended/actions/runs/42411111929/job/128519253043",
   "red": [
     {
@@ -16,6 +16,267 @@
     }
   ],
   "green": {
+    "forced_collision_test": "checker::tests::disk_projection_invalidates_closed_imports_and_inventory",
+    "external_source_test": "checker::tests::disk_revisions_preserve_external_sources",
+    "initial_open_and_closed_import_test": "checker::tests::initial_disk_projection_invalidates_open_and_closed_imports",
+    "repeated": {
+      "passed": true,
+      "runs": [
+        {
+          "version": "0.0.84",
+          "iteration": 0,
+          "tests": 3,
+          "passed": true
+        },
+        {
+          "version": "0.0.84",
+          "iteration": 1,
+          "tests": 3,
+          "passed": true
+        },
+        {
+          "version": "0.0.84",
+          "iteration": 2,
+          "tests": 3,
+          "passed": true
+        },
+        {
+          "version": "0.0.84",
+          "iteration": 3,
+          "tests": 3,
+          "passed": true
+        },
+        {
+          "version": "0.0.84",
+          "iteration": 4,
+          "tests": 3,
+          "passed": true
+        },
+        {
+          "version": "0.0.84",
+          "iteration": 5,
+          "tests": 3,
+          "passed": true
+        },
+        {
+          "version": "0.0.84",
+          "iteration": 6,
+          "tests": 3,
+          "passed": true
+        },
+        {
+          "version": "0.0.84",
+          "iteration": 7,
+          "tests": 3,
+          "passed": true
+        },
+        {
+          "version": "0.0.84",
+          "iteration": 8,
+          "tests": 3,
+          "passed": true
+        },
+        {
+          "version": "0.0.84",
+          "iteration": 9,
+          "tests": 3,
+          "passed": true
+        },
+        {
+          "version": "0.0.84",
+          "iteration": 10,
+          "tests": 3,
+          "passed": true
+        },
+        {
+          "version": "0.0.84",
+          "iteration": 11,
+          "tests": 3,
+          "passed": true
+        },
+        {
+          "version": "0.0.84",
+          "iteration": 12,
+          "tests": 3,
+          "passed": true
+        },
+        {
+          "version": "0.0.84",
+          "iteration": 13,
+          "tests": 3,
+          "passed": true
+        },
+        {
+          "version": "0.0.84",
+          "iteration": 14,
+          "tests": 3,
+          "passed": true
+        },
+        {
+          "version": "0.0.84",
+          "iteration": 15,
+          "tests": 3,
+          "passed": true
+        },
+        {
+          "version": "0.0.84",
+          "iteration": 16,
+          "tests": 3,
+          "passed": true
+        },
+        {
+          "version": "0.0.84",
+          "iteration": 17,
+          "tests": 3,
+          "passed": true
+        },
+        {
+          "version": "0.0.84",
+          "iteration": 18,
+          "tests": 3,
+          "passed": true
+        },
+        {
+          "version": "0.0.84",
+          "iteration": 19,
+          "tests": 3,
+          "passed": true
+        },
+        {
+          "version": "0.0.99",
+          "iteration": 0,
+          "tests": 3,
+          "passed": true
+        },
+        {
+          "version": "0.0.99",
+          "iteration": 1,
+          "tests": 3,
+          "passed": true
+        },
+        {
+          "version": "0.0.99",
+          "iteration": 2,
+          "tests": 3,
+          "passed": true
+        },
+        {
+          "version": "0.0.99",
+          "iteration": 3,
+          "tests": 3,
+          "passed": true
+        },
+        {
+          "version": "0.0.99",
+          "iteration": 4,
+          "tests": 3,
+          "passed": true
+        },
+        {
+          "version": "0.0.99",
+          "iteration": 5,
+          "tests": 3,
+          "passed": true
+        },
+        {
+          "version": "0.0.99",
+          "iteration": 6,
+          "tests": 3,
+          "passed": true
+        },
+        {
+          "version": "0.0.99",
+          "iteration": 7,
+          "tests": 3,
+          "passed": true
+        },
+        {
+          "version": "0.0.99",
+          "iteration": 8,
+          "tests": 3,
+          "passed": true
+        },
+        {
+          "version": "0.0.99",
+          "iteration": 9,
+          "tests": 3,
+          "passed": true
+        },
+        {
+          "version": "0.0.99",
+          "iteration": 10,
+          "tests": 3,
+          "passed": true
+        },
+        {
+          "version": "0.0.99",
+          "iteration": 11,
+          "tests": 3,
+          "passed": true
+        },
+        {
+          "version": "0.0.99",
+          "iteration": 12,
+          "tests": 3,
+          "passed": true
+        },
+        {
+          "version": "0.0.99",
+          "iteration": 13,
+          "tests": 3,
+          "passed": true
+        },
+        {
+          "version": "0.0.99",
+          "iteration": 14,
+          "tests": 3,
+          "passed": true
+        },
+        {
+          "version": "0.0.99",
+          "iteration": 15,
+          "tests": 3,
+          "passed": true
+        },
+        {
+          "version": "0.0.99",
+          "iteration": 16,
+          "tests": 3,
+          "passed": true
+        },
+        {
+          "version": "0.0.99",
+          "iteration": 17,
+          "tests": 3,
+          "passed": true
+        },
+        {
+          "version": "0.0.99",
+          "iteration": 18,
+          "tests": 3,
+          "passed": true
+        },
+        {
+          "version": "0.0.99",
+          "iteration": 19,
+          "tests": 3,
+          "passed": true
+        }
+      ],
+      "test_binary_sha256": "c2f5a9ce9d7b7ecaffdd8cc6b69b2ae2c3e8ca3c3affbeb1cbcb649988278d76"
+    },
+    "regular_units": 205,
+    "live_units": 3,
+    "integration_units": 7,
+    "strict_clippy": true,
+    "logs": {
+      "projection-revision2-units.log": "b7ff592658e37610b8e3bb71095005082a3be58617efaae2268934ff044b6410",
+      "projection-revision2-live-units.log": "410f41cbcb1a3e6b5b22aa66e1e957f8c8e417f4a61fa93f9440a200108539c5",
+      "projection-revision2-clippy.log": "19181436738b475d939ed61dd386d9adb2a7ab19797af9709c5820faee9948ff",
+      "projection-revision2-clean.log": "3c88021e2be6402fcce13bae180ef44d6302c0bee233e1f5add00891de775fc5"
+    }
+  },
+  "initial_fix_green": {
     "forced_collision_test": "checker::tests::disk_projection_invalidates_closed_imports_and_inventory",
     "external_source_test": "checker::tests::disk_revisions_preserve_external_sources",
     "repeated": {
@@ -234,5 +495,78 @@
       "projection-revision-live-units.log": "b05ca81ad57275529f7da357d93956aeb44ef1aaafb9392b2fe3d05d431aed7a",
       "projection-revision-clippy.log": "c17c52e5f102bf64f8b175b32205a82a054efcb7d20c72bbeafb22bb512b0be9"
     }
+  },
+  "initial_fix_source": "9c10137c2682bc2b8e894732f3f0f758a79e3c5c",
+  "initial_fix_performance": {
+    "passed": false,
+    "complete": true,
+    "scope": "Corrected optimized local companion 0.89.0 with final Django 0.7 candidate wheel; five rotated fresh-process samples per workload.",
+    "runs": [
+      {
+        "name": "stress",
+        "exit": 1,
+        "passed": true,
+        "performance_target_met": false,
+        "median_seconds": {
+          "companion": 6.9326740419492126,
+          "bare-ty": 0.28146249998826534,
+          "mypy": 6.640598958008923
+        },
+        "report_sha256": "9035fc8edc87444d3efc0412198813b16450fb400587f2a48512fc9a3058d259",
+        "project_archive_sha256": "6dc2b9e1be166e223765affbc484b11202f59aa10e131a0e6586de0fed68e98e"
+      },
+      {
+        "name": "small",
+        "exit": 0,
+        "passed": true,
+        "performance_target_met": true,
+        "median_seconds": {
+          "companion": 0.5279505830258131,
+          "bare-ty": 0.0620896250475198,
+          "mypy": 1.5551552079850808
+        },
+        "report_sha256": "f62e9a8eb9fdf9378bcec81a529b7a45182bf0f5c07d96ebe88d16b25e69f5dd",
+        "project_archive_sha256": "6240aefa40b9247c79c1e03f1076df567b5d3c152814a822e507287b24d6631b"
+      },
+      {
+        "name": "distributed",
+        "exit": 0,
+        "passed": true,
+        "performance_target_met": true,
+        "median_seconds": {
+          "companion": 1.2694410410476848,
+          "bare-ty": 0.08215854200534523,
+          "mypy": 2.1272215000353754
+        },
+        "report_sha256": "a9db8afa9fbe87091c4a6a846babbdbb71da9b0cf1eff1f27ecad7f62f4cd2fa",
+        "project_archive_sha256": "f3820e08e29f987ae793f6661b5ffbca99a5058326190dc3fa9e29fd38b0e5d0"
+      },
+      {
+        "name": "many-files",
+        "exit": 0,
+        "passed": true,
+        "performance_target_met": true,
+        "median_seconds": {
+          "companion": 3.866462584002875,
+          "bare-ty": 0.1716734580695629,
+          "mypy": 4.2683076249668375
+        },
+        "report_sha256": "3c2ad56d3d1cf3a8e97d12991c2bd873ea1ecb28055de7a95727c4c6e7254974",
+        "project_archive_sha256": "c6cd551ae1331907f46b62bac4b351c50d0287404960ac7d8c39443d193b6f56"
+      },
+      {
+        "name": "split-models",
+        "exit": 0,
+        "passed": true,
+        "performance_target_met": true,
+        "median_seconds": {
+          "companion": 6.253766875015572,
+          "bare-ty": 0.19958233297802508,
+          "mypy": 6.610026250011288
+        },
+        "report_sha256": "2fac05c31dd5b708119590155fc868492d433865be4044a844a9d70aa9bdb3ba",
+        "project_archive_sha256": "d9c432556ce987129cbab50f99b5de76a211b746fd94d11420d6d7c05a70a190"
+      }
+    ]
   }
 }
