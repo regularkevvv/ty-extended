@@ -4,7 +4,7 @@
 import typing
 
 if typing.TYPE_CHECKING:
-    from ty.plugin_sdk import (
+    from ty_extended.plugin_sdk import (
         Request,
         Response,
         capabilities,

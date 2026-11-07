@@ -1,4 +1,8 @@
-"""Verify installed-checker compiled WASM cache hits, invalidation and fallback."""
+"""Verify installed-checker compiled WASM cache hits, invalidation and fallback.
+
+Historical tool for checker-based releases through 0.86.x. The current
+companion release pipeline does not use this script.
+"""
 
 # /// script
 # requires-python = ">=3.10"

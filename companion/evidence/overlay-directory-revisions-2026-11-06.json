@@ -1,0 +1,289 @@
+{
+  "scope": "Additional native artifact and filesystem revision qualification; production inputs unchanged from the full Monty 1.5 sweep.",
+  "production_tree_sha256": "bfbead7502cbcd263c3fbd927229f96b2d228a7775585ea78786e6b57506165e",
+  "ci_native_source": "65bc918f22686c4cdcddb225e80a22fd9da05ee8",
+  "native_build_run": "https://github.com/regularkevvv/ty-extended/actions/runs/42306468448",
+  "windows_probe_run": "https://github.com/regularkevvv/ty-extended/actions/runs/42314225529",
+  "probes": [
+    {
+      "platform": "macOS",
+      "report_sha256": "b8981a5a2f9a803aa9a97c509be2fc50b0c80b981356e5acaf13555c6bf16f60",
+      "binaries": {
+        "companion": "60e54546513e253a712f797fa2cb12660b3bad3637c25547c856718b7dab2c62",
+        "official": "d1243725b609983ce07e2ec407f12a4d3234a215bc302fad54febd1129a7b62e",
+        "fork": "bc96b7a1749b0ca352ed6f83a21beb064a18efba86a094692863df455a114468"
+      },
+      "runs": [
+        {
+          "backend": "companion",
+          "mode": "normal",
+          "passed": true,
+          "removed_directory_ns": 1794008984349331933,
+          "restored_directory_ns": 1794008984400563152,
+          "restoration_pulls": 1
+        },
+        {
+          "backend": "companion",
+          "mode": "same-directory-time",
+          "passed": true,
+          "removed_directory_ns": 1794008986460768769,
+          "restored_directory_ns": 1794008986460768769,
+          "restoration_pulls": 1
+        },
+        {
+          "backend": "companion",
+          "mode": "distinct-directory-time",
+          "passed": true,
+          "removed_directory_ns": 1794008986757178470,
+          "restored_directory_ns": 1794008988757178470,
+          "restoration_pulls": 1
+        },
+        {
+          "backend": "fork",
+          "mode": "normal",
+          "passed": true,
+          "removed_directory_ns": 1794008985172748818,
+          "restored_directory_ns": 1794008985174234864,
+          "restoration_pulls": 1
+        },
+        {
+          "backend": "fork",
+          "mode": "same-directory-time",
+          "passed": false,
+          "removed_directory_ns": 1794008987180940757,
+          "restored_directory_ns": 1794008987180940757,
+          "restoration_pulls": 20
+        },
+        {
+          "backend": "fork",
+          "mode": "distinct-directory-time",
+          "passed": true,
+          "removed_directory_ns": 1794008991494352617,
+          "restored_directory_ns": 1794008993494352617,
+          "restoration_pulls": 1
+        }
+      ]
+    },
+    {
+      "platform": "macOS",
+      "report_sha256": "a39a907cb3afed3aea604cf00f8a4090efded03595ac8061b495485924dad992",
+      "binaries": {
+        "companion": "60e54546513e253a712f797fa2cb12660b3bad3637c25547c856718b7dab2c62",
+        "official": "34688103a83c3123d9eb0f4d85cdaa15f06ff16ce422d8a42616e6b1c885200e",
+        "fork": "bc96b7a1749b0ca352ed6f83a21beb064a18efba86a094692863df455a114468"
+      },
+      "runs": [
+        {
+          "backend": "companion",
+          "mode": "normal",
+          "passed": true,
+          "removed_directory_ns": 1794008600005350091,
+          "restored_directory_ns": 1794008600052868800,
+          "restoration_pulls": 1
+        },
+        {
+          "backend": "companion",
+          "mode": "same-directory-time",
+          "passed": true,
+          "removed_directory_ns": 1794008602114064795,
+          "restored_directory_ns": 1794008602114064795,
+          "restoration_pulls": 1
+        },
+        {
+          "backend": "companion",
+          "mode": "distinct-directory-time",
+          "passed": true,
+          "removed_directory_ns": 1794008602377456783,
+          "restored_directory_ns": 1794008604377456783,
+          "restoration_pulls": 1
+        },
+        {
+          "backend": "fork",
+          "mode": "normal",
+          "passed": true,
+          "removed_directory_ns": 1794008600779883930,
+          "restored_directory_ns": 1794008600781353392,
+          "restoration_pulls": 1
+        },
+        {
+          "backend": "fork",
+          "mode": "same-directory-time",
+          "passed": false,
+          "removed_directory_ns": 1794008602788350036,
+          "restored_directory_ns": 1794008602788350036,
+          "restoration_pulls": 20
+        },
+        {
+          "backend": "fork",
+          "mode": "distinct-directory-time",
+          "passed": true,
+          "removed_directory_ns": 1794008607157527877,
+          "restored_directory_ns": 1794008609157527877,
+          "restoration_pulls": 1
+        }
+      ]
+    },
+    {
+      "platform": "Windows",
+      "report_sha256": "f719c49290421efa544ca8e542b3bc00ee312c774b958c5fc241ca455d4f341e",
+      "binaries": {
+        "companion": "72619469250e6a2fe1dd8bdc6484ff53ef4ab7f7a187de82d74aa4a70c67227d",
+        "official": "191052d4af12a507e468307e94d6ad112507e3fde13f57116a6eb501317071ea",
+        "fork": "99b70123db931c005ec8bad14188840b74cc6f48fe02781fd4ffcdc022f7177c"
+      },
+      "runs": [
+        {
+          "backend": "companion",
+          "mode": "normal",
+          "passed": true,
+          "removed_directory_ns": 1794008925397373400,
+          "restored_directory_ns": 1794008925498614000,
+          "restoration_pulls": 1
+        },
+        {
+          "backend": "companion",
+          "mode": "same-directory-time",
+          "passed": true,
+          "removed_directory_ns": 1794008927616869400,
+          "restored_directory_ns": 1794008927616869400,
+          "restoration_pulls": 1
+        },
+        {
+          "backend": "companion",
+          "mode": "distinct-directory-time",
+          "passed": true,
+          "removed_directory_ns": 1794008928169118200,
+          "restored_directory_ns": 1794008930169118200,
+          "restoration_pulls": 1
+        },
+        {
+          "backend": "fork",
+          "mode": "normal",
+          "passed": true,
+          "removed_directory_ns": 1794008926942513400,
+          "restored_directory_ns": 1794008926943841200,
+          "restoration_pulls": 1
+        },
+        {
+          "backend": "fork",
+          "mode": "same-directory-time",
+          "passed": false,
+          "removed_directory_ns": 1794008928958047500,
+          "restored_directory_ns": 1794008928958047500,
+          "restoration_pulls": 21
+        },
+        {
+          "backend": "fork",
+          "mode": "distinct-directory-time",
+          "passed": true,
+          "removed_directory_ns": 1794008933319405400,
+          "restored_directory_ns": 1794008935319405400,
+          "restoration_pulls": 1
+        }
+      ]
+    },
+    {
+      "platform": "Windows",
+      "report_sha256": "2caf1be4bdf16d49e9d93634f3d75e5fc39d02babb87371af55e18e416f687d5",
+      "binaries": {
+        "companion": "72619469250e6a2fe1dd8bdc6484ff53ef4ab7f7a187de82d74aa4a70c67227d",
+        "official": "68a68da441e903bb1330ba769fd47278d60fe12fb7fb9b00220b87a516ebb35b",
+        "fork": "99b70123db931c005ec8bad14188840b74cc6f48fe02781fd4ffcdc022f7177c"
+      },
+      "runs": [
+        {
+          "backend": "companion",
+          "mode": "normal",
+          "passed": true,
+          "removed_directory_ns": 1794008918969380000,
+          "restored_directory_ns": 1794008919065406500,
+          "restoration_pulls": 1
+        },
+        {
+          "backend": "companion",
+          "mode": "same-directory-time",
+          "passed": true,
+          "removed_directory_ns": 1794008921179849600,
+          "restored_directory_ns": 1794008921179849600,
+          "restoration_pulls": 1
+        },
+        {
+          "backend": "companion",
+          "mode": "distinct-directory-time",
+          "passed": true,
+          "removed_directory_ns": 1794008921694774300,
+          "restored_directory_ns": 1794008923694774300,
+          "restoration_pulls": 1
+        },
+        {
+          "backend": "fork",
+          "mode": "normal",
+          "passed": true,
+          "removed_directory_ns": 1794008920457469600,
+          "restored_directory_ns": 1794008920459483600,
+          "restoration_pulls": 1
+        },
+        {
+          "backend": "fork",
+          "mode": "same-directory-time",
+          "passed": false,
+          "removed_directory_ns": 1794008922472590800,
+          "restored_directory_ns": 1794008922472590800,
+          "restoration_pulls": 21
+        },
+        {
+          "backend": "fork",
+          "mode": "distinct-directory-time",
+          "passed": true,
+          "removed_directory_ns": 1794008926833153000,
+          "restored_directory_ns": 1794008928833153000,
+          "restoration_pulls": 1
+        }
+      ]
+    }
+  ],
+  "fixture_changes": [
+    "Distinct parent directory revisions for structural mutations in legacy comparison fixture",
+    "Bounded restoration polling retains all pulls and requires empty diagnostics",
+    "Definition URIs verified against exact physical source before Windows casing normalization"
+  ],
+  "ci_wheel_compatibility": {
+    "report_sha256": "0d65930072c12759fb70afc419bd867a6ef71ed7fff8e726a2879cfaa4717582",
+    "summary": {
+      "passed": true,
+      "complete": true,
+      "requested_versions": [
+        "0.0.99",
+        "0.0.84",
+        "0.0.85",
+        "0.0.86",
+        "0.0.87",
+        "0.0.88",
+        "0.0.89",
+        "0.0.90",
+        "0.0.91",
+        "0.0.92",
+        "0.0.93",
+        "0.0.94",
+        "0.0.95",
+        "0.0.96",
+        "0.0.97",
+        "0.0.98"
+      ],
+      "runner_sha256": "5d85cf88167a41785c45e913940a821dac06c3a1a4a358531cd39b0de93a4d1e",
+      "companion": {
+        "path": "/private/tmp/ty-companion-release-audit/installed-ci-wheel/bin/ty-extended",
+        "sha256": "60e54546513e253a712f797fa2cb12660b3bad3637c25547c856718b7dab2c62",
+        "version": "ty-extended 0.87.0"
+      },
+      "fork": {
+        "path": "/private/tmp/ty-companion-release-audit/fork086/bin/ty",
+        "sha256": "bc96b7a1749b0ca352ed6f83a21beb064a18efba86a094692863df455a114468",
+        "version": "ty 0.86.0 (4429f1e88 2026-10-10)"
+      },
+      "source": "65bc918f22686c4cdcddb225e80a22fd9da05ee8",
+      "diff_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "platform": "darwin"
+    }
+  }
+}

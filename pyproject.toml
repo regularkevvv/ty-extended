@@ -1,9 +1,9 @@
 [project]
 name = "ty-extended"
-version = "0.86.0"
+version = "0.87.0"
 requires-python = ">=3.8"
-dependencies = []
-description = "A ty fork with semantic plugin support."
+dependencies = ["ty>=0.0.84,<0.1"]
+description = "A Monty plugin companion for unchanged official ty."
 readme = "README.md"
 authors = [{ name = "Kevin Castro", email = "hola@kev.pe" }]
 keywords = ["ty", "typing", "analysis", "check", "plugins"]
@@ -30,24 +30,18 @@ classifiers = [
     "Topic :: Software Development :: Libraries :: Python Modules",
 ]
 
-[project.optional-dependencies]
-monty-workers = [
-    # Worker wheels are available only on these Python versions and platforms.
-    "pydantic-monty-runtime>=1.0.0,<2; python_version>='3.10' and ((sys_platform=='linux' and (platform_machine=='x86_64' or platform_machine=='aarch64' or platform_machine=='ppc64le' or platform_machine=='s390x')) or (sys_platform=='darwin' and (platform_machine=='x86_64' or platform_machine=='arm64')) or (sys_platform=='win32' and (platform_machine=='AMD64' or platform_machine=='x86' or platform_machine=='x86_64')))",
-]
-
 [project.urls]
 Repository = "https://github.com/regularkevvv/ty-extended"
 Changelog = "https://github.com/regularkevvv/ty-extended/blob/main/CHANGELOG.md"
 Releases = "https://github.com/regularkevvv/ty-extended/releases"
 
 [build-system]
-requires = ["maturin>=1.0,<2.0"]
-build-backend = "maturin"
+requires = ["maturin==1.16.0", "wheel>=0.45.1,<0.47"]
+build-backend = "build_backend"
+backend-path = ["."]
 
 [dependency-groups]
 dev = ["prek==0.5.2"]
-release = ["rooster"]
 docs = [
     "mdformat>=0.7.17",
     "mdformat-admon>=2.0.2",
@@ -68,14 +62,13 @@ exclude-newer = "P7D"
 cache-keys = [
     { file = "pyproject.toml" },
     { file = "dist-workspace.toml" },
-    { file = "ruff/Cargo.toml" },
-    { file = "ruff/Cargo.lock" },
+    { file = "companion/Cargo.toml" },
+    { file = "companion/Cargo.lock" },
     { file = "**/*.rs" },
 ]
 
 [tool.uv.dependency-groups]
 dev = {requires-python = ">=3.12"}
-release = {requires-python = ">=3.12"}
 docs = {requires-python = ">=3.12"}
 docker = {requires-python = ">=3.12"}
 
@@ -113,46 +106,17 @@ required-imports = ["from __future__ import annotations"]
 
 [tool.maturin]
 bindings = "bin"
-manifest-path = "ruff/crates/ty/Cargo.toml"
-module-name = "ty"
+manifest-path = "companion/Cargo.toml"
+module-name = "ty_extended"
 python-source = "python"
 strip = true
-features = ["plugins-wasm", "plugins-monty", "plugins-monty-pool"]
 include = [
+    { path = "build_backend.py", format = "sdist" },
+    { path = "ruff/ty.schema.json", format = "sdist" },
+    { path = "rust-toolchain.toml", format = "sdist" },
+    { path = "companion/rust-toolchain.toml", format = "sdist" },
     { path = "dist-workspace.toml", format = [
         "sdist",
     ] },
     { path = "LICENSE", format = "sdist" },
 ]
-
-[tool.rooster]
-version-files = [
-    "pyproject.toml",
-    { path = "dist-workspace.toml", field = "workspace.version", format = "cargo" },
-    "docs/installation.md",
-]
-submodules = ["ruff"]
-require-labels = [{ submodule = "ruff", labels = ["ty"] }]
-ignore-labels = [
-    "internal",
-    "testing",
-    "ci",
-    "playground",
-    "documentation",
-    "release",
-]
-changelog-ignore-authors = ["github-actions"]
-major-labels = [] # We do not use the major version number yet
-minor-labels = [] # We do not use the minor version number yet
-version-format = "cargo"
-trim-title-prefixes = ["[ty]"]
-
-[tool.rooster.section-labels]
-"Breaking changes" = ["breaking"]
-"Preview features" = ["preview"]
-"Bug fixes" = ["bug"]
-"LSP server" = ["server"]
-"CLI" = ["cli"]
-"Diagnostic improvements" = ["diagnostics"]
-"Configuration changes" = ["configuration"]
-"Memory usage improvements" = ["memory"]

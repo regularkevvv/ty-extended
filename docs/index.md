@@ -1,105 +1,27 @@
 # ty-extended
 
-A fork of ty with semantic plugin support for library-aware type checking.
-
-<p align="center">
-  <img alt="Shows a bar chart with benchmark results." width="500px" src="./assets/ty-benchmark-cli-light.svg#only-light">
-</p>
-
-<p align="center">
-  <img alt="Shows a bar chart with benchmark results." width="500px" src="./assets/ty-benchmark-cli.svg#only-dark">
-</p>
-
-<p align="center">
-  <i>Type checking the <a href="https://github.com/home-assistant/core">home-assistant</a> project without caching (<a href="https://github.com/astral-sh/ty/blob/main/BENCHMARKS.md">benchmarks</a>).</i>
-</p>
-
-ty-extended builds on [Astral's ty](https://github.com/astral-sh/ty) and keeps the command-line
-executable named `ty`. The fork adds a semantic plugin protocol, a Rust SDK for plugin
-authors, and live WASM plugin execution.
-
-## What Ships
-
-ty-extended publishes three public distributions:
-
-| Distribution                                                        | Purpose                                                                               |
-| ------------------------------------------------------------------- | ------------------------------------------------------------------------------------- |
-| [`ty-extended`](https://pypi.org/project/ty-extended/)              | The `ty` checker and language server with semantic plugin loading and WASM execution. |
-| [`ty_plugin_sdk`](https://crates.io/crates/ty_plugin_sdk)           | The author-facing Rust API for manifests, hooks, patches, dispatch, and WASM exports. |
-| [`ty_plugin_protocol`](https://crates.io/crates/ty_plugin_protocol) | The serialized contract shared by plugins and the host.                               |
-
-Most plugin authors only depend on `ty_plugin_sdk`, which re-exports the protocol types.
-
-## Plugin Showcase
-
-[`django-ty`](https://github.com/regularkevvv/django-ty) is a published plugin for Django ORM
-semantics. Install it from [PyPI](https://pypi.org/project/django-ty/) and enable installed-plugin
-discovery to use it with ty-extended.
-
-## Highlights
-
-- 10x - 100x faster than mypy and Pyright
-- Comprehensive [diagnostics](./features/diagnostics.md) with rich contextual information
-- Configurable [rule levels](./rules.md), [per-file overrides](./reference/configuration.md#overrides), [suppression comments](./suppression.md), and first-class project support
-- Designed for adoption, with support for [redeclarations](./features/type-system.md#redeclarations) and partially typed code
-- [Language server](./features/language-server.md) with code navigation, completions, code actions, auto-import, inlay hints, on-hover help, etc.
-- Fine-grained [incremental analysis](./features/language-server.md#fine-grained-incrementality) designed for fast updates when editing files in an IDE
-- Editor integrations for [VS Code](./editors.md#vs-code), [PyCharm](./editors.md#pycharm), [Neovim](./editors.md#neovim) and more
-- Advanced typing features like first-class [intersection types](./features/type-system.md#intersection-types), advanced [type narrowing](./features/type-system.md#top-and-bottom-materializations), and
-    [sophisticated reachability analysis](./features/type-system.md#reachability-based-on-types)
-
-## Getting started
-
-Run ty with [uvx](https://docs.astral.sh/uv/guides/tools/#running-tools) to get started quickly:
+A Monty plugin companion for unchanged official ty. The companion owns plugin
+execution and translates source locations; Astral's checker owns type checking.
 
 ```shell
-uvx --from ty-extended ty check
+uv add --dev ty-extended
+uv run ty-extended check
 ```
 
-ty will check all Python files in the working directory or project by default.
+`ty-extended server` starts the plugin-aware editor server. `ty` remains Astral's
+command. The companion has independent releases and supports groups of ty versions;
+see [compatibility](compatibility.md) for the tested range and upgrade policy.
 
-See the [type checking](./type-checking.md) documentation for more details.
+- [Installation and migration](installation.md)
+- [Editor setup](editors.md)
+- [Monty plugin authoring](plugin-authoring.md)
+- [Runtime behavior](plugin-runtime.md)
+- [FAQ](faq.md)
+- [Publishing](release-publishing.md)
 
-## Installation
+[`django-ty`](https://github.com/regularkevvv/django-ty) supplies Django ORM semantics.
+For Python typing features and core checker behavior, use
+[Astral's documentation](https://docs.astral.sh/ty/).
 
-To install ty-extended, see the [installation](./installation.md) documentation.
-
-To add the ty language server to your editor, see the [editor integration](./editors.md) guide.
-
-## Plugin SDK
-
-Build a plugin with the public Rust crates:
-
-- [`ty_plugin_sdk`](https://crates.io/crates/ty_plugin_sdk), the authoring SDK and WASM export
-    surface.
-- [`ty_plugin_protocol`](https://crates.io/crates/ty_plugin_protocol), the stable wire protocol for
-    host and tooling authors.
-
-Start with [plugin authoring](./plugin-authoring.md) to build a plugin crate, then use
-[plugin runtime](./plugin-runtime.md) for the host-side execution model.
-
-Enable an installed plugin package in `ty.toml` with:
-
-```toml
-[plugins]
-auto-discover = true
-```
-
-Explicit WASM artifacts can instead be configured with `plugins.enabled = true`, an
-`[[plugins.plugin]]` entry, and `trusted = true`.
-
-## FAQ
-
-The [ty-extended FAQ](./faq.md) covers the fork, plugin configuration, trust, and compatibility.
-For checker and typing questions shared with ty, use [ty's upstream typing
-FAQ](https://docs.astral.sh/ty/reference/typing-faq/).
-
-## Playground
-
-ty has an [online playground](https://play.ty.dev) you can use to try it out on snippets or small
-projects.
-
-!!! tip
-
-    The playground is a great way to share snippets with other people, e.g., when sharing a bug
-    report.
+Versions through 0.86.x shipped a modified checker. Their WASM and worker runtimes
+are described in the [historical guide](history/0.86/plugin-runtime.md).

@@ -1,0 +1,131 @@
+{
+  "env": {
+    "ACTIONS_CACHE_MODE": "none",
+    "CARGO_DIST_VERSION": "0.31.0",
+    "CARGO_DIST_CHECKSUM": "cd355dab0b4c02fb59038fef87655550021d07f45f1d82f947a34ef98560abb8"
+  },
+  "release-gate": {
+    "name": "release-gate",
+    "if": "${{ github.event_name == 'workflow_dispatch' && inputs.tag != 'dry-run' }}",
+    "runs-on": "${{ github.repository == 'astral-sh/ty' && 'github-ubuntu-24.04-x86_64-4' || 'ubuntu-latest' }}",
+    "environment": {
+      "name": "release-gate",
+      "deployment": true
+    },
+    "steps": [
+      {
+        "run": "echo \"Release approved\""
+      }
+    ]
+  },
+  "generate-checksum-manifest": {
+    "needs": [
+      "plan",
+      "custom-build-binaries"
+    ],
+    "if": "${{ needs.plan.outputs.publishing == 'true' || fromJson(needs.plan.outputs.val).ci.github.pr_run_mode == 'upload' || inputs.tag == 'dry-run' }}",
+    "permissions": {
+      "contents": "read"
+    },
+    "runs-on": "ubuntu-latest",
+    "steps": [
+      {
+        "uses": "actions/checkout@0c366fd6a839edf440554fa01a7085ccba70ac98",
+        "with": {
+          "persist-credentials": false,
+          "submodules": "recursive"
+        }
+      },
+      {
+        "name": "Install uv",
+        "uses": "astral-sh/setup-uv@c18668ad3cf93ea998bef934396af7bb5c839dc7",
+        "with": {
+          "version": "0.12.23",
+          "checksum": "9167d72b3319674b6303c4cbe071854bba13ebdf3d76b1a7cbdc175471fb66d6",
+          "enable-cache": false
+        }
+      },
+      {
+        "name": "Install cached dist",
+        "uses": "actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c",
+        "with": {
+          "name": "cargo-dist-cache",
+          "path": "~/.cargo/bin/"
+        }
+      },
+      {
+        "run": "chmod +x ~/.cargo/bin/dist"
+      },
+      {
+        "name": "Fetch local artifacts",
+        "uses": "actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c",
+        "with": {
+          "pattern": "artifacts-*",
+          "path": "target/distrib/",
+          "merge-multiple": true
+        }
+      },
+      {
+        "name": "Generate local dist manifest",
+        "shell": "bash",
+        "env": {
+          "DIST_TAG_FLAG": "${{ needs.plan.outputs.tag-flag }}"
+        },
+        "run": "dist_args=()\nif [[ -n \"$DIST_TAG_FLAG\" ]]; then\n  dist_args+=(\"$DIST_TAG_FLAG\")\nfi\ntemp_manifest=target/local-dist-manifest.json.tmp\ndist manifest \"${dist_args[@]}\" --output-format=json --no-local-paths --artifacts=local > \"$temp_manifest\"\nuv run --locked scripts/patch-dist-manifest-checksums.py --manifest \"$temp_manifest\" --artifacts-dir target/distrib\nmv \"$temp_manifest\" target/distrib/local-dist-manifest.json\n"
+      },
+      {
+        "name": "Upload synthesized local dist manifest",
+        "uses": "actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f",
+        "with": {
+          "name": "artifacts-build-local-manifest",
+          "path": "target/distrib/local-dist-manifest.json"
+        }
+      }
+    ]
+  },
+  "steps": {
+    "plan/install-dist": {
+      "name": "Install dist",
+      "shell": "bash",
+      "run": "curl --proto '=https' --tlsv1.2 -LsSf \"https://github.com/axodotdev/cargo-dist/releases/download/v${CARGO_DIST_VERSION}/cargo-dist-x86_64-unknown-linux-gnu.tar.xz\" -o /tmp/cargo-dist.tar.xz\necho \"${CARGO_DIST_CHECKSUM}  /tmp/cargo-dist.tar.xz\" | sha256sum -c -\ntar -xf /tmp/cargo-dist.tar.xz -C /tmp\ninstall /tmp/cargo-dist-x86_64-unknown-linux-gnu/dist ~/.cargo/bin/\n"
+    },
+    "plan/plan": {
+      "id": "plan",
+      "shell": "bash",
+      "run": "dist_args=(plan)\nif [[ -n \"$DIST_TAG_FLAG\" ]]; then\n  dist_args=(host --steps=create \"$DIST_TAG_FLAG\")\nfi\ndist \"${dist_args[@]}\" --output-format=json > plan-dist-manifest.json\necho \"dist ran successfully\"\ncat plan-dist-manifest.json\necho \"manifest=$(jq -c \".\" plan-dist-manifest.json)\" >> \"$GITHUB_OUTPUT\"\n",
+      "env": {
+        "DIST_TAG_FLAG": "${{ inputs.tag && inputs.tag != 'dry-run' && format('--tag={0}', inputs.tag) || '' }}"
+      }
+    },
+    "build-global-artifacts/cargo-dist": {
+      "id": "cargo-dist",
+      "shell": "bash",
+      "run": "dist_args=()\nif [[ -n \"$DIST_TAG_FLAG\" ]]; then\n  dist_args+=(\"$DIST_TAG_FLAG\")\nfi\ndist build \"${dist_args[@]}\" --output-format=json \"--artifacts=global\" > dist-manifest.json\necho \"dist ran successfully\"\n\n# Parse out what we just built and upload it to scratch storage\necho \"paths<<EOF\" >> \"$GITHUB_OUTPUT\"\njq --raw-output \".upload_files[]\" dist-manifest.json >> \"$GITHUB_OUTPUT\"\necho \"EOF\" >> \"$GITHUB_OUTPUT\"\n\ncp dist-manifest.json \"$BUILD_MANIFEST_NAME\"\n",
+      "env": {
+        "DIST_TAG_FLAG": "${{ needs.plan.outputs.tag-flag }}"
+      }
+    },
+    "host/host": {
+      "id": "host",
+      "shell": "bash",
+      "run": "dist_args=()\nif [[ -n \"$DIST_TAG_FLAG\" ]]; then\n  dist_args+=(\"$DIST_TAG_FLAG\")\nfi\ndist host \"${dist_args[@]}\" --steps=upload --steps=release --output-format=json > dist-manifest.json\necho \"artifacts uploaded and released successfully\"\ncat dist-manifest.json\necho \"manifest=$(jq -c \".\" dist-manifest.json)\" >> \"$GITHUB_OUTPUT\"\n",
+      "env": {
+        "DIST_TAG_FLAG": "${{ needs.plan.outputs.tag-flag }}"
+      }
+    },
+    "announce/release": {
+      "name": "Create GitHub Release",
+      "env": {
+        "GH_TOKEN": "${{ secrets.GITHUB_TOKEN }}",
+        "PRERELEASE_FLAG": "${{ fromJson(needs.host.outputs.val).announcement_is_prerelease && '--prerelease' || '' }}",
+        "ANNOUNCEMENT_TITLE": "${{ fromJson(needs.host.outputs.val).announcement_title }}",
+        "ANNOUNCEMENT_BODY": "${{ fromJson(needs.host.outputs.val).announcement_github_body }}",
+        "RELEASE_COMMIT": "${{ github.sha }}",
+        "NEEDS_PLAN_OUTPUTS_TAG": "${{ needs.plan.outputs.tag }}"
+      },
+      "run": "printf '%s\\n' \"$ANNOUNCEMENT_BODY\" > \"$RUNNER_TEMP/notes.txt\"\nrelease_args=(release create \"$NEEDS_PLAN_OUTPUTS_TAG\" --repo \"$GITHUB_REPOSITORY\" --target \"$RELEASE_COMMIT\" --title \"$ANNOUNCEMENT_TITLE\" --notes-file \"$RUNNER_TEMP/notes.txt\")\nif [[ \"$PRERELEASE_FLAG\" == '--prerelease' ]]; then release_args+=(--prerelease); fi\ngh \"${release_args[@]}\" artifacts/*\n"
+    }
+  },
+  "host-condition": "${{ always() && needs.plan.result == 'success' && needs.plan.outputs.publishing == 'true' && needs.generate-checksum-manifest.result == 'success' && (needs.build-global-artifacts.result == 'skipped' || needs.build-global-artifacts.result == 'success') && (needs.custom-build-binaries.result == 'skipped' || needs.custom-build-binaries.result == 'success') && needs.release-gate.result == 'success' }}",
+  "announce-condition": "${{ always() && needs.host.result == 'success' && needs.release-gate.result == 'success' && (needs.custom-publish-pypi.result == 'skipped' || needs.custom-publish-pypi.result == 'success') }}"
+}

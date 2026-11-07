@@ -1,74 +1,41 @@
 # FAQ
 
-This page covers ty-extended and its semantic plugin system. For typing behavior inherited from
-ty, see [ty's upstream typing FAQ](https://docs.astral.sh/ty/reference/typing-faq/).
+## How does ty-extended relate to ty?
 
-## What Is the Difference Between ty and ty-extended?
+The current package is a companion, not a fork. It runs semantic plugins in Monty
+and asks a separately installed official ty to check analysis copies. It installs
+`ty-extended` and `ty_extended`; official ty owns `ty` and its Python module.
 
-ty-extended is a fork of ty that adds a public semantic plugin protocol, Rust and Python authoring
-SDKs, plugin configuration, and sandboxed execution through Wasmtime and Monty. It otherwise keeps
-the `ty` command, language server, project discovery, configuration, and type-system behavior.
+## Must the companion release with every ty update?
 
-## Why Is the Executable Still Named `ty`?
+No. Companion, plugin protocol and official checker versions have separate roles.
+A companion release supports a group of ty releases. Tests qualify upgrades through
+real CLI and editor sessions. Upstream changes to configuration, diagnostics, type
+queries or LSP behavior can require a compatibility fix; see [the policy](compatibility.md).
 
-The Python distribution is named `ty-extended`, but it installs the `ty` executable so existing
-commands and editor configuration continue to work.
+## How do I enable plugins?
 
-## What Does ty-extended Publish?
+Set `plugins.auto-discover = true` to discover installed plugins. Explicit artifact
+registrations also require `plugins.enabled = true` and `trusted = true`.
+See [runtime configuration](plugin-runtime.md#configuration-and-trust).
 
-There are three public distributions:
+## Which runtimes are included?
 
-- `ty-extended` on PyPI: the checker and language server with plugin hosting;
-- `ty_plugin_sdk` on crates.io: the API Rust plugin authors use;
-- `ty_plugin_protocol` on crates.io: the serialized data contract used by the SDK and host.
+Embedded Monty. It does not need an external interpreter, `pydantic-monty`, a worker
+package or a compilation step for the plugin. WASM and external workers belong to
+[historical releases](history/0.86/plugin-runtime.md).
 
-The Rust SDK re-exports the protocol crate, so Rust plugin implementations normally depend only on
-`ty_plugin_sdk`. Python plugins use the `ty.plugin_sdk` API included in the `ty-extended` wheel.
+## Can plugins access checker internals or execute my project?
 
-## Are Plugins Enabled by Default?
+Plugins receive serialized summaries and return declarative patches. They do not
+receive checker-owned objects or direct filesystem, environment or network access.
+The companion summarizes project Python statically. Read the
+[runtime boundaries](plugin-runtime.md) before treating the embedded interpreter
+as a process sandbox.
 
-No. Installed plugin packages require `plugins.auto-discover = true`. Manually configured
-artifacts require `plugins.enabled = true`, an explicit plugin entry, and `trusted = true`.
+## Where do I report an issue?
 
-## Which Plugin Runtimes Are Supported?
-
-Rust plugins compile to WebAssembly and run in Wasmtime. Python plugins run in Monty's restricted
-interpreter without a compilation step. Both runtimes use the same serialized protocol and
-manifest format, and neither exposes checker internals, filesystem, environment, clock, or network
-access. Execution limits and crash protections differ between the runtimes; see the
-[runtime safety model](./plugin-runtime.md#safety-model).
-
-## Do Python Plugins Need an External Monty Runtime?
-
-No. The standard `ty-extended` package includes embedded Monty and runs Python plugins in-process
-by default. It does not require the `pydantic-monty` Python client library or an external worker.
-
-For a separate process and hard timeouts, install `ty-extended[monty-workers]` and select
-`plugins.monty-mode = "worker"`. The extra supplies `pydantic-monty-runtime` on supported platforms;
-installing it alone does not change the default mode. See
-[Monty worker processes](./plugin-runtime.md#monty-worker-processes) for installation and platform
-details.
-
-## What Can a Plugin Change?
-
-A plugin declares claims and capabilities in its manifest. At claimed semantic points it can
-return declarative patches for class shapes, members, call signatures, return types, project
-indexes, dependencies, mutation diagnostics, or stub overlays. The host validates those patches
-before applying them.
-
-## Can a Plugin Access ty Internals?
-
-No. Plugins receive serialized summaries and return protocol patches. They do not receive Salsa
-keys, AST ids, checker-owned type objects, or direct access to `ty_python_semantic`.
-
-## Is the Plugin API Stable?
-
-The protocol and SDK are pre-1.0 and versioned independently from ty-extended. Hosts negotiate the
-protocol version declared by a plugin and reject incompatible manifests. Plugin packages
-should also declare a narrow ty compatibility range and test against every supported release.
-
-## Where Should I Report a Problem?
-
-Report plugin loading, Wasmtime or Monty runtime, SDK, protocol, or ty-extended packaging issues in the
-[ty-extended issue tracker](https://github.com/regularkevvv/ty-extended/issues). Check the
-[upstream ty documentation](https://docs.astral.sh/ty/) for behavior shared unchanged with ty.
+Report companion, SDK, plugin loading and packaging problems in the
+[ty-extended tracker](https://github.com/regularkevvv/ty-extended/issues). Report a
+plugin's library behavior in that plugin's repository. Include both `ty --version`
+and `ty-extended --version`, the configuration and a small reproduction.

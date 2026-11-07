@@ -1,10 +1,10 @@
 #!/usr/bin/env sh
 #
-# Generate files and copy documentation from Ruff.
+# Generate companion documentation, toolchain and SDK files.
 #
 # Usage
 #
-#   ./scripts/autogenerate-files.sh
+#   ./scripts/autogenerate_files.sh
 #
 set -eu
 
@@ -12,21 +12,11 @@ script_root="$(realpath "$(dirname "$0")")"
 project_root="$(dirname "$script_root")"
 cd "$project_root"
 
-echo "Copying Rust toolchain from Ruff..."
-cp ./ruff/rust-toolchain.toml ./rust-toolchain.toml
+echo "Copying the companion toolchain..."
+cp ./companion/rust-toolchain.toml ./rust-toolchain.toml
 
-echo "Updating lockfile..."
+echo "Updating the Python lockfile..."
 uv lock --no-locked --default-index https://pypi.org/simple
 
-echo "Copying reference documentation from Ruff..."
-cp ./ruff/crates/ty/docs/cli.md ./docs/reference/
-cp ./ruff/crates/ty/docs/configuration.md ./docs/reference/
-cp ./ruff/crates/ty/docs/rules.md ./docs/reference/
-cp ./ruff/crates/ty/docs/environment.md ./docs/reference/
-
-echo "Documentation has been copied from Ruff submodule"
-
-echo "Copying the plugin SDK into the ty wheel..."
-cp ./ruff/crates/ty_plugin_host/python/ty_plugin_sdk.py ./python/ty/plugin_sdk.py
-
-echo "Plugin SDK has been copied from Ruff submodule"
+echo "Generating companion documentation and Python SDK..."
+python3 scripts/generate_companion_files.py

@@ -1,0 +1,6 @@
+.git
+.venv
+**/target
+**/__pycache__
+companion/evidence
+ruff/.git

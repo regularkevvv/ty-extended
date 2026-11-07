@@ -4,7 +4,7 @@ version = "0.0.0"
 requires-python = ">=3.12"
 
 [tool.ty.src]
-# Plugin artifacts use the ambient `ty.plugin_sdk` prelude, which only exists
+# Plugin artifacts use the ambient `ty_extended.plugin_sdk` prelude, which only exists
 # inside the Monty sandbox — they are not checkable project code.
 exclude = [".ty"]
 

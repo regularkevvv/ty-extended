@@ -1,10 +1,24 @@
 # Changelog
 
-ty-extended tracks upstream [ty](https://github.com/astral-sh/ty) and adds semantic plugin
-support on top of it. This file records what the fork changes.
+Current releases are Monty companions for unchanged official ty. Companion versions
+are independent of official ty starting with 0.87.0. Earlier releases shipped a
+modified checker; their published notes remain unchanged.
 
 Entries below 0.74.0 say "extension" where they now would say "plugin"; the term was settled on
 "plugin" in 0.74.0 and released notes are left as they were published.
+
+## 0.87.0
+
+- Embed Monty 1.5.0 and run the unchanged SDK/runtime tests with the companion's selected runtime.
+- Replace the modified checker distribution with a Rust companion and separately installed official ty.
+- Install the `ty-extended` command and `ty_extended` SDK package alongside official `ty`.
+- Run semantic plugins in embedded Monty, with CLI, watch/fix/ignore, persistent editor sessions and notebook source mapping.
+- Support groups of official ty versions with independent companion releases and recorded compatibility checks.
+- Handle upstream diagnostic renames, plugin stub precedence, contextual dictionary inference and notebook coordinate differences.
+- Preserve original source diagnostics and reject unsafe mapped edits. Cover the inherited nested-class checker regression while retaining unrelated override errors.
+- Remove WASM and worker execution from the current distribution; preserve historical guides and provide migration instructions.
+- Share descriptor method bodies and diagnostic name maps, and partition diagnostics once per project. Add a bounded 7,082-file/2,501-model regression with positive and negative controls.
+- Build companion wheels, native archives and Docker binaries without compiling ty's semantic engine. Docker includes a separately verified official checker.
 
 ## 0.86.0
 

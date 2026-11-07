@@ -1,0 +1,43 @@
+{
+  "reference_version": "0.84.4",
+  "reference_sha256": "c4e72725d6430f0e5ff66d83645fa2eced640d12f96d5e6bd7fb78f4e41390d3",
+  "django_source_commit": "9996e1b3e8a0656c988fd2b8deedb726b12fe575",
+  "source_sha256": {
+    "cases/extras.py": "474ec1fa17e78402239d463b3a8c0e198d492cc7d9b2931f589d23fffeece68c",
+    "cases/managers_querysets.py": "e6ccfb3abf052047ca0c2324ecb712c2cc079266b7cc666c1bc9bb1b905cb8ec",
+    "cases/relations.py": "89528d22b8a807489f6ffa0005df10d4d7a4ed38ba4640ebf4393028c18a9de6",
+    "cases/__init__.py": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "cases/model_state.py": "7b4c5db653a4833ca41115bdd6509581d8dd71456bc0a35c178da54458643d60",
+    "cases/lookups.py": "c2260630ade36dd48496484ab00f1d4b94063f321c6fe0f4e6bae9285ae9437c",
+    "cases/apps.py": "c8e01361b177583e50eb2d31ca7a3bfdac4840763206f929ac8262c91585aec1",
+    "cases/settings_metadata.py": "22f24d6cb8414f7d31e2e4f579ff7e568942ecd3623815750815b759e48b93d0",
+    "cases/models_fields.py": "44ae3e547d45ed201e40b1dfaa67c7e3417d834620601e97ce228c8624135ff2",
+    "conformance_project/__init__.py": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "conformance_project/settings.py": "f2ec95e0e7254ef25d573108bb090dbce3842a156e99ad81c0eb7930215f4a71",
+    "conformance_models/signals.py": "15da249d35ffa7ca57cd2ab09dc4f1349074943f052e558fc4fcd3ebf7a1c567",
+    "conformance_models/models.py": "49355e71575a0e7884a20ec8db9eb03d9d79cd40a185acbdbac2b808ac8aa4a5",
+    "conformance_models/__init__.py": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "conformance_models/apps.py": "64e4197dad2efa5813f4ff2995c32fc56ff71240f2b50f2a0ca07e2ab1ef43cd"
+  },
+  "attempts": [
+    {
+      "edit_kind": "comment",
+      "error": "Reference fork failed at revision 2 (comment): textDocument/diagnostic: {'code': -32802, 'message': 'server cancelled the request', 'data': {'retriggerRequest': True}}",
+      "server_log_excerpt": [
+        "Propagating panic for cycle head that panicked in an earlier execution in that revision",
+        "Propagating panic for cycle head that panicked in an earlier execution in that revision",
+        "Propagating panic for cycle head that panicked in an earlier execution in that revision"
+      ]
+    },
+    {
+      "edit_kind": "semantic",
+      "error": "Reference fork failed at revision 12 (semantic): textDocument/diagnostic: {'code': -32802, 'message': 'server cancelled the request', 'data': {'retriggerRequest': True}}",
+      "server_log_excerpt": [
+        "Propagating panic for cycle head that panicked in an earlier execution in that revision",
+        "Propagating panic for cycle head that panicked in an earlier execution in that revision",
+        "Propagating panic for cycle head that panicked in an earlier execution in that revision"
+      ]
+    }
+  ],
+  "warm_reference_comparison_passed": false
+}

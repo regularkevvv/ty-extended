@@ -1,0 +1,216 @@
+{
+  "id": "audit.snapshots",
+  "name": "SDK snapshots",
+  "version": "0.0.0",
+  "protocol-version": {
+    "major": 0,
+    "minor": 7
+  },
+  "ty-compatibility": {
+    "requirement": ">=0.86.0,<0.87.0"
+  },
+  "runtime": {
+    "kind": "monty",
+    "artifact": "plugin.py"
+  },
+  "capabilities": {
+    "call-return": true,
+    "project-index": true,
+    "class-transform": true
+  },
+  "claims": {
+    "functions": [
+      {
+        "qualified-name": "demo.int_value"
+      },
+      {
+        "qualified-name": "demo.list_value"
+      },
+      {
+        "qualified-name": "demo.fixed_tuple"
+      },
+      {
+        "qualified-name": "demo.variable_tuple"
+      },
+      {
+        "qualified-name": "demo.empty_tuple"
+      },
+      {
+        "qualified-name": "demo.union_value"
+      },
+      {
+        "qualified-name": "demo.nested_import"
+      },
+      {
+        "qualified-name": "demo.annotated_value"
+      },
+      {
+        "qualified-name": "demo.bound_self"
+      },
+      {
+        "qualified-name": "demo.absent_self"
+      },
+      {
+        "qualified-name": "demo.missing_nominal"
+      },
+      {
+        "qualified-name": "demo.missing_project_class"
+      },
+      {
+        "qualified-name": "demo.invalid_generic"
+      },
+      {
+        "qualified-name": "demo.project_class"
+      },
+      {
+        "qualified-name": "demo.project_generic"
+      },
+      {
+        "qualified-name": "demo.closed_record"
+      },
+      {
+        "qualified-name": "demo.open_record"
+      },
+      {
+        "qualified-name": "demo.extra_record"
+      },
+      {
+        "qualified-name": "demo.virtual_record"
+      },
+      {
+        "qualified-name": "demo.Model.chain"
+      },
+      {
+        "qualified-name": "demo.rows_record"
+      },
+      {
+        "qualified-name": "demo.rows_tuple"
+      },
+      {
+        "qualified-name": "demo.rows_named"
+      },
+      {
+        "qualified-name": "demo.QuerySet.map_row"
+      },
+      {
+        "qualified-name": "demo.missing_external_class"
+      },
+      {
+        "qualified-name": "demo.nonclass_nominal"
+      },
+      {
+        "qualified-name": "demo.nongeneric_project"
+      },
+      {
+        "qualified-name": "demo.generic_defaults_short"
+      },
+      {
+        "qualified-name": "demo.generic_too_many"
+      },
+      {
+        "qualified-name": "demo.nominal_tuple"
+      },
+      {
+        "qualified-name": "demo.inspect_record"
+      },
+      {
+        "qualified-name": "demo.missing_virtual"
+      },
+      {
+        "qualified-name": "demo.missing_text"
+      },
+      {
+        "qualified-name": "demo.missing_text_generic"
+      },
+      {
+        "qualified-name": "demo.inspect_annotated"
+      },
+      {
+        "qualified-name": "demo.codec_union_none"
+      },
+      {
+        "qualified-name": "demo.codec_optional"
+      },
+      {
+        "qualified-name": "demo.codec_union"
+      },
+      {
+        "qualified-name": "demo.codec_list"
+      },
+      {
+        "qualified-name": "demo.codec_dict"
+      },
+      {
+        "qualified-name": "demo.codec_tuple"
+      },
+      {
+        "qualified-name": "demo.codec_variadic"
+      },
+      {
+        "qualified-name": "demo.codec_model"
+      },
+      {
+        "qualified-name": "demo.codec_model_type"
+      },
+      {
+        "qualified-name": "demo.codec_model_union"
+      },
+      {
+        "qualified-name": "demo.codec_model_tuple"
+      },
+      {
+        "qualified-name": "demo.codec_manager"
+      },
+      {
+        "qualified-name": "demo.codec_queryset"
+      },
+      {
+        "qualified-name": "demo.codec_literal_string"
+      },
+      {
+        "qualified-name": "demo.codec_literal_bool"
+      },
+      {
+        "qualified-name": "demo.codec_literal_signed"
+      },
+      {
+        "qualified-name": "demo.codec_literal_separators"
+      },
+      {
+        "qualified-name": "demo.codec_literal_bytes"
+      },
+      {
+        "qualified-name": "demo.codec_record"
+      },
+      {
+        "qualified-name": "demo.codec_named"
+      },
+      {
+        "qualified-name": "demo.codec_class"
+      },
+      {
+        "qualified-name": "demo.codec_class_queryset"
+      },
+      {
+        "qualified-name": "demo.codec_virtual_row"
+      },
+      {
+        "qualified-name": "demo.codec_virtual_alias"
+      },
+      {
+        "qualified-name": "demo.codec_virtual_manager"
+      }
+    ],
+    "classes": [
+      {
+        "kind": "exact",
+        "qualified-name": "demo.Model"
+      }
+    ],
+    "modules": [
+      {
+        "name": "demo"
+      }
+    ]
+  }
+}

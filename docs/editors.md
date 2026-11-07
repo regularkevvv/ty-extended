@@ -1,4 +1,20 @@
-# Editor integration
+# Companion editor setup
+
+For Monty plugins, configure your editor's executable path or language-server command
+to run `ty-extended server`. Use an absolute path to the companion in the project
+environment. Astral's `ty` command starts the official checker without companion plugins.
+
+For Neovim 0.11 and later:
+
+```lua
+vim.lsp.config("ty", { cmd = { "/absolute/project/.venv/bin/ty-extended", "server" } })
+vim.lsp.enable("ty")
+```
+
+The integration descriptions below explain the upstream editor adapters. Override
+their server executable with the companion path when enabling Monty plugins.
+
+## Upstream editor adapters
 
 ty can be integrated with various editors to provide a seamless development experience.
 
@@ -147,7 +163,7 @@ protocol](https://microsoft.github.io/language-server-protocol/).
 To start the language server, use the `server` subcommand:
 
 ```shell
-ty server
+ty-extended server
 ```
 
 Refer to your editor's documentation to learn how to connect to an LSP server.

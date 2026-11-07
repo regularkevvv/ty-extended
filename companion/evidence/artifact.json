@@ -1,0 +1,11 @@
+{
+  "source_commit": "a4753158c11354d7042ac8d701d162981815369f",
+  "bytes": 14948064,
+  "sha256": "54a5c41f3b595b2a053f1d5d676cff72c0a73e03639bb6d38a52aaafa9dedbe0",
+  "gzip_bytes": 6576170,
+  "gzip_sha256": "41e8d3ff8c560733e97e54548c4ebcbc287e93731384752d3e753b58ceef576a",
+  "target": "aarch64-apple-darwin",
+  "upstream_checker_included": false,
+  "validation_source_commit": "a4753158c11354d7042ac8d701d162981815369f",
+  "production_inputs_unchanged_since_build": true
+}

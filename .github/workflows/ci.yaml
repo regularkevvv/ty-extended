@@ -1,18 +1,15 @@
 name: CI
-
 permissions:
   contents: read
-
-on:
+"on":
   push:
-    branches: [main]
-  pull_request:
-  workflow_dispatch:
-
+    branches:
+      - main
+  pull_request: null
+  workflow_dispatch: null
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref_name }}-${{ github.event.pull_request.number || github.sha }}
   cancel-in-progress: true
-
 env:
   CARGO_INCREMENTAL: 0
   CARGO_NET_RETRY: 10
@@ -20,17 +17,16 @@ env:
   RUSTUP_MAX_RETRIES: 10
   PYTHON_VERSION: "3.13"
   PACKAGE_NAME: ty-extended
-
 jobs:
   ruff-submodule-source:
-    name: "ruff-extended submodule source"
+    name: ruff-extended submodule source
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
-      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0
         with:
           persist-credentials: false
-      - name: "Check Ruff submodule fork"
+      - name: Check Ruff submodule fork
         run: |
           url="$(git config --file .gitmodules --get submodule.ruff.url)"
           case "$url" in
@@ -41,59 +37,63 @@ jobs:
               exit 1
               ;;
           esac
-
   python-package:
-    name: "python package"
+    name: python package
     runs-on: ${{ github.repository == 'astral-sh/ty' && 'github-ubuntu-24.04-x86_64-4' || 'ubuntu-latest' }}
     timeout-minutes: 20
     steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
           persist-credentials: false
           submodules: recursive
-      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97
         with:
           python-version: ${{ env.PYTHON_VERSION }}
           architecture: x64
-      - uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2.9.2
-      - name: "Test PyPI README transformation"
+      - name: Test PyPI README transformation
         run: python scripts/test_transform_readme.py
-      - name: "Build wheels"
-        uses: PyO3/maturin-action@e83996d129638aa358a18fbd1dfb82f0b0fb5d3b # v1.51.0
+      - name: Build wheels
+        uses: PyO3/maturin-action@e83996d129638aa358a18fbd1dfb82f0b0fb5d3b
         with:
-          args: --out dist
-      - name: "Test wheel"
+          args: --release --locked --target-dir companion/target --out dist
+          rust-toolchain: 1.98.0
+          maturin-version: v1.16.0
+      - name: Audit standalone binary wheel tags
+        shell: bash
+        run: |
+          python -m pip install "wheel>=0.46,<0.47"
+          python build_backend.py dist
+          python scripts/test_build_backend.py
+      - name: Test wheel
         run: |
           pip install dist/*.whl --force-reinstall
-          ty --help
-          python -m ty --help
+          ty --version
+          ty-extended --version
+          python -m ty_extended --help
           python scripts/test_plugin_wheel.py
-          python scripts/test_wasm_cache.py
-          python -c 'from importlib.metadata import distributions; assert "pydantic-monty-runtime" not in {d.metadata["Name"] for d in distributions()}'
-          pip install "dist/$(basename dist/*.whl)[monty-workers]"
-          python scripts/test_plugin_wheel.py --workers
-      - name: "Remove wheels from cache"
-        run: rm -rf target/wheels
-
+      - name: Clean build artifacts
+        run: |
+          cargo clean --manifest-path companion/Cargo.toml
+          rm -rf dist
+        if: always()
   prek:
-    name: "prek"
+    name: prek
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
           persist-credentials: false
-      - uses: astral-sh/setup-uv@c18668ad3cf93ea998bef934396af7bb5c839dc7 # v10.2.0
+      - uses: astral-sh/setup-uv@c18668ad3cf93ea998bef934396af7bb5c839dc7
         with:
-          # renovate: datasource=github-release-attachments depName=astral-sh/uv
-          version: "0.12.23"
-          checksum: "9167d72b3319674b6303c4cbe071854bba13ebdf3d76b1a7cbdc175471fb66d6"
-      - name: "Cache prek"
-        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+          version: 0.12.23
+          checksum: 9167d72b3319674b6303c4cbe071854bba13ebdf3d76b1a7cbdc175471fb66d6
+      - name: Cache prek
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9
         with:
           path: ~/.cache/prek
           key: prek-${{ hashFiles('.pre-commit-config.yaml') }}
-      - name: "Run prek"
+      - name: Run prek
         run: |
           echo '```console' > "$GITHUB_STEP_SUMMARY"
           # Enable color output for prek and remove it for the summary
@@ -103,28 +103,37 @@ jobs:
           exit_code="${PIPESTATUS[0]}"
           echo '```' >> "$GITHUB_STEP_SUMMARY"
           exit "$exit_code"
-
   generated-check:
-    name: "Check generated files unedited"
+    name: Check generated files unedited
     runs-on: ${{ github.repository == 'astral-sh/ty' && 'github-ubuntu-24.04-x86_64-4' || 'ubuntu-latest' }}
-    timeout-minutes: 5
+    timeout-minutes: 10
     steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
           persist-credentials: false
           submodules: recursive
-
-      - uses: astral-sh/setup-uv@c18668ad3cf93ea998bef934396af7bb5c839dc7 # v10.2.0
+      - uses: astral-sh/setup-uv@c18668ad3cf93ea998bef934396af7bb5c839dc7
         with:
-          # renovate: datasource=github-release-attachments depName=astral-sh/uv
-          version: "0.12.23"
-          checksum: "9167d72b3319674b6303c4cbe071854bba13ebdf3d76b1a7cbdc175471fb66d6"
-
-      - name: "Run auto generation scripts"
+          version: 0.12.23
+          checksum: 9167d72b3319674b6303c4cbe071854bba13ebdf3d76b1a7cbdc175471fb66d6
+      - name: Run auto generation scripts
         run: |
           ./scripts/autogenerate_files.sh
-
-      - name: "Check for uncommitted changes"
+      - name: Install dist
+        shell: bash
+        run: |
+          curl --proto '=https' --tlsv1.2 -LsSf "https://github.com/axodotdev/cargo-dist/releases/download/v${CARGO_DIST_VERSION}/cargo-dist-x86_64-unknown-linux-gnu.tar.xz" -o /tmp/cargo-dist.tar.xz
+          echo "${CARGO_DIST_CHECKSUM}  /tmp/cargo-dist.tar.xz" | sha256sum -c -
+          tar -xf /tmp/cargo-dist.tar.xz -C /tmp
+          install /tmp/cargo-dist-x86_64-unknown-linux-gnu/dist ~/.cargo/bin/
+        env:
+          CARGO_DIST_VERSION: 0.31.0
+          CARGO_DIST_CHECKSUM: cd355dab0b4c02fb59038fef87655550021d07f45f1d82f947a34ef98560abb8
+      - name: Verify reproducible release workflow
+        run: |
+          uv run --only-group docs --locked python scripts/test_generate_release_workflow.py
+          uv run --only-group docs --locked python scripts/generate_release_workflow.py --check --dist "$HOME/.cargo/bin/dist"
+      - name: Check for uncommitted changes
         run: |
           if [[ -n "$(git status --porcelain)" ]]; then
             echo "Error: Auto-generated files were manually edited."
@@ -132,21 +141,18 @@ jobs:
             git status --porcelain
             exit 1
           fi
-
   docs:
     timeout-minutes: 10
-    name: "mkdocs"
+    name: mkdocs
     runs-on: ${{ github.repository == 'astral-sh/ty' && 'github-ubuntu-24.04-x86_64-4' || 'ubuntu-latest' }}
     steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
           fetch-depth: 0
           persist-credentials: false
-      - uses: astral-sh/setup-uv@c18668ad3cf93ea998bef934396af7bb5c839dc7 # v10.2.0
+      - uses: astral-sh/setup-uv@c18668ad3cf93ea998bef934396af7bb5c839dc7
         with:
-          # renovate: datasource=github-release-attachments depName=astral-sh/uv
-          version: "0.12.23"
-          checksum: "9167d72b3319674b6303c4cbe071854bba13ebdf3d76b1a7cbdc175471fb66d6"
-
-      - name: "Build docs"
+          version: 0.12.23
+          checksum: 9167d72b3319674b6303c4cbe071854bba13ebdf3d76b1a7cbdc175471fb66d6
+      - name: Build docs
         run: uv run --only-group=docs mkdocs build --strict -f mkdocs.yml

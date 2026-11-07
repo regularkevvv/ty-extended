@@ -15,7 +15,7 @@ directories, if they exist and are not themselves packages (i.e. they contain ne
 These directories are searched before the project root, in the order listed above.
 
 If your project uses a different layout, configure the project's
-[`environment.root`](./reference/configuration.md#root) in your `pyproject.toml` or `ty.toml`. For example,
+[`environment.root`](https://docs.astral.sh/ty/reference/configuration/#root) in your `pyproject.toml` or `ty.toml`. For example,
 if your project's code is in an `app/` directory:
 
 ```text
@@ -27,7 +27,7 @@ example-pkg
         └── __init__.py
 ```
 
-then set [`environment.root`](./reference/configuration.md#root) in your `pyproject.toml` to `["./app"]`:
+then set [`environment.root`](https://docs.astral.sh/ty/reference/configuration/#root) in your `pyproject.toml` to `["./app"]`:
 
 === "pyproject.toml"
 
@@ -70,16 +70,16 @@ For a project with no explicitly configured environment, ty searches for one in 
     activates the virtual environment and will be detected by ty.
 
 The Python environment may be explicitly configured using the
-[`environment.python`](./reference/configuration.md#python) setting or
-[`--python`](./reference/cli.md#ty-check--python) flag.
+[`environment.python`](https://docs.astral.sh/ty/reference/configuration/#python) setting or
+[`--python`](./reference/cli.md) flag.
 
 When setting the environment explicitly, non-virtual environments can be provided.
 
 ### `PYTHONPATH`
 
-ty also respects the [`PYTHONPATH`](./reference/environment.md#pythonpath) environment variable.
+ty also respects the [`PYTHONPATH`](https://docs.astral.sh/ty/reference/environment/#pythonpath) environment variable.
 Each existing directory listed in `PYTHONPATH` is added to the module search path, just after any
-[`extra-paths`](./reference/configuration.md#extra-paths) and before the environment's
+[`extra-paths`](https://docs.astral.sh/ty/reference/configuration/#extra-paths) and before the environment's
 `site-packages`, mirroring the resolution order of the Python interpreter itself.
 
 `PYTHONPATH` uses the same format as the shell's `PATH`: one or more directory paths separated by the

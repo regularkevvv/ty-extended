@@ -1,8 +1,8 @@
 # Excluding files
 
-ty automatically discovers all Python files in your project. You can customize where ty searches by using the [`src.include`](./reference/configuration.md#include_1) and [`src.exclude`](./reference/configuration.md#exclude_1) settings.
+ty automatically discovers all Python files in your project. You can customize where ty searches by using the [`src.include`](https://docs.astral.sh/ty/reference/configuration/#include_1) and [`src.exclude`](https://docs.astral.sh/ty/reference/configuration/#exclude_1) settings.
 
-For example, with the following configuration, ty checks all Python files in the `src` and `tests` directories except those in the `src/generated` directory:
+For example, with the following configuration, ty-extended checks all Python files in the `src` and `tests` directories except those in the `src/generated` directory:
 
 === "pyproject.toml"
 
@@ -22,7 +22,7 @@ For example, with the following configuration, ty checks all Python files in the
 
 ## Default exclusions
 
-By default, ty excludes a [variety of commonly ignored directories](./reference/configuration.md#exclude_1). If you want to include one of these directories, you can do so by adding a negative `exclude` using a leading `!`:
+By default, ty excludes a [variety of commonly ignored directories](https://docs.astral.sh/ty/reference/configuration/#exclude_1). If you want to include one of these directories, you can do so by adding a negative `exclude` using a leading `!`:
 
 === "pyproject.toml"
 
@@ -40,17 +40,17 @@ By default, ty excludes a [variety of commonly ignored directories](./reference/
     exclude = ["!**/dist/"]
     ```
 
-By default, ty ignores files listed in an `.ignore` or `.gitignore` file. To disable this functionality, set [`respect-ignore-files`](./reference/configuration.md#respect-ignore-files) to `false`.
+By default, ty ignores files listed in an `.ignore` or `.gitignore` file. To disable this functionality, set [`respect-ignore-files`](https://docs.astral.sh/ty/reference/configuration/#respect-ignore-files) to `false`.
 
 ## Explicit targets
 
 You may explicitly pass the paths that ty should check, e.g.:
 
 ```shell
-ty check src scripts/benchmark.py
+ty-extended check src scripts/benchmark.py
 ```
 
-Paths that are passed as positional arguments to `ty check` are included even if they would otherwise be ignored through `exclude` filters or an ignore-file.
+Paths that are passed as positional arguments to `ty-extended check` are included even if they would otherwise be ignored through `exclude` filters or an ignore-file.
 
 ## Include and exclude syntax
 

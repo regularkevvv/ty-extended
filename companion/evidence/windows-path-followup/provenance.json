@@ -1,0 +1,758 @@
+{
+  "base_evidence_sha256": {
+    "artifact.json": "1abdfd0d31caf80ba4490977b41337a043f8662cc7d9a8a352703160009a2879",
+    "benchmark.json": "28badaea53b3906b858c8b1ab30ee9a042f5a447c7a6f998dead7f87abe3972a",
+    "diagnostics.json": "9a398e438e75c0fae4cc89d8098e3e0bb78fd30d526213264d89b3798bc2fc01",
+    "generic.json": "c0f513f0192eaf5c17c526dd7c1b1139bd13b9a7641d059e59538018b4921561",
+    "matrix.json": "6c11efdb027daa117289521e4dedcc3e1b5b4f7cee2f09ff98521a83c9fcff25",
+    "provenance.json": "3bbf242b6b0b361a5ca21ae639fbbf938e1a9378de913e0d041840db7654f492",
+    "size-comparison.json": "d64c2064c4bbe3ca5e9598c2ba132a529ab66c3ed10869dc0d4ade585012d04f",
+    "supplemental.json": "7e34a02841ed5e089718a1f36b312b4393f0a81c835546d261bd490e7da9dc3d"
+  },
+  "base_source_commit": "a4753158c11354d7042ac8d701d162981815369f",
+  "binary_sha256": "2bd50e242456d56e0dd0ff7a04edcf3cc4e13d073666bc91699d7deae16d650d",
+  "historical_results_relabelled": false,
+  "production_changed_paths": [
+    "companion/src/project_config.rs"
+  ],
+  "production_diff_sha256": "5faabb88d1d05f463db86ac6afb72c033d52cd8653815b524eaed52764527ec4",
+  "raw_reports": {
+    "artifact:acceptance-summary": {
+      "sha256": "172a181af1248f494f94ed5016b210a0d647b3ca8f458d23d8e2fabed6289ba4"
+    },
+    "artifact:benchmark-editor-log": {
+      "sha256": "687ed7f6b17cdb3f066fd5fbc4aacd4f37de4c8445ac7df209c9593c88ed4779"
+    },
+    "artifact:benchmark-internal-log": {
+      "sha256": "821d2e6313b064186a124f0276c363ee5ac10c3cde8a95508f73ee73f4472eca"
+    },
+    "artifact:benchmark-public-log": {
+      "sha256": "707b3f228f1949098047e66fe91a28cada9d0cec513daa4815e357a41d3c7173"
+    },
+    "artifact:configuration-bound": {
+      "sha256": "14a53445e3eac518fa1df84d135b5eec92d921b45d18a34e432a6caa736ddaaf"
+    },
+    "artifact:configuration-log": {
+      "sha256": "a4e9a020428989c3c43ceffff39ec77b3e1a0b64772abb2aa7746c585859dd50"
+    },
+    "artifact:configuration-summary": {
+      "sha256": "8825542394d4ef9ccadff500a03d0463c370b09ee4f28e117d4aece365227e49"
+    },
+    "artifact:django-cli": {
+      "sha256": "516aba71b0c298d82a9e08a2609fad50392d1a1da5205cb59f1884b144ef3d9c"
+    },
+    "artifact:django-push": {
+      "sha256": "bb5fb426b91fdd6588ea74d8b9604b36869959a227c50af8acc171c7239f66d3"
+    },
+    "artifact:final-binary-metadata": {
+      "sha256": "778ac1a7bcc85099611e5d7037567276364ed40df22623b9a76ff937bf115773"
+    },
+    "artifact:final-size": {
+      "sha256": "8371dd49c13f60def9e4ac60da842b57a03ce21e6a63b9254ccde0b809d1ff42"
+    },
+    "artifact:followup-exporter": {
+      "sha256": "6628e4033511c9fc508fe9e2824d5299a775a4915f9618ff245fe702c6c3b339"
+    },
+    "artifact:portable-timings-source": {
+      "sha256": "746865c58185a6bd32fd016f945c377e3719fce2b2f91ab2a718b747a2d70cde"
+    },
+    "artifact:public-additional": {
+      "sha256": "2e957b066391f075ecfad685ea253368ef62a1b4f9740cfa7f2bf9b6c0f6e4c7"
+    },
+    "artifact:public-gitlab": {
+      "sha256": "0832edb22c456bf40a7317a2a967301a8034d5da32f2069d0ed1b3571cee2bae"
+    },
+    "artifact:public-text": {
+      "sha256": "91a33d136660b5c86f6d7bac63a4d983595a62edcd3d45d6b828870c16f80c12"
+    },
+    "artifact:quiet-benchmark-run": {
+      "sha256": "8793b6d665eaaf4e27a974c685bfcbd4c9cfca0f6e623fceeed2c267aa2cbfd5"
+    },
+    "artifact:rust-clippy": {
+      "sha256": "b1cd0eacad90ccf70d597a13a59fd3d7642c8df885db0b5b98ab30e9aa5d7805"
+    },
+    "artifact:rust-fmt": {
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "artifact:rust-gates": {
+      "sha256": "de433b4a1bcaf28883758d1aa95ab8a7fb72c2987d6bfb75c7f54a026622db8d"
+    },
+    "artifact:rust-release": {
+      "sha256": "d54ff350408d472de69cd4575f9340e0c6003d9d711b985a96606b192849e6c0"
+    },
+    "artifact:rust-rust-default": {
+      "sha256": "92a9870ce266bdf809472b248488c4a652a7501fabee157f180ffccfbca5cf22"
+    },
+    "artifact:rust-rust-official": {
+      "sha256": "f46d8278426fd856af9705a1b99ae87e177f29e789bc405a423e5304e14cfb36"
+    },
+    "artifact:v11-timing-acceptance-cli": {
+      "sha256": "516aba71b0c298d82a9e08a2609fad50392d1a1da5205cb59f1884b144ef3d9c"
+    },
+    "artifact:v11-timing-acceptance-push": {
+      "sha256": "bb5fb426b91fdd6588ea74d8b9604b36869959a227c50af8acc171c7239f66d3"
+    },
+    "artifact:v11-timing-acceptance-summary": {
+      "sha256": "172a181af1248f494f94ed5016b210a0d647b3ca8f458d23d8e2fabed6289ba4"
+    },
+    "artifact:v11-timing-artifact-metadata": {
+      "sha256": "778ac1a7bcc85099611e5d7037567276364ed40df22623b9a76ff937bf115773"
+    },
+    "artifact:v11-timing-benchmark-runner": {
+      "sha256": "421874b6a1fbd32e32a00583394a45dc41e3cad3fe8f2ae5d06297e0d5d2d560"
+    },
+    "artifact:v11-timing-editor-context": {
+      "sha256": "fce3c88d231e8565a4c1d9ee00c6d474569857fbcf3f8bd2c9ae1815e496b4ef"
+    },
+    "artifact:v11-timing-editor-evidence": {
+      "sha256": "6818360670d7be2a7aa0119847034aeef6f664dbf6f19711cf3bcfbf13d4897b"
+    },
+    "artifact:v11-timing-editor-runner": {
+      "sha256": "973602577eaed223f7389c3074c604aa5c887f29963bc445edc1acf55113eed4"
+    },
+    "artifact:v11-timing-independent-auditor": {
+      "sha256": "135428ffbe1e23492b41d5bc26cee8098cce2f9b855938de076e44952090a479"
+    },
+    "artifact:v11-timing-independent-review": {
+      "sha256": "4a7218ddb4ff178e38b2afe58fe90733cb4fad7292bc5480922ad817f4d2731b"
+    },
+    "artifact:v11-timing-internal-00-first-observed-0-conformance-fork-command": {
+      "sha256": "8c81ca256551d903df6501eda81ccacfcfcda7f6b29ffaeeaa0d87d7a784d8ec"
+    },
+    "artifact:v11-timing-internal-00-first-observed-0-conformance-fork-diagnostics": {
+      "sha256": "6c379b9cd8195dc71411e90b5185b730556ebd2c2fbac7846030fb5af89647a5"
+    },
+    "artifact:v11-timing-internal-01-first-observed-0-conformance-cli-command": {
+      "sha256": "c931877da9c86a04dd74c4254a7f691d61cc79d06c152912e1ee3f80858f3ec5"
+    },
+    "artifact:v11-timing-internal-01-first-observed-0-conformance-cli-diagnostics": {
+      "sha256": "6c379b9cd8195dc71411e90b5185b730556ebd2c2fbac7846030fb5af89647a5"
+    },
+    "artifact:v11-timing-internal-02-first-observed-0-conformance-push-command": {
+      "sha256": "91a7c2f23505cb8ac34315ce7bbc3d66b155bfa682cf1cd69604b1d603eeb317"
+    },
+    "artifact:v11-timing-internal-02-first-observed-0-conformance-push-diagnostics": {
+      "sha256": "6c379b9cd8195dc71411e90b5185b730556ebd2c2fbac7846030fb5af89647a5"
+    },
+    "artifact:v11-timing-internal-03-first-observed-0-e2e-positive-cli-command": {
+      "sha256": "3fd79e29bacdcecf28642220e956c87b653af5d4bc5c534f63b0b38a4c54950c"
+    },
+    "artifact:v11-timing-internal-03-first-observed-0-e2e-positive-cli-diagnostics": {
+      "sha256": "37517e5f3dc66819f61f5a7bb8ace1921282415f10551d2defa5c3eb0985b570"
+    },
+    "artifact:v11-timing-internal-04-first-observed-0-e2e-positive-push-command": {
+      "sha256": "770fa43b696cc4e52d8e72e6a3c32b64a61a3c11b3898757ae46fb614b9509e1"
+    },
+    "artifact:v11-timing-internal-04-first-observed-0-e2e-positive-push-diagnostics": {
+      "sha256": "37517e5f3dc66819f61f5a7bb8ace1921282415f10551d2defa5c3eb0985b570"
+    },
+    "artifact:v11-timing-internal-05-first-observed-0-e2e-positive-fork-command": {
+      "sha256": "61ce4ebeb01cfbec0ed9afd72546a025fcaf8370159d013294962a1b02eb982b"
+    },
+    "artifact:v11-timing-internal-05-first-observed-0-e2e-positive-fork-diagnostics": {
+      "sha256": "37517e5f3dc66819f61f5a7bb8ace1921282415f10551d2defa5c3eb0985b570"
+    },
+    "artifact:v11-timing-internal-06-first-observed-0-e2e-negative-push-command": {
+      "sha256": "dfd4f331928b481b50e5da7613b2c7f7a859fe14d4d52404c0988f8119c57b75"
+    },
+    "artifact:v11-timing-internal-06-first-observed-0-e2e-negative-push-diagnostics": {
+      "sha256": "7902de0049ebba0349361e64e0723481aa5ee9d6b4359abce91efaddb3142e25"
+    },
+    "artifact:v11-timing-internal-07-first-observed-0-e2e-negative-fork-command": {
+      "sha256": "bcda33f2b34fd96fd944544ad632acad72ca0d99199baea1b2d6bf50d4ae7531"
+    },
+    "artifact:v11-timing-internal-07-first-observed-0-e2e-negative-fork-diagnostics": {
+      "sha256": "7902de0049ebba0349361e64e0723481aa5ee9d6b4359abce91efaddb3142e25"
+    },
+    "artifact:v11-timing-internal-08-first-observed-0-e2e-negative-cli-command": {
+      "sha256": "f55b422e68af043bf33910fc5ca4af7fa7a3e0b4badecee2432df0199f48a6ad"
+    },
+    "artifact:v11-timing-internal-08-first-observed-0-e2e-negative-cli-diagnostics": {
+      "sha256": "7902de0049ebba0349361e64e0723481aa5ee9d6b4359abce91efaddb3142e25"
+    },
+    "artifact:v11-timing-internal-09-warmup-0-conformance-cli-command": {
+      "sha256": "a98f09b471060f75cb3fd589c70423166113da3cb8388511b4b812e6306a3b19"
+    },
+    "artifact:v11-timing-internal-09-warmup-0-conformance-cli-diagnostics": {
+      "sha256": "6c379b9cd8195dc71411e90b5185b730556ebd2c2fbac7846030fb5af89647a5"
+    },
+    "artifact:v11-timing-internal-10-warmup-0-conformance-push-command": {
+      "sha256": "f1cf8d6c374dc2a31652f09f17b71fc82b58eeb237e56ca8271ef6424020eb52"
+    },
+    "artifact:v11-timing-internal-10-warmup-0-conformance-push-diagnostics": {
+      "sha256": "6c379b9cd8195dc71411e90b5185b730556ebd2c2fbac7846030fb5af89647a5"
+    },
+    "artifact:v11-timing-internal-11-warmup-0-conformance-fork-command": {
+      "sha256": "052e475a43f70267c3234df6559b06dbca3a86238d10fecf28d6b9de5b5fadbc"
+    },
+    "artifact:v11-timing-internal-11-warmup-0-conformance-fork-diagnostics": {
+      "sha256": "6c379b9cd8195dc71411e90b5185b730556ebd2c2fbac7846030fb5af89647a5"
+    },
+    "artifact:v11-timing-internal-12-warmup-0-e2e-positive-push-command": {
+      "sha256": "19cce295297dfb4ea89d09f72d043a491f1375b73659e56aca08bd8cb9d6ee31"
+    },
+    "artifact:v11-timing-internal-12-warmup-0-e2e-positive-push-diagnostics": {
+      "sha256": "37517e5f3dc66819f61f5a7bb8ace1921282415f10551d2defa5c3eb0985b570"
+    },
+    "artifact:v11-timing-internal-13-warmup-0-e2e-positive-fork-command": {
+      "sha256": "85cc2ac94abc9f9e05f7571aa20db670376b1c7456d2d4530a2430671bd2de44"
+    },
+    "artifact:v11-timing-internal-13-warmup-0-e2e-positive-fork-diagnostics": {
+      "sha256": "37517e5f3dc66819f61f5a7bb8ace1921282415f10551d2defa5c3eb0985b570"
+    },
+    "artifact:v11-timing-internal-14-warmup-0-e2e-positive-cli-command": {
+      "sha256": "26f86a62d63f6a08b07fe3cf9da3a4a6d839d76071c5c8c8872d4cf59e67b2ef"
+    },
+    "artifact:v11-timing-internal-14-warmup-0-e2e-positive-cli-diagnostics": {
+      "sha256": "37517e5f3dc66819f61f5a7bb8ace1921282415f10551d2defa5c3eb0985b570"
+    },
+    "artifact:v11-timing-internal-15-warmup-0-e2e-negative-fork-command": {
+      "sha256": "0e63dd8093fd4f2e181e2be22ebd0511a5565af80cb108fc1b5e289fd42e7e72"
+    },
+    "artifact:v11-timing-internal-15-warmup-0-e2e-negative-fork-diagnostics": {
+      "sha256": "7902de0049ebba0349361e64e0723481aa5ee9d6b4359abce91efaddb3142e25"
+    },
+    "artifact:v11-timing-internal-16-warmup-0-e2e-negative-cli-command": {
+      "sha256": "5cd6b1d72b5eaec1659db1b31929070d9b407c30bb5b43a84311ed51392b0b89"
+    },
+    "artifact:v11-timing-internal-16-warmup-0-e2e-negative-cli-diagnostics": {
+      "sha256": "7902de0049ebba0349361e64e0723481aa5ee9d6b4359abce91efaddb3142e25"
+    },
+    "artifact:v11-timing-internal-17-warmup-0-e2e-negative-push-command": {
+      "sha256": "61188aa292e5872404d127e377a6de3c1b1e9dca186881327a1f7814fed20f58"
+    },
+    "artifact:v11-timing-internal-17-warmup-0-e2e-negative-push-diagnostics": {
+      "sha256": "7902de0049ebba0349361e64e0723481aa5ee9d6b4359abce91efaddb3142e25"
+    },
+    "artifact:v11-timing-internal-18-warmup-1-conformance-push-command": {
+      "sha256": "4962ba89a577a34fd32f89d27f6e120a137e2c408778744dc5d8f4109b5409db"
+    },
+    "artifact:v11-timing-internal-18-warmup-1-conformance-push-diagnostics": {
+      "sha256": "6c379b9cd8195dc71411e90b5185b730556ebd2c2fbac7846030fb5af89647a5"
+    },
+    "artifact:v11-timing-internal-19-warmup-1-conformance-fork-command": {
+      "sha256": "f7c17e3f5cc90b547aa86c7e9c393bdb01c9db0ad235257f573bf578d628a270"
+    },
+    "artifact:v11-timing-internal-19-warmup-1-conformance-fork-diagnostics": {
+      "sha256": "6c379b9cd8195dc71411e90b5185b730556ebd2c2fbac7846030fb5af89647a5"
+    },
+    "artifact:v11-timing-internal-20-warmup-1-conformance-cli-command": {
+      "sha256": "e7bf5fdd1e84a37d9f479126802f7f127f130829f0e9b63dfce9c38f9b8733c2"
+    },
+    "artifact:v11-timing-internal-20-warmup-1-conformance-cli-diagnostics": {
+      "sha256": "6c379b9cd8195dc71411e90b5185b730556ebd2c2fbac7846030fb5af89647a5"
+    },
+    "artifact:v11-timing-internal-21-warmup-1-e2e-positive-fork-command": {
+      "sha256": "4a697d4f73fa48ed603ab9b837f35eba74549cc2fe63725c837f6d4ffb862ba9"
+    },
+    "artifact:v11-timing-internal-21-warmup-1-e2e-positive-fork-diagnostics": {
+      "sha256": "37517e5f3dc66819f61f5a7bb8ace1921282415f10551d2defa5c3eb0985b570"
+    },
+    "artifact:v11-timing-internal-22-warmup-1-e2e-positive-cli-command": {
+      "sha256": "0cb8ca377e63b2579abc1e1c55983c38950c81bc777d00571ad93353ce149db7"
+    },
+    "artifact:v11-timing-internal-22-warmup-1-e2e-positive-cli-diagnostics": {
+      "sha256": "37517e5f3dc66819f61f5a7bb8ace1921282415f10551d2defa5c3eb0985b570"
+    },
+    "artifact:v11-timing-internal-23-warmup-1-e2e-positive-push-command": {
+      "sha256": "66f7132b9faac3069340de30cdd4b641dadb0c95eb378941446bf328096dd75a"
+    },
+    "artifact:v11-timing-internal-23-warmup-1-e2e-positive-push-diagnostics": {
+      "sha256": "37517e5f3dc66819f61f5a7bb8ace1921282415f10551d2defa5c3eb0985b570"
+    },
+    "artifact:v11-timing-internal-24-warmup-1-e2e-negative-cli-command": {
+      "sha256": "bb73ba1d321067b68ca58dbe4c2372b10665825356ee5d058dde18287715e25b"
+    },
+    "artifact:v11-timing-internal-24-warmup-1-e2e-negative-cli-diagnostics": {
+      "sha256": "7902de0049ebba0349361e64e0723481aa5ee9d6b4359abce91efaddb3142e25"
+    },
+    "artifact:v11-timing-internal-25-warmup-1-e2e-negative-push-command": {
+      "sha256": "2dd298cbedd43619ab185b8c0210046a91e052f600248b107e5eef72e5eaa2e8"
+    },
+    "artifact:v11-timing-internal-25-warmup-1-e2e-negative-push-diagnostics": {
+      "sha256": "7902de0049ebba0349361e64e0723481aa5ee9d6b4359abce91efaddb3142e25"
+    },
+    "artifact:v11-timing-internal-26-warmup-1-e2e-negative-fork-command": {
+      "sha256": "161d405d8edadb1b496206f98100790791b61725384ad7bdc7ea4d9f77373aa4"
+    },
+    "artifact:v11-timing-internal-26-warmup-1-e2e-negative-fork-diagnostics": {
+      "sha256": "7902de0049ebba0349361e64e0723481aa5ee9d6b4359abce91efaddb3142e25"
+    },
+    "artifact:v11-timing-internal-27-measured-0-conformance-fork-command": {
+      "sha256": "ffdf55acb7a574b3b95f9111b96e3c7b949f8945c2bed8a1bdf9c52033849e55"
+    },
+    "artifact:v11-timing-internal-27-measured-0-conformance-fork-diagnostics": {
+      "sha256": "6c379b9cd8195dc71411e90b5185b730556ebd2c2fbac7846030fb5af89647a5"
+    },
+    "artifact:v11-timing-internal-28-measured-0-conformance-cli-command": {
+      "sha256": "4d090d5d3a455925fad1fac00f0f9079d98fa6f433dd97b1d69ae6a6e0f188fe"
+    },
+    "artifact:v11-timing-internal-28-measured-0-conformance-cli-diagnostics": {
+      "sha256": "6c379b9cd8195dc71411e90b5185b730556ebd2c2fbac7846030fb5af89647a5"
+    },
+    "artifact:v11-timing-internal-29-measured-0-conformance-push-command": {
+      "sha256": "6b6d10b3d5e6cc330f1f29ec132232be4c248c278a692df85367d6d056865252"
+    },
+    "artifact:v11-timing-internal-29-measured-0-conformance-push-diagnostics": {
+      "sha256": "6c379b9cd8195dc71411e90b5185b730556ebd2c2fbac7846030fb5af89647a5"
+    },
+    "artifact:v11-timing-internal-30-measured-0-e2e-positive-cli-command": {
+      "sha256": "d6aa7c4d6124026369856a1066d51297d4da14d010622184d4433c35bbd57b23"
+    },
+    "artifact:v11-timing-internal-30-measured-0-e2e-positive-cli-diagnostics": {
+      "sha256": "37517e5f3dc66819f61f5a7bb8ace1921282415f10551d2defa5c3eb0985b570"
+    },
+    "artifact:v11-timing-internal-31-measured-0-e2e-positive-push-command": {
+      "sha256": "50aadcea87642541d71c06e14dd8652be88b0527068926af548802d450306d5d"
+    },
+    "artifact:v11-timing-internal-31-measured-0-e2e-positive-push-diagnostics": {
+      "sha256": "37517e5f3dc66819f61f5a7bb8ace1921282415f10551d2defa5c3eb0985b570"
+    },
+    "artifact:v11-timing-internal-32-measured-0-e2e-positive-fork-command": {
+      "sha256": "a59d888950bb3d5591e2419160e90616d12b5f1d37891e56ffcc9d38dab10117"
+    },
+    "artifact:v11-timing-internal-32-measured-0-e2e-positive-fork-diagnostics": {
+      "sha256": "37517e5f3dc66819f61f5a7bb8ace1921282415f10551d2defa5c3eb0985b570"
+    },
+    "artifact:v11-timing-internal-33-measured-0-e2e-negative-push-command": {
+      "sha256": "22fce61bcde399a8645233cd9a08e72548ddb5789a34f8fe9767e5d4a37151e7"
+    },
+    "artifact:v11-timing-internal-33-measured-0-e2e-negative-push-diagnostics": {
+      "sha256": "7902de0049ebba0349361e64e0723481aa5ee9d6b4359abce91efaddb3142e25"
+    },
+    "artifact:v11-timing-internal-34-measured-0-e2e-negative-fork-command": {
+      "sha256": "99d1047594b46d0550b0c4285c73f353675977450b4b1d04d5248cc153ca9269"
+    },
+    "artifact:v11-timing-internal-34-measured-0-e2e-negative-fork-diagnostics": {
+      "sha256": "7902de0049ebba0349361e64e0723481aa5ee9d6b4359abce91efaddb3142e25"
+    },
+    "artifact:v11-timing-internal-35-measured-0-e2e-negative-cli-command": {
+      "sha256": "6aa894139b36dc77ba6de00ddc95e8a0053c59a9fc51be98fc06c9d6a90017f8"
+    },
+    "artifact:v11-timing-internal-35-measured-0-e2e-negative-cli-diagnostics": {
+      "sha256": "7902de0049ebba0349361e64e0723481aa5ee9d6b4359abce91efaddb3142e25"
+    },
+    "artifact:v11-timing-internal-36-measured-1-conformance-cli-command": {
+      "sha256": "78f51f4a2e4b1186db92f02e68ce3f531cfc568a7de732b68d46792a07ee9033"
+    },
+    "artifact:v11-timing-internal-36-measured-1-conformance-cli-diagnostics": {
+      "sha256": "6c379b9cd8195dc71411e90b5185b730556ebd2c2fbac7846030fb5af89647a5"
+    },
+    "artifact:v11-timing-internal-37-measured-1-conformance-push-command": {
+      "sha256": "3c1c7e3ad6252896a8816691f4870c40547443f6a1a0fe6bd6af6f1377fc6a1d"
+    },
+    "artifact:v11-timing-internal-37-measured-1-conformance-push-diagnostics": {
+      "sha256": "6c379b9cd8195dc71411e90b5185b730556ebd2c2fbac7846030fb5af89647a5"
+    },
+    "artifact:v11-timing-internal-38-measured-1-conformance-fork-command": {
+      "sha256": "7fbc2d83808ac26ae046f43b61c6fcaa4143cbcbdf3d35032f0ed13f05c2335a"
+    },
+    "artifact:v11-timing-internal-38-measured-1-conformance-fork-diagnostics": {
+      "sha256": "6c379b9cd8195dc71411e90b5185b730556ebd2c2fbac7846030fb5af89647a5"
+    },
+    "artifact:v11-timing-internal-39-measured-1-e2e-positive-push-command": {
+      "sha256": "f9e3999a8013e9d4cab8d6ea56d483371386186f4ea183f3a818c002a6f2c3a4"
+    },
+    "artifact:v11-timing-internal-39-measured-1-e2e-positive-push-diagnostics": {
+      "sha256": "37517e5f3dc66819f61f5a7bb8ace1921282415f10551d2defa5c3eb0985b570"
+    },
+    "artifact:v11-timing-internal-40-measured-1-e2e-positive-fork-command": {
+      "sha256": "c6fd1c1a30ebe6e0e192d4de62eb5317b808f31156475615f77e9884bd94218c"
+    },
+    "artifact:v11-timing-internal-40-measured-1-e2e-positive-fork-diagnostics": {
+      "sha256": "37517e5f3dc66819f61f5a7bb8ace1921282415f10551d2defa5c3eb0985b570"
+    },
+    "artifact:v11-timing-internal-41-measured-1-e2e-positive-cli-command": {
+      "sha256": "9477bb15d439d9b050065e8c88d466a50db60d6f055d45137e4b847e17af4507"
+    },
+    "artifact:v11-timing-internal-41-measured-1-e2e-positive-cli-diagnostics": {
+      "sha256": "37517e5f3dc66819f61f5a7bb8ace1921282415f10551d2defa5c3eb0985b570"
+    },
+    "artifact:v11-timing-internal-42-measured-1-e2e-negative-fork-command": {
+      "sha256": "03a485ba68032991d45aef6103cd4547b494285549c9a8f590b1ccdde826b342"
+    },
+    "artifact:v11-timing-internal-42-measured-1-e2e-negative-fork-diagnostics": {
+      "sha256": "7902de0049ebba0349361e64e0723481aa5ee9d6b4359abce91efaddb3142e25"
+    },
+    "artifact:v11-timing-internal-43-measured-1-e2e-negative-cli-command": {
+      "sha256": "06d6cab52171987f06871d49dad9b8514cf954dae3617c01c7fdca7d980f904a"
+    },
+    "artifact:v11-timing-internal-43-measured-1-e2e-negative-cli-diagnostics": {
+      "sha256": "7902de0049ebba0349361e64e0723481aa5ee9d6b4359abce91efaddb3142e25"
+    },
+    "artifact:v11-timing-internal-44-measured-1-e2e-negative-push-command": {
+      "sha256": "23cb3c7a88bc646dec2d41d8883d49b8e121d08c393d5abd55e35ace3f697aa8"
+    },
+    "artifact:v11-timing-internal-44-measured-1-e2e-negative-push-diagnostics": {
+      "sha256": "7902de0049ebba0349361e64e0723481aa5ee9d6b4359abce91efaddb3142e25"
+    },
+    "artifact:v11-timing-internal-45-measured-2-conformance-push-command": {
+      "sha256": "2e09f7baa86b5fac01008362de005463262d1e05189b4019cc894896fe484813"
+    },
+    "artifact:v11-timing-internal-45-measured-2-conformance-push-diagnostics": {
+      "sha256": "6c379b9cd8195dc71411e90b5185b730556ebd2c2fbac7846030fb5af89647a5"
+    },
+    "artifact:v11-timing-internal-46-measured-2-conformance-fork-command": {
+      "sha256": "99ba20ce5f4cf4e45364aee475e4a6c35fceb72f1eb9916909f94324c80f72ab"
+    },
+    "artifact:v11-timing-internal-46-measured-2-conformance-fork-diagnostics": {
+      "sha256": "6c379b9cd8195dc71411e90b5185b730556ebd2c2fbac7846030fb5af89647a5"
+    },
+    "artifact:v11-timing-internal-47-measured-2-conformance-cli-command": {
+      "sha256": "fd168be185ec8080d8e3f40ea7e291f4600fae625d2bd805d57eb32d0744a872"
+    },
+    "artifact:v11-timing-internal-47-measured-2-conformance-cli-diagnostics": {
+      "sha256": "6c379b9cd8195dc71411e90b5185b730556ebd2c2fbac7846030fb5af89647a5"
+    },
+    "artifact:v11-timing-internal-48-measured-2-e2e-positive-fork-command": {
+      "sha256": "d2f1acbe8305d52acb498bd5200492e86f1a9e8fab67fa2e6680e0e31057f10f"
+    },
+    "artifact:v11-timing-internal-48-measured-2-e2e-positive-fork-diagnostics": {
+      "sha256": "37517e5f3dc66819f61f5a7bb8ace1921282415f10551d2defa5c3eb0985b570"
+    },
+    "artifact:v11-timing-internal-49-measured-2-e2e-positive-cli-command": {
+      "sha256": "1081fa9a76c2436cc7eaf1619946863dc332d0ed8f1c200bc2e42ab564770411"
+    },
+    "artifact:v11-timing-internal-49-measured-2-e2e-positive-cli-diagnostics": {
+      "sha256": "37517e5f3dc66819f61f5a7bb8ace1921282415f10551d2defa5c3eb0985b570"
+    },
+    "artifact:v11-timing-internal-50-measured-2-e2e-positive-push-command": {
+      "sha256": "a009e552a26f2c2672dcf230e183aaeb905fb2e4611c0a330c386979bb21dc4a"
+    },
+    "artifact:v11-timing-internal-50-measured-2-e2e-positive-push-diagnostics": {
+      "sha256": "37517e5f3dc66819f61f5a7bb8ace1921282415f10551d2defa5c3eb0985b570"
+    },
+    "artifact:v11-timing-internal-51-measured-2-e2e-negative-cli-command": {
+      "sha256": "f7f926705e2457ac579577bd1cd1be963dbd5746c61428a4a08e801b4ea9bb8f"
+    },
+    "artifact:v11-timing-internal-51-measured-2-e2e-negative-cli-diagnostics": {
+      "sha256": "7902de0049ebba0349361e64e0723481aa5ee9d6b4359abce91efaddb3142e25"
+    },
+    "artifact:v11-timing-internal-52-measured-2-e2e-negative-push-command": {
+      "sha256": "0aba2ed294afedef9db6356c3a795e6f48af230be33f49ff8d874ce09f09b90c"
+    },
+    "artifact:v11-timing-internal-52-measured-2-e2e-negative-push-diagnostics": {
+      "sha256": "7902de0049ebba0349361e64e0723481aa5ee9d6b4359abce91efaddb3142e25"
+    },
+    "artifact:v11-timing-internal-53-measured-2-e2e-negative-fork-command": {
+      "sha256": "3979642a7118e20dee9f4ad2db0a0b80b78d8375d5e3ca883d87fd9dcc35192e"
+    },
+    "artifact:v11-timing-internal-53-measured-2-e2e-negative-fork-diagnostics": {
+      "sha256": "7902de0049ebba0349361e64e0723481aa5ee9d6b4359abce91efaddb3142e25"
+    },
+    "artifact:v11-timing-internal-54-measured-3-conformance-fork-command": {
+      "sha256": "963a82e6cbb34b5e259ead694e337dad9b69bb80bcf23fb333f02604c603f083"
+    },
+    "artifact:v11-timing-internal-54-measured-3-conformance-fork-diagnostics": {
+      "sha256": "6c379b9cd8195dc71411e90b5185b730556ebd2c2fbac7846030fb5af89647a5"
+    },
+    "artifact:v11-timing-internal-55-measured-3-conformance-cli-command": {
+      "sha256": "1a07a2599558d3b349a5bf1dec8737b24e1d5a247f0bcb6d39e2c58d389719d0"
+    },
+    "artifact:v11-timing-internal-55-measured-3-conformance-cli-diagnostics": {
+      "sha256": "6c379b9cd8195dc71411e90b5185b730556ebd2c2fbac7846030fb5af89647a5"
+    },
+    "artifact:v11-timing-internal-56-measured-3-conformance-push-command": {
+      "sha256": "18541945b01edcc43505f5d8b76e017bf95b1d56f4207dfd18416e6bc5d55cae"
+    },
+    "artifact:v11-timing-internal-56-measured-3-conformance-push-diagnostics": {
+      "sha256": "6c379b9cd8195dc71411e90b5185b730556ebd2c2fbac7846030fb5af89647a5"
+    },
+    "artifact:v11-timing-internal-57-measured-3-e2e-positive-cli-command": {
+      "sha256": "1a4dbd9093a1b6d1dd2566ce2de5e9c036b9810a886da6f7eb563d74d83c57fa"
+    },
+    "artifact:v11-timing-internal-57-measured-3-e2e-positive-cli-diagnostics": {
+      "sha256": "37517e5f3dc66819f61f5a7bb8ace1921282415f10551d2defa5c3eb0985b570"
+    },
+    "artifact:v11-timing-internal-58-measured-3-e2e-positive-push-command": {
+      "sha256": "a86abe45107e0066b275f53ff3b1bb240d068233b36b2456a5c58008aa681d76"
+    },
+    "artifact:v11-timing-internal-58-measured-3-e2e-positive-push-diagnostics": {
+      "sha256": "37517e5f3dc66819f61f5a7bb8ace1921282415f10551d2defa5c3eb0985b570"
+    },
+    "artifact:v11-timing-internal-59-measured-3-e2e-positive-fork-command": {
+      "sha256": "955045bc0a6f8e12177338838d09af6adb3b249ecc733abda19a8ab51b6916dc"
+    },
+    "artifact:v11-timing-internal-59-measured-3-e2e-positive-fork-diagnostics": {
+      "sha256": "37517e5f3dc66819f61f5a7bb8ace1921282415f10551d2defa5c3eb0985b570"
+    },
+    "artifact:v11-timing-internal-60-measured-3-e2e-negative-push-command": {
+      "sha256": "e74e32019bf432a89c3de752c135d201cebe712d728c2ca581b7610379f83c5f"
+    },
+    "artifact:v11-timing-internal-60-measured-3-e2e-negative-push-diagnostics": {
+      "sha256": "7902de0049ebba0349361e64e0723481aa5ee9d6b4359abce91efaddb3142e25"
+    },
+    "artifact:v11-timing-internal-61-measured-3-e2e-negative-fork-command": {
+      "sha256": "28a5719a01dae93bd385b332372a7de07301f1b6158c1478e9603960a00a7cbc"
+    },
+    "artifact:v11-timing-internal-61-measured-3-e2e-negative-fork-diagnostics": {
+      "sha256": "7902de0049ebba0349361e64e0723481aa5ee9d6b4359abce91efaddb3142e25"
+    },
+    "artifact:v11-timing-internal-62-measured-3-e2e-negative-cli-command": {
+      "sha256": "853af7223eead83e9d1578b3ef41f05b756c57271fc2fa3b4011e5f627b60461"
+    },
+    "artifact:v11-timing-internal-62-measured-3-e2e-negative-cli-diagnostics": {
+      "sha256": "7902de0049ebba0349361e64e0723481aa5ee9d6b4359abce91efaddb3142e25"
+    },
+    "artifact:v11-timing-internal-63-measured-4-conformance-cli-command": {
+      "sha256": "776f534c8f7666b806cf1d682947dd0ac34bdc19f19f2798c33b34c8ba07624c"
+    },
+    "artifact:v11-timing-internal-63-measured-4-conformance-cli-diagnostics": {
+      "sha256": "6c379b9cd8195dc71411e90b5185b730556ebd2c2fbac7846030fb5af89647a5"
+    },
+    "artifact:v11-timing-internal-64-measured-4-conformance-push-command": {
+      "sha256": "8b4cf816a90959c9326039d8f1373a739671cd528c4575e52fcce3c44f3e49fb"
+    },
+    "artifact:v11-timing-internal-64-measured-4-conformance-push-diagnostics": {
+      "sha256": "6c379b9cd8195dc71411e90b5185b730556ebd2c2fbac7846030fb5af89647a5"
+    },
+    "artifact:v11-timing-internal-65-measured-4-conformance-fork-command": {
+      "sha256": "a07627879ced56430a748b621c7aed359656b5642a3d50e04123aebfd3f73803"
+    },
+    "artifact:v11-timing-internal-65-measured-4-conformance-fork-diagnostics": {
+      "sha256": "6c379b9cd8195dc71411e90b5185b730556ebd2c2fbac7846030fb5af89647a5"
+    },
+    "artifact:v11-timing-internal-66-measured-4-e2e-positive-push-command": {
+      "sha256": "bbc9e35105270f35cb66ddad20e4b4d00fd4e80e2df3248aeda0e18fea090722"
+    },
+    "artifact:v11-timing-internal-66-measured-4-e2e-positive-push-diagnostics": {
+      "sha256": "37517e5f3dc66819f61f5a7bb8ace1921282415f10551d2defa5c3eb0985b570"
+    },
+    "artifact:v11-timing-internal-67-measured-4-e2e-positive-fork-command": {
+      "sha256": "4e028306f7430f7f87d100855bf5e2297aabf942d23eaac749ed921ab24b358f"
+    },
+    "artifact:v11-timing-internal-67-measured-4-e2e-positive-fork-diagnostics": {
+      "sha256": "37517e5f3dc66819f61f5a7bb8ace1921282415f10551d2defa5c3eb0985b570"
+    },
+    "artifact:v11-timing-internal-68-measured-4-e2e-positive-cli-command": {
+      "sha256": "1046b996963434ac5c24937fe6b32fcd4654b2d76366243c6b1857e770948d09"
+    },
+    "artifact:v11-timing-internal-68-measured-4-e2e-positive-cli-diagnostics": {
+      "sha256": "37517e5f3dc66819f61f5a7bb8ace1921282415f10551d2defa5c3eb0985b570"
+    },
+    "artifact:v11-timing-internal-69-measured-4-e2e-negative-fork-command": {
+      "sha256": "6eeebabf6afb75c4ccad9bf1f22c905aad7a79dde59b932d4d180f6debbb695a"
+    },
+    "artifact:v11-timing-internal-69-measured-4-e2e-negative-fork-diagnostics": {
+      "sha256": "7902de0049ebba0349361e64e0723481aa5ee9d6b4359abce91efaddb3142e25"
+    },
+    "artifact:v11-timing-internal-70-measured-4-e2e-negative-cli-command": {
+      "sha256": "309cd513fa52a0ad5ed7afd644e2fc9fe93274ac7b2469b1439a7da767ead9a1"
+    },
+    "artifact:v11-timing-internal-70-measured-4-e2e-negative-cli-diagnostics": {
+      "sha256": "7902de0049ebba0349361e64e0723481aa5ee9d6b4359abce91efaddb3142e25"
+    },
+    "artifact:v11-timing-internal-71-measured-4-e2e-negative-push-command": {
+      "sha256": "f3be0b076c99c28c4be8bd1056860fa97137985a90683a0199afbe834884b670"
+    },
+    "artifact:v11-timing-internal-71-measured-4-e2e-negative-push-diagnostics": {
+      "sha256": "7902de0049ebba0349361e64e0723481aa5ee9d6b4359abce91efaddb3142e25"
+    },
+    "artifact:v11-timing-internal-72-measured-5-conformance-push-command": {
+      "sha256": "ae249a4e09210c4625ad5e6361ce3f9347773f2687bd9efb6159433cb628ffb6"
+    },
+    "artifact:v11-timing-internal-72-measured-5-conformance-push-diagnostics": {
+      "sha256": "6c379b9cd8195dc71411e90b5185b730556ebd2c2fbac7846030fb5af89647a5"
+    },
+    "artifact:v11-timing-internal-73-measured-5-conformance-fork-command": {
+      "sha256": "b6bab53b5524914443a98d5700b2ad0e0ad49fb60c648c8369fcf837b988a27a"
+    },
+    "artifact:v11-timing-internal-73-measured-5-conformance-fork-diagnostics": {
+      "sha256": "6c379b9cd8195dc71411e90b5185b730556ebd2c2fbac7846030fb5af89647a5"
+    },
+    "artifact:v11-timing-internal-74-measured-5-conformance-cli-command": {
+      "sha256": "3e31dab2edc5ed52e27bca4f5f2ff5c18d5e4fb138908bc8f2d3f977ed2e4952"
+    },
+    "artifact:v11-timing-internal-74-measured-5-conformance-cli-diagnostics": {
+      "sha256": "6c379b9cd8195dc71411e90b5185b730556ebd2c2fbac7846030fb5af89647a5"
+    },
+    "artifact:v11-timing-internal-75-measured-5-e2e-positive-fork-command": {
+      "sha256": "a34cac6b69c4549d308361b68bcb614b33f1ee70aafa9a4c4080636f7c988abd"
+    },
+    "artifact:v11-timing-internal-75-measured-5-e2e-positive-fork-diagnostics": {
+      "sha256": "37517e5f3dc66819f61f5a7bb8ace1921282415f10551d2defa5c3eb0985b570"
+    },
+    "artifact:v11-timing-internal-76-measured-5-e2e-positive-cli-command": {
+      "sha256": "77e9ed4366903ffc5899eae67beb055e1b9c859d9fb082535d852d38ac78c0bd"
+    },
+    "artifact:v11-timing-internal-76-measured-5-e2e-positive-cli-diagnostics": {
+      "sha256": "37517e5f3dc66819f61f5a7bb8ace1921282415f10551d2defa5c3eb0985b570"
+    },
+    "artifact:v11-timing-internal-77-measured-5-e2e-positive-push-command": {
+      "sha256": "da0e398d5b92864b679a3d9769b814c56fb69c26737585b61f4fb5c5a515db00"
+    },
+    "artifact:v11-timing-internal-77-measured-5-e2e-positive-push-diagnostics": {
+      "sha256": "37517e5f3dc66819f61f5a7bb8ace1921282415f10551d2defa5c3eb0985b570"
+    },
+    "artifact:v11-timing-internal-78-measured-5-e2e-negative-cli-command": {
+      "sha256": "386031877aaf3aefce8be6f556983e16f0e35df85e555a0e52e1d1741a2243cc"
+    },
+    "artifact:v11-timing-internal-78-measured-5-e2e-negative-cli-diagnostics": {
+      "sha256": "7902de0049ebba0349361e64e0723481aa5ee9d6b4359abce91efaddb3142e25"
+    },
+    "artifact:v11-timing-internal-79-measured-5-e2e-negative-push-command": {
+      "sha256": "704c1d29f06d6d2921b2e969ba4b043ffd167c2790978275ac32aad55846a707"
+    },
+    "artifact:v11-timing-internal-79-measured-5-e2e-negative-push-diagnostics": {
+      "sha256": "7902de0049ebba0349361e64e0723481aa5ee9d6b4359abce91efaddb3142e25"
+    },
+    "artifact:v11-timing-internal-80-measured-5-e2e-negative-fork-command": {
+      "sha256": "0643cca65950e3a6bb68a8c9a191b33e999d6288b0cb4c860049c05a18101ba1"
+    },
+    "artifact:v11-timing-internal-80-measured-5-e2e-negative-fork-diagnostics": {
+      "sha256": "7902de0049ebba0349361e64e0723481aa5ee9d6b4359abce91efaddb3142e25"
+    },
+    "artifact:v11-timing-internal-81-measured-6-conformance-fork-command": {
+      "sha256": "78f33df94703f176054a4082fffa4535ea30720acbfe89caf4ef5b1d60c7cedb"
+    },
+    "artifact:v11-timing-internal-81-measured-6-conformance-fork-diagnostics": {
+      "sha256": "6c379b9cd8195dc71411e90b5185b730556ebd2c2fbac7846030fb5af89647a5"
+    },
+    "artifact:v11-timing-internal-82-measured-6-conformance-cli-command": {
+      "sha256": "79b1a1d162a413762db38872fdd10b61530c7c6d0d7aa388edb9fa90baa79de7"
+    },
+    "artifact:v11-timing-internal-82-measured-6-conformance-cli-diagnostics": {
+      "sha256": "6c379b9cd8195dc71411e90b5185b730556ebd2c2fbac7846030fb5af89647a5"
+    },
+    "artifact:v11-timing-internal-83-measured-6-conformance-push-command": {
+      "sha256": "c1f9645c19b719214f10f929d577685d6b8049d8f99542721683b0a0491eb745"
+    },
+    "artifact:v11-timing-internal-83-measured-6-conformance-push-diagnostics": {
+      "sha256": "6c379b9cd8195dc71411e90b5185b730556ebd2c2fbac7846030fb5af89647a5"
+    },
+    "artifact:v11-timing-internal-84-measured-6-e2e-positive-cli-command": {
+      "sha256": "ee8afed90653e0a65ad5ebaaf415adf55adeee73d81a2990ea97348d4e37586d"
+    },
+    "artifact:v11-timing-internal-84-measured-6-e2e-positive-cli-diagnostics": {
+      "sha256": "37517e5f3dc66819f61f5a7bb8ace1921282415f10551d2defa5c3eb0985b570"
+    },
+    "artifact:v11-timing-internal-85-measured-6-e2e-positive-push-command": {
+      "sha256": "d80972e8dc8091ff28ec639477b122449e75ed100b3bfd845cf94d9145328394"
+    },
+    "artifact:v11-timing-internal-85-measured-6-e2e-positive-push-diagnostics": {
+      "sha256": "37517e5f3dc66819f61f5a7bb8ace1921282415f10551d2defa5c3eb0985b570"
+    },
+    "artifact:v11-timing-internal-86-measured-6-e2e-positive-fork-command": {
+      "sha256": "d9cd5eeffa5217a3243b5b3ebd52477befc5ba84a7530c6594974b4033e7c5c6"
+    },
+    "artifact:v11-timing-internal-86-measured-6-e2e-positive-fork-diagnostics": {
+      "sha256": "37517e5f3dc66819f61f5a7bb8ace1921282415f10551d2defa5c3eb0985b570"
+    },
+    "artifact:v11-timing-internal-87-measured-6-e2e-negative-push-command": {
+      "sha256": "0eb2e8d5e0cdc20f590e4b29df51ee20d50f7cff76f60c4c8dcc65d1731925b9"
+    },
+    "artifact:v11-timing-internal-87-measured-6-e2e-negative-push-diagnostics": {
+      "sha256": "7902de0049ebba0349361e64e0723481aa5ee9d6b4359abce91efaddb3142e25"
+    },
+    "artifact:v11-timing-internal-88-measured-6-e2e-negative-fork-command": {
+      "sha256": "a3d220d019ab7143d0bff6f88578bfa87d0f0bf6fc429a66de4b6d09d1033010"
+    },
+    "artifact:v11-timing-internal-88-measured-6-e2e-negative-fork-diagnostics": {
+      "sha256": "7902de0049ebba0349361e64e0723481aa5ee9d6b4359abce91efaddb3142e25"
+    },
+    "artifact:v11-timing-internal-89-measured-6-e2e-negative-cli-command": {
+      "sha256": "899f805a97612cc01711ade313ee03dcc64196e9ac0ef5fa48cdc5842965fff5"
+    },
+    "artifact:v11-timing-internal-89-measured-6-e2e-negative-cli-diagnostics": {
+      "sha256": "7902de0049ebba0349361e64e0723481aa5ee9d6b4359abce91efaddb3142e25"
+    },
+    "artifact:v11-timing-internal-benchmark": {
+      "sha256": "cc09a3c2b82f73db9c59e5063f8efbefa8c60bc988fee6fdf831b89792f969eb"
+    },
+    "artifact:v11-timing-internal-inputs": {
+      "sha256": "f37d1dff982ba4d144a5c8de223f6e6f74f06981ef3fa696d9f7774b4912419a"
+    },
+    "artifact:v11-timing-internal-runner": {
+      "sha256": "46d5b1def30528e240e29ef05238ea55e8f6953d44dcb2a7e3c1ba2a1158e4dd"
+    },
+    "artifact:v11-timing-public-additional-formats": {
+      "sha256": "2e957b066391f075ecfad685ea253368ef62a1b4f9740cfa7f2bf9b6c0f6e4c7"
+    },
+    "artifact:v11-timing-public-augmentation": {
+      "sha256": "8ccfc3dfb7f3d7a479feff1ec83439eb8f9c6a33f5c73027dbc80bb0f22f54ed"
+    },
+    "artifact:v11-timing-public-benchmark": {
+      "sha256": "1a32fcf535798b5edcbcbb1c263b10dee51879b250dec7569ef53195927e1939"
+    },
+    "artifact:v11-timing-public-companion-concise-stderr": {
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "artifact:v11-timing-public-companion-concise-stdout": {
+      "sha256": "4b3641b523a1b5f97ed2e5d1512a27e2b684f4ad06833b8b6af5c967452fc46f"
+    },
+    "artifact:v11-timing-public-companion-full-stderr": {
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "artifact:v11-timing-public-companion-full-stdout": {
+      "sha256": "bfd07017bade4634aceae7ce83137e96ed4abd076f7f8bb6eab3081f31ba8371"
+    },
+    "artifact:v11-timing-public-context": {
+      "sha256": "42c0fd541971baaeb8913f8bdd733fa625c6f4be7f7223b66190d0a5e52f3c77"
+    },
+    "artifact:v11-timing-public-entrypoint": {
+      "sha256": "0832edb22c456bf40a7317a2a967301a8034d5da32f2069d0ed1b3571cee2bae"
+    },
+    "artifact:v11-timing-public-fork-concise-stderr": {
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "artifact:v11-timing-public-fork-concise-stdout": {
+      "sha256": "07338cbf0d80986e491968f55c98a6114045c227b54c28a12419fc866f700f34"
+    },
+    "artifact:v11-timing-public-fork-full-stderr": {
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "artifact:v11-timing-public-fork-full-stdout": {
+      "sha256": "5428d56bc5dbb76d2962175a827a239cb6a33b356b1b889b0ce84851a4e9b651"
+    },
+    "artifact:v11-timing-public-presentation": {
+      "sha256": "91a33d136660b5c86f6d7bac63a4d983595a62edcd3d45d6b828870c16f80c12"
+    },
+    "artifact:v11-timing-public-runner": {
+      "sha256": "110ba239e57157c1bd35e6616e36d40fbb4850f8600abbbbe0be4bb8f3266c23"
+    },
+    "artifact:v11-timing-quiet-editor-log": {
+      "sha256": "687ed7f6b17cdb3f066fd5fbc4aacd4f37de4c8445ac7df209c9593c88ed4779"
+    },
+    "artifact:v11-timing-quiet-internal-log": {
+      "sha256": "821d2e6313b064186a124f0276c363ee5ac10c3cde8a95508f73ee73f4472eca"
+    },
+    "artifact:v11-timing-quiet-orchestration": {
+      "sha256": "8793b6d665eaaf4e27a974c685bfcbd4c9cfca0f6e623fceeed2c267aa2cbfd5"
+    },
+    "artifact:v11-timing-quiet-public-log": {
+      "sha256": "707b3f228f1949098047e66fe91a28cada9d0cec513daa4815e357a41d3c7173"
+    },
+    "artifact:v11-timing-quiet-runner": {
+      "sha256": "de3316e749fb65110c03a768d6bf400056045501f97f3ba56fcb957192f6940e"
+    }
+  },
+  "schema": "ty-companion-followup-provenance-v1",
+  "source_commit": "b054f63bc4229f7da44d6b4262337ec1e8e87f40",
+  "source_files_sha256": {
+    "companion/Cargo.lock": "459b491c865ede5d55d29441c8fa1373276eba11e65a7cb97f46fc2712d48015",
+    "companion/Cargo.toml": "db0c0e0a16e59b0a95902ff61f8b4777b1f568319a7625f7684a459f2bb55109",
+    "companion/scripts/harness_paths.py": "39e1f64f95a0ce6b7dc0903bbf8452b3d4785a8a830cbf2b0ffd42a9ea8ec505",
+    "companion/scripts/lsp_acceptance.py": "7ec1b0edeb654aa59c6a5eb8ba359fd559f1b09b4275ffd5d41aec87db58cb4a",
+    "companion/scripts/plugin_configuration_differential.py": "26210523e3c17f9d4805dbd65dd131bd7b00274c6b9fd78eb2be65662763e50d",
+    "companion/src/checker.rs": "1cd5b4d1863722f240296ea791ee287f355789c04c564a2eade3e2062c389bf3",
+    "companion/src/cli.rs": "11e58291e47b04ed3a9c08fa54a843ea1d15a5d5c30a6b70b2dfdaa04478f078",
+    "companion/src/cli_edits.rs": "01543f2a5d63f7a66545923b6ccd25e06161b6e3fd9b2936d09073768902c444",
+    "companion/src/editor_options.rs": "6c3d5540fdea2956a9ed179fb2291f087456a48cf744647063bdd11a3f775d46",
+    "companion/src/flow.rs": "5374632adc25478b9feba8e39724c67e119e0a88d85bc604aa44cd58c3a7893d",
+    "companion/src/lower.rs": "f8fd24ae6c5ab3a7274195ab781c6f4db3953832002b532935323807ebebea5d",
+    "companion/src/lsp_mapping.rs": "2a3d7cc63f066bc25db11d680819124e3ff609448d2f27ab93b15d877bfc48fb",
+    "companion/src/lsp_server.rs": "ecc460fa2f9ccae40dfe3c9ba9459edc5063d0f3e07e870df4aa1d18c4bed7af",
+    "companion/src/main.rs": "87cc810058ef757be633eb43d3a55111b37b3b4e97ad77d0b5c8b1395da77a99",
+    "companion/src/mapping.rs": "ab93da5654b6db05c183cd8c3edc74fc8b2656f9f598a9ad06b1869e4ff0b263",
+    "companion/src/model.rs": "b369aefc5a4471527f78b0f8ecf92f1fa9c391366e8e359335d35e4a44a533c7",
+    "companion/src/notebook.rs": "9a12ae49794573b05662125390c295f852b49e4c8d1cd05ead6a1d78fffc2749",
+    "companion/src/project.rs": "b0e8da8dad47191ac79504e9a410656db8f2a836d6e6eec2bc65da0dd81bb618",
+    "companion/src/project_check.rs": "deccd61973368f9cf39192b587618260efc719496ebba053fd34914685784e10",
+    "companion/src/project_config.rs": "873ca1397e6064d541d6be8209e2779cf555bc6a71cbbb5f4ec18d8488e03dd8",
+    "companion/src/runtime.rs": "84b613f89dca33cfa443e419a4f8661c9f98ed3cfc7a605f6b80c16283c794b5",
+    "companion/src/static_project.rs": "e843d64266ae54c65faad8bf77f684a88684b70eb06e7b20145d23c305d350dd",
+    "companion/src/type_render.rs": "fcac0aa745413e5944915a02612de47be5c11d8aa36791dd797a75d8400fd665",
+    "companion/src/type_snapshot.rs": "0c018b699a8d140782e3813a5606d188c27b392400d1796ab839d73002eba813",
+    "companion/src/verify.rs": "e7708860ec0bd32cdfb8d6a171a53b2c12d5a67703f5a5b4322fa72d1592603d"
+  }
+}
