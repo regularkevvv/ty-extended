@@ -24,7 +24,7 @@ Configure your editor to start `ty-extended server` for plugin support.
 ## Official ty compatibility
 
 Companion versions are independent of official ty starting with 0.87.0. The same
-0.88.0 companion binary has passed the complete compatibility suite against **every ty release
+0.89.0 companion CI binary has passed the complete compatibility suite against **every ty release
 from 0.0.84 through 0.0.99** (16 releases), including Django CLI and editor checks.
 Updating official ty within a compatible group does not require a companion release.
 See [the compatibility policy and evidence](docs/compatibility.md) for the tested
@@ -32,9 +32,11 @@ versions, dependency range and checks for future releases.
 
 ## Performance
 
-With Django-ty 0.7, companion 0.88 reduces the recorded 7,082-file/2,501-model
-workload from **80.8 to 7.0 seconds**, reaching MyPy parity on that Mac workload.
-Smaller projects and Linux CI show larger advantages over MyPy. See
+With Django-ty 0.7, the 0.89 companion CI wheel reduces the recorded
+7,082-file/2,501-model workload from **80.8 to 6.3 seconds**, versus **6.6 seconds**
+for MyPy on the same Mac. The largest case is close to MyPy parity; smaller
+projects show larger advantages. All five recorded local workloads meet the
+MyPy median ceiling. See
 [the reproducible benchmarks](docs/performance.md) for all samples, bare official
 ty timings, correctness controls and the limits of each comparison.
 

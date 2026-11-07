@@ -69,15 +69,20 @@ def lsp_diagnostics(value):
     )
 
 
-def compact_response_offsets(value):
+def current_host_message(value):
     if isinstance(value, str):
         if "unknown variant `not-a-real-response`" in value:
-            return value.replace("at line 1 column 30", "at line 1 column 29")
+            # Protocol 0.9 adds one valid response variant. Adjust only the
+            # frozen reference's advertised list and compact JSON byte offset.
+            return value.replace("at line 1 column 30", "at line 1 column 29").replace(
+                "`class-patch`, `member-patch`",
+                "`class-patch`, `class-batch`, `member-patch`",
+            )
         return value
     if isinstance(value, list):
-        return [compact_response_offsets(item) for item in value]
+        return [current_host_message(item) for item in value]
     if isinstance(value, dict):
-        return {key: compact_response_offsets(item) for key, item in value.items()}
+        return {key: current_host_message(item) for key, item in value.items()}
     return value
 
 
@@ -107,10 +112,10 @@ class Gate:
         }
 
     def equal(self, name, actual, expected):
-        # Compact wire JSON moves this invalid variant's parser offset by one
-        # byte. Python source ranges and every other diagnostic remain exact.
+        # The newer host advertises its added response variant and uses compact
+        # JSON. Source ranges and every other diagnostic remain exact.
         if not name.endswith("/reference"):
-            expected = compact_response_offsets(expected)
+            expected = current_host_message(expected)
         passed = actual == expected
         self.evidence["checks"].append({"name": name, "equal": passed})
         assert passed, (

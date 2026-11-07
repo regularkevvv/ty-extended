@@ -11,7 +11,10 @@ use std::{
     time::{Duration, Instant},
 };
 use ty_plugin_host::{HostError, MontyLimits, MontyRunner, PluginEnvironment, PluginHost};
-use ty_plugin_protocol::{PluginManifest, PluginRequest, method_name_pattern_matches};
+use ty_plugin_protocol::{
+    AnalyzeClassesRequest, ClassTransformRequest, PluginManifest, PluginRequest,
+    method_name_pattern_matches,
+};
 
 pub struct Runtime {
     host: PluginHost<MontyRunner>,
@@ -128,6 +131,9 @@ fn decode_request(mut payload: Value) -> serde_json::Result<PluginRequest> {
         }
         Some("analyze-class") => {
             serde::Deserialize::deserialize(&payload).map(PluginRequest::AnalyzeClass)
+        }
+        Some("analyze-classes") => {
+            serde::Deserialize::deserialize(&payload).map(PluginRequest::AnalyzeClasses)
         }
         Some("resolve-class-member") => {
             serde::Deserialize::deserialize(&payload).map(PluginRequest::ResolveClassMember)
@@ -1326,17 +1332,30 @@ impl Runtime {
         }
         let kind = payload["kind"].as_str().unwrap_or("").to_owned();
         let request = decode_request(payload).context("invalid plugin request")?;
+        let response = self.run_request(id, &kind, &request, index_owner)?;
+        // Like the checker's Salsa memo, cache failures for the exact request.
+        // Diagnostics remain in the response and are replayed at each current
+        // source location, never accumulated globally across editor revisions.
+        self.cache.insert(key, &response);
+        Ok(response)
+    }
+
+    fn run_request(
+        &mut self,
+        id: &str,
+        kind: &str,
+        request: &PluginRequest,
+        index_owner: Option<usize>,
+    ) -> Result<Value> {
         let start = Instant::now();
         if let Some((message, hint)) = self.load_failures.get(id) {
-            let response = hook_failure_message(id, &kind, message, hint);
-            self.cache.insert(key, &response);
-            return Ok(response);
+            return Ok(hook_failure_message(id, kind, message, hint));
         }
         let result =
             if let Some(index) = index_owner.and_then(|owner| self.plugins[owner].index.as_ref()) {
-                self.host.execute_with_project_index(id, &request, index)
+                self.host.execute_with_project_index(id, request, index)
             } else {
-                self.host.execute(id, &request)
+                self.host.execute(id, request)
             };
         self.execution_time += start.elapsed();
         self.executions += 1;
@@ -1346,12 +1365,8 @@ impl Runtime {
             // failure (trap, execution limit or undecodable response).
             Ok(ty_plugin_protocol::PluginResponse::Error(_)) => json!({"kind":"no-change"}),
             Ok(response) => serde_json::to_value(response)?,
-            Err(error) => hook_failure_response(id, &kind, error),
+            Err(error) => hook_failure_response(id, kind, error),
         };
-        // Like the checker's Salsa memo, cache failures for the exact request.
-        // Diagnostics remain in the response and are replayed at each current
-        // source location, never accumulated globally across editor revisions.
-        self.cache.insert(key, &response);
         Ok(response)
     }
 
@@ -1360,12 +1375,7 @@ impl Runtime {
         // A generation identifies the exact opaque index supplied to this
         // plugin. Equal indexes preserve cached results across source revisions
         // without cloning or hashing a megabyte-sized index for every hook.
-        let key = request_key(&(
-            "semantic",
-            &id,
-            self.plugins[index].index_generation,
-            &payload,
-        ))?;
+        let key = self.semantic_key(index, &payload)?;
         if let Some(response) = self.cache.get(&key) {
             self.hits += 1;
             return Ok(response.clone());
@@ -1381,6 +1391,159 @@ impl Runtime {
             payload["project-index"] = project_index.clone();
         }
         self.dispatch_with_key(&id, payload, key, lazy.then_some(index))
+    }
+
+    fn semantic_key(&self, index: usize, payload: &Value) -> Result<RequestKey> {
+        request_key(&(
+            "semantic",
+            &self.plugins[index].id,
+            self.plugins[index].index_generation,
+            payload,
+        ))
+    }
+
+    fn semantic_request(
+        &self,
+        index: usize,
+        source: &Source,
+        kind: &str,
+        payload: &Value,
+    ) -> Result<Option<Value>> {
+        let plugin = &self.plugins[index];
+        if plugin.virtual_names.is_empty() && !self.allowed(source, kind, payload, &plugin.manifest)
+        {
+            return Ok(None);
+        }
+        let mut request = payload.clone();
+        rewrite_protocol_names(&mut request, &plugin.inverse_virtual_names);
+        if !plugin.virtual_names.is_empty()
+            && !self.allowed(source, kind, &request, &plugin.manifest)
+        {
+            return Ok(None);
+        }
+        let object = request
+            .as_object_mut()
+            .context("hook payload must be object")?;
+        object.insert("kind".into(), json!(kind));
+        object.insert("context".into(), json!({"module":source.protocol_module.as_ref().unwrap_or(&source.module),"file-path":source.path,
+            "python-version":self.python_version,"platform":self.platform,"config":plugin.config,"speculative":false}));
+        if source.protocol_module.is_some() {
+            rewrite_notebook_request(&mut request, source, |name| {
+                self.protocol_name(source, name)
+            });
+        }
+        Ok(Some(request))
+    }
+
+    /// Populate the ordinary per-request cache through an explicitly opted-in
+    /// batch hook. Only complete class-scoped indexes qualify; an unlisted or
+    /// oversized class retains the existing individual hook and index lookup.
+    pub fn prepare_class_transforms(&mut self, project: &Project) -> Result<()> {
+        const MAX_ITEMS: usize = 128;
+        const MAX_BYTES: usize = 1024 * 1024;
+        for index in 0..self.plugins.len() {
+            if self.plugins[index].manifest["capabilities"]["class-batch"] != true {
+                continue;
+            }
+            let mut requests = Vec::new();
+            let mut keys = Vec::new();
+            // Reserve the outer object and commas as well as item payloads.
+            let mut bytes = 64;
+            for (name, summary) in project.classes.iter() {
+                let module = summary
+                    .pointer("/source/module")
+                    .and_then(Value::as_str)
+                    .or_else(|| name.rsplit_once('.').map(|v| v.0));
+                let Some(module) = module.and_then(|name| project.modules.get(name)) else {
+                    continue;
+                };
+                if module.external {
+                    continue;
+                }
+                let Some(mut request) = self.semantic_request(
+                    index,
+                    &module.source,
+                    "analyze-class",
+                    &json!({"class":summary}),
+                )?
+                else {
+                    continue;
+                };
+                let key = self.semantic_key(index, &request)?;
+                if self.cache.get(&key).is_some() {
+                    continue;
+                }
+                let Some(class_index) = request["class"]["qualified-name"]
+                    .as_str()
+                    .and_then(|name| self.plugins[index].class_indexes.get(name))
+                else {
+                    continue;
+                };
+                request["project-index"] = class_index.clone();
+                let PluginRequest::AnalyzeClass(request) = decode_request(request)? else {
+                    bail!("class batch preparation received a non-class request");
+                };
+                let request = ClassTransformRequest::AnalyzeClass(request);
+                // Measure the exact typed wire representation, including
+                // protocol defaults, rather than a pre-decoding approximation.
+                let size = serde_json::to_vec(&request)?.len() + 1;
+                if size + 64 > MAX_BYTES {
+                    continue;
+                }
+                if requests.len() == MAX_ITEMS || bytes + size > MAX_BYTES {
+                    self.dispatch_class_batch(index, &mut requests, &mut keys)?;
+                    bytes = 64;
+                }
+                requests.push(request);
+                keys.push(key);
+                bytes += size;
+            }
+            self.dispatch_class_batch(index, &mut requests, &mut keys)?;
+        }
+        Ok(())
+    }
+
+    fn dispatch_class_batch(
+        &mut self,
+        index: usize,
+        requests: &mut Vec<ClassTransformRequest>,
+        keys: &mut Vec<RequestKey>,
+    ) -> Result<()> {
+        if requests.is_empty() {
+            return Ok(());
+        }
+        let id = self.plugins[index].id.clone();
+        // Cache individual answers only. Retaining a second copy of each batch
+        // wastes the cache budget and can evict items before their first use.
+        let request = PluginRequest::AnalyzeClasses(AnalyzeClassesRequest {
+            requests: std::mem::take(requests),
+        });
+        let response = self.run_request(&id, "analyze-classes", &request, None)?;
+        let responses = response["responses"]
+            .as_array()
+            .filter(|responses| response["kind"] == "class-batch" && responses.len() == keys.len());
+        if let Some(responses) = responses {
+            // Decode validated every item before any result becomes visible.
+            // Explicit protocol errors abstain just like individual hooks.
+            for (key, response) in keys.drain(..).zip(responses) {
+                self.cache.insert(
+                    key,
+                    &if response["kind"] == "error" {
+                        json!({"kind":"no-change"})
+                    } else {
+                        response.clone()
+                    },
+                );
+            }
+        } else {
+            if response["kind"] != "no-change" {
+                eprintln!(
+                    "warning: Plugin `{id}` returned a class batch with the wrong result count; retrying individual hooks"
+                );
+            }
+            keys.clear();
+        }
+        Ok(())
     }
 
     pub fn execute_project(&mut self, kind: &str, payload: Value) -> Result<Value> {
@@ -1555,30 +1718,9 @@ impl Runtime {
     pub fn execute(&mut self, source: &Source, kind: &str, payload: Value) -> Result<Value> {
         let mut responses = Vec::new();
         for index in 0..self.plugins.len() {
-            let plugin = &self.plugins[index];
-            if plugin.virtual_names.is_empty()
-                && !self.allowed(source, kind, &payload, &plugin.manifest)
-            {
+            let Some(request) = self.semantic_request(index, source, kind, &payload)? else {
                 continue;
-            }
-            let mut request = payload.clone();
-            rewrite_protocol_names(&mut request, &plugin.inverse_virtual_names);
-            if !plugin.virtual_names.is_empty()
-                && !self.allowed(source, kind, &request, &plugin.manifest)
-            {
-                continue;
-            }
-            let object = request
-                .as_object_mut()
-                .context("hook payload must be object")?;
-            object.insert("kind".into(), json!(kind));
-            object.insert("context".into(), json!({"module":source.protocol_module.as_ref().unwrap_or(&source.module),"file-path":source.path,
-                "python-version":self.python_version,"platform":self.platform,"config":plugin.config,"speculative":false}));
-            if source.protocol_module.is_some() {
-                rewrite_notebook_request(&mut request, source, |name| {
-                    self.protocol_name(source, name)
-                });
-            }
+            };
             let mut response = self.dispatch_semantic(index, request)?;
             rewrite_protocol_names(&mut response, &self.plugins[index].virtual_names);
             if source.protocol_module.is_some() {
@@ -2012,6 +2154,199 @@ pub fn call_request(
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn class_batches_preserve_individual_results_limits_fallback_and_revisions() -> Result<()> {
+        let directory =
+            std::env::temp_dir().join(format!("native-class-batch-{}", std::process::id()));
+        std::fs::create_dir_all(&directory)?;
+        let source_path = directory.join("demo.py");
+        let mut source = "class Base: pass\nclass Fallback(Base): pass\nclass Huge(Base): pass\nclass Ignored: pass\n".to_owned();
+        for index in 0..260 {
+            source.push_str(&format!("class C{index:03}(Base): pass\n"));
+        }
+        std::fs::write(&source_path, source)?;
+        let manifest = json!({"id":"batch","name":"batch","version":"0.0.0","protocol-version":{"major":0,"minor":9},"ty-compatibility":{"requirement":">=0.87.0"},"runtime":{"kind":"monty","artifact":"plugin.py"},"capabilities":{"class-transform":true,"class-batch":true,"project-index":true},"claims":{"classes":[{"kind":"subclass-of","base-qualified-name":"demo.Base"}]}});
+        let manifest_path = directory.join("plugin.json");
+        let artifact = directory.join("plugin.py");
+        std::fs::write(&manifest_path, serde_json::to_vec(&manifest)?)?;
+        std::fs::write(
+            &artifact,
+            r#"
+_seen = []
+@on_project_index
+def index(request):
+    annotation = request['context']['root']
+    scopes = {item['qualified-name']: {'annotation': annotation, 'opaque': {'qualified-name': 'opaque.Name'}} for item in request['classes'] if item['qualified-name'] != 'demo.Fallback'}
+    if annotation == 'bytes':
+        for name in scopes:
+            if name.startswith('demo.C0'): scopes[name]['padding'] = 'x' * (32 * 1024)
+    scopes['demo.Huge']['large'] = 'x' * (1024 * 1024)
+    return project_index({'annotation': annotation}, class_indexes=scopes)
+@on_class_transform
+def transform(request):
+    assert request['kind'] == 'analyze-class'
+    assert request['context']['module'] == 'demo'
+    assert request['context']['file-path'].endswith('demo.py')
+    index = request['project-index']
+    if 'opaque' in index: assert index['opaque'] == {'qualified-name': 'opaque.Name'}
+    if request['context']['config']['mode'] == 'mixed':
+        if request['class']['qualified-name'] == 'demo.C000': return None
+        if request['class']['qualified-name'] == 'demo.C001': return error('individual abstention')
+    return class_patch(fields=[field(request['class']['qualified-name'].split('.')[-1], type_annotation(index['annotation']))])
+@on_class_batch
+def batch(request):
+    assert not _seen
+    _seen.append(1)
+    assert 0 < len(request['requests']) <= 128
+    assert len(json.dumps(request, separators=(',', ':'))) <= 1024 * 1024
+    assert all(item['class']['qualified-name'] != 'demo.Ignored' for item in request['requests'])
+    assert all(item['class']['qualified-name'] != 'demo.Huge' for item in request['requests'])
+    mode = request['requests'][0]['context']['config']['mode']
+    if mode == 'abstain': return None
+    if mode == 'error': raise ValueError('batch failure')
+    if mode == 'invalid-item': return {'kind': 'class-batch', 'responses': [{'kind': 'project-index'}]}
+    results = [transform(item) for item in request['requests']]
+    if mode == 'wrong-count': results.pop()
+    return class_batch(results)
+"#,
+        )?;
+        let project = Project::load(
+            &directory,
+            std::slice::from_ref(&source_path),
+            &manifest,
+            json!({}),
+        )?;
+        let source = &project.modules["demo"].source;
+        let mut runtime =
+            Runtime::from_plugins(&[(manifest_path, artifact, json!({"mode":"ok"}))])?;
+        runtime.attach_project(Arc::new(project.clone()), json!({}));
+        for annotation in ["int", "bytes", "str"] {
+            let mut request = project.build_request_for_files(None);
+            request["context"]["root"] = json!(annotation);
+            runtime.execute_project("build-project-index", request)?;
+            let before = runtime.executions;
+            runtime.prepare_class_transforms(&project)?;
+            // Base itself also matches the subclass claim and has a scope.
+            if annotation == "bytes" {
+                assert!(
+                    runtime.executions - before > 3,
+                    "byte limits must split batches before the item limit"
+                );
+            } else {
+                assert_eq!(runtime.executions - before, 3);
+            }
+            let prepared = runtime.executions;
+            let mut batched = Vec::new();
+            for index in 0..260 {
+                let name = format!("demo.C{index:03}");
+                let response = runtime.execute(
+                    source,
+                    "analyze-class",
+                    json!({"class":project.classes[&name]}),
+                )?;
+                assert_eq!(response["fields"][0]["name"], format!("C{index:03}"));
+                assert_eq!(
+                    response["fields"][0]["instance-get-type"]["expression"],
+                    annotation
+                );
+                batched.push(response);
+            }
+            assert_eq!(
+                runtime.executions, prepared,
+                "every batched response must populate the ordinary request cache"
+            );
+            for name in ["demo.Huge", "demo.Fallback"] {
+                let response = runtime.execute(
+                    source,
+                    "analyze-class",
+                    json!({"class":project.classes[name]}),
+                )?;
+                assert_eq!(
+                    response["fields"][0]["instance-get-type"]["expression"],
+                    annotation
+                );
+            }
+            assert_eq!(runtime.executions, prepared + 2);
+            assert_eq!(
+                runtime.execute(
+                    source,
+                    "analyze-class",
+                    json!({"class":project.classes["demo.Ignored"]})
+                )?["kind"],
+                "no-change"
+            );
+            runtime.plugins[0].manifest["capabilities"]["class-batch"] = json!(false);
+            runtime.cache.clear();
+            let individual = runtime.executions;
+            runtime.prepare_class_transforms(&project)?;
+            assert_eq!(
+                runtime.executions, individual,
+                "legacy plugins cannot be batched implicitly"
+            );
+            for (index, expected) in batched.into_iter().enumerate() {
+                let name = format!("demo.C{index:03}");
+                assert_eq!(
+                    runtime.execute(
+                        source,
+                        "analyze-class",
+                        json!({"class":project.classes[&name]})
+                    )?,
+                    expected
+                );
+            }
+            runtime.plugins[0].manifest["capabilities"]["class-batch"] = json!(true);
+        }
+        for mode in ["abstain", "error", "invalid-item", "wrong-count"] {
+            runtime.plugins[0].config["mode"] = json!(mode);
+            runtime.prepare_class_transforms(&project)?;
+            let before = runtime.executions;
+            let response = runtime.execute(
+                source,
+                "analyze-class",
+                json!({"class":project.classes["demo.C000"]}),
+            )?;
+            assert_eq!(
+                response["fields"][0]["instance-get-type"]["expression"], "str",
+                "{mode}"
+            );
+            assert_eq!(
+                runtime.executions,
+                before + 1,
+                "an invalid batch must leave no partial cached answers: {mode}"
+            );
+        }
+        runtime.plugins[0].config["mode"] = json!("mixed");
+        runtime.prepare_class_transforms(&project)?;
+        let mut batched = Vec::new();
+        for name in ["demo.C000", "demo.C001", "demo.C002"] {
+            batched.push(runtime.execute(
+                source,
+                "analyze-class",
+                json!({"class":project.classes[name]}),
+            )?);
+        }
+        assert_eq!(batched[0]["kind"], "no-change");
+        assert_eq!(batched[1]["kind"], "no-change");
+        assert_eq!(batched[2]["kind"], "class-patch");
+        runtime.plugins[0].manifest["capabilities"]["class-batch"] = json!(false);
+        runtime.cache.clear();
+        for (name, expected) in ["demo.C000", "demo.C001", "demo.C002"]
+            .into_iter()
+            .zip(batched)
+        {
+            assert_eq!(
+                runtime.execute(
+                    source,
+                    "analyze-class",
+                    json!({"class":project.classes[name]})
+                )?,
+                expected
+            );
+        }
+        std::fs::remove_dir_all(directory)?;
+        Ok(())
+    }
 
     #[test]
     fn lazy_indexes_preserve_plugin_revision_and_invocation_isolation() -> Result<()> {

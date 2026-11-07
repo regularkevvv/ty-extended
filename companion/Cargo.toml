@@ -1,6 +1,6 @@
 [package]
 name = "ty-extended"
-version = "0.88.0"
+version = "0.89.0"
 edition = "2024"
 rust-version = "1.98"
 description = "Embedded Monty plugin companion for unchanged official ty"

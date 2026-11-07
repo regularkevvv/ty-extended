@@ -2133,6 +2133,7 @@ impl Session {
         });
         runtime.attach_project(Arc::new(project.clone()), config);
         // Every model patch is available before flow analysis of importing modules.
+        runtime.prepare_class_transforms(&project)?;
         for (name, summary) in project.classes.iter() {
             let module = summary
                 .pointer("/source/module")
@@ -3016,16 +3017,8 @@ impl Session {
                 raw.extend(native);
             }
         }
-        for unit in units.values_mut().filter(|unit| unit.selected) {
-            if unit.dirty {
-                unit.raw_diagnostics = raw
-                    .iter()
-                    .filter(|diagnostic| path_of(diagnostic, &view) == unit.path)
-                    .cloned()
-                    .collect();
-            } else {
-                raw.extend(unit.raw_diagnostics.clone());
-            }
+        for unit in units.values().filter(|unit| unit.selected && !unit.dirty) {
+            raw.extend(unit.raw_diagnostics.clone());
         }
         phase(&mut phases, "final_check", &mut phase_started);
         write(
@@ -3086,6 +3079,16 @@ impl Session {
                 .entry(path_of(&diagnostic, &view))
                 .or_default()
                 .push(diagnostic);
+        }
+        // Refresh per-file caches from the same partition used for mapping.
+        // Scanning every diagnostic for every file makes otherwise unrelated
+        // source files multiply the cost of one file's errors (and, on Windows,
+        // repeatedly canonicalizes those same diagnostic paths).
+        for unit in units
+            .values_mut()
+            .filter(|unit| unit.selected && unit.dirty)
+        {
+            unit.raw_diagnostics = raw_by_path.get(&unit.path).cloned().unwrap_or_default();
         }
         let mut project_by_path = BTreeMap::<&str, Vec<&Value>>::new();
         for diagnostic in &project_diagnostics {

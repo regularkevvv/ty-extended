@@ -26,20 +26,38 @@ features, rather than every upstream version number.
 
 ## Qualified versions
 
-The [0.88.0 CI-wheel ledger](https://github.com/regularkevvv/ty-extended/blob/main/companion/evidence/compatibility-2026-11-07.json)
-records the same installed executable against every official ty release from
-**0.0.84 through 0.0.99**: **288 passing generic gates**. Django-ty 0.7.0 also
+The [0.89.0 CI-wheel ledger](qualification/compatibility-0.89.0.json) records
+one unchanged installed executable against **every official ty release from
+0.0.84 through 0.0.99**: **288 passing generic gates**. Django-ty 0.7.0 also
 passes 16 complete CLI conformance runs and 16 editor runs across that group.
 Each CLI run checks 166 Django assertions and 83 independent runtime contracts;
-editor runs verify the complete diagnostic corpus, unsaved semantic edits and
-restoration. Installed SDK, CLI and LSP smoke checks pass on Python 3.8, 3.9 and
-3.13. The companion's Linux, macOS and Windows CI gates also pass.
+editor runs verify all 28 baseline diagnostics, unsaved semantic edits and
+restoration. The ledger identifies the wheel, executable, checkers, test sources
+and archived reports by SHA-256.
 
 The Django-ty 0.7 wheel additionally passes all 21 supported Django/Python pairs,
 including Django 6.1.3. Python 3.15 has a separate qualification against Django's
 166 assertions, 83 runtime contracts, nine QueryDict cases and installed editor
 behavior. Its pinned MyPy baseline runs on a separately supported interpreter;
 this is not a version-matched Python 3.15 comparator pair.
+
+Protocol 0.9's batch path is checked against the individual full-index reference:
+**2,582 class results and 3,012 batches** across 27 projects match through embedded
+Monty 1.5.0. The companion's 206 Rust tests, 50 Python harness tests and 83 SDK/host
+tests pass, together with 152 Django responses through both CPython and Monty.
+Tests cover batch limits, opt-in negotiation, individual-hook fallback, cache
+invalidation and preservation of plugin indexes.
+
+These are CI-wheel and local source results. Hosted checks and published-package
+acceptance remain separate release gates. Measurements against MyPy and bare
+official ty are recorded in [the performance report](performance.md), including
+the failed 0.88.0 follow-up that motivated this release.
+
+### Previous releases
+
+The [0.88.0 CI-wheel ledger](https://github.com/regularkevvv/ty-extended/blob/main/companion/evidence/compatibility-2026-11-07.json)
+records 288 passing generic gates over the same 16 official versions, together
+with Django CLI and editor coverage. Its Linux, macOS and Windows CI gates pass.
 
 The [published 0.88.0 receipt](qualification/ty-extended-0.88.0.json) verifies all
 eight PyPI wheel/native archive pairs against release checksums, the source tree
@@ -54,8 +72,6 @@ hashes and the complete normalized comparison. The full version sweep belongs to
 the CI wheel; public installation and artifact checks are recorded separately.
 Measurements against MyPy and bare official ty are recorded in
 [the performance report](performance.md).
-
-### Previous release
 
 The [published 0.87.0 receipt](qualification/ty-extended-0.87.0.json) verifies
 all eight PyPI wheel/native archive pairs against release checksums and signed
@@ -93,14 +109,15 @@ companion adapter even when existing checking workflows remain compatible.
 
 ## Plugin compatibility
 
-Companion 0.88.0 embeds Monty **1.5.0**. The SDK and host tests execute with
+Companion 0.89.0 embeds Monty **1.5.0**. The SDK and host tests execute with
 the runtime selected by the companion lockfile, including sandbox and execution
 limit controls. Plugin users do not install a separate Monty interpreter or
 Python worker.
 
-The companion runs embedded Monty plugins using protocol 0.8 and accepts existing
-protocol 0.7 plugins. Protocol 0.8 adds optional class-specific indexes and read-only
-index lookups; it does not change the official checker interfaces. Plugin package
+The companion runs embedded Monty plugins using protocol 0.9 and accepts existing
+protocol 0.7 and 0.8 plugins. Protocol 0.9 adds opt-in bounded class batches;
+protocol 0.8 adds optional class-specific indexes and read-only index lookups.
+These additions do not change the official checker interfaces. Plugin package
 requirements constrain companion versions. The legacy `ty-compatibility` manifest
 field remains part of the format, but does not select or install official ty.
 Protocol negotiation and capability validation remain separate from checker

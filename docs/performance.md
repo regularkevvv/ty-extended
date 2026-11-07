@@ -4,7 +4,38 @@ The companion checks generated analysis copies with unchanged official ty and
 runs Django hooks in embedded Monty. Its total time includes discovery, plugin
 execution, projection, type queries and the final checker run.
 
-## Measured results
+## Version 0.89.0
+
+The [0.89.0 local receipts](qualification/performance-0.89.0.json) record five
+rotated serial runs on macOS arm64 with the final-version companion executable,
+Django-ty 0.7.0, official ty 0.0.99, MyPy 2.4.1, django-stubs 6.1.2 and Django 6.1.3.
+All five workloads meet the MyPy median ceiling, preserve source bytes and pass
+exact ORM assertions plus both intentional-error controls.
+
+| Python files / models / model modules | Companion | MyPy + django-stubs | Bare ty |
+| ------------------------------------- | --------: | ------------------: | ------: |
+| 100 / 25 / 5                          |   0.514 s |             1.567 s | 0.062 s |
+| 1,000 / 250 / 25                      |   1.219 s |             2.122 s | 0.086 s |
+| 7,082 / 250 / 25                      |   3.394 s |             4.048 s | 0.164 s |
+| 7,082 / 2,501 / 1                     |   6.366 s |             6.542 s | 0.257 s |
+| 7,082 / 2,501 / 250                   |   5.878 s |             6.412 s | 0.195 s |
+
+The largest single-module case improves from the published 0.87/Django-ty 0.6
+pair's 80.788 seconds to 6.366 seconds, approximately 12.7 times faster. Its margin
+against MyPy is only 2.7%; this is close to parity, not a large speed advantage.
+Smaller projects show larger gains. These measurements identify a local release
+candidate binary; hosted CI and public-package acceptance are separate checks.
+The installed macOS CI wheel separately passes the largest workload in five
+rotated runs: **6.282 seconds versus MyPy's 6.577 seconds** (bare ty: 0.259 seconds),
+with all typing and source-preservation controls passing. Its exact wheel and
+executable hashes are recorded in the same receipt.
+
+The same receipt preserves a follow-up with **published 0.88.0**: 6.593 seconds
+versus MyPy's 6.487 seconds. Correctness passed, but that run **failed** the strict
+performance ceiling. That failure prompted the class batching in 0.89; it is not
+replaced by an earlier passing CI-wheel measurement.
+
+## Previous 0.88.0 measurements
 
 The [2026-11-07 receipts](https://github.com/regularkevvv/ty-extended/blob/main/companion/evidence/performance-2026-11-07.json)
 identify the CI-built 0.88.0 wheel, Django-ty 0.7.0, official ty 0.0.99,
@@ -50,8 +81,8 @@ and runs three public commands over identical Python files:
 - bare official `ty check`, with no companion or Django plugin.
 
 Every sample starts fresh processes. MyPy uses `--no-incremental` and an empty,
-disposable cache; operating-system filesystem caches may be warm. Three serial
-rounds rotate command order. Reports retain all samples, commands, package
+disposable cache; operating-system filesystem caches may be warm. Serial rounds rotate command order (five for the 0.89 local suite; three for
+the earlier measurements and CI). Reports retain all samples, commands, package
 versions, executable and source hashes, CPU time, sampled process-tree memory
 and system load. Temporary analysis and cache directories are removed after each
 sample.
@@ -93,6 +124,12 @@ discovery and plugin costs. A median on these generated projects is evidence
 for those projects, not an upper bound for arbitrary applications or hardware.
 
 ## Implementation
+
+Protocol 0.9 adds explicitly opted-in class batches bounded to 128 items and
+1 MiB of requests. Each result is cached under the unchanged individual request
+key. Failed, unavailable or invalid batches fall back to individual calls.
+Fresh interpreter state is preserved between invocations; plugins must preserve
+independent results within a batch.
 
 Protocol 0.8 lets plugins supply the data each class needs and request individual
 entries from their own retained project index. Django-ty 0.7 uses both interfaces.

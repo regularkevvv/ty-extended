@@ -78,7 +78,7 @@ def current_host_message(value):
     if isinstance(value, str):
         value = value.replace(
             "unsupported protocol version 99.1; ty supports 0.7",
-            "unsupported protocol version 99.1; ty supports 0.8",
+            "unsupported protocol version 99.1; ty supports 0.9",
         )
         # The pinned 0.86 reference prepends 1096 SDK lines. Preserve the
         # plugin's exact relative traceback line when the current SDK grows.

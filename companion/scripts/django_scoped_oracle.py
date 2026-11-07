@@ -22,7 +22,7 @@ def main():
         compile(sdk.read_text() + "\n" + plugin.read_text(), str(plugin), "exec"),
         namespace,
     )
-    projects = classes = 0
+    projects = classes = batches = 0
     args.output.parent.mkdir(parents=True, exist_ok=True)
     with args.output.open("x") as output:
         for line in args.oracle.read_text().splitlines():
@@ -32,6 +32,7 @@ def main():
             response = namespace["build_django_index"](request)
             scopes = response["class-indexes"]
             before = json.dumps(response, sort_keys=True)
+            records = []
             for cls in request["classes"]:
                 source = cls.get("source", {})
                 context = {
@@ -68,7 +69,32 @@ def main():
                     )
                     + "\n"
                 )
+                records.append((call, expected or {"kind": "no-change"}))
                 classes += 1
+            if "analyze_django_classes" in namespace:
+                for width, ordered in [
+                    (1, records),
+                    (7, list(reversed(records))),
+                    (128, records[::2] + records[1::2]),
+                ]:
+                    for offset in range(0, len(ordered), width):
+                        chunk = ordered[offset : offset + width]
+                        batch = {
+                            "kind": "analyze-classes",
+                            "requests": [call for call, _ in chunk],
+                        }
+                        expected = {
+                            "kind": "class-batch",
+                            "responses": [expected for _, expected in chunk],
+                        }
+                        if namespace["analyze_django_classes"](batch) != expected:
+                            raise RuntimeError(
+                                "Class batching changed an individual result"
+                            )
+                        output.write(
+                            json.dumps({"request": batch, "expected": expected}) + "\n"
+                        )
+                        batches += 1
             if json.dumps(response, sort_keys=True) != before:
                 raise RuntimeError("A class hook modified the shared project index")
             projects += 1
@@ -79,6 +105,8 @@ def main():
     report = {
         "projects": projects,
         "classes": classes,
+        "batches": batches,
+        "batch_widths": [1, 7, 128] if batches else [],
         "full_and_scoped_equal": True,
         "index_unmodified": True,
         "sha256": {
