@@ -30,6 +30,12 @@ Updating official ty within a compatible group does not require a companion rele
 See [the compatibility policy and evidence](docs/compatibility.md) for the tested
 versions, dependency range and checks for future releases.
 
+## Performance
+
+The companion adds plugin work to official ty. See [the reproducible benchmarks](docs/performance.md)
+for comparisons with MyPy plus django-stubs and bare ty, including correctness
+controls and the limits of each comparison.
+
 ## Monty plugins
 
 Python plugins use the bundled `ty_extended.plugin_sdk` and execute inside Monty.

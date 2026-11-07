@@ -622,6 +622,9 @@ pub fn check(arguments: &[String]) -> Result<i32> {
     arguments.options.insert("public-cli".into(), "true".into());
     arguments
         .options
+        .insert("ephemeral-evidence".into(), "true".into());
+    arguments
+        .options
         .entry("checker-mode".into())
         .or_insert_with(|| "push".into());
     if !arguments.options.contains_key("ty-config")

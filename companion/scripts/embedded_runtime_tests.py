@@ -83,6 +83,26 @@ def main() -> None:
         subprocess.run(
             [
                 *cargo,
+                "clippy",
+                "--locked",
+                "--workspace",
+                "--all-targets",
+                "--profile",
+                "runtime-tests",
+                "--no-default-features",
+                "--features",
+                "ty_plugin_host/plugins-monty,ty_plugin_host/mock",
+                "--",
+                "-D",
+                "warnings",
+            ],
+            cwd=workspace,
+            env=env,
+            check=True,
+        )
+        subprocess.run(
+            [
+                *cargo,
                 "test",
                 "--locked",
                 "--workspace",

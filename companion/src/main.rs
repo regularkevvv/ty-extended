@@ -28,6 +28,9 @@ use std::{
     time::Instant,
 };
 
+#[global_allocator]
+static GLOBAL: mimalloc::MiMalloc = mimalloc::MiMalloc;
+
 fn class_edits(source: &Source, analysis: &Analysis, edits: &mut Edits) {
     for info in analysis.classes.values() {
         let mut additions = String::new();
@@ -74,6 +77,9 @@ fn build_edits(
             );
         }
         for (&span, key) in &analysis.expression_probes {
+            if !analysis.needs_expression_probe(&span) {
+                continue;
+            }
             edits.wrap(
                 span,
                 format!("{probe_name}("),
@@ -109,7 +115,7 @@ fn build_edits(
                 );
             }
         }
-        if !analysis.calls.is_empty() || !analysis.expression_probes.is_empty() {
+        if analysis.needs_probes() {
             edits.insert(
                 analysis.prelude_offset,
                 format!(

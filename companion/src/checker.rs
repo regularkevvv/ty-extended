@@ -158,6 +158,8 @@ pub struct ProjectChecker {
     documents: BTreeMap<PathBuf, (String, i32, String)>,
     notebooks: BTreeMap<PathBuf, String>,
     external_sources: BTreeSet<PathBuf>,
+    disk_sources: BTreeMap<PathBuf, [u8; 32]>,
+    document_version: i32,
 }
 
 impl ProjectChecker {
@@ -169,6 +171,8 @@ impl ProjectChecker {
             documents: BTreeMap::new(),
             notebooks: BTreeMap::new(),
             external_sources: BTreeSet::new(),
+            disk_sources: BTreeMap::new(),
+            document_version: 0,
         })
     }
     pub fn new_editor(
@@ -221,6 +225,8 @@ impl ProjectChecker {
             documents: BTreeMap::new(),
             notebooks: BTreeMap::new(),
             external_sources: BTreeSet::new(),
+            disk_sources: BTreeMap::new(),
+            document_version: 0,
         })
     }
     pub fn set_workspace_configuration(&mut self, settings: Value) {
@@ -276,11 +282,21 @@ impl ProjectChecker {
         Ok(())
     }
     pub fn sync_documents(&mut self, sources: &BTreeMap<PathBuf, String>) -> Result<()> {
+        self.sync_documents_deferred(sources, &BTreeSet::new())
+    }
+    fn sync_documents_deferred(
+        &mut self,
+        sources: &BTreeMap<PathBuf, String>,
+        deferred: &BTreeSet<PathBuf>,
+    ) -> Result<()> {
         let removed: Vec<_> = self
             .documents
-            .keys()
-            .filter(|p| !sources.contains_key(*p))
-            .cloned()
+            .iter()
+            .filter(|(path, (_, _, previous))| {
+                !sources.contains_key(*path)
+                    || deferred.contains(*path) && sources.get(*path) != Some(previous)
+            })
+            .map(|(path, _)| path.clone())
             .collect();
         let mut changed_external = removed
             .iter()
@@ -315,7 +331,9 @@ impl ProjectChecker {
                 .collect::<Result<Vec<_>>>()?,
         );
         for (path, source) in sources {
-            self.update(path, source, false)?;
+            if !deferred.contains(path) {
+                self.update(path, source, false)?;
+            }
         }
         if !changed_external.is_empty() {
             // didChange synchronizes only the document's own project. Other
@@ -329,13 +347,23 @@ impl ProjectChecker {
         Ok(())
     }
     fn update(&mut self, path: &Path, source: &str, force: bool) -> Result<()> {
+        if !force
+            && self
+                .documents
+                .get(path)
+                .is_some_and(|(_, _, previous)| previous == source)
+        {
+            return Ok(());
+        }
+        // Versions stay monotonic even when an oracle closes and later reopens
+        // a document. A delayed publication from its old lifetime cannot satisfy
+        // the new query or appear to come from a future version.
+        self.document_version = self
+            .document_version
+            .checked_add(1)
+            .context("LSP document version overflow")?;
         if let Some((uri, version, previous)) = self.documents.get_mut(path) {
-            if !force && previous == source {
-                return Ok(());
-            }
-            *version = version
-                .checked_add(1)
-                .context("LSP document version overflow")?;
+            *version = self.document_version;
             *previous = source.to_owned();
             if let Some(notebook) = self.notebooks.get(path) {
                 self.server.notify("notebookDocument/didChange",json!({"notebookDocument":{"uri":notebook,"version":version},"change":{"cells":{"textContent":[{"document":{"uri":uri,"version":version},"changes":[{"text":source}]}]}}}))?;
@@ -344,25 +372,34 @@ impl ProjectChecker {
             }
         } else {
             let uri = file_uri(path)?;
+            let version = self.document_version;
             if let Some(notebook) = self.notebooks.get(path) {
-                self.server.notify("notebookDocument/didOpen",json!({"notebookDocument":{"uri":notebook,"notebookType":"jupyter-notebook","version":1,"cells":[{"kind":2,"document":uri}]},"cellTextDocuments":[{"uri":uri,"languageId":"python","version":1,"text":source}]}))?;
+                self.server.notify("notebookDocument/didOpen",json!({"notebookDocument":{"uri":notebook,"notebookType":"jupyter-notebook","version":version,"cells":[{"kind":2,"document":uri}]},"cellTextDocuments":[{"uri":uri,"languageId":"python","version":version,"text":source}]}))?;
             } else {
                 self.server.notify(
                 "textDocument/didOpen",
-                json!({"textDocument":{"uri":uri,"languageId":"python","version":1,"text":source}}),
+                json!({"textDocument":{"uri":uri,"languageId":"python","version":version,"text":source}}),
             )?;
             }
             self.documents
-                .insert(path.to_owned(), (uri, 1, source.to_owned()));
+                .insert(path.to_owned(), (uri, version, source.to_owned()));
         }
         Ok(())
     }
+    #[cfg(test)]
     pub fn check(
         &mut self,
         sources: &BTreeMap<PathBuf, String>,
         paths: &[PathBuf],
     ) -> Result<Vec<Value>> {
         self.sync_documents(sources)?;
+        self.check_synced(sources, paths)
+    }
+    fn check_synced(
+        &mut self,
+        sources: &BTreeMap<PathBuf, String>,
+        paths: &[PathBuf],
+    ) -> Result<Vec<Value>> {
         let mut pending = BTreeMap::new();
         for path in paths {
             let source = sources
@@ -398,9 +435,12 @@ impl ProjectChecker {
                     .as_str()
                     .context("published document URI")?;
                 if let Some((path, version)) = pending.get(uri) {
-                    let received = message["params"]["version"]
-                        .as_i64()
-                        .context("published document version")?;
+                    let Some(received) = message["params"]["version"].as_i64() else {
+                        // Closing a document can clear its diagnostics without
+                        // a version. Only the forced current version is evidence
+                        // for this batch, including after a close/reopen cycle.
+                        continue;
+                    };
                     ensure!(
                         received <= i64::from(*version),
                         "future-version project diagnostics: {message}"
@@ -452,6 +492,63 @@ impl ProjectChecker {
             }
         }
         Ok(output)
+    }
+
+    /// Check a projection that the caller has already written to disk. Closed
+    /// modules participate through ordinary imports and watcher invalidation;
+    /// opening them all would eagerly check the entire project at every oracle
+    /// query. Notebook and external buffers must retain their memory overlays.
+    pub fn check_files(
+        &mut self,
+        sources: &BTreeMap<PathBuf, String>,
+        paths: &[PathBuf],
+    ) -> Result<Vec<Value>> {
+        use sha2::{Digest, Sha256};
+        let queried: BTreeSet<_> = paths.iter().collect();
+        let mut open = BTreeMap::new();
+        let mut current = BTreeMap::new();
+        let mut changes = Vec::new();
+        for (path, source) in sources {
+            let overlay = self.notebooks.contains_key(path) || self.external_sources.contains(path);
+            if queried.contains(path) || overlay {
+                open.insert(path.clone(), source.clone());
+            }
+            if !overlay {
+                let fingerprint: [u8; 32] = Sha256::digest(source.as_bytes()).into();
+                if self.disk_sources.get(path) != Some(&fingerprint) {
+                    changes.push(json!({"uri":file_uri(path)?,"type":if self.disk_sources.contains_key(path) {2} else {1}}));
+                }
+                current.insert(path.clone(), fingerprint);
+            }
+        }
+        for path in self
+            .disk_sources
+            .keys()
+            .filter(|path| !current.contains_key(*path))
+        {
+            changes.push(json!({"uri":file_uri(path)?,"type":if path.exists() {2} else {3}}));
+        }
+        // All ordinary sources already contain their final bytes on disk.
+        // Close changed query buffers before invalidating imports, then open
+        // each exactly once when requesting its diagnostics. Otherwise didOpen
+        // immediately checks it and the forced didChange repeats that work.
+        // Memory-only overlays still synchronize before any query is sent.
+        let deferred = paths
+            .iter()
+            .filter(|path| {
+                !self.notebooks.contains_key(*path) && !self.external_sources.contains(*path)
+            })
+            .cloned()
+            .collect();
+        self.sync_documents_deferred(&open, &deferred)?;
+        if !changes.is_empty() {
+            self.server.notify(
+                "workspace/didChangeWatchedFiles",
+                json!({"changes":changes}),
+            )?;
+        }
+        self.disk_sources = current;
+        self.check_synced(&open, paths)
     }
 }
 
@@ -1178,6 +1275,71 @@ mod tests {
             };
             assert_eq!(signature(&actual), signature(&raw));
         }
+        Ok(())
+    }
+
+    #[test]
+    fn disk_projection_invalidates_closed_imports_and_inventory() -> Result<()> {
+        let binary = std::env::var("TY_COMPANION_TEST_OFFICIAL")?;
+        let root = std::env::temp_dir().join(format!("ty-disk-projection-{}", std::process::id()));
+        fs::create_dir_all(&root)?;
+        let config = root.join("ty.toml");
+        fs::write(&config, "[environment]\npython-version = '3.13'\n")?;
+        let peer = root.join("peer.py");
+        let consumer = root.join("consumer.py");
+        let mut server = ProjectChecker::new(Path::new(&binary), &root, &config)?;
+        let mut sources = BTreeMap::from([
+            (
+                consumer.clone(),
+                "from peer import value\nanswer: str = value\n".to_owned(),
+            ),
+            (peer.clone(), String::new()),
+        ]);
+        for (annotation, errors) in [("int", 1), ("str", 0), ("int", 1), ("str", 0)] {
+            sources.insert(peer.clone(), format!("value: {annotation}\n"));
+            for (path, source) in &sources {
+                fs::write(path, source)?;
+            }
+            let actual = server.check_files(&sources, std::slice::from_ref(&consumer))?;
+            assert_eq!(actual.len(), errors, "{actual:#?}");
+            assert_eq!(server.documents.len(), 1, "imported files must stay closed");
+            assert!(!server.documents.contains_key(&peer));
+        }
+        server.check_files(&sources, &[peer.clone(), consumer.clone()])?;
+        // Both query buffers change. The alphabetically first consumer must see
+        // the new dependency even before that dependency is reopened in LSP.
+        for (revision, annotation, errors) in [(1, "int", 1), (2, "str", 0), (3, "int", 1)] {
+            sources.insert(peer.clone(), format!("value: {annotation}\n"));
+            sources.insert(
+                consumer.clone(),
+                format!("# revision {revision}\nfrom peer import value\nanswer: str = value\n"),
+            );
+            for (path, source) in &sources {
+                fs::write(path, source)?;
+            }
+            let actual = server.check_files(&sources, &[consumer.clone(), peer.clone()])?;
+            assert_eq!(actual.len(), errors, "{actual:#?}");
+        }
+        sources.remove(&peer);
+        fs::remove_file(&peer)?;
+        let missing = server.check_files(&sources, std::slice::from_ref(&consumer))?;
+        assert!(
+            missing.iter().any(|diagnostic| matches!(
+                diagnostic["check_name"].as_str(),
+                Some("unresolved-import" | "import-not-found")
+            )),
+            "{missing:#?}"
+        );
+        assert!(!server.documents.contains_key(&peer));
+        sources.insert(peer.clone(), "value: str\n".into());
+        fs::write(&peer, &sources[&peer])?;
+        assert!(
+            server
+                .check_files(&sources, std::slice::from_ref(&consumer))?
+                .is_empty()
+        );
+        drop(server);
+        fs::remove_dir_all(root)?;
         Ok(())
     }
 

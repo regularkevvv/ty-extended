@@ -94,42 +94,159 @@ fn write(path: &Path, text: &str) -> Result<()> {
     std::fs::write(path, text)?;
     Ok(())
 }
-fn copy_python(root: &Path, target: &Path) -> Result<()> {
+fn sync_support_modules(
+    stubs: &Path,
+    units: &BTreeMap<PathBuf, File>,
+    previous: &mut BTreeMap<PathBuf, String>,
+    server: Option<&mut crate::checker::ProjectChecker>,
+) -> Result<()> {
+    let mut current = BTreeSet::new();
+    let mut changes = Vec::new();
+    for unit in units.values() {
+        for (module, source) in &unit.analysis.support_modules {
+            let path = stubs.join(format!("{module}.pyi"));
+            current.insert(path.clone());
+            if previous.get(&path) == Some(source) {
+                continue;
+            }
+            let change = if path.exists() { 2 } else { 1 };
+            write(&path, source)?;
+            changes.push(json!({"uri":crate::checker::file_uri(&path)?,"type":change}));
+            previous.insert(path, source.clone());
+        }
+    }
+    let removed: Vec<_> = previous
+        .keys()
+        .filter(|path| !current.contains(*path))
+        .cloned()
+        .collect();
+    for path in removed {
+        if path.exists() {
+            std::fs::remove_file(&path)?;
+        }
+        changes.push(json!({"uri":crate::checker::file_uri(&path)?,"type":3}));
+        previous.remove(&path);
+    }
+    if !changes.is_empty()
+        && let Some(server) = server
+    {
+        server.notify(
+            "workspace/didChangeWatchedFiles",
+            json!({"changes":changes}),
+        )?;
+    }
+    Ok(())
+}
+
+struct VirtualProjection {
+    modules: BTreeMap<PathBuf, crate::project::VirtualModule>,
+    materialized: Option<BTreeSet<String>>,
+}
+
+impl VirtualProjection {
+    fn sync(
+        &mut self,
+        stubs: &Path,
+        needed: &mut BTreeSet<String>,
+        previous: &mut BTreeSet<PathBuf>,
+        server: Option<&mut crate::checker::ProjectChecker>,
+    ) -> Result<()> {
+        if self.materialized.as_ref() == Some(needed) {
+            return Ok(());
+        }
+        let sources = crate::project::requested_virtual_sources(&self.modules, needed);
+        let next: BTreeSet<_> = sources.keys().map(|path| stubs.join(path)).collect();
+        let mut changes = Vec::new();
+        for path in previous.difference(&next) {
+            if path.exists() {
+                std::fs::remove_file(path)?;
+            }
+            changes.push(json!({"uri":crate::checker::file_uri(path)?,"type":3}));
+        }
+        for (path, code) in sources {
+            let path = stubs.join(path);
+            if std::fs::read_to_string(&path).is_ok_and(|previous| previous == code) {
+                continue;
+            }
+            let change = if path.exists() { 2 } else { 1 };
+            let mut parent = path.parent();
+            while let Some(directory) = parent.filter(|directory| !directory.exists()) {
+                changes.push(json!({"uri":crate::checker::file_uri(directory)?,"type":1}));
+                parent = directory.parent();
+            }
+            write(&path, &code)?;
+            changes.push(json!({"uri":crate::checker::file_uri(&path)?,"type":change}));
+        }
+        *previous = next;
+        self.materialized = Some(needed.clone());
+        if !changes.is_empty()
+            && let Some(server) = server
+        {
+            server.notify(
+                "workspace/didChangeWatchedFiles",
+                json!({"changes":changes}),
+            )?;
+        }
+        Ok(())
+    }
+}
+fn copy_python(root: &Path, target: &Path) -> Result<Vec<PathBuf>> {
     let mut paths = Vec::new();
     copyable_files(root, &mut paths, true)?;
-    copy_python_paths(root, target, paths)
+    copy_python_paths(root, target, &paths)?;
+    paths.retain(|path| path.file_name().is_none_or(|name| name != "py.typed"));
+    Ok(paths)
 }
-fn copy_python_paths(root: &Path, target: &Path, paths: Vec<PathBuf>) -> Result<()> {
+fn copy_python_paths(root: &Path, target: &Path, paths: &[PathBuf]) -> Result<()> {
+    let mut directories = BTreeSet::new();
+    let mut copies = Vec::with_capacity(paths.len());
     for path in paths {
         let dst = target.join(path.strip_prefix(root)?);
-        if !dst.exists() {
-            if let Some(parent) = dst.parent() {
-                std::fs::create_dir_all(parent)?;
+        if let Some(parent) = dst.parent()
+            && directories.insert(parent.to_owned())
+        {
+            std::fs::create_dir_all(parent)?;
+        }
+        copies.push((path.clone(), dst));
+    }
+    // Source bytes are independent within one tree. Keep the queue bounded to
+    // two workers; overlay roots still finish in precedence order. Small trees
+    // avoid thread startup entirely.
+    if copies.len() < 128 || std::thread::available_parallelism().is_ok_and(|n| n.get() == 1) {
+        return copy_source_files(&copies);
+    }
+    std::thread::scope(|scope| {
+        let handles: Vec<_> = copies
+            .chunks(copies.len().div_ceil(2))
+            .map(|chunk| scope.spawn(move || copy_source_files(chunk)))
+            .collect();
+        let results: Vec<_> = handles.into_iter().map(|handle| handle.join()).collect();
+        for result in results {
+            result.map_err(|_| anyhow::anyhow!("source copying worker panicked"))??;
+        }
+        Ok(())
+    })
+}
+
+fn copy_source_files(copies: &[(PathBuf, PathBuf)]) -> Result<()> {
+    use std::io::ErrorKind;
+    for (path, dst) in copies {
+        match std::fs::OpenOptions::new()
+            .write(true)
+            .create_new(true)
+            .open(dst)
+        {
+            Ok(mut output) => {
+                // Analysis copies need bytes, not source permissions or clone
+                // metadata. A new writable file also handles read-only package
+                // caches without per-file stat/chmod calls. Never hard-link:
+                // projections must not share writable storage with originals.
+                std::io::copy(&mut std::fs::File::open(path)?, &mut output)?;
             }
-            // fs::copy can use the platform's clone/copy fast path; hard links
-            // would let a later projection overwrite the original source.
-            std::fs::copy(&path, &dst)?;
-            // Package caches may contain read-only files; their isolated
-            // projections must still be writable for later hook edits.
-            let mut permissions = std::fs::metadata(&dst)?.permissions();
-            #[cfg(unix)]
-            {
-                use std::os::unix::fs::PermissionsExt;
-                if permissions.mode() & 0o200 == 0 {
-                    permissions.set_mode(permissions.mode() | 0o200);
-                    std::fs::set_permissions(&dst, permissions)?;
-                }
+            Err(error) if error.kind() == ErrorKind::AlreadyExists => {
+                write(dst, &std::fs::read_to_string(path)?)?;
             }
-            #[cfg(not(unix))]
-            // This branch cannot widen Unix permissions; Windows clears only
-            // the copied file's read-only attribute. Unix sets owner-write above.
-            #[allow(clippy::permissions_set_readonly_false)]
-            if permissions.readonly() {
-                permissions.set_readonly(false);
-                std::fs::set_permissions(&dst, permissions)?;
-            }
-        } else {
-            write(&dst, &std::fs::read_to_string(path)?)?;
+            Err(error) => return Err(error.into()),
         }
     }
     Ok(())
@@ -260,7 +377,7 @@ fn copy_overlays(
                 .iter()
                 .map(|path| target.join(path.strip_prefix(root).unwrap())),
         );
-        copy_python_paths(root, target, paths)?;
+        copy_python_paths(root, target, &paths)?;
     }
     Ok(copied)
 }
@@ -343,6 +460,77 @@ fn check(binary: &Path, root: &Path, config: &Path, paths: &[PathBuf]) -> Result
     );
     serde_json::from_slice(&output.stdout).context("checker diagnostic JSON")
 }
+
+/// Compress an already selected set of generated files without broadening it.
+/// A directory replaces its descendants only when every file in it is selected.
+/// Symlinks and non-Python files prevent compression; they are never followed.
+fn compact_check_paths(root: &Path, selected: &BTreeSet<PathBuf>) -> Result<Vec<PathBuf>> {
+    fn visit(path: &Path, remaining: &mut BTreeSet<PathBuf>) -> Result<(bool, Vec<PathBuf>)> {
+        let metadata = std::fs::symlink_metadata(path)?;
+        if !metadata.is_dir() {
+            let included = remaining.remove(path);
+            let discoverable = metadata.is_file()
+                && path
+                    .extension()
+                    .is_some_and(|extension| extension == "py" || extension == "pyi");
+            return Ok((
+                included && discoverable,
+                if included { vec![path.into()] } else { vec![] },
+            ));
+        }
+        let mut complete = true;
+        let mut paths = Vec::new();
+        for entry in std::fs::read_dir(path)? {
+            let (included, children) = visit(&entry?.path(), remaining)?;
+            complete &= included;
+            paths.extend(children);
+        }
+        if complete && !paths.is_empty() {
+            paths = vec![path.into()];
+        }
+        let traversable = path
+            .file_name()
+            .and_then(|name| name.to_str())
+            .is_none_or(|name| {
+                !name.starts_with('.')
+                    && !project_config::DEFAULT_EXCLUDED_DIRECTORIES.contains(&name)
+            });
+        Ok((complete && traversable, paths))
+    }
+    let mut remaining = selected.clone();
+    let (_, mut paths) = visit(root, &mut remaining)?;
+    paths.extend(remaining);
+    paths.sort();
+    Ok(paths)
+}
+
+/// The CLI can check a complete disk projection in parallel without opening
+/// thousands of LSP documents. Selection has already been resolved by the
+/// companion; disable native discovery filters only for this exact file union.
+/// The derived configuration stays beside the original to preserve relative
+/// environment paths and per-file rule overrides.
+fn check_selected_files(
+    binary: &Path,
+    root: &Path,
+    config: &Path,
+    paths: &[PathBuf],
+) -> Result<Vec<Value>> {
+    let selected = paths.iter().cloned().collect();
+    let paths = compact_check_paths(root, &selected)?;
+    let mut table: toml::Table = std::fs::read_to_string(config)?.parse()?;
+    let src = table
+        .entry("src")
+        .or_insert_with(|| toml::Value::Table(toml::Table::new()))
+        .as_table_mut()
+        .context("src must be a table")?;
+    src.insert("include".into(), toml::Value::Array(vec!["**".into()]));
+    src.insert("exclude".into(), toml::Value::Array(vec![]));
+    src.insert("respect-ignore-files".into(), false.into());
+    src.insert("exclude-scripts".into(), false.into());
+    let config = config.with_file_name("selected-checker.toml");
+    write(&config, &toml::to_string(&table)?)?;
+    check(binary, root, &config, &paths)
+}
 fn path_of(d: &Value, root: &Path) -> PathBuf {
     let p = PathBuf::from(d["location"]["path"].as_str().unwrap_or(""));
     let path = if p.is_absolute() { p } else { root.join(p) };
@@ -392,6 +580,23 @@ struct File {
     raw_diagnostics: Vec<Value>,
     flow_diagnostics: Vec<Value>,
     pass: Option<ProjectionPass>,
+    reads_protocol_aliases: bool,
+}
+
+impl File {
+    fn write_projection(&self, generated: &Rendered, out: &Path) -> Result<()> {
+        if self.path.starts_with(out)
+            && self
+                .rendered
+                .as_ref()
+                .is_none_or(|previous| previous.text != generated.text)
+        {
+            // This session owns the projection files. An identical in-memory
+            // view needs no disk read or write during another inference pass.
+            write(&self.path, &generated.text)?;
+        }
+        Ok(())
+    }
 }
 
 /// Inputs to one lowering/flow pass within a fixed project revision. Inference
@@ -399,7 +604,7 @@ struct File {
 /// acquire different types when another module's projection changes.
 #[derive(PartialEq)]
 struct ProjectionInputs {
-    generation: u64,
+    generation: (u64, Option<u64>),
     oracle: Oracle,
     patches: ReturnPatches,
     return_types: BTreeMap<crate::model::Span, Value>,
@@ -409,7 +614,7 @@ struct ProjectionInputs {
 impl ProjectionInputs {
     fn new(unit: &File, runtime: &Runtime) -> Self {
         Self {
-            generation: runtime.projection_generation(),
+            generation: runtime.projection_context(unit.reads_protocol_aliases),
             oracle: unit.oracle.clone(),
             patches: unit.patches.clone(),
             return_types: unit.return_types.clone(),
@@ -457,7 +662,7 @@ fn check_units(
         .iter()
         .map(|(path, unit)| (path.clone(), unit.rendered.as_ref().unwrap().text.clone()))
         .collect();
-    server.as_mut().unwrap().check(&sources, paths)
+    server.as_mut().unwrap().check_files(&sources, paths)
 }
 
 fn diagnostic_origins(
@@ -698,6 +903,7 @@ pub struct Session {
     rich_result: Option<(usize, Vec<Value>)>,
     documents: Vec<ProjectDocument>,
     virtual_files: BTreeSet<PathBuf>,
+    support_files: BTreeMap<PathBuf, String>,
     checker_config_path: PathBuf,
     config: Value,
     capabilities: Option<Value>,
@@ -722,7 +928,7 @@ pub struct Session {
     terminal: Value,
     cached_units: BTreeMap<PathBuf, File>,
     cached_sources: BTreeMap<String, Arc<Source>>,
-    cached_context: Option<Value>,
+    cached_context: Option<Vec<u8>>,
     plugin_files: Vec<PathBuf>,
     dependency_roots: Vec<PathBuf>,
     index_files: Option<BTreeSet<PathBuf>>,
@@ -746,6 +952,8 @@ impl Session {
         options: &BTreeMap<String, String>,
         checker: Option<crate::checker::ProjectChecker>,
     ) -> Result<Self> {
+        let mut startup_phases = BTreeMap::new();
+        let mut startup_tick = Instant::now();
         let required = |key: &str| options.get(key).with_context(|| format!("missing --{key}"));
         let mode = options
             .get("checker-mode")
@@ -771,7 +979,12 @@ impl Session {
         );
         std::fs::create_dir_all(&view)?;
         std::fs::create_dir_all(&stubs)?;
-        copy_python(&root, &view)?;
+        let mut source_paths = copy_python(&root, &view)?;
+        phase(
+            &mut startup_phases,
+            "startup_source_copy",
+            &mut startup_tick,
+        );
         let config: Value = if let Some(path) = options.get("config") {
             serde_json::from_slice(&std::fs::read(path)?)?
         } else {
@@ -780,9 +993,16 @@ impl Session {
         let checker_config = project_config::load(&root, &view, &stubs, options)?;
         let checker_config_path = out.join("checker.toml");
         write(&checker_config_path, &checker_config.text)?;
+        phase(
+            &mut startup_phases,
+            "startup_configuration",
+            &mut startup_tick,
+        );
         let mut runtime = Runtime::from_plugins(&checker_config.plugins)?;
+        phase(&mut startup_phases, "startup_runtime", &mut startup_tick);
         let stdlib = stdlib_overlay_modules(&checker_config, options, &out)?;
         let overlay_files = copy_overlays(&checker_config.stub_roots, &stubs, &stdlib)?;
+        phase(&mut startup_phases, "startup_overlays", &mut startup_tick);
         runtime.python_version = checker_config.python_version;
         runtime.platform = checker_config.platform;
         let capabilities: Option<Value> = options
@@ -808,8 +1028,6 @@ impl Session {
                 explicit_files.insert(path.clone());
             }
         }
-        let mut source_paths = Vec::new();
-        files(&root, &mut source_paths)?;
         for path in &explicit_paths {
             if path.is_dir() {
                 files(path, &mut source_paths)?;
@@ -821,24 +1039,27 @@ impl Session {
         source_paths.dedup();
         let source_paths = source_paths
             .into_iter()
-            .filter_map(|path| match std::fs::read_to_string(&path) {
-                Ok(text)
-                    if (explicit_files.contains(&path)
-                        && checker_config.selection.includes_explicit(
-                            &path,
-                            &text,
-                            force_exclude,
-                        )
-                        && (!force_exclude || !ignored.contains(&path)))
-                        || (checker_config.selection.includes(&path, &text)
-                            && !ignored.contains(&path)) =>
-                {
-                    Some(Ok(path))
-                }
-                Ok(_) => None,
-                Err(error) => Some(Err(error)),
-            })
+            .filter_map(
+                |path| match checker_config.selection.selection_text(&path) {
+                    Ok(text)
+                        if (explicit_files.contains(&path)
+                            && checker_config.selection.includes_explicit(
+                                &path,
+                                &text,
+                                force_exclude,
+                            )
+                            && (!force_exclude || !ignored.contains(&path)))
+                            || (checker_config.selection.includes(&path, &text)
+                                && !ignored.contains(&path)) =>
+                    {
+                        Some(Ok(path))
+                    }
+                    Ok(_) => None,
+                    Err(error) => Some(Err(error)),
+                },
+            )
             .collect::<std::io::Result<Vec<_>>>()?;
+        phase(&mut startup_phases, "startup_selection", &mut startup_tick);
         let mut base_project = Project::load_selected(
             &root,
             &source_paths,
@@ -883,6 +1104,7 @@ impl Session {
             None
         };
         let plugin_files = checker_config.plugin_watch_paths;
+        phase(&mut startup_phases, "startup_project", &mut startup_tick);
         Ok(Self {
             root,
             out,
@@ -899,6 +1121,7 @@ impl Session {
             rich_result: None,
             documents: Vec::new(),
             virtual_files: BTreeSet::new(),
+            support_files: BTreeMap::new(),
             checker_config_path,
             config,
             capabilities,
@@ -1046,7 +1269,7 @@ impl Session {
             }
             sources.insert(document.path.clone(), document.rendered.text.clone());
         }
-        let mut raw = server.check(&sources, &paths)?;
+        let mut raw = server.check_files(&sources, &paths)?;
         for document in self.documents.iter().filter(|document| {
             paths.contains(&document.path)
                 && Path::new(&document.source.path)
@@ -1185,6 +1408,11 @@ impl Session {
         self.has_plugins = !config.plugins.is_empty();
         if !self.has_plugins {
             for path in std::mem::take(&mut self.virtual_files) {
+                if path.exists() {
+                    std::fs::remove_file(path)?;
+                }
+            }
+            for path in std::mem::take(&mut self.support_files).into_keys() {
                 if path.exists() {
                     std::fs::remove_file(path)?;
                 }
@@ -1550,7 +1778,7 @@ impl Session {
             for path in sources.keys().filter(|p| !p.starts_with(&self.out)) {
                 server.register_external_source(path)?;
             }
-            server.check(&sources, &paths)?
+            server.check_files(&sources, &paths)?
         } else {
             check(&binary, &self.view, &self.checker_config_path, &paths)?
         };
@@ -1797,16 +2025,17 @@ impl Session {
         let index = {
             let runtime = &mut self.runtime;
             runtime.project_patches.clear();
-            runtime.project_contributions.clear();
-            runtime.project_index = None;
+            runtime.set_project_contributions(Vec::new());
             runtime.attach_project(Arc::new(project.clone()), config.clone());
             let mut request = project.build_request_for_files(self.index_files.as_ref());
             request["context"]["python-version"] = json!(runtime.python_version);
             request["context"]["platform"] = json!(runtime.platform);
-            write(
-                &out.join("project-request.json"),
-                &serde_json::to_string_pretty(&request)?,
-            )?;
+            if !self.options.contains_key("ephemeral-evidence") {
+                write(
+                    &out.join("project-request.json"),
+                    &serde_json::to_string_pretty(&request)?,
+                )?;
+            }
             runtime.execute_project("build-project-index", request)?
         };
         phase(&mut phases, "project_index", &mut phase_started);
@@ -1854,24 +2083,29 @@ impl Session {
             .flatten()
             .cloned()
             .collect();
-        write(
-            &out.join("project-response.json"),
-            &serde_json::to_string_pretty(&index)?,
-        )?;
-        runtime.project_index = index.get("plugin-index").cloned();
-        runtime.project_contributions = index["contributions"]
+        // The public CLI deletes its temporary view on exit. Avoid encoding
+        // large debug copies that no caller can consume; explicit project
+        // runs retain both protocol artifacts for investigation.
+        if !options.contains_key("ephemeral-evidence") {
+            write(
+                &out.join("project-response.json"),
+                &serde_json::to_string_pretty(&index)?,
+            )?;
+        }
+        let mut contributions = index["contributions"]
             .as_array()
             .cloned()
             .unwrap_or_default();
         // The checker retains the first contribution for each target/member pair.
         // Distinct source locations on identical settings contributions are normal.
         let mut contributed = BTreeSet::new();
-        runtime.project_contributions.retain(|c| {
+        contributions.retain(|c| {
             contributed.insert((
                 c["target"].to_string(),
                 c["patch"]["name"].as_str().unwrap_or("__init__").to_owned(),
             ))
         });
+        runtime.set_project_contributions(contributions);
         let definitions = index["virtual-types"]
             .as_array()
             .cloned()
@@ -1887,43 +2121,16 @@ impl Session {
                 })
                 .collect(),
         );
-        let virtual_sources = project.register_virtual_types(&definitions)?;
-        let next_virtual_files: BTreeSet<_> =
-            virtual_sources.keys().map(|p| stubs.join(p)).collect();
-        let mut virtual_file_changes = Vec::new();
-        for path in self.virtual_files.difference(&next_virtual_files) {
-            virtual_file_changes.push(json!({"uri":crate::checker::file_uri(path)?,"type":3}));
-        }
-        for removed in self.virtual_files.difference(&next_virtual_files) {
-            if removed.exists() {
-                std::fs::remove_file(removed)?;
-            }
-        }
-        self.virtual_files = next_virtual_files;
-        for (path, code) in virtual_sources {
-            let path = stubs.join(path);
-            if std::fs::read_to_string(&path).is_ok_and(|previous| previous == code) {
-                continue;
-            }
-            let change = if path.exists() { 2 } else { 1 };
-            let mut parent = path.parent();
-            while let Some(directory) = parent.filter(|directory| !directory.exists()) {
-                virtual_file_changes
-                    .push(json!({"uri":crate::checker::file_uri(directory)?,"type":1}));
-                parent = directory.parent();
-            }
-            write(&path, &code)?;
-            virtual_file_changes
-                .push(json!({"uri":crate::checker::file_uri(&path)?,"type":change}));
-        }
-        if !virtual_file_changes.is_empty()
-            && let Some(server) = server.as_mut()
-        {
-            server.notify(
-                "workspace/didChangeWatchedFiles",
-                json!({"changes":virtual_file_changes}),
-            )?;
-        }
+        let mut virtual_projection = VirtualProjection {
+            modules: project.prepare_virtual_types(&definitions)?,
+            materialized: None,
+        };
+        runtime.requested_virtual_types.retain(|name| {
+            project
+                .classes
+                .get(name)
+                .is_some_and(|class| class["virtual"] == true)
+        });
         runtime.attach_project(Arc::new(project.clone()), config);
         // Every model patch is available before flow analysis of importing modules.
         for (name, summary) in project.classes.iter() {
@@ -1958,7 +2165,17 @@ impl Session {
         // Every plugin can inspect the complete index and class snapshots.
         // Reuse only if those complete responses remain identical, and the
         // module set is unchanged (new/deleted modules can alter resolution).
-        let context = json!({"plugin-index-generations":runtime.index_generations(),"index":index,"classes":project.classes,"patches":runtime.project_patches,"virtual-identities":project.virtual_identities,"virtual-scope":runtime.selected_virtual_scope});
+        // Keep an exact canonical byte snapshot for cross-revision equality.
+        // A second JSON object tree duplicates every class, patch and virtual
+        // shape, including their allocation overhead, solely for this check.
+        let context = serde_json::to_vec(&(
+            runtime.index_generations(),
+            &index,
+            &project.classes,
+            &runtime.project_patches,
+            &project.virtual_identities,
+            &runtime.selected_virtual_scope,
+        ))?;
         let module_set_unchanged = self.cached_sources.keys().eq(project.modules.keys());
         let mut dirty = if module_set_unchanged && self.cached_context.as_ref() == Some(&context) {
             project
@@ -2041,6 +2258,7 @@ impl Session {
                 units.insert(path, cached);
                 continue;
             }
+            let observations = runtime.protocol_observations();
             let analysis = if !valid && (capabilities.is_none() || module.suite.is_empty()) {
                 // CLI checking/fixing must preserve original syntax diagnostics.
                 // Editors may still project complete prefix declarations for
@@ -2073,6 +2291,7 @@ impl Session {
                     raw_diagnostics: Vec::new(),
                     flow_diagnostics: Vec::new(),
                     pass: None,
+                    reads_protocol_aliases: runtime.protocol_observations() != observations,
                 },
             );
         }
@@ -2121,7 +2340,10 @@ impl Session {
         let mut analysis_passes = 0;
         let mut reused_analysis_passes = 0;
         let mut reused_final_flows = 0;
-        let mut checked_imports = BTreeSet::new();
+        // These hygienic modules were just written into the checker's explicit
+        // stub search path. Probing their existence would eagerly load every
+        // generated model before any semantic query needs one.
+        let mut checked_imports: BTreeSet<_> = project.virtual_modules.values().cloned().collect();
         // Each oracle round can advance a plugin-dependent type by one call
         // site. Bound acyclic chains by this program's sites, not a fixed depth.
         let iteration_limit = 16usize.saturating_add(
@@ -2145,24 +2367,29 @@ impl Session {
                     );
                     let generated = render(&unit.source, &edits)?;
                     unit.final_edits = Some(edits);
-                    if unit.path.starts_with(&out) {
-                        write(&unit.path, &generated.text)?;
-                    }
+                    unit.write_projection(&generated, &out)?;
                     unit.rendered = Some(generated);
                     continue;
                 }
-                let inputs = ProjectionInputs::new(unit, runtime);
+                let mut inputs = ProjectionInputs::new(unit, runtime);
                 if unit.pass.as_ref().is_some_and(|pass| pass.inputs == inputs) {
                     reused_analysis_passes += 1;
                     continue;
                 }
+                let alias_generation = runtime.projection_generation();
+                let observations = runtime.protocol_observations();
+                let initial_reads = iteration == 0 && unit.reads_protocol_aliases;
                 analysis_passes += 1;
-                unit.analysis = crate::lower::analyze_with_oracle(
-                    &unit.source,
-                    &unit.suite,
-                    runtime,
-                    Some(&unit.oracle),
-                )?;
+                // Initial lowering already used this revision's project and
+                // empty oracle. Subsequent passes incorporate native evidence.
+                if iteration > 0 {
+                    unit.analysis = crate::lower::analyze_with_oracle(
+                        &unit.source,
+                        &unit.suite,
+                        runtime,
+                        Some(&unit.oracle),
+                    )?;
+                }
                 let flow = crate::flow::project_with_return_types(
                     &unit.source,
                     &unit.suite,
@@ -2184,16 +2411,31 @@ impl Session {
                 edits.insert(unit.analysis.prelude_offset, flow.type_prelude.clone());
                 let generated = render(&unit.source, &edits)
                     .with_context(|| format!("render {}", unit.source.module))?;
-                if unit.path.starts_with(&out) {
-                    write(&unit.path, &generated.text)?;
-                }
+                unit.write_projection(&generated, &out)?;
                 unit.rendered = Some(generated);
-                // A pass that installs different protocol aliases or receiver
-                // metadata has side effects. Replay it until its input/output
-                // context is identical before permitting memoized reuse.
-                unit.pass = (inputs.generation == runtime.projection_generation())
-                    .then_some(ProjectionPass { inputs, flow });
+                // Alias changes affect consumers that actually read protocol
+                // types, including cache hits. A producer with no such reads
+                // can retain its pass when an unrelated consumer adds aliases.
+                // Other project/receiver changes still invalidate every pass.
+                unit.reads_protocol_aliases =
+                    initial_reads || runtime.protocol_observations() != observations;
+                inputs.generation.1 = unit.reads_protocol_aliases.then_some(alias_generation);
+                unit.pass = (inputs.generation
+                    == runtime.projection_context(unit.reads_protocol_aliases))
+                .then_some(ProjectionPass { inputs, flow });
             }
+            virtual_projection.sync(
+                &stubs,
+                &mut runtime.requested_virtual_types,
+                &mut self.virtual_files,
+                server.as_mut(),
+            )?;
+            sync_support_modules(&stubs, &units, &mut self.support_files, server.as_mut())?;
+            checked_imports.extend(
+                units
+                    .values()
+                    .flat_map(|unit| unit.analysis.support_modules.keys().cloned()),
+            );
             phase(&mut phases, "flow_and_render", &mut phase_started);
             let mut candidates = BTreeSet::new();
             for unit in units.values() {
@@ -2230,7 +2472,7 @@ impl Session {
                     server
                         .as_mut()
                         .unwrap()
-                        .check(&sources, std::slice::from_ref(&preflight))?
+                        .check_files(&sources, std::slice::from_ref(&preflight))?
                 } else {
                     check(
                         &binary,
@@ -2266,9 +2508,8 @@ impl Session {
                     if capabilities.is_none() {
                         *server = None;
                     }
-                    for (path, code) in project.register_virtual_types(&definitions)? {
-                        write(&stubs.join(path), &code)?;
-                    }
+                    virtual_projection.modules = project.prepare_virtual_types(&definitions)?;
+                    virtual_projection.materialized = None;
                     runtime.attach_project(Arc::new(project.clone()), runtime.config.clone());
                     for unit in units.values_mut() {
                         if !unit.dirty {
@@ -2304,7 +2545,7 @@ impl Session {
             // authoritative class schema.
             let mut nominal_candidates: Vec<_> = runtime
                 .nominal_candidates
-                .iter()
+                .keys()
                 .filter(|name| !project.snapshot_nominals.contains_key(*name))
                 .cloned()
                 .chain(
@@ -2352,6 +2593,11 @@ impl Session {
             }
             if !nominal_candidates.is_empty() {
                 let preflight = out.join("nominal-snapshots.py");
+                let needs_schema = |name: &str| {
+                    runtime.nominal_candidates.contains_key(name)
+                        || name.starts_with("builtins.")
+                        || name == "types.NoneType"
+                };
                 let mut probe_types =
                     Types::with_project("_ty_nominal_", "__snapshot_probe__", &project);
                 let expressions = nominal_candidates
@@ -2363,13 +2609,31 @@ impl Session {
                     probe_types.prelude()
                 );
                 let mut lines = BTreeMap::new();
+                let mut line = code.lines().count() + 1;
                 for (index, expression) in expressions.iter().enumerate() {
-                    let line = code.lines().count() + 1;
                     lines.insert(line, (index, true));
-                    lines.insert(line + 2, (index, false));
-                    code.push_str(&format!("_ty_snapshot_reveal({expression})\ndef _ty_snapshot_probe_{index}(_value: {expression}):\n    _ty_snapshot_reveal(_value)\n"));
+                    if needs_schema(&nominal_candidates[index]) {
+                        lines.insert(line + 2, (index, false));
+                        code.push_str(&format!("_ty_snapshot_reveal({expression})\ndef _ty_snapshot_probe_{index}(_value: {expression}):\n    _ty_snapshot_reveal(_value)\n"));
+                        line += 3;
+                    } else {
+                        // Annotation fallbacks need only native symbol lookup.
+                        // Introspecting every class's generic schema would emit
+                        // two unnecessary reveal diagnostics per annotation.
+                        code.push_str(&format!("{expression}\n"));
+                        line += 1;
+                    }
                 }
                 write(&preflight, &code)?;
+                runtime
+                    .requested_virtual_types
+                    .extend(probe_types.virtual_references.iter().cloned());
+                virtual_projection.sync(
+                    &stubs,
+                    &mut runtime.requested_virtual_types,
+                    &mut self.virtual_files,
+                    server.as_mut(),
+                )?;
                 let diagnostics = if mode == "push" {
                     if server.is_none() {
                         *server = Some(crate::checker::ProjectChecker::new(
@@ -2388,7 +2652,7 @@ impl Session {
                     server
                         .as_mut()
                         .unwrap()
-                        .check(&sources, std::slice::from_ref(&preflight))?
+                        .check_files(&sources, std::slice::from_ref(&preflight))?
                 } else {
                     check(
                         &binary,
@@ -2451,37 +2715,56 @@ impl Session {
                         );
                     }
                 }
+                let mut requires_reprojection = !missing_symbols.is_empty();
                 for (index, name) in nominal_candidates.into_iter().enumerate() {
                     let arity = class_literals
                         .contains(&index)
                         .then(|| arities.get(&index).copied())
                         .flatten();
+                    // Unconfirmed nominals already render as their declared
+                    // name and arguments. Positive native evidence leaves those
+                    // bytes unchanged; only a non-class or wrong arity changes
+                    // the fallback and requires another projection pass.
+                    if let Some(requested) = runtime.nominal_candidates.get(&name) {
+                        requires_reprojection |= arity.is_none_or(|arity| {
+                            requested.iter().any(|count| *count != 0 && *count != arity)
+                        });
+                    }
                     Arc::make_mut(&mut project.snapshot_symbols)
                         .insert(name.clone(), !missing_symbols.contains(&index));
-                    Arc::make_mut(&mut project.snapshot_nominals).insert(name, arity);
+                    if needs_schema(&name) {
+                        Arc::make_mut(&mut project.snapshot_nominals).insert(name, arity);
+                    }
                 }
-                runtime.attach_project(Arc::new(project.clone()), runtime.config.clone());
-                for unit in units.values_mut().filter(|unit| unit.dirty) {
-                    unit.oracle.clear();
-                    unit.patches.clear();
-                    unit.return_types.clear();
-                    unit.types = Types::with_project(
-                        &format!("{}result_", unit.source.prefix),
-                        &unit.source.module,
-                        &project,
-                    );
+                if requires_reprojection {
+                    runtime.attach_project(Arc::new(project.clone()), runtime.config.clone());
+                    for unit in units.values_mut().filter(|unit| unit.dirty) {
+                        unit.oracle.clear();
+                        unit.patches.clear();
+                        unit.return_types.clear();
+                        unit.types = Types::with_project(
+                            &format!("{}result_", unit.source.prefix),
+                            &unit.source.module,
+                            &project,
+                        );
+                    }
+                    continue;
                 }
-                continue;
+                // Successful lookup and arity checks confirm the provisional
+                // source without changing it. Retain the inference passes and
+                // expose the proof to subsequent renders. Invalid names and
+                // schemas take the reprojection path above.
+                let attached = Arc::make_mut(runtime.project.as_mut().unwrap());
+                attached.snapshot_nominals = project.snapshot_nominals.clone();
+                attached.snapshot_symbols = project.snapshot_symbols.clone();
+                for unit in units.values_mut() {
+                    unit.types.confirm_native_evidence(&project);
+                }
             }
             phase(&mut phases, "import_preflight", &mut phase_started);
             let query_paths: Vec<_> = units
                 .values()
-                .filter(|u| {
-                    u.dirty
-                        && u.valid
-                        && (!u.analysis.calls.is_empty()
-                            || !u.analysis.expression_probes.is_empty())
-                })
+                .filter(|u| u.dirty && u.valid && u.analysis.needs_probes())
                 .map(|u| u.path.clone())
                 .collect();
             let raw = check_units(
@@ -2668,28 +2951,41 @@ impl Session {
             edits.insert(unit.analysis.prelude_offset, flow.type_prelude);
             let generated = render(&unit.source, &edits)?;
             unit.final_edits = Some(edits);
-            if unit.path.starts_with(&out) {
-                write(&unit.path, &generated.text)?;
-            }
+            unit.write_projection(&generated, &out)?;
             unit.rendered = Some(generated);
             unit.flow_diagnostics = flow.diagnostics;
         }
+        virtual_projection.sync(
+            &stubs,
+            &mut runtime.requested_virtual_types,
+            &mut self.virtual_files,
+            server.as_mut(),
+        )?;
         phase(&mut phases, "final_render", &mut phase_started);
         let paths: Vec<_> = units
             .values()
             .filter(|u| u.selected && u.dirty)
             .map(|u| u.path.clone())
             .collect();
-        let mut raw = check_units(
-            &binary,
-            &view,
-            &checker_config_path,
-            &units,
-            &paths,
-            mode == "push",
-            server,
-            capabilities,
-        )?;
+        let disk_batch = capabilities.is_none()
+            && paths.len() >= 128
+            && self.notebook_sources.is_empty()
+            && units.keys().all(|path| path.starts_with(&out))
+            && paths.iter().all(|path| path.starts_with(&view));
+        let mut raw = if disk_batch {
+            check_selected_files(&binary, &view, &checker_config_path, &paths)?
+        } else {
+            check_units(
+                &binary,
+                &view,
+                &checker_config_path,
+                &units,
+                &paths,
+                mode == "push",
+                server,
+                capabilities,
+            )?
+        };
         if capabilities.is_none() {
             for unit in units.values().filter(|u| {
                 u.selected
@@ -2760,7 +3056,7 @@ impl Session {
         // One immutable name context and one diagnostic partition per project,
         // rather than cloning every class name and scanning every diagnostic
         // again for each selected file.
-        let virtual_names = Arc::new(project.virtual_identities.clone());
+        let virtual_names = project.virtual_identities.clone();
         let mut nominal_candidates: BTreeMap<&str, Vec<&str>> = BTreeMap::new();
         for (qualified, class) in project.classes.iter() {
             if class["virtual"] != true
@@ -2889,6 +3185,11 @@ impl Session {
                 names: unit.names.clone(),
             })
             .collect();
+        let mut document_paths: BTreeSet<_> = self
+            .documents
+            .iter()
+            .map(|document| document.path.clone())
+            .collect();
         for module in project.modules.values().filter(|m| m.external) {
             let projected = projected_stub_path(
                 &stubs,
@@ -2896,11 +3197,7 @@ impl Session {
                 &self.resolved_paths,
                 Path::new(&module.source.path),
             )?;
-            if !self
-                .documents
-                .iter()
-                .any(|document| document.path == projected)
-            {
+            if !document_paths.contains(&projected) {
                 let path = if self
                     .resolved_paths
                     .contains_key(Path::new(&module.source.path))
@@ -2909,6 +3206,7 @@ impl Session {
                 } else {
                     projected
                 };
+                document_paths.insert(path.clone());
                 self.documents.push(ProjectDocument {
                     source: module.source.clone(),
                     path,
@@ -2960,6 +3258,107 @@ pub fn run(input: &Path, options: &BTreeMap<String, String>) -> Result<Value> {
 
 #[cfg(test)]
 mod tests {
+    #[test]
+    fn parallel_copies_keep_overlay_precedence_and_original_bytes() -> Result<()> {
+        let directory = std::env::temp_dir().join(format!(
+            "ty-parallel-copies-{}-{}",
+            std::process::id(),
+            std::time::SystemTime::now()
+                .duration_since(std::time::UNIX_EPOCH)?
+                .as_nanos()
+        ));
+        let higher = directory.join("higher");
+        let lower = directory.join("lower");
+        let output = directory.join("output");
+        for index in 0..160 {
+            write(
+                &higher.join(format!("nested/file{index}.pyi")),
+                "value: str\n",
+            )?;
+            write(
+                &lower.join(format!("nested/file{index}.pyi")),
+                "value: int\n",
+            )?;
+        }
+        let original = higher.join("nested/file0.pyi");
+        let permissions = std::fs::metadata(&original)?.permissions();
+        let mut read_only = permissions.clone();
+        read_only.set_readonly(true);
+        std::fs::set_permissions(&original, read_only)?;
+        let copied = copy_overlays(&[higher.clone(), lower], &output, &BTreeSet::new())?;
+        assert_eq!(copied.len(), 160);
+        for path in copied {
+            assert_eq!(std::fs::read_to_string(path)?, "value: str\n");
+        }
+        std::fs::write(output.join("nested/file0.pyi"), "value: bytes\n")?;
+        assert_eq!(std::fs::read_to_string(&original)?, "value: str\n");
+        assert!(std::fs::metadata(&original)?.permissions().readonly());
+        std::fs::set_permissions(original, permissions)?;
+        std::fs::remove_dir_all(directory)?;
+        Ok(())
+    }
+
+    #[test]
+    fn compact_disk_check_preserves_exact_selection_and_rule_overrides() -> Result<()> {
+        let binary = PathBuf::from(std::env::var("TY_COMPANION_TEST_OFFICIAL")?);
+        let directory = std::env::temp_dir()
+            .canonicalize()?
+            .join(format!("ty-compact-selection-{}", std::process::id()));
+        let root = directory.join("project");
+        let bad = "value: int = 'wrong'\n";
+        let files = [
+            ("all/a.py", "value: int = 1\n"),
+            ("all/[literal].py", bad),
+            ("partial/selected.py", bad),
+            ("partial/skip.py", bad),
+            (".hidden/script.py", "# /// script\n# ///\nvalue: int = 1\n"),
+            (".venv/explicit.py", bad),
+            ("complete/plain.py", "value: int = 1\n"),
+            ("complete/.venv/explicit.py", bad),
+        ];
+        for (name, text) in files {
+            write(&root.join(name), text)?;
+        }
+        write(&root.join(".gitignore"), "*\n")?;
+        let selected: BTreeSet<_> = files
+            .into_iter()
+            .filter(|(name, _)| !name.ends_with("skip.py"))
+            .map(|(name, _)| root.join(name))
+            .collect();
+        let compact = compact_check_paths(&root, &selected)?;
+        assert!(compact.contains(&root.join("all")));
+        assert!(compact.contains(&root.join("partial/selected.py")));
+        assert!(!compact.contains(&root));
+        assert!(!compact.contains(&root.join("partial")));
+        assert!(!compact.contains(&root.join("complete")));
+        assert!(compact.contains(&root.join("complete/.venv")));
+        let config = directory.join("checker.toml");
+        write(
+            &config,
+            "[environment]\npython-version='3.13'\n[src]\ninclude=['missing']\nexclude=['**']\nrespect-ignore-files=true\nexclude-scripts=true\n[[overrides]]\ninclude=['**/partial/**']\n[overrides.rules]\ninvalid-assignment='warn'\n",
+        )?;
+        let result = check_selected_files(
+            &binary,
+            &root,
+            &config,
+            &selected.into_iter().collect::<Vec<_>>(),
+        )?;
+        let actual: BTreeMap<_, _> = result
+            .iter()
+            .map(|d| {
+                assert_eq!(d["check_name"], "invalid-assignment");
+                (path_of(d, &root), d["severity"].clone())
+            })
+            .collect();
+        assert_eq!(actual.len(), 4, "{result:#?}");
+        assert!(actual.contains_key(&root.join("all/[literal].py")));
+        assert!(actual.contains_key(&root.join(".venv/explicit.py")));
+        assert!(actual.contains_key(&root.join("complete/.venv/explicit.py")));
+        assert_eq!(actual[&root.join("partial/selected.py")], "minor");
+        std::fs::remove_dir_all(directory)?;
+        Ok(())
+    }
+
     #[test]
     fn dictionary_probe_context_is_recovered_and_reset_after_signature_edits() -> Result<()> {
         let binary = std::env::var("TY_COMPANION_TEST_OFFICIAL")?;
@@ -3108,6 +3507,8 @@ mod tests {
         let directory =
             std::env::temp_dir().join(format!("ty-setter-receiver-cycle-{}", std::process::id()));
         let root = directory.join("project");
+        let plain = "# Ordinary files keep their original bytes and diagnostics.\nvalue: int = 1\n";
+        write(&root.join("plain.py"), plain)?;
         write(
             &root.join("demo.py"),
             "class Model: pass\ndef make() -> Model: return Model()\nmodel = make()\nmodel.value = 'first'\nmodel.value = 'second'\n",
@@ -3136,6 +3537,10 @@ mod tests {
         let mut session = Session::new(&root, &options)?;
         let result = session.check(&BTreeMap::new())?;
         assert_eq!(result["diagnostics"], json!([]), "{result:#}");
+        assert_eq!(
+            std::fs::read_to_string(session.view.join("plain.py"))?,
+            plain
+        );
         let path = root.join("demo.py").canonicalize()?;
         let invalid = std::fs::read_to_string(&path)?.replace("'second'", "17");
         let result = session.check(&BTreeMap::from([(path, invalid)]))?;
@@ -3144,6 +3549,26 @@ mod tests {
             .context("setter diagnostics")?;
         assert_eq!(diagnostics.len(), 1, "{result:#}");
         assert_eq!(diagnostics[0]["check_name"], "invalid-assignment");
+        assert_eq!(
+            std::fs::read_to_string(session.view.join("plain.py"))?,
+            plain
+        );
+        let invalid_plain = plain.replace("= 1", "= 'wrong'");
+        let result = session.check(&BTreeMap::from([(
+            root.join("plain.py").canonicalize()?,
+            invalid_plain.clone(),
+        )]))?;
+        assert_eq!(
+            std::fs::read_to_string(session.view.join("plain.py"))?,
+            invalid_plain
+        );
+        assert_eq!(
+            result["diagnostics"].as_array().unwrap().len(),
+            1,
+            "{result:#}"
+        );
+        assert_eq!(result["diagnostics"][0]["check_name"], "invalid-assignment");
+        assert_eq!(std::fs::read_to_string(root.join("plain.py"))?, plain);
         drop(session);
         std::fs::remove_dir_all(directory)?;
         Ok(())
@@ -3246,9 +3671,27 @@ mod tests {
                 .unwrap()
                 .contains("Model[str]")
         );
+        for invalid in [first, "class Model: pass\n", "Model = int(0)\n"] {
+            // Both a wrong generic arity and a callable/non-class must retain
+            // the fallback annotation. Positive native confirmation must never
+            // suppress the reprojection that these negative cases require.
+            assert_eq!(
+                session.check(&BTreeMap::from([(path.clone(), invalid.to_owned())]))?["diagnostics"],
+                json!([]),
+                "{invalid}"
+            );
+        }
+        let restored = session.check(&BTreeMap::from([(path, second.to_owned())]))?;
         assert_eq!(
-            session.check(&BTreeMap::from([(path, first.to_owned())]))?["diagnostics"],
-            json!([])
+            restored["diagnostics"].as_array().unwrap().len(),
+            1,
+            "{restored:#}"
+        );
+        assert!(
+            restored["diagnostics"][0]["description"]
+                .as_str()
+                .unwrap()
+                .contains("Model[str]")
         );
         drop(session);
         std::fs::remove_dir_all(directory)?;
@@ -3284,6 +3727,7 @@ mod tests {
             raw_diagnostics: vec![],
             flow_diagnostics: vec![],
             pass: None,
+            reads_protocol_aliases: false,
         };
         let generated = GeneratedDeclarations {
             descriptors: BTreeMap::from([(
@@ -3292,7 +3736,7 @@ mod tests {
             )]),
             ..Default::default()
         };
-        let virtual_names = Arc::new(project.virtual_identities.clone());
+        let virtual_names = project.virtual_identities.clone();
         let nominal_names = Arc::new(BTreeMap::from([("Target".into(), "owner.Target".into())]));
         let origins = diagnostic_origins(
             &unit,
@@ -3947,6 +4391,7 @@ mod tests {
             raw_diagnostics: Vec::new(),
             flow_diagnostics: Vec::new(),
             pass: None,
+            reads_protocol_aliases: true,
         };
         let aliases = |field: &str| {
             BTreeMap::from([(
@@ -4006,6 +4451,7 @@ mod tests {
         // cache invalidation through supported qualified-alias resolution.
         let source = "from z_producer import row, _ty_ext_result_snapshot_0\ndef consume(row: object, check: object) -> None: pass\nconsume(row, 1)\n";
         write(&consumer, source)?;
+        write(&root.join("b_unrelated.py"), "class Unrelated: pass\n")?;
         write(
             &root.join("z_producer.py"),
             "def seed() -> object: return 1\ndef advance(value: object) -> object: return value\ndef make(value: object) -> object: return {'item': value}\nrow = make(advance(advance(seed())))\n",
@@ -4096,6 +4542,14 @@ def signature(request):
             .find(|unit| unit.source.module == "z_producer")
             .unwrap();
         assert!(producer.types.prelude().contains("snapshot_0"));
+        let unrelated = session
+            .cached_units
+            .values()
+            .find(|unit| unit.source.module == "b_unrelated")
+            .unwrap();
+        assert!(!unrelated.reads_protocol_aliases);
+        // Final rendering consumes reused passes, so the cached pass itself is
+        // absent here. The dependency flag survives that consumption.
         let changed = session.check(&BTreeMap::from([(
             consumer.canonicalize()?,
             source.replace("consume(row, 1)", "consume(row, 'wrong')"),

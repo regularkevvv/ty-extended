@@ -31,6 +31,44 @@ pub struct FlowResult {
 type Object = usize;
 type Facts = Arc<BTreeMap<String, Value>>;
 
+/// A class body's local object identities are discarded when the body ends.
+/// An unclaimed initializer needs an oracle only if its local binding is read.
+/// Keep all nested reads conservatively, and decline this optimization for
+/// explicit namespace inspection or writes to an outer scope.
+fn class_read_names(body: &[Stmt]) -> Option<BTreeSet<String>> {
+    use ruff_python_ast::visitor::{self, Visitor};
+    #[derive(Default)]
+    struct Reads {
+        names: BTreeSet<String>,
+        escapes: bool,
+    }
+    impl<'a> Visitor<'a> for Reads {
+        fn visit_stmt(&mut self, stmt: &'a Stmt) {
+            if matches!(stmt, Stmt::Global(_) | Stmt::Nonlocal(_)) {
+                self.escapes = true;
+            }
+            visitor::walk_stmt(self, stmt);
+        }
+        fn visit_expr(&mut self, expr: &'a Expr) {
+            if let Expr::Name(name) = expr
+                && name.ctx == ExprContext::Load
+            {
+                self.names.insert(name.id.to_string());
+                if matches!(
+                    name.id.as_str(),
+                    "locals" | "globals" | "vars" | "eval" | "exec"
+                ) {
+                    self.escapes = true;
+                }
+            }
+            visitor::walk_expr(self, expr);
+        }
+    }
+    let mut reads = Reads::default();
+    reads.visit_body(body);
+    (!reads.escapes).then_some(reads.names)
+}
+
 /// Find outer bindings that a newly created nested function can replace.
 /// Intervening function locals shadow outer cells; class namespaces do not.
 fn captured_nonlocals(function: &StmtFunctionDef, outer: &BTreeSet<String>) -> BTreeSet<String> {
@@ -138,6 +176,7 @@ struct Scope {
     truths: BTreeMap<String, bool>,
     external_names: BTreeSet<String>,
     class_owner: Option<String>,
+    class_reads: Option<Arc<BTreeSet<String>>>,
     protocol_names: BTreeMap<String, Value>,
     protocol_values: BTreeMap<Span, Value>,
 }
@@ -187,6 +226,7 @@ struct Project<'a> {
     returns: &'a ReturnPatches,
     raw_returns: &'a BTreeMap<Span, Value>,
     types: Types,
+    required_probes: BTreeSet<Span>,
 }
 
 pub fn project(
@@ -259,6 +299,7 @@ pub fn project_with_return_types(
         returns,
         raw_returns,
         types,
+        required_probes: BTreeSet::new(),
     };
     let mut scope = Scope {
         module: true,
@@ -268,6 +309,7 @@ pub fn project_with_return_types(
     project.result.type_prelude = project.types.prelude();
     project.result.type_names = project.types.display_names();
     project.types.register_protocol_types(project.runtime);
+    project.analysis.required_expression_probes = Some(project.required_probes);
     Ok(project.result)
 }
 
@@ -417,6 +459,7 @@ impl Project<'_> {
                 );
                 let mut class_scope = Scope {
                     class_owner: Some(owner),
+                    class_reads: class_read_names(&class.body).map(Arc::new),
                     ..Scope::default()
                 };
                 self.body(&mut class_scope, &class.body)?;
@@ -439,7 +482,14 @@ impl Project<'_> {
             }
             Stmt::Assign(assign) => {
                 self.expr(scope, &assign.value)?;
-                let identity = self.identity(scope, &assign.value);
+                let unused = scope.class_reads.as_ref().is_some_and(|reads| {
+                    assign.targets.iter().all(|target| matches!(target, Expr::Name(name) if !reads.contains(name.id.as_str())))
+                });
+                let identity = if unused {
+                    scope.identity(&assign.value)
+                } else {
+                    self.identity(scope, &assign.value)
+                };
                 for target in &assign.targets {
                     self.assignment(scope, target, Some(&assign.value), identity)?;
                 }
@@ -449,7 +499,12 @@ impl Project<'_> {
                 // has ordinary assignment identity and mutation semantics.
                 if let Some(value) = &assign.value {
                     self.expr(scope, value)?;
-                    let identity = self.identity(scope, value);
+                    let unused = scope.class_reads.as_ref().is_some_and(|reads| matches!(assign.target.as_ref(), Expr::Name(name) if !reads.contains(name.id.as_str())));
+                    let identity = if unused {
+                        scope.identity(value)
+                    } else {
+                        self.identity(scope, value)
+                    };
                     self.assignment(scope, &assign.target, Some(value), identity)?;
                 }
             }
@@ -776,7 +831,15 @@ impl Project<'_> {
                 if let Some(protocol) = protocol {
                     scope.protocol_names.insert(name.id.to_string(), protocol);
                 }
-                let truthy = value.and_then(|value| self.truthiness(scope, value));
+                let truthy = if scope
+                    .class_reads
+                    .as_ref()
+                    .is_some_and(|reads| !reads.contains(name.id.as_str()))
+                {
+                    None
+                } else {
+                    value.and_then(|value| self.truthiness(scope, value))
+                };
                 scope.truths.remove(name.id.as_str());
                 if let Some(truthy) = truthy {
                     scope.truths.insert(name.id.to_string(), truthy);
@@ -1074,6 +1137,7 @@ impl Project<'_> {
             .as_ref()
             .and_then(Runtime::receiver_identity)
             .or_else(|| {
+                self.required_probes.insert(span(expr));
                 self.oracle
                     .and_then(|oracle| oracle.get(&expression_key(span(expr))))
                     .map(|expression| self.runtime.canonical_name(self.source, expression))
@@ -1117,7 +1181,11 @@ impl Project<'_> {
         // Python binds the method before evaluating its arguments. A walrus
         // expression or nested call may subsequently rebind the receiver name.
         let bound_receiver = if let Expr::Attribute(attribute) = call.func.as_ref() {
-            self.identity(scope, &attribute.value)
+            if self.analysis.calls.contains_key(&span(call)) {
+                self.identity(scope, &attribute.value)
+            } else {
+                scope.identity(&attribute.value)
+            }
         } else {
             None
         };
@@ -1382,7 +1450,7 @@ impl Project<'_> {
         truths.all(|next| next == Some(first)).then_some(first)
     }
 
-    fn truthiness(&self, scope: &Scope, expression: &Expr) -> Option<bool> {
+    fn truthiness(&mut self, scope: &Scope, expression: &Expr) -> Option<bool> {
         Self::literal_truthiness(expression).or_else(|| {
             if let Expr::Name(name) = expression
                 && let Some(truthy) = scope.truths.get(name.id.as_str())
@@ -1394,6 +1462,7 @@ impl Project<'_> {
             {
                 return self.truthiness(scope, &value.operand).map(|truthy| !truthy);
             }
+            self.required_probes.insert(span(expression));
             let inferred = self.oracle.and_then(|oracle| {
                 oracle.get(&expression_key(span(expression))).or_else(|| {
                     self.analysis
@@ -1438,6 +1507,17 @@ impl Project<'_> {
             Expr::Attribute(attribute) => {
                 self.expr(scope, &attribute.value)?;
                 if attribute.ctx != ExprContext::Load {
+                    return Ok(());
+                }
+                // Without a dynamic member hook, only an already tracked
+                // object's postconditions can replace this access. Ordinary
+                // attributes remain the official checker's responsibility.
+                // Calls and assignments ask for receiver identity separately
+                // when they need it; an unrelated import receiver does not.
+                if self.runtime.manifest["capabilities"]["class-member"] != true
+                    && self.runtime.manifest["capabilities"]["instance-member"] != true
+                    && scope.identity(&attribute.value).is_none()
+                {
                     return Ok(());
                 }
                 let Some(identity) = self.identity(scope, &attribute.value) else {
@@ -1990,6 +2070,90 @@ mod tests {
             manifest,
             "@on_call_state\ndef state(request):\n    name = request['callee']['expression']\n    if name == 'demo.Item':\n        return call_state_patch(result_members={'key':type_annotation('None')}, fresh_result=True, preserves_other_objects=True)\n    annotation = 'int' if name.endswith('.set_key') else 'None'\n    return call_state_patch(receiver_members={'key':type_annotation(annotation)}, preserves_other_objects=True)\n",
         )
+    }
+
+    #[test]
+    fn unused_class_initializers_do_not_require_native_object_queries() {
+        for (body, needed) in [
+            ("class Container:\n    value = unknown()\n", false),
+            (
+                "class Container:\n    value = unknown()\n    alias = value\n",
+                true,
+            ),
+            (
+                "class Container:\n    value = unknown()\n    namespace = locals()\n",
+                true,
+            ),
+        ] {
+            let mut fixture = alias_fixture(body);
+            let start = fixture.source.text.rfind("unknown()").unwrap();
+            let range = Span {
+                start,
+                end: start + "unknown()".len(),
+            };
+            assert!(fixture.analysis.expression_probes.contains_key(&range));
+            project(
+                &fixture.source,
+                &fixture.suite,
+                &mut fixture.analysis,
+                &mut fixture.runtime,
+            )
+            .unwrap();
+            assert_eq!(
+                fixture.analysis.needs_expression_probe(&range),
+                needed,
+                "{body}"
+            );
+            // Keep the full inventory so a subsequent pass can request a
+            // previously unnecessary observation after other types change.
+            assert!(fixture.analysis.expression_probes.contains_key(&range));
+        }
+    }
+
+    #[test]
+    fn class_local_aliases_keep_state_hooks_after_probe_selection() {
+        let mut fixture = alias_fixture(
+            "class Container:\n    value = unknown()\n    alias = value\n    value.set_key()\n    result = alias.key\n",
+        );
+        let start = fixture.source.text.rfind("unknown()").unwrap();
+        let range = Span {
+            start,
+            end: start + "unknown()".len(),
+        };
+        let oracle = Oracle::from([(expression_key(range), "demo.Item".into())]);
+        let flow = project_with_oracle(
+            &fixture.source,
+            &fixture.suite,
+            &mut fixture.analysis,
+            &mut fixture.runtime,
+            Some(&oracle),
+            &ReturnPatches::new(),
+        )
+        .unwrap();
+        let rendered = crate::mapping::render(&fixture.source, &flow.edits).unwrap();
+        assert!(
+            rendered.text.contains(".int, alias.key)"),
+            "{}",
+            rendered.text
+        );
+        assert!(fixture.analysis.needs_expression_probe(&range));
+        assert!(fixture.analysis.needs_probes());
+    }
+
+    #[test]
+    fn unclaimed_import_receivers_do_not_require_probes_without_member_hooks() {
+        let mut fixture = alias_fixture(
+            "import package\nclass Container:\n    value = package.field(default=package.DEFAULT)\n",
+        );
+        assert!(!fixture.analysis.expression_probes.is_empty());
+        project(
+            &fixture.source,
+            &fixture.suite,
+            &mut fixture.analysis,
+            &mut fixture.runtime,
+        )
+        .unwrap();
+        assert!(!fixture.analysis.needs_probes());
     }
 
     #[test]

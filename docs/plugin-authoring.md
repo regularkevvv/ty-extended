@@ -133,9 +133,70 @@ shadow the ambient names.
 
 Monty executes a Python subset. Plugin code cannot import third-party modules, read the
 filesystem, or access the environment or clock — `time`/`random` return fixed values so plugin
-answers stay deterministic — and project data arrives only through protocol requests
-(`build-project-index`, call requests, and so on). No class inheritance, `match`, or `yield`.
+answers stay deterministic — and project data comes from protocol requests and
+read-only lookups into the plugin's own index. No class inheritance, `match`, or `yield`.
 `print` output is captured and logged for debugging.
+
+### Keep class indexes small
+
+Protocol 0.8 adds `project_index(..., class_indexes={...})`. Each key is a
+class's qualified name. Its value completely replaces `project-index` in that
+class's `analyze-class` request; it is not merged with the full index. Include
+all settings and related symbols that the class hook needs. Unlisted classes
+and other semantic hooks continue to receive the full `plugin_index` value.
+
+```python
+return project_index(
+    {"models": all_models, "settings": settings},
+    class_indexes={
+        name: {"model": model, "settings": relevant_settings(model)}
+        for name, model in all_models.items()
+    },
+)
+```
+
+The host treats each value as opaque JSON. An explicit `None` selects no index;
+omitting a key selects the full index. Changing or removing a scoped index
+invalidates the associated plugin's cached semantic responses. Hook invocations
+remain isolated, so mutating an index inside one hook cannot change later hooks.
+The normal response-size limit includes these additional indexes.
+
+This avoids serializing a complete project into every class hook. Plugins that
+use the new field must declare protocol minor version 8 or newer; older plugins
+continue to use the existing full-index behavior.
+
+### Look up index entries on demand
+
+For large indexes, protocol 0.8 also supports the manifest capability
+`"project-index-lookup": true`. Opted-in plugins read their index through
+`project_index_value(request, path, default=None)` and
+`project_index_keys(request, path)`:
+
+```python
+model = project_index_value(request, ["models", qualified_model_name])
+model_names = project_index_keys(request, ["models"])
+```
+
+Paths contain literal dictionary keys, including dots or slashes. A missing key
+uses the supplied default; a present JSON null remains `None`. Key enumeration
+returns an empty list for missing values and scalars. Each value lookup returns
+a fresh JSON copy. Mutating that copy does not change the retained index or a
+later lookup, including within the same invocation.
+
+The embedded Monty host can keep the full index outside the interpreter and
+transfer only requested entries. The helpers also work with ordinary inline
+indexes, including class-specific replacements and runtimes without callbacks.
+When opting in, use these helpers instead of reading `request["project-index"]`
+directly. Fetching the entire index with an empty path is supported but restores
+the cost of transferring it.
+
+The callback reads only the index selected for the current plugin and request.
+It grants no filesystem, network, or other-plugin access. An invocation can make
+at most 1,000 lookups. Lookup paths are bounded to 128 keys and 64 KiB of encoded
+JSON; replies use the configured response-size
+limit. The interpreter and callback loop remain subject to the invocation's time
+limit. Other external operations are rejected. Every invocation still starts
+with fresh plugin module state.
 
 ## Test and publish
 

@@ -4,7 +4,7 @@ use anyhow::{Context, Result, bail};
 use serde_json::{Value, json};
 use sha2::{Digest, Sha256};
 use std::{
-    cell::RefCell,
+    cell::{Cell, RefCell},
     collections::{BTreeMap, BTreeSet},
     path::{Path, PathBuf},
     sync::Arc,
@@ -19,22 +19,26 @@ pub struct Runtime {
     plugins: Vec<Registration>,
     pub manifest: Value,
     pub project: Option<Arc<Project>>,
-    pub project_index: Option<Value>,
     pub config: Value,
     pub python_version: String,
     pub platform: String,
     pub project_patches: BTreeMap<String, Value>,
     pub project_contributions: Vec<Value>,
+    contribution_targets: BTreeMap<String, Vec<usize>>,
+    unique_class_names: BTreeMap<String, Option<String>>,
     pub projected_receivers: BTreeMap<String, String>,
     protocol_types: BTreeMap<(String, String), BTreeMap<String, Value>>,
     virtual_shapes: BTreeMap<String, Value>,
     pub selected_virtual_scope: Option<String>,
-    pub nominal_candidates: BTreeSet<String>,
+    pub requested_virtual_types: BTreeSet<String>,
+    pub nominal_candidates: BTreeMap<String, BTreeSet<usize>>,
     pub annotation_candidates: BTreeSet<String>,
     pub context_free_arguments: BTreeSet<(String, Span)>,
     cache: RequestCache,
     type_cache: RefCell<RequestCache>,
     projection_generation: u64,
+    projection_base_generation: u64,
+    protocol_observations: Cell<u64>,
     pub executions: usize,
     pub hits: usize,
     pub execution_time: Duration,
@@ -46,6 +50,7 @@ struct Registration {
     manifest: Value,
     config: Value,
     index: Option<Value>,
+    class_indexes: BTreeMap<String, Value>,
     index_generation: u64,
     virtual_names: BTreeMap<String, String>,
     inverse_virtual_names: BTreeMap<String, String>,
@@ -204,7 +209,7 @@ impl RequestCache {
         Some(&entry.value)
     }
 
-    fn insert(&mut self, key: RequestKey, value: Value) {
+    fn insert(&mut self, key: RequestKey, value: &Value) {
         // Include allocation/container overhead as well as string data. Bounds
         // apply to retained response storage, independent of project lifetime.
         fn weight(value: &Value) -> usize {
@@ -219,7 +224,7 @@ impl RequestCache {
                     _ => 0,
                 }
         }
-        let bytes = weight(&value) + std::mem::size_of::<CachedResponse>() + 128;
+        let bytes = weight(value) + std::mem::size_of::<CachedResponse>() + 128;
         if bytes > Self::MAX_BYTES {
             return;
         }
@@ -237,7 +242,7 @@ impl RequestCache {
         self.entries.insert(
             key,
             CachedResponse {
-                value,
+                value: value.clone(),
                 touched: self.clock,
                 bytes,
             },
@@ -297,6 +302,7 @@ impl Runtime {
                 manifest: manifest_value,
                 config,
                 index: None,
+                class_indexes: BTreeMap::new(),
                 index_generation: 0,
                 virtual_names: BTreeMap::new(),
                 inverse_virtual_names: BTreeMap::new(),
@@ -375,19 +381,23 @@ impl Runtime {
             .into(),
             manifest: manifest_value,
             project: None,
-            project_index: None,
             project_patches: BTreeMap::new(),
             project_contributions: Vec::new(),
+            contribution_targets: BTreeMap::new(),
+            unique_class_names: BTreeMap::new(),
             projected_receivers: BTreeMap::new(),
             protocol_types: BTreeMap::new(),
             virtual_shapes: BTreeMap::new(),
             selected_virtual_scope: None,
-            nominal_candidates: BTreeSet::new(),
+            requested_virtual_types: BTreeSet::new(),
+            nominal_candidates: BTreeMap::new(),
             annotation_candidates: BTreeSet::new(),
             context_free_arguments: BTreeSet::new(),
             cache: RequestCache::default(),
             type_cache: RefCell::default(),
             projection_generation: 0,
+            projection_base_generation: 0,
+            protocol_observations: Cell::new(0),
             executions: 0,
             hits: 0,
             execution_time: Duration::ZERO,
@@ -402,6 +412,14 @@ impl Runtime {
         self.advance_projection_generation();
         self.protocol_types
             .retain(|(module, _), _| project.modules.contains_key(module));
+        self.unique_class_names.clear();
+        for qualified in project.classes.keys() {
+            let short = qualified.rsplit('.').next().unwrap_or(qualified);
+            self.unique_class_names
+                .entry(short.to_owned())
+                .and_modify(|name| *name = None)
+                .or_insert_with(|| Some(qualified.clone()));
+        }
         self.project = Some(project);
         merge_config(&mut self.config, &config);
         // --config is the original single-plugin CLI override. Discovered
@@ -432,7 +450,35 @@ impl Runtime {
         self.projection_generation
     }
 
+    pub fn projection_context(&self, reads_protocol_aliases: bool) -> (u64, Option<u64>) {
+        (
+            self.projection_base_generation,
+            reads_protocol_aliases.then_some(self.projection_generation),
+        )
+    }
+
+    pub fn protocol_observations(&self) -> u64 {
+        self.protocol_observations.get()
+    }
+
+    fn observe_protocol_aliases(&self) {
+        self.protocol_observations.set(
+            self.protocol_observations
+                .get()
+                .checked_add(1)
+                .expect("protocol observation counter exhausted"),
+        );
+    }
+
     fn advance_projection_generation(&mut self) {
+        self.projection_base_generation = self
+            .projection_base_generation
+            .checked_add(1)
+            .expect("projection base generation exhausted");
+        self.advance_alias_generation();
+    }
+
+    fn advance_alias_generation(&mut self) {
         self.projection_generation = self
             .projection_generation
             .checked_add(1)
@@ -444,6 +490,27 @@ impl Runtime {
             self.project_patches.insert(qualified, patch);
             self.advance_projection_generation();
         }
+    }
+
+    pub fn set_project_contributions(&mut self, contributions: Vec<Value>) {
+        self.contribution_targets.clear();
+        for (index, contribution) in contributions.iter().enumerate() {
+            if let Some(target) = contribution["target"]["qualified-name"].as_str() {
+                self.contribution_targets
+                    .entry(target.to_owned())
+                    .or_default()
+                    .push(index);
+            }
+        }
+        self.project_contributions = contributions;
+    }
+
+    pub fn contributions_for(&self, target: &str) -> impl DoubleEndedIterator<Item = &Value> {
+        self.contribution_targets
+            .get(target)
+            .into_iter()
+            .flatten()
+            .map(|index| &self.project_contributions[*index])
     }
 
     pub fn set_projected_receiver(&mut self, qualified: String, receiver: String) {
@@ -538,16 +605,9 @@ impl Runtime {
                     && nominal
                         .chars()
                         .all(|character| character.is_alphanumeric() || character == '_')
+                    && let Some(Some(candidate)) = self.unique_class_names.get(nominal)
                 {
-                    let mut matches = project
-                        .classes
-                        .keys()
-                        .filter(|candidate| candidate.rsplit('.').next() == Some(nominal));
-                    if let Some(candidate) = matches.next()
-                        && matches.next().is_none()
-                    {
-                        return format!("{candidate}{}", &qualified[nominal.len()..]);
-                    }
+                    return format!("{candidate}{}", &qualified[nominal.len()..]);
                 }
                 qualified
             },
@@ -650,7 +710,7 @@ impl Runtime {
                     }
                 }
             }
-            for contribution in self.project_contributions.iter().rev() {
+            for contribution in self.contributions_for(&owner).rev() {
                 if contribution["target"]["qualified-name"] != owner
                     || contribution["patch"]["name"] != member
                 {
@@ -731,6 +791,9 @@ impl Runtime {
     }
 
     pub fn type_expr(&self, source: &Source, expression: &str) -> Value {
+        // Cache hits still observe the alias registry: replacing a producer's
+        // record must invalidate every consumer that used its cached snapshot.
+        self.observe_protocol_aliases();
         if let Some(owner) = self
             .projected_receivers
             .get(&format!("{}.{}", source.module, expression))
@@ -753,7 +816,7 @@ impl Runtime {
         );
         let qualified = self.canonical_name(source, expression);
         let value = self.type_expr_with_identity(display, &qualified, Some(&source.module));
-        self.type_cache.borrow_mut().insert(key, value.clone());
+        self.type_cache.borrow_mut().insert(key, &value);
         value
     }
 
@@ -764,6 +827,7 @@ impl Runtime {
     }
 
     fn qualified_type_expr_in_module(&self, expression: &str, module: Option<&str>) -> Value {
+        self.observe_protocol_aliases();
         let key = type_key(
             true,
             expression,
@@ -784,7 +848,7 @@ impl Runtime {
             value["expression"].as_str().unwrap_or(expression),
             module
         ));
-        self.type_cache.borrow_mut().insert(key, value.clone());
+        self.type_cache.borrow_mut().insert(key, &value);
         value
     }
 
@@ -852,7 +916,7 @@ impl Runtime {
                 self.protocol_types.insert(key, types);
             }
             self.type_cache.get_mut().clear();
-            self.advance_projection_generation();
+            self.advance_alias_generation();
         }
     }
 
@@ -866,7 +930,7 @@ impl Runtime {
 
     fn protocol_type(&self, module: Option<&str>, name: &str) -> Option<&Value> {
         self.protocol_types.iter().find_map(|((owner, _), types)| {
-            if module == Some(owner.as_str()) {
+            if module == Some(owner.as_str()) || name.contains('.') {
                 types.get(name)
             } else {
                 None
@@ -897,12 +961,11 @@ impl Runtime {
             if let Some(snapshot) = self.virtual_snapshot(name) {
                 return Some(snapshot);
             }
-            if self.project.as_ref().is_some_and(|project| {
-                project
-                    .virtual_identities
-                    .values()
-                    .any(|identity| identity == name)
-            }) {
+            if self
+                .project
+                .as_ref()
+                .is_some_and(|project| project.renderer_virtual_class_names().contains(name))
+            {
                 return Some(json!({"kind":"plugin-class","identity":name}));
             }
             if let Some(project) = &self.project {
@@ -1053,7 +1116,7 @@ impl Runtime {
                 }
             }
         }
-        for contribution in self.project_contributions.iter().rev() {
+        for contribution in self.contributions_for(owner).rev() {
             if contribution["target"]["qualified-name"] == owner
                 && contribution["patch"]["name"] == member
             {
@@ -1247,10 +1310,16 @@ impl Runtime {
 
     fn dispatch(&mut self, id: &str, payload: Value) -> Result<Value> {
         let key = request_key(&("project", id, &payload))?;
-        self.dispatch_with_key(id, payload, key)
+        self.dispatch_with_key(id, payload, key, None)
     }
 
-    fn dispatch_with_key(&mut self, id: &str, payload: Value, key: RequestKey) -> Result<Value> {
+    fn dispatch_with_key(
+        &mut self,
+        id: &str,
+        payload: Value,
+        key: RequestKey,
+        index_owner: Option<usize>,
+    ) -> Result<Value> {
         if let Some(value) = self.cache.get(&key) {
             self.hits += 1;
             return Ok(value.clone());
@@ -1260,10 +1329,15 @@ impl Runtime {
         let start = Instant::now();
         if let Some((message, hint)) = self.load_failures.get(id) {
             let response = hook_failure_message(id, &kind, message, hint);
-            self.cache.insert(key, response.clone());
+            self.cache.insert(key, &response);
             return Ok(response);
         }
-        let result = self.host.execute(id, &request);
+        let result =
+            if let Some(index) = index_owner.and_then(|owner| self.plugins[owner].index.as_ref()) {
+                self.host.execute_with_project_index(id, &request, index)
+            } else {
+                self.host.execute(id, &request)
+            };
         self.execution_time += start.elapsed();
         self.executions += 1;
         let response = match result {
@@ -1277,7 +1351,7 @@ impl Runtime {
         // Like the checker's Salsa memo, cache failures for the exact request.
         // Diagnostics remain in the response and are replayed at each current
         // source location, never accumulated globally across editor revisions.
-        self.cache.insert(key, response.clone());
+        self.cache.insert(key, &response);
         Ok(response)
     }
 
@@ -1296,10 +1370,17 @@ impl Runtime {
             self.hits += 1;
             return Ok(response.clone());
         }
-        if let Some(project_index) = self.plugins[index].index.as_ref() {
+        let plugin = &self.plugins[index];
+        let class_index = (payload["kind"] == "analyze-class")
+            .then(|| payload["class"]["qualified-name"].as_str())
+            .flatten()
+            .and_then(|name| plugin.class_indexes.get(name));
+        let lazy = class_index.is_none()
+            && plugin.manifest["capabilities"]["project-index-lookup"] == true;
+        if !lazy && let Some(project_index) = class_index.or(plugin.index.as_ref()) {
             payload["project-index"] = project_index.clone();
         }
-        self.dispatch_with_key(&id, payload, key)
+        self.dispatch_with_key(&id, payload, key, lazy.then_some(index))
     }
 
     pub fn execute_project(&mut self, kind: &str, payload: Value) -> Result<Value> {
@@ -1390,12 +1471,24 @@ impl Runtime {
             }
             if kind == "build-project-index" {
                 let next_index = response.get("plugin-index").cloned();
-                if self.plugins[index].index != next_index {
+                let next_classes = response["class-indexes"]
+                    .as_object()
+                    .map(|classes| {
+                        classes
+                            .iter()
+                            .map(|(name, value)| (name.clone(), value.clone()))
+                            .collect()
+                    })
+                    .unwrap_or_default();
+                if self.plugins[index].index != next_index
+                    || self.plugins[index].class_indexes != next_classes
+                {
                     self.plugins[index].index_generation = self.plugins[index]
                         .index_generation
                         .checked_add(1)
                         .context("plugin index generation exhausted")?;
                     self.plugins[index].index = next_index;
+                    self.plugins[index].class_indexes = next_classes;
                 }
             }
             if self.plugins.len() > 1 && kind == "build-project-index" {
@@ -1623,6 +1716,7 @@ fn rewrite_notebook_request(
                     key.as_str(),
                     "config"
                         | "plugin-index"
+                        | "class-indexes"
                         | "plugin-metadata"
                         | "result-metadata"
                         | "metadata"
@@ -1686,6 +1780,7 @@ fn rewrite_protocol_names(value: &mut Value, names: &BTreeMap<String, String>) {
                     key.as_str(),
                     "config"
                         | "plugin-index"
+                        | "class-indexes"
                         | "plugin-metadata"
                         | "result-metadata"
                         | "metadata"
@@ -1917,6 +2012,200 @@ pub fn call_request(
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn lazy_indexes_preserve_plugin_revision_and_invocation_isolation() -> Result<()> {
+        let directory =
+            std::env::temp_dir().join(format!("native-lazy-index-{}", std::process::id()));
+        std::fs::create_dir_all(&directory)?;
+        let mut paths = Vec::new();
+        for id in ["a", "b"] {
+            let manifest = json!({"id":id,"name":id,"version":"0.0.0","protocol-version":{"major":0,"minor":8},"ty-compatibility":{"requirement":">=0.87.0"},"runtime":{"kind":"monty","artifact":format!("{id}.py")},"capabilities":{"class-transform":true,"project-index":true,"project-index-lookup":true},"claims":{"classes":[{"kind":"exact","qualified-name":"demo.Row"}]}});
+            let path = directory.join(format!("{id}.json"));
+            let artifact = directory.join(format!("{id}.py"));
+            std::fs::write(&path, serde_json::to_vec(&manifest)?)?;
+            std::fs::write(
+                &artifact,
+                r#"
+_seen = []
+@on_project_index
+def index(request):
+    return project_index({'items': {'record': {'type': request['context']['root'], 'owner': request['context']['config']['id']}}, 'null': None, 'a/b': {'qualified-name': 'opaque.Row'}, 'unused': 'x' * 1000000})
+@on_class_transform
+def transform(request):
+    _seen.append(1)
+    assert len(_seen) == 1
+    assert request.get('project-index') is None
+    value = project_index_value(request, ['items', 'record'])
+    annotation = value['type']
+    assert value['owner'] == request['context']['config']['id']
+    value['type'] = 'local mutation'
+    assert project_index_value(request, ['items', 'record'])['type'] == annotation
+    assert project_index_keys(request, ['items']) == ['record']
+    assert project_index_keys(request, ['null']) == []
+    assert project_index_value(request, ['null'], 'missing') is None
+    assert project_index_value(request, ['absent'], 'missing') == 'missing'
+    assert project_index_value(request, ['a/b']) == {'qualified-name': 'opaque.Row'}
+    return class_patch(fields=[field(value['owner'], type_annotation(annotation))])
+"#,
+            )?;
+            paths.push((path, artifact, json!({"id":id})));
+        }
+        let mut runtime = Runtime::from_plugins(&paths)?;
+        let source = Source::new(String::new(), "demo.py".into(), "demo".into());
+        for annotation in ["int", "str", "bytes"] {
+            runtime.execute_project(
+                "build-project-index",
+                json!({"context":{"root":annotation,"python-version":"3.13","platform":"darwin"}}),
+            )?;
+            let response = runtime.execute(
+                &source,
+                "analyze-class",
+                json!({"class":{"qualified-name":"demo.Row"}}),
+            )?;
+            assert_eq!(
+                response["fields"].as_array().map(Vec::len),
+                Some(2),
+                "{response:#}"
+            );
+            for field in response["fields"].as_array().unwrap() {
+                assert_eq!(field["instance-get-type"]["expression"], annotation);
+            }
+            let executions = runtime.executions;
+            assert_eq!(
+                runtime.execute(
+                    &source,
+                    "analyze-class",
+                    json!({"class":{"qualified-name":"demo.Row"}})
+                )?,
+                response
+            );
+            assert_eq!(runtime.executions, executions);
+        }
+        std::fs::remove_dir_all(directory)?;
+        Ok(())
+    }
+
+    #[test]
+    fn class_indexes_preserve_fallback_isolation_and_revision_invalidation() -> Result<()> {
+        let directory =
+            std::env::temp_dir().join(format!("native-class-indexes-{}", std::process::id()));
+        std::fs::create_dir_all(&directory)?;
+        let mut paths = Vec::new();
+        for (id, full, scoped) in [("a", "int", ""), ("b", "float", "bool")] {
+            let manifest = json!({"id":id,"name":id,"version":"0.0.0","protocol-version":{"major":0,"minor":8},"ty-compatibility":{"requirement":">=0.87.0"},"runtime":{"kind":"monty","artifact":format!("{id}.py")},"capabilities":{"class-transform":true,"project-index":true,"instance-member":true},"claims":{"classes":[{"kind":"exact","qualified-name":"demo.Row"},{"kind":"exact","qualified-name":"demo.Missing"},{"kind":"exact","qualified-name":"demo.Null"}],"attributes":[{"kind":"exact","scope":"instance","owner-qualified-name":"demo.Row","attribute-name":"dynamic"}]}});
+            let path = directory.join(format!("{id}.json"));
+            let artifact = directory.join(format!("{id}.py"));
+            std::fs::write(&path, serde_json::to_vec(&manifest)?)?;
+            std::fs::write(
+                &artifact,
+                r#"
+@on_project_index
+def index(request):
+    root = request['context']['root']
+    config = request['context']['config']
+    if root == 'abstain': return None
+    scopes = {} if root == 'removed' else {
+        'demo.Row': {'annotation': config['scoped'] or root, 'opaque': {'qualified-name': 'virtual.Record'}},
+        'demo.Null': None,
+    }
+    return project_index({'annotation': config['full']}, class_indexes=scopes)
+@on_class_transform
+def transform(request):
+    index = request.get('project-index')
+    annotation = 'None' if index is None else index['annotation']
+    if index is not None:
+        if 'opaque' in index:
+            assert index['opaque'] == {'qualified-name': 'virtual.Record'}
+        index['annotation'] = 'changed only inside this invocation'
+    return class_patch(fields=[field(request['context']['config']['id'], type_annotation(annotation))])
+@on_instance_member
+def member_hook(request):
+    return member_response(member('dynamic', type_annotation(request['project-index']['annotation'])))
+"#,
+            )?;
+            paths.push((path, artifact, json!({"id":id,"full":full,"scoped":scoped})));
+        }
+        let mut runtime = Runtime::from_plugins(&paths)?;
+        let source = Source::new(String::new(), "demo.py".into(), "demo".into());
+        let index_request = |root: &str| json!({"context":{"root":root,"python-version":"3.13","platform":"darwin"}});
+        let class_request = |name: &str| json!({"class":{"qualified-name":name}});
+        let fields = |response: Value| {
+            response["fields"]
+                .as_array()
+                .unwrap()
+                .iter()
+                .map(|field| {
+                    (
+                        field["name"].as_str().unwrap().to_owned(),
+                        field["instance-get-type"]["expression"]
+                            .as_str()
+                            .unwrap()
+                            .to_owned(),
+                    )
+                })
+                .collect::<BTreeMap<_, _>>()
+        };
+        runtime.execute_project("build-project-index", index_request("str"))?;
+        assert_eq!(
+            fields(runtime.execute(&source, "analyze-class", class_request("demo.Row"))?),
+            BTreeMap::from([("a".into(), "str".into()), ("b".into(), "bool".into())])
+        );
+        let executions = runtime.executions;
+        runtime.execute(&source, "analyze-class", class_request("demo.Row"))?;
+        assert_eq!(
+            runtime.executions, executions,
+            "equal scoped requests stay cached"
+        );
+        assert_eq!(
+            runtime.plugins[0].class_indexes["demo.Row"]["annotation"],
+            "str"
+        );
+        assert_eq!(
+            fields(runtime.execute(&source, "analyze-class", class_request("demo.Missing"))?),
+            BTreeMap::from([("a".into(), "int".into()), ("b".into(), "float".into())])
+        );
+        assert!(
+            fields(runtime.execute(&source, "analyze-class", class_request("demo.Null"))?)
+                .values()
+                .all(|annotation| annotation == "None")
+        );
+        let member = runtime.execute(
+            &source,
+            "resolve-instance-member",
+            json!({"owner":typ("demo.Row"),"member-name":"dynamic"}),
+        )?;
+        assert_eq!(
+            member["access"]["type-expr"]["expression"], "int",
+            "other hooks retain the complete index"
+        );
+        let generation = runtime.plugins[0].index_generation;
+        runtime.execute_project("build-project-index", index_request("bytes"))?;
+        assert!(runtime.plugins[0].index_generation > generation);
+        assert_eq!(
+            fields(runtime.execute(&source, "analyze-class", class_request("demo.Row"))?)["a"],
+            "bytes"
+        );
+        runtime.execute_project("build-project-index", index_request("removed"))?;
+        assert_eq!(
+            fields(runtime.execute(&source, "analyze-class", class_request("demo.Row"))?)["a"],
+            "int"
+        );
+        runtime.execute_project("build-project-index", index_request("abstain"))?;
+        assert!(
+            fields(runtime.execute(&source, "analyze-class", class_request("demo.Row"))?)
+                .values()
+                .all(|annotation| annotation == "None")
+        );
+        assert!(
+            runtime
+                .plugins
+                .iter()
+                .all(|plugin| plugin.class_indexes.is_empty())
+        );
+        std::fs::remove_dir_all(directory)?;
+        Ok(())
+    }
 
     #[test]
     fn concrete_request_decoding_preserves_protocol_values_and_errors() {
@@ -2209,11 +2498,21 @@ mod tests {
         runtime.register_protocol_types("unused", "static_", BTreeMap::new());
         assert_eq!(runtime.projection_generation(), initial);
         assert_eq!(runtime.type_cache.borrow().entries.len(), 1);
+        let observed = runtime.protocol_observations();
         assert_eq!(runtime.qualified_type_expr("str"), value);
+        assert!(
+            runtime.protocol_observations() > observed,
+            "cached reads must remain dependencies"
+        );
 
         let record = BTreeMap::from([("Alias".into(), runtime.qualified_type_expr("str"))]);
+        let independent = runtime.projection_context(false);
+        let dependent = runtime.projection_context(true);
         runtime.register_protocol_types("models", "static_", record.clone());
+        assert_eq!(runtime.projection_context(false), independent);
+        assert_ne!(runtime.projection_context(true), dependent);
         runtime.set_project_patch("models.Model".into(), json!({"kind":"no-change"}));
+        assert_ne!(runtime.projection_context(false), independent);
         runtime.set_projected_receiver("models.receiver".into(), "str".into());
         let established = runtime.projection_generation();
         assert!(established > initial);
@@ -2706,12 +3005,12 @@ mod tests {
         let first = request_key(&0).unwrap();
         let second = request_key(&1).unwrap();
         for index in 0..RequestCache::MAX_ENTRIES {
-            cache.insert(request_key(&index).unwrap(), json!(index));
+            cache.insert(request_key(&index).unwrap(), &json!(index));
         }
         assert_eq!(cache.get(&first), Some(&json!(0)));
         cache.insert(
             request_key(&RequestCache::MAX_ENTRIES).unwrap(),
-            json!("new"),
+            &json!("new"),
         );
         assert!(cache.get(&second).is_none());
         assert!(cache.get(&first).is_some());

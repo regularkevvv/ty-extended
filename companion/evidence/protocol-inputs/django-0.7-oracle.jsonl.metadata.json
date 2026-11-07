@@ -1,0 +1,7 @@
+{
+  "django_revision": "3685727a6f7c534f2d1e04e9d4b51fcd916f2f04",
+  "records": 151,
+  "oracle_sha256": "df089268c439fb50c808ff78c4c2049839d28a7b5085fde943b469ee026e091b",
+  "compressed_sha256": "1aa3a23172208b5c62921dd83c879586940db7a1b2a3ba6f490bf8f76d12544e",
+  "generator": "DJANGO_TY_ORACLE_PATH=oracle.jsonl cargo test --locked --test plugin"
+}

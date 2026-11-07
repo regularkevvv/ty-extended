@@ -1,11 +1,34 @@
 //! Preserve the user's ty options while relocating analysis-only source paths.
 use anyhow::{Context, Result, ensure};
-use globset::{GlobBuilder, GlobMatcher};
+use globset::{Candidate, GlobBuilder, GlobMatcher};
 use std::{
     collections::BTreeMap,
     path::{Path, PathBuf},
 };
 use toml::{Table, Value};
+
+pub(super) const DEFAULT_EXCLUDED_DIRECTORIES: &[&str] = &[
+    ".bzr",
+    ".direnv",
+    ".eggs",
+    ".git",
+    ".git-rewrite",
+    ".hg",
+    ".mypy_cache",
+    ".nox",
+    ".pants.d",
+    ".pytype",
+    ".ruff_cache",
+    ".svn",
+    ".tox",
+    ".venv",
+    "__pypackages__",
+    "_build",
+    "buck-out",
+    "dist",
+    "node_modules",
+    "venv",
+];
 
 type PluginRegistration = (PathBuf, PathBuf, serde_json::Value);
 
@@ -51,10 +74,10 @@ impl Pattern {
             negated,
         })
     }
-    fn matches(&self, path: &Path) -> bool {
-        path.ancestors()
-            .enumerate()
-            .any(|(index, p)| (!self.directory_only || index > 0) && self.matcher.is_match(p))
+    fn matches(&self, ancestors: &[Candidate<'_>]) -> bool {
+        ancestors.iter().enumerate().any(|(index, candidate)| {
+            (!self.directory_only || index > 0) && self.matcher.is_match_candidate(candidate)
+        })
     }
 }
 
@@ -85,30 +108,8 @@ impl Selection {
                 })
                 .transpose()
         };
-        let defaults = [
-            ".bzr",
-            ".direnv",
-            ".eggs",
-            ".git",
-            ".git-rewrite",
-            ".hg",
-            ".mypy_cache",
-            ".nox",
-            ".pants.d",
-            ".pytype",
-            ".ruff_cache",
-            ".svn",
-            ".tox",
-            ".venv",
-            "__pypackages__",
-            "_build",
-            "buck-out",
-            "dist",
-            "node_modules",
-            "venv",
-        ];
-        let mut excludes = defaults
-            .into_iter()
+        let mut excludes = DEFAULT_EXCLUDED_DIRECTORIES
+            .iter()
             .map(|p| Pattern::new(&format!("**/{p}/"), root))
             .collect::<Result<Vec<_>>>()?;
         excludes.extend(patterns("exclude")?.unwrap_or_default());
@@ -126,20 +127,30 @@ impl Selection {
                 .unwrap_or(false),
         })
     }
+    /// Selection needs source bytes only for PEP 723 script filtering. The
+    /// project loader still reads and validates every selected source file.
+    pub fn selection_text(&self, path: &Path) -> std::io::Result<String> {
+        if self.exclude_scripts {
+            std::fs::read_to_string(path)
+        } else {
+            Ok(String::new())
+        }
+    }
     pub fn includes(&self, path: &Path, text: &str) -> bool {
         if self.exclude_scripts && text.lines().any(|line| line.trim() == "# /// script") {
             return false;
         }
+        let ancestors: Vec<_> = path.ancestors().map(Candidate::new).collect();
         if self
             .includes
             .as_ref()
-            .is_some_and(|patterns| !patterns.iter().any(|p| p.matches(path)))
+            .is_some_and(|patterns| !patterns.iter().any(|p| p.matches(&ancestors)))
         {
             return false;
         }
         let mut excluded = false;
         for pattern in &self.excludes {
-            if pattern.matches(path) {
+            if pattern.matches(&ancestors) {
                 excluded = !pattern.negated;
             }
         }

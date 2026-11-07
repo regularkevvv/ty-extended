@@ -514,7 +514,13 @@ pub fn analyze(source: &Source, suite: &[Stmt], runtime: &mut Runtime) -> Result
     } else {
         ""
     };
-    edits.insert(offset, format!("{separator}from __future__ import annotations\nfrom typing import cast as {}\n{definitions}",source.cast_name()));
+    if !edits.is_empty()
+        || !definitions.is_empty()
+        || !classes.is_empty()
+        || !collector.calls.is_empty()
+    {
+        edits.insert(offset, format!("{separator}from __future__ import annotations\nfrom typing import cast as {}\n{definitions}",source.cast_name()));
+    }
     Ok(Analysis {
         prelude_offset: offset,
         classes,
@@ -526,9 +532,11 @@ pub fn analyze(source: &Source, suite: &[Stmt], runtime: &mut Runtime) -> Result
         edits,
         helpers,
         expression_probes: BTreeMap::new(),
+        required_expression_probes: None,
         context_free_arguments: BTreeSet::new(),
         plugin_diagnostics: diagnostics,
         generated_declarations: Default::default(),
+        support_modules: BTreeMap::new(),
     })
 }
 

@@ -14,6 +14,7 @@ import typing
 if typing.TYPE_CHECKING:
     from typing import Any, Callable, Literal, Optional
 
+    _ty_project_index_lookup: Optional[Callable[[str, str], str]]
     JsonObject = dict[str, Any]
     Request = JsonObject
     Response = Optional[JsonObject]
@@ -25,7 +26,41 @@ else:
     Response = dict
 
 # The wire protocol this SDK was built against. Bumped with the host's protocol version.
-PROTOCOL_VERSION: dict[str, int] = {"major": 0, "minor": 7}
+PROTOCOL_VERSION: dict[str, int] = {"major": 0, "minor": 8}
+
+
+def project_index_value(request: Request, path: list[str], default: Any = None) -> Any:
+    """Read dictionary keys from this plugin's index without transferring the whole index.
+
+    Opt in with the manifest capability ``project-index-lookup``. Runtimes may
+    still provide the ordinary inline index. Each lookup returns a fresh JSON
+    copy; mutating it cannot change subsequent lookups or another invocation.
+    """
+    try:
+        lookup = _ty_project_index_lookup
+    except NameError:
+        lookup = None
+    if lookup is not None:
+        found, value = json.loads(lookup("value", json.dumps(path)))
+        return value if found else default
+    value = request.get("project-index")
+    for key in path:
+        if not isinstance(value, dict) or key not in value:
+            return default
+        value = value[key]
+    return json.loads(json.dumps(value)) if isinstance(value, (dict, list)) else value
+
+
+def project_index_keys(request: Request, path: list[str]) -> list[str]:
+    """Return an index dictionary's keys; missing values and scalars have no keys."""
+    try:
+        lookup = _ty_project_index_lookup
+    except NameError:
+        lookup = None
+    if lookup is not None:
+        return json.loads(lookup("keys", json.dumps(path)))
+    value = project_index_value(request, path)
+    return list(value) if isinstance(value, dict) else []
 
 _hooks: dict[str, list[Handler]] = {}
 _MANIFEST: Optional[JsonObject] = None
@@ -991,8 +1026,16 @@ def project_index(
     virtual_types: Optional[list[JsonObject]] = None,
     dependencies: Optional[list[JsonObject]] = None,
     diagnostics: Optional[list[JsonObject]] = None,
+    class_indexes: Optional[dict[str, Any]] = None,
 ) -> JsonObject:
+    """Return shared project data and optional per-class indexes (protocol 0.8).
+
+    A matching class index replaces the complete project index for that class's
+    transform hook. Other hooks and unlisted classes retain the shared index.
+    """
     index = {"kind": "project-index", "plugin-index": plugin_index if plugin_index is not None else {}}
+    if class_indexes:
+        index["class-indexes"] = class_indexes
     if contributions:
         index["contributions"] = contributions
     if virtual_types:
@@ -1061,11 +1104,15 @@ def capabilities(**flags: bool) -> JsonObject:
 # Dispatch — invoked by the host as `__ty_handle__(request_json) -> str`.
 
 
+def _ty_encode_response(value: JsonObject) -> str:
+    return json.dumps(value, separators=(",", ":"))
+
+
 def __ty_handle__(request_json: str) -> str:
     try:
         request: Request = json.loads(request_json)
     except ValueError as exc:
-        return json.dumps(error(f"invalid request JSON: {exc}"))
+        return _ty_encode_response(error(f"invalid request JSON: {exc}"))
 
     kind = request.get("kind")
     if kind == "manifest":
@@ -1077,20 +1124,20 @@ def __ty_handle__(request_json: str) -> str:
                     break
             if produced is None:
                 produced = _MANIFEST
-            return json.dumps(manifest_response(produced) if produced else no_change())
+            return _ty_encode_response(manifest_response(produced) if produced else no_change())
         except Exception as exc:  # noqa: BLE001 — plugin errors surface as protocol errors
-            return json.dumps(error(str(exc)))
+            return _ty_encode_response(error(str(exc)))
 
     handlers = _hooks.get(kind) or ()
     if not handlers:
-        return json.dumps(no_change())
+        return _ty_encode_response(no_change())
 
     for hook in handlers:
         try:
             result = hook(request)
         except Exception as exc:  # noqa: BLE001
-            return json.dumps(error(str(exc)))
+            return _ty_encode_response(error(str(exc)))
         if result is not None:
-            return json.dumps(result)
+            return _ty_encode_response(result)
 
-    return json.dumps(no_change())
+    return _ty_encode_response(no_change())

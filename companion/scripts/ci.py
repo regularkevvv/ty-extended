@@ -257,6 +257,139 @@ def django_gate(output: Path, binary: Path, env: dict[str, str], gates: Gates) -
     )
 
 
+def scoped_django_gate(
+    output: Path, binary: Path, env: dict[str, str], gates: Gates
+) -> None:
+    """Qualify the optimized plugin independently of the historical fork corpus."""
+    source = output / "django-scoped-source"
+    run(["git", "init", str(source)], env=env)
+    run(
+        [
+            "git",
+            "-C",
+            str(source),
+            "fetch",
+            "--depth",
+            "1",
+            "https://github.com/regularkevvv/django-ty.git",
+            "3685727a6f7c534f2d1e04e9d4b51fcd916f2f04",
+        ],
+        env=env,
+    )
+    run(["git", "-C", str(source), "checkout", "--detach", "FETCH_HEAD"], env=env)
+    oracle = output / "django-scoped-oracle.jsonl"
+    with gzip.open(
+        "companion/evidence/protocol-inputs/django-0.7-oracle.jsonl.gz", "rb"
+    ) as data:
+        oracle.write_bytes(data.read())
+    scoped = output / "django-scoped-requests.jsonl"
+    gates.run(
+        "django-scope-equivalence",
+        [
+            sys.executable,
+            "companion/scripts/django_scoped_oracle.py",
+            "--django",
+            str(source),
+            "--oracle",
+            str(oracle),
+            "--output",
+            str(scoped),
+        ],
+        env=env,
+    )
+    for name in ("django_monty_parity", "django_scoped_monty_parity"):
+        gates.run(
+            name + "-current",
+            [
+                "cargo",
+                "+1.98.0",
+                "test",
+                "--locked",
+                "--release",
+                "--manifest-path",
+                "companion/Cargo.toml",
+                "--test",
+                name,
+                "--",
+                "--ignored",
+                "--nocapture",
+            ],
+            env={
+                **env,
+                "DJANGO_TY_SOURCE": str(source),
+                "DJANGO_TY_ORACLE": str(oracle),
+                "DJANGO_TY_SCOPED_ORACLE": str(scoped),
+            },
+        )
+    environments = {}
+    try:
+        for name, packages in (
+            (
+                "candidate",
+                [
+                    "Django==6.1.3",
+                    "ty==0.0.99",
+                    "typing-extensions>=4.11.0",
+                    "types-PyYAML>=6.0.12",
+                ],
+            ),
+            ("reference", ["Django==6.1.3", "mypy==2.4.1", "django-stubs==6.1.2"]),
+        ):
+            target = output / ("performance-" + name)
+            environments[name] = target
+            venv.EnvBuilder(with_pip=True).create(target)
+            run(
+                [
+                    str(target / "bin/python"),
+                    "-m",
+                    "pip",
+                    "install",
+                    "--no-cache-dir",
+                    *packages,
+                ],
+                env=env,
+            )
+        for name, files, models, modules, queries in (
+            ("small", 100, 25, 5, 25),
+            ("distributed", 1000, 250, 25, 100),
+            ("many-files", 7082, 250, 25, 100),
+            ("stress", 7082, 2501, 1, 100),
+        ):
+            gates.run(
+                "performance-" + name,
+                [
+                    sys.executable,
+                    "companion/scripts/compare_checkers.py",
+                    "--companion",
+                    str(binary),
+                    "--official",
+                    str(environments["candidate"] / "bin/ty"),
+                    "--python",
+                    str(environments["candidate"] / "bin/python"),
+                    "--mypy",
+                    str(environments["reference"] / "bin/mypy"),
+                    "--plugin",
+                    str(source / "python/django_ty"),
+                    "--files",
+                    str(files),
+                    "--models",
+                    str(models),
+                    "--model-modules",
+                    str(modules),
+                    "--queries",
+                    str(queries),
+                    "--repeats",
+                    "3",
+                    "--output",
+                    str(output / ("performance-" + name)),
+                ],
+                env=env,
+            )
+    finally:
+        for target in environments.values():
+            shutil.rmtree(target)
+
+
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--output", type=Path, required=True)
@@ -466,6 +599,7 @@ def main() -> int:
             )
         if sys.platform == "linux":
             django_gate(output, binary, env, gates)
+            scoped_django_gate(output, binary, env, gates)
     except Exception as error:
         gates.evidence["setup_error"] = f"{type(error).__name__}: {error}"
         raise

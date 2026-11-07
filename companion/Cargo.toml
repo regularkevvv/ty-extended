@@ -1,6 +1,6 @@
 [package]
 name = "ty-extended"
-version = "0.87.0"
+version = "0.88.0"
 edition = "2024"
 rust-version = "1.98"
 description = "Embedded Monty plugin companion for unchanged official ty"
@@ -22,6 +22,7 @@ globset = "0.4"
 ignore = "0.4"
 notify = "8.2"
 ctrlc = "3.5"
+mimalloc = { version = "=0.1.52", default-features = false, features = ["v2"] }
 shellexpand = { version = "=3.1.2", default-features = false, features = ["base-0", "tilde"] }
 ty_plugin_host = { path = "../ruff/crates/ty_plugin_host", default-features = false, features = ["plugins-monty"] }
 ty_plugin_protocol = { path = "../ruff/crates/ty_plugin_protocol" }
