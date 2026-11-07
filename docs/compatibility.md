@@ -41,10 +41,19 @@ including Django 6.1.3. Python 3.15 has a separate qualification against Django'
 behavior. Its pinned MyPy baseline runs on a separately supported interpreter;
 this is not a version-matched Python 3.15 comparator pair.
 
-These results identify the CI wheel and executable by SHA-256. Release acceptance
-separately checks public package integrity, signed native-artifact provenance and
-the published executable's identity. Measurements against MyPy and bare official
-ty are recorded in [the performance report](performance.md).
+The [published 0.88.0 receipt](qualification/ty-extended-0.88.0.json) verifies all
+eight PyPI wheel/native archive pairs against release checksums, the source tree
+and signed provenance. Public SDK crates 0.0.10 match the pinned source. Fresh
+installed SDK, CLI and LSP checks pass on Python 3.8, 3.9 and 3.13; the native
+installer also passes typing and editor controls without changing shell profiles.
+
+The published macOS executable has identical machine code and data to the
+qualified CI wheel after normalizing only the allocator's compile-time string,
+the Mach-O UUID and the ad hoc code signature. The receipt records both original
+hashes and the complete normalized comparison. The full version sweep belongs to
+the CI wheel; public installation and artifact checks are recorded separately.
+Measurements against MyPy and bare official ty are recorded in
+[the performance report](performance.md).
 
 ### Previous release
 
