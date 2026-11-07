@@ -92,7 +92,8 @@ pub struct Project {
     pub config: Value,
     pub manifest: Value,
     /// Hygienic generated declaration name -> public protocol identity.
-    pub virtual_identities: BTreeMap<String, String>,
+    pub virtual_identities: Arc<BTreeMap<String, String>>,
+    pub virtual_symbols: Arc<BTreeMap<String, String>>,
     /// Public SDK module -> isolated physical module, independent of user imports.
     pub virtual_modules: Arc<BTreeMap<String, String>>,
     /// Modules proven unavailable by the official checker's environment. Absence
@@ -209,7 +210,8 @@ impl Project {
             renderer_virtual_classes: Arc::default(),
             config,
             manifest: manifest.clone(),
-            virtual_identities: BTreeMap::new(),
+            virtual_identities: Arc::default(),
+            virtual_symbols: Arc::default(),
             virtual_modules: Arc::default(),
             unavailable_modules: Arc::default(),
             snapshot_nominals: Arc::default(),
@@ -1350,18 +1352,17 @@ impl Project {
             })
             .cloned()
             .collect();
+        let notebook_paths: BTreeSet<_> = self
+            .modules
+            .values()
+            .filter(|module| module.source.protocol_module.is_some())
+            .map(|module| module.source.path.as_str())
+            .collect();
         let in_regular_module = |value: &&Value| {
             value
                 .pointer("/source/file-path")
                 .and_then(Value::as_str)
-                .is_none_or(|path| {
-                    in_checked_file(path)
-                        && self
-                            .modules
-                            .values()
-                            .find(|m| m.source.path == path)
-                            .is_none_or(|m| m.source.protocol_module.is_none())
-                })
+                .is_none_or(|path| in_checked_file(path) && !notebook_paths.contains(path))
         };
         let assignments = self
             .assignments
@@ -1378,11 +1379,21 @@ impl Project {
             "classes":classes,"settings":self.settings.as_ref(),"assignments":assignments,"functions":functions})
     }
 
+    #[cfg(test)]
     pub fn register_virtual_types(
         &mut self,
         definitions: &[Value],
     ) -> Result<BTreeMap<PathBuf, String>> {
+        Ok(self
+            .prepare_virtual_types(definitions)?
+            .into_iter()
+            .map(|(path, module)| (path, module.render(None)))
+            .collect())
+    }
+
+    pub fn register_virtual_identities(&mut self, definitions: &[Value]) -> Result<()> {
         self.hierarchy = Arc::default();
+        let definition_text = serde_json::to_string(definitions)?;
         let mut prefix = String::from("_ty_ext_virtual_");
         while self.modules.values().any(|module| {
             module.source.text.contains(&prefix)
@@ -1391,15 +1402,12 @@ impl Project {
                     .module
                     .split('.')
                     .any(|part| part.starts_with(&prefix))
-        }) || definitions.iter().any(|definition| {
-            definition["name"]
-                .as_str()
-                .is_some_and(|name| name.contains(&prefix))
-        }) {
+        }) || definition_text.contains(&prefix)
+        {
             prefix.push('_');
         }
         self.virtual_modules = Arc::default();
-        let mut names = BTreeMap::new();
+        self.virtual_symbols = Arc::default();
         for definition in definitions {
             let name = definition["name"]
                 .as_str()
@@ -1409,36 +1417,49 @@ impl Project {
                 .map_or("_ty_ext_virtual", |(module, _)| module);
             use sha2::Digest as _;
             let digest = sha2::Sha256::digest(module.as_bytes());
-            Arc::make_mut(&mut self.virtual_modules)
-                .insert(module.to_owned(), format!("{prefix}module_{digest:x}"));
+            let physical = if module == "_ty_ext_virtual" {
+                format!("{prefix}unqualified")
+            } else {
+                format!("{prefix}module_{}", digest[0] % 64)
+            };
+            Arc::make_mut(&mut self.virtual_modules).insert(module.to_owned(), physical);
             let internal = virtual_internal_name_with_prefix(name, &prefix);
-            self.virtual_identities
-                .insert(internal.clone(), name.to_owned());
-            names.insert(name.to_owned(), internal);
-            Arc::make_mut(&mut self.classes).insert(name.to_owned(),json!({"qualified-name":name,"bases":definition["shape"]["bases"].as_array().cloned().unwrap_or_default(),"virtual":true}));
-        }
-        let mut rendered_definitions = Value::Array(definitions.to_vec());
-        crate::type_render::replace_unavailable_types(
-            &mut rendered_definitions,
-            &self.unavailable_modules,
-        )?;
-        for definition in rendered_definitions.as_array().unwrap() {
-            let name = definition["name"].as_str().unwrap();
-            if let Some(summary) = Arc::make_mut(&mut self.classes).get_mut(name) {
-                summary["bases"] = json!(
-                    definition["shape"]["bases"]
-                        .as_array()
-                        .cloned()
-                        .unwrap_or_default()
-                );
-            }
+            Arc::make_mut(&mut self.virtual_identities).insert(internal.clone(), name.to_owned());
+            Arc::make_mut(&mut self.virtual_symbols).insert(name.to_owned(), internal);
+            let mut bases = json!(
+                definition["shape"]["bases"]
+                    .as_array()
+                    .cloned()
+                    .unwrap_or_default()
+            );
+            crate::type_render::replace_unavailable_types(&mut bases, &self.unavailable_modules)?;
+            Arc::make_mut(&mut self.classes).insert(
+                name.to_owned(),
+                json!({"qualified-name":name,"bases":bases,"virtual":true}),
+            );
         }
         self.sync_renderer_names();
-        render_virtual_types_with_names(
-            rendered_definitions.as_array().unwrap(),
-            &names,
-            Some(self),
-        )
+        Ok(())
+    }
+
+    /// Validate all declarations once, retaining templates for demand-driven
+    /// materialization. Unused malformed declarations still fail validation.
+    pub fn prepare_virtual_types(
+        &mut self,
+        definitions: &[Value],
+    ) -> Result<BTreeMap<PathBuf, VirtualModule>> {
+        self.register_virtual_identities(definitions)?;
+        let names = self
+            .virtual_identities
+            .iter()
+            .map(|(internal, public)| (public.clone(), internal.clone()))
+            .collect();
+        if self.unavailable_modules.is_empty() {
+            return render_virtual_templates(definitions, &names, Some(self));
+        }
+        let mut rendered = Value::Array(definitions.to_vec());
+        crate::type_render::replace_unavailable_types(&mut rendered, &self.unavailable_modules)?;
+        render_virtual_templates(rendered.as_array().unwrap(), &names, Some(self))
     }
 
     /// Restore identities in oracle type expressions before plugin dispatch.
@@ -2304,14 +2325,74 @@ pub fn render_virtual_types(definitions: &[Value]) -> Result<BTreeMap<PathBuf, S
         .filter_map(|definition| definition["name"].as_str())
         .map(|name| (name.to_owned(), virtual_internal_name(name)))
         .collect();
-    render_virtual_types_with_names(definitions, &names, None)
+    Ok(render_virtual_templates(definitions, &names, None)?
+        .into_iter()
+        .map(|(path, module)| (path, module.render(None)))
+        .collect())
 }
 
-fn render_virtual_types_with_names(
+pub struct VirtualModule {
+    prelude: String,
+    declarations: Vec<(String, String)>,
+    references: BTreeSet<String>,
+}
+
+impl VirtualModule {
+    fn render(&self, names: Option<&BTreeSet<String>>) -> String {
+        let mut source = self.prelude.clone();
+        for (name, declaration) in &self.declarations {
+            if names.is_none_or(|names| !name.contains('.') || names.contains(name)) {
+                source.push_str(declaration);
+            }
+        }
+        source
+    }
+}
+
+/// Imports/helpers are shared inside a logical virtual module. Keep their
+/// dependencies even when only one of that module's declarations is selected.
+pub fn requested_virtual_sources(
+    modules: &BTreeMap<PathBuf, VirtualModule>,
+    needed: &mut BTreeSet<String>,
+) -> BTreeMap<PathBuf, String> {
+    let owners: BTreeMap<_, _> = modules
+        .iter()
+        .flat_map(|(path, module)| {
+            module
+                .declarations
+                .iter()
+                .map(move |(name, _)| (name.as_str(), path))
+        })
+        .collect();
+    let mut pending: Vec<_> = owners
+        .iter()
+        .filter(|(name, _)| !name.contains('.') || needed.contains(**name))
+        .map(|(_, path)| *path)
+        .collect();
+    let mut active = BTreeSet::new();
+    while let Some(path) = pending.pop() {
+        if !active.insert(path) {
+            continue;
+        }
+        for reference in &modules[path].references {
+            if needed.insert(reference.clone())
+                && let Some(path) = owners.get(reference.as_str())
+            {
+                pending.push(*path);
+            }
+        }
+    }
+    active
+        .into_iter()
+        .map(|path| (path.clone(), modules[path].render(Some(needed))))
+        .collect()
+}
+
+fn render_virtual_templates(
     definitions: &[Value],
     names: &BTreeMap<String, String>,
     project: Option<&Project>,
-) -> Result<BTreeMap<PathBuf, String>> {
+) -> Result<BTreeMap<PathBuf, VirtualModule>> {
     let mut groups: BTreeMap<String, Vec<&Value>> = BTreeMap::new();
     for definition in definitions {
         let qualified = definition["name"]
@@ -2325,20 +2406,29 @@ fn render_virtual_types_with_names(
             .or_default()
             .push(definition);
     }
-    let modules: Vec<_> = groups.keys().cloned().collect();
+    let modules: Arc<BTreeSet<_>> = Arc::new(groups.keys().cloned().collect());
     let mut files = BTreeMap::new();
-    for (module, definitions) in groups {
-        let first_name = definitions[0]["name"].as_str().unwrap();
-        let prefix = format!("{}_", names[first_name]);
+    let text = serde_json::to_string(definitions)?;
+    let mut helper_prefix = String::from("_tyv_");
+    while text.contains(&helper_prefix) {
+        helper_prefix.push('_');
+    }
+    for (ordinal, (module, definitions)) in groups.into_iter().enumerate() {
+        // Helpers live in a private stub namespace. Their names need not
+        // repeat an entire encoded public identity on every annotation.
+        // Inspect every definition so names, parameters and type expressions
+        // cannot shadow a generated import or helper.
+        let prefix = format!("{helper_prefix}{ordinal}_");
         let mut types = project.map_or_else(
             || crate::type_render::Types::new(&prefix, &module),
             |project| crate::type_render::Types::with_project(&prefix, &module, project),
         );
-        for module in &modules {
-            types.add_module(module);
-        }
+        types.virtual_declarations = project.is_some();
+        types.set_modules(modules.clone());
         let mut body = String::new();
+        let mut declarations = Vec::new();
         for definition in definitions {
+            let start = body.len();
             let qualified = definition["name"].as_str().unwrap();
             let public_name = qualified.rsplit('.').next().unwrap();
             ensure!(
@@ -2454,18 +2544,28 @@ fn render_virtual_types_with_names(
                 }
                 kind => bail!("unsupported virtual type shape {kind}"),
             }
-            body.push_str(&format!("{public_name} = {name}\n\n"));
+            if project.is_none() || !qualified.contains('.') {
+                body.push_str(&format!("{public_name} = {name}\n\n"));
+            }
+            declarations.push((qualified.to_owned(), body[start..].to_owned()));
         }
-        let mut prelude = format!("from __future__ import annotations\n{}\n", types.prelude());
-        prelude.push_str(&body);
-        ruff_python_parser::parse_module(&prelude).context("invalid generated virtual stub")?;
+        let prelude = format!("from __future__ import annotations\n{}\n", types.prelude());
+        ruff_python_parser::parse_module(&format!("{prelude}{body}"))
+            .context("invalid generated virtual stub")?;
         let physical = project
             .and_then(|project| project.virtual_modules.get(&module))
             .unwrap_or(&module);
-        files.insert(
-            PathBuf::from(physical.replace('.', "/")).with_extension("pyi"),
-            prelude,
-        );
+        let entry = files
+            .entry(PathBuf::from(physical.replace('.', "/")).with_extension("pyi"))
+            .or_insert_with(|| VirtualModule {
+                prelude: "from __future__ import annotations\n".into(),
+                declarations: Vec::new(),
+                references: BTreeSet::new(),
+            });
+        entry.prelude.push_str(&types.prelude());
+        entry.prelude.push('\n');
+        entry.declarations.extend(declarations);
+        entry.references.extend(types.virtual_references);
     }
     Ok(files)
 }
@@ -2535,7 +2635,12 @@ fn virtual_internal_name_with_prefix(qualified: &str, prefix: &str) -> String {
     let mut name = prefix.to_owned();
     use std::fmt::Write as _;
     for byte in qualified.bytes() {
-        write!(name, "{byte:02x}").expect("writing to a String cannot fail");
+        match byte {
+            b'A'..=b'Z' | b'a'..=b'z' | b'0'..=b'9' => name.push(char::from(byte)),
+            b'_' => name.push_str("_u"),
+            b'.' => name.push_str("_d"),
+            _ => write!(name, "_x{byte:02x}").expect("writing to a String cannot fail"),
+        }
     }
     name
 }
@@ -3120,7 +3225,6 @@ mod tests {
         };
         let models = imported("models");
         let library = imported("library");
-        let typing = imported("typing");
         let typing_extensions = imported("typing_extensions");
         let builtins = imported("builtins");
         let internal = virtual_internal_name("plugin.virtual.models.Thing.Manager");
@@ -3128,10 +3232,23 @@ mod tests {
             "class {internal}({library}.Manager[{models}.Thing]):"
         )));
         assert!(text.contains(&format!("Manager = {internal}")));
-        assert!(text.contains(&format!("def active(self, *, limit: {builtins}.int = {typing}.cast({typing}.Any, ...)) -> {models}.Thing: ...")));
+        assert!(text.contains(&format!(
+            "def active(self, *, limit: {builtins}.int = _tyv_0_placeholder) -> {models}.Thing: ..."
+        )));
         assert!(text.contains(&format!(
             "label: {typing_extensions}.NotRequired[{typing_extensions}.ReadOnly[{builtins}.str]]"
         )));
+    }
+
+    #[test]
+    fn virtual_identity_encoding_escapes_its_own_markers() {
+        let names = ["a.b", "a_db", "a_ub", "a.b_c", "a_b.c", "a.é", "a._xc3_xa9"];
+        let identities: BTreeSet<_> = names
+            .iter()
+            .map(|name| virtual_internal_name(name))
+            .collect();
+        assert_eq!(identities.len(), names.len());
+        assert!(identities.iter().all(|name| valid_identifier(name)));
     }
 
     #[test]
@@ -3148,7 +3265,7 @@ mod tests {
         assert_ne!(left, right);
         assert!(
             rendered[&PathBuf::from(&project.virtual_modules["left"]).with_extension("pyi")]
-                .contains(&format!("Manager = {left}"))
+                .contains(&format!("class {left}("))
         );
         assert_eq!(
             project.canonical_name("models", &format!("tuple[{left}, {right}]")),
@@ -3158,6 +3275,133 @@ mod tests {
             project.rewrite_virtual_identities(&format!("Literal['{left}'] | {left}")),
             format!("Literal['{left}'] | left.Manager")
         );
+    }
+
+    #[test]
+    fn packed_virtual_modules_preserve_local_cross_module_and_nominal_types() -> Result<()> {
+        let fixture = Fixture::new(&[
+            ("models.py", "class Thing: pass\n"),
+            ("library.py", "class GenericBase[T]:\n    inherited: T\n"),
+        ]);
+        let mut project = fixture.project(json!({}), json!({}));
+        let checker = std::env::var_os("TY_COMPANION_TEST_OFFICIAL").expect("official checker");
+        for value_type in ["int", "str"] {
+            let definitions: Vec<_> = (0..400)
+                .flat_map(|index| {
+                    let module = format!("plugin.model_{index}");
+                    [
+                        json!({"name":format!("{module}.Local"),"shape":{"kind":"class","bases":[typ(format!("library.GenericBase[{value_type}]"))],"members":[{"name":"payload","access":{"kind":"value","type-expr":typ(value_type)}}]}}),
+                        json!({"name":format!("{module}.Manager"),"shape":{"kind":"class","bases":[typ("Local")],"members":[
+                            {"name":"peer","access":{"kind":"value","type-expr":typ(format!("plugin.model_{}.Manager", (index + 1) % 400))}},
+                            {"name":"fluent","access":{"kind":"callable","signature":{"parameters":[],"return-type":typ("typing.Self")},"fallback-type":typ("object")}},
+                            {"name":"_tyv_0_module_0","access":{"kind":"value","type-expr":typ("bytes")}}
+                        ]}}),
+                    ]
+                })
+                .collect();
+            let templates = project.prepare_virtual_types(&definitions)?;
+            assert!(templates.len() <= 64);
+            assert!(templates.len() > 1);
+            let mut needed = (0..400)
+                .map(|index| format!("plugin.model_{index}.Manager"))
+                .collect();
+            let sources = requested_virtual_sources(&templates, &mut needed);
+            assert_eq!(needed.len(), 800);
+            for (path, text) in sources {
+                assert!(!text.contains("\nManager = "));
+                assert!(!text.contains("\nLocal = "));
+                assert!(!text.contains(" as _tyv_0_module_0\n"));
+                std::fs::write(fixture.0.join(path), text)?;
+            }
+            let mut types = crate::type_render::Types::with_project("_test_", "check", &project);
+            let mut body = String::new();
+            let mut managers = Vec::new();
+            for index in 0..400 {
+                let manager = types.render(&typ(format!("plugin.model_{index}.Manager")))?;
+                body.push_str(&format!(
+                    "assert_type({manager}().payload, {value_type})\nassert_type({manager}().peer.payload, {value_type})\nassert_type({manager}().inherited, {value_type})\nassert_type({manager}().fluent(), {manager})\n"
+                ));
+                managers.push(manager);
+            }
+            body.push_str(&format!("wrong: {} = {}()\n", managers[0], managers[1]));
+            std::fs::write(
+                fixture.0.join("check.py"),
+                format!(
+                    "from typing import assert_type\n{}\n{body}",
+                    types.prelude()
+                ),
+            )?;
+            let output = std::process::Command::new(&checker)
+                .args([
+                    "check",
+                    "--output-format",
+                    "gitlab",
+                    "--no-progress",
+                    "check.py",
+                ])
+                .current_dir(&fixture.0)
+                .env("TY_UV", "0")
+                .output()?;
+            let diagnostics: Vec<Value> = serde_json::from_slice(&output.stdout)?;
+            assert_eq!(output.status.code(), Some(1), "{diagnostics:#?}");
+            assert_eq!(diagnostics.len(), 1, "{diagnostics:#?}");
+            assert_eq!(diagnostics[0]["check_name"], "invalid-assignment");
+        }
+        Ok(())
+    }
+
+    #[test]
+    fn virtual_templates_validate_unused_types_and_keep_dependency_closure() -> Result<()> {
+        let fixture = Fixture::new(&[("models.py", "class Thing: pass\n")]);
+        let mut project = fixture.project(json!({}), json!({}));
+        let definitions = vec![
+            json!({"name":"left.Local","shape":{"kind":"class","members":[{"name":"value","access":{"kind":"value","type-expr":typ("int")}}]}}),
+            json!({"name":"left.Manager","shape":{"kind":"class","bases":[typ("Local")]}}),
+            json!({"name":"left.Unused","shape":{"kind":"typed-dict","fields":[{"name":"unused","type-expr":typ("bytes")}]}}),
+            json!({"name":"right.Other","shape":{"kind":"class","bases":[typ("left.Manager")]}}),
+            json!({"name":"unused.Token","shape":{"kind":"class"}}),
+        ];
+        let modules = project.prepare_virtual_types(&definitions)?;
+        let mut needed = BTreeSet::from(["right.Other".to_owned()]);
+        let sources = requested_virtual_sources(&modules, &mut needed);
+        assert_eq!(
+            needed,
+            BTreeSet::from([
+                "left.Local".to_owned(),
+                "left.Manager".to_owned(),
+                "right.Other".to_owned()
+            ])
+        );
+        assert_eq!(sources.len(), 2);
+        let left = &sources[&PathBuf::from(&project.virtual_modules["left"]).with_extension("pyi")];
+        assert!(left.contains(&format!("class {}(", virtual_internal_name("left.Manager"))));
+        assert!(left.contains(&format!("class {}(", virtual_internal_name("left.Local"))));
+        assert!(!left.contains(&format!("class {}(", virtual_internal_name("left.Unused"))));
+        for (path, text) in sources {
+            std::fs::write(fixture.0.join(path), text)?;
+        }
+        let source = format!(
+            "from typing import assert_type\nfrom {} import {} as Other\nassert_type(Other().value, int)\nwrong: bytes = Other().value\n",
+            project.virtual_modules["right"], project.virtual_symbols["right.Other"]
+        );
+        std::fs::write(fixture.0.join("check.py"), source)?;
+        let checker = std::env::var_os("TY_COMPANION_TEST_OFFICIAL").expect("official checker");
+        let output = std::process::Command::new(checker)
+            .args(["check", "--output-format", "gitlab", "--no-progress"])
+            .arg(fixture.0.join("check.py"))
+            .current_dir(&fixture.0)
+            .output()?;
+        let diagnostics: Vec<Value> = serde_json::from_slice(&output.stdout)?;
+        assert_eq!(diagnostics.len(), 1, "{diagnostics:#?}");
+        assert_eq!(diagnostics[0]["check_name"], "invalid-assignment");
+        assert!(
+            project
+                .prepare_virtual_types(&[
+                    json!({"name":"unused.bad-name","shape":{"kind":"class"}})
+                ])
+                .is_err()
+        );
+        Ok(())
     }
 
     #[test]
@@ -3317,7 +3561,7 @@ mod tests {
         assert_ne!(internal, &colliding);
         assert!(
             output[&PathBuf::from(&project.virtual_modules["left"]).with_extension("pyi")]
-                .contains(&format!("Manager = {internal}"))
+                .contains(&format!("class {internal}("))
         );
         assert_eq!(project.canonical_name("models", internal), "left.Manager");
         assert_eq!(

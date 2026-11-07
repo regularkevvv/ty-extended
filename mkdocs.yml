@@ -131,6 +131,7 @@ nav:
       - Suppression: suppression.md
       - Plugin runtime: plugin-runtime.md
       - Version compatibility: compatibility.md
+      - Performance: performance.md
   - Features:
       - Type system: features/type-system.md
       - Diagnostics: features/diagnostics.md

@@ -1,0 +1,59 @@
+{
+  "sdk_host": {
+    "passed": true,
+    "monty_version": "1.5.0",
+    "source_sha256": {
+      "crates/ty_plugin_protocol/Cargo.toml": "61c0cd7c6d59f378ce0e3466f79f7018ef41f6b5b32c570832960d1e5741da3c",
+      "crates/ty_plugin_protocol/README.md": "41e368eaea46a1baecf971ab794dd3616cff841fedf9882d0ad57217687fe020",
+      "crates/ty_plugin_protocol/src/lib.rs": "4676ba8fd5762aeee41630b97e4eb6078c920fbe66fcbd71d2a07b37f2b5fad7",
+      "crates/ty_plugin_protocol/tests/compatibility.rs": "1f789818f00892dfc29c4d0c8d14502fc06c7cf86c28347363a99c3321d4dd57",
+      "crates/ty_plugin_protocol/tests/method_name_pattern.rs": "4a749fa41bb6aecb0353b805d715d76f9f9a571c606d9750cf043671c434ed2d",
+      "crates/ty_plugin_protocol/tests/protocol_json.rs": "22f9e08106f01fcc5f6d4d4b43f36534edd97f039c8fd7d2aec7b54b1696e4d3",
+      "crates/ty_plugin_sdk/Cargo.toml": "1f65ed0d4f22e1c892dc2c39e60e1659866c888110e5b26b77ef8cbec40841b7",
+      "crates/ty_plugin_sdk/README.md": "c970154c01b5d28f6ddde86615552448d72f7c70bbd56fbc19e8906c7a1032b8",
+      "crates/ty_plugin_sdk/src/dsl.rs": "97af9acec72fdbd06175c83e28ce6ad807710f230a130b00caac0315c9deba1c",
+      "crates/ty_plugin_sdk/src/lib.rs": "cff9726797801c883d7148bbe1422e20d60c91bc304837893cad2871d7f61b0c",
+      "crates/ty_plugin_sdk/src/manifest.rs": "6d52f4843ec27871a37f0e21f6d98c44619683ff0106822281e5b3c34ec6bea6",
+      "crates/ty_plugin_sdk/src/wasm.rs": "9d2e6574c8671b62374fac98ef7d7a9f02a1f00a75d224ea9114ef0ba9599dd8",
+      "crates/ty_plugin_sdk/tests/sdk.rs": "0fdcfae82d2df5ac54b0b2195684200b1d86e96296f4cbb3f86565ee07282433",
+      "crates/ty_plugin_examples/Cargo.toml": "889a9227e8f3bffac2e880d69db0dcfec215445ac4d1177dc4d81cc20f2c9f97",
+      "crates/ty_plugin_examples/src/call_return.rs": "97a4c020c175cb69e6d230264696a45d311fdde7c19fd5550323a767e7643cd7",
+      "crates/ty_plugin_examples/src/class_transform.rs": "75ebb9989626e0737fcc4210900938314d20f4d93e665e272f2acbfeed695ce9",
+      "crates/ty_plugin_examples/src/lib.rs": "467b99d7c3cff493a5e722299e80f9385adbbc0493cafb2d37bee30183528edc",
+      "crates/ty_plugin_examples/src/minidjango.rs": "aaba2e5a97fda85955f38a476a3ff25eb0ce88f256d00ce7acf05322b6d3f329",
+      "crates/ty_plugin_examples/src/stub_overlay.rs": "04faaf05ae80e3d2cb6e63834ff9a02fde17267c9d2121bcd1ab7ae89c1dcf62",
+      "crates/ty_plugin_examples/tests/examples.rs": "572b3f710c3c9c1f1bfd9d70d494a2d4f8f9ece8cfa1e4a3adae3fef17a6eb2e",
+      "crates/ty_plugin_host/Cargo.toml": "dd9336df6d25ee0a02f5c5b51010f63781c936c4da817e7f4fba7e8c4669d4e3",
+      "crates/ty_plugin_host/build.rs": "180aed4d918217f1f3ad90466bf62693ba3bd12de026b58783687ab6ed05d22a",
+      "crates/ty_plugin_host/python/ty_plugin_sdk.py": "56852318e35dd59880b10b23beed95b7f6f7553f436594b24c0bee5d62308693",
+      "crates/ty_plugin_host/src/lib.rs": "330a2e74292af3baa62bc600178275e129a87ff4efa22b45b3e2713d6cbd8978",
+      "crates/ty_plugin_host/src/monty.rs": "3dc5942b371d7b216bd673e5f68aa1014290433dc4c34acb3851613ba1fa162f",
+      "crates/ty_plugin_host/src/wasm.rs": "70e4f1d5529d0646910984fee9080eea75c1b074ae07c61f766105b720ddd5a3",
+      "crates/ty_plugin_host/tests/examples.rs": "0407dcb329d92f32880b0b90d3c6c4f503ed630bb37e089986fbdaf11516f467",
+      "crates/ty_plugin_host/tests/monty.rs": "8be4be9aae59523b9d6b599c31134ee15d5073d74136f84c338a0cac2abc0b18",
+      "crates/ty_plugin_host/tests/routing.rs": "14cdcb10cf6523832bbe252fc6304af91f020fb4029191698efbbc323dd11e63",
+      "crates/ty_plugin_host/tests/wasm.rs": "8b2314a25c7858a1f1deb428dff98e162e8e8357777987ef039e57c0b2be9942"
+    },
+    "lock_sha256": "8df4aa4591e9e3700d1426436f7b51755c7902ca051757f15dd112ec05e184d4"
+  },
+  "django_full_vs_scoped": {
+    "projects": 27,
+    "classes": 2582,
+    "full_and_scoped_equal": true,
+    "index_unmodified": true,
+    "sha256": {
+      "/Users/kevincastrososa/dev/opensource/ty-extended/python/ty_extended/plugin_sdk.py": "544d7577198916eef3732ac1a180d349a54f0bacfe39a2fcadeb946085860aad",
+      "/private/tmp/ty-companion-release-audit/django-source/python/django_ty/monty.py": "4eecc114415ef57c3b06f47f9db26579a0b763a4a498b83bf650201ba955f6a5",
+      "/private/tmp/ty-companion-performance-refactor/django-oracle-070-final.jsonl": "df089268c439fb50c808ff78c4c2049839d28a7b5085fde943b469ee026e091b",
+      "/private/tmp/ty-companion-performance-refactor/scoped-070-final.jsonl": "92cc15033feda59bfe9a64922ef5e3e3f14da279610a8e9554a68808e366747d"
+    }
+  },
+  "django_responses": 152,
+  "log_sha256": {
+    "django-monty-070-final.log": "2462d4a4600cefad431e31be41822c9afa56bcb8802de9f835f67ee297fbd7be",
+    "django-cpython-current.log": "c887dc36a0a579f4d81160a4bcb2ee17a4345e0099d84938bcd23b9967f8865f",
+    "django-native-070-final.log": "687238573f7889e6700c3a3e4186fb6af022657ad1099a5b535712bad25f316e",
+    "scoped-parity-step17-v2.log": "a0ff2ac5212b5d5ff9e330fe995e8e420eb70f6b540b44ed6fa8d5124f3e02cd"
+  },
+  "ci_class_scope_replay": "https://github.com/regularkevvv/ty-extended/actions/runs/42360428611"
+}

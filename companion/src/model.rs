@@ -116,12 +116,31 @@ pub struct Analysis {
     pub constructor_calls: BTreeMap<Span, String>,
     pub unbound_calls: BTreeSet<Span>,
     pub annotated_casts: BTreeMap<Span, Value>,
+    pub metadata_probes: BTreeSet<Span>,
     pub edits: Edits,
     pub helpers: BTreeMap<String, String>,
     pub expression_probes: BTreeMap<Span, String>,
+    /// Flow records which potential expression observations it actually uses.
+    /// None preserves the complete inventory before the first flow pass.
+    pub required_expression_probes: Option<BTreeSet<Span>>,
     pub context_free_arguments: BTreeSet<Span>,
     pub plugin_diagnostics: Vec<Value>,
     pub generated_declarations: crate::mapping::GeneratedDeclarations,
+    pub support_modules: BTreeMap<String, String>,
+}
+impl Analysis {
+    pub fn needs_expression_probe(&self, span: &Span) -> bool {
+        self.required_expression_probes
+            .as_ref()
+            .is_none_or(|required| required.contains(span))
+    }
+    pub fn needs_probes(&self) -> bool {
+        !self.calls.is_empty()
+            || self
+                .expression_probes
+                .keys()
+                .any(|span| self.needs_expression_probe(span))
+    }
 }
 pub fn typ(expression: impl Into<String>) -> Value {
     json!({"expression":expression.into(),"mode":"annotation"})

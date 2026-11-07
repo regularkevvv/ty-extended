@@ -7,6 +7,7 @@ import argparse
 import hashlib
 import json
 import os
+import re
 import subprocess
 from pathlib import Path
 
@@ -72,6 +73,31 @@ def lsp_diagnostics(values):
     )
 
 
+def current_host_message(value):
+    """Account for the advertised protocol and prepended SDK in the frozen host."""
+    if isinstance(value, str):
+        value = value.replace(
+            "unsupported protocol version 99.1; ty supports 0.7",
+            "unsupported protocol version 99.1; ty supports 0.8",
+        )
+        # The pinned 0.86 reference prepends 1096 SDK lines. Preserve the
+        # plugin's exact relative traceback line when the current SDK grows.
+        sdk = Path(__file__).resolve().parents[2] / "python/ty_extended/plugin_sdk.py"
+        offset = len(sdk.read_text().splitlines()) - 1096
+        return re.sub(
+            r'(File "research\.invalid\.py", line )(\d+)',
+            lambda match: (
+                match[1] + str(int(match[2]) + (offset if int(match[2]) > 1096 else 0))
+            ),
+            value,
+        )
+    if isinstance(value, list):
+        return [current_host_message(item) for item in value]
+    if isinstance(value, dict):
+        return {key: current_host_message(item) for key, item in value.items()}
+    return value
+
+
 class Gate:
     def __init__(self, args):
         self.args = args
@@ -95,6 +121,7 @@ class Gate:
         }
 
     def equal(self, name, actual, expected):
+        expected = current_host_message(expected)
         passed = actual == expected
         self.report["checks"].append({"name": name, "equal": passed})
         assert passed, (

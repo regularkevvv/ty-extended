@@ -7,6 +7,14 @@ modified checker; their published notes remain unchanged.
 Entries below 0.74.0 say "extension" where they now would say "plugin"; the term was settled on
 "plugin" in 0.74.0 and released notes are left as they were published.
 
+## 0.88.0
+
+- Reduce companion overhead on large Django projects by sharing generated declarations, querying project indexes on demand and reusing valid checker projections.
+- Add protocol 0.8 class-specific indexes and optional read-only index lookup. Existing protocol 0.7 plugins continue to work; Monty invocations retain separate state and execution limits.
+- Batch final checks for large projects while preserving file selection, configuration and source diagnostics. Keep persistent editor checks incremental.
+- Publish protocol and Rust SDK crates 0.0.10, and document fresh-process comparisons with MyPy plus django-stubs and bare official ty.
+- Preserve the independent official-ty dependency and embedded Monty 1.5.0 runtime. Django-ty 0.7 uses the new index interfaces.
+
 ## 0.87.0
 
 - Embed Monty 1.5.0 and run the unchanged SDK/runtime tests with the companion's selected runtime.

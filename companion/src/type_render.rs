@@ -3,7 +3,7 @@ use crate::model::span;
 use crate::project::Project;
 use anyhow::{Context, Result, bail};
 use ruff_python_ast::{
-    Expr,
+    Expr, ExprContext, Stmt,
     visitor::{self, Visitor},
 };
 use serde_json::Value;
@@ -20,6 +20,8 @@ struct RenderContext {
     modules: Arc<BTreeSet<String>>,
     virtual_classes: Arc<BTreeSet<String>>,
     virtual_modules: Arc<BTreeMap<String, String>>,
+    virtual_symbols: Arc<BTreeMap<String, String>>,
+    virtual_identities: Arc<BTreeMap<String, String>>,
     unavailable_modules: Arc<BTreeSet<String>>,
     nominal_resolution: Arc<BTreeMap<String, Option<usize>>>,
     annotation_resolution: Arc<BTreeMap<String, bool>>,
@@ -31,6 +33,8 @@ impl RenderContext {
             modules: project.renderer_module_names(),
             virtual_classes: project.renderer_virtual_class_names(),
             virtual_modules: project.virtual_modules.clone(),
+            virtual_symbols: project.virtual_symbols.clone(),
+            virtual_identities: project.virtual_identities.clone(),
             unavailable_modules: project.unavailable_modules.clone(),
             nominal_resolution: project.snapshot_nominals.clone(),
             annotation_resolution: project.snapshot_symbols.clone(),
@@ -63,25 +67,30 @@ impl RenderContext {
 pub struct Types {
     pub imports: BTreeSet<String>,
     pub definitions: String,
-    /// Reuse method bodies for equal descriptor access types. Each field still
-    /// has its own subclass, so class-access identity remains distinct.
-    pub(crate) descriptor_bases: BTreeMap<(String, Option<String>, Option<String>), String>,
+    /// Generic method bodies depend only on class access and setter presence.
+    /// Each field retains its own nominal subclass and concrete access types.
+    pub(crate) descriptor_bases: BTreeMap<(bool, bool), String>,
     prefix: String,
     module: String,
     unimportable_module: bool,
     aliases: BTreeMap<String, String>,
-    modules: BTreeSet<String>,
+    modules: Arc<BTreeSet<String>>,
     project_context: RenderContext,
     import_bindings: BTreeMap<String, String>,
     imported_symbols: BTreeMap<(String, String), String>,
     imported_modules: BTreeMap<String, String>,
     imported_virtual_modules: BTreeMap<String, String>,
+    pub(crate) virtual_references: BTreeSet<String>,
+    pub(crate) virtual_declarations: bool,
+    protocol_imports: BTreeMap<String, String>,
     unresolved_bindings: BTreeSet<String>,
     self_context: Option<Value>,
     snapshots: BTreeMap<String, String>,
     protocol_types: BTreeMap<String, Value>,
-    nominal_candidates: BTreeSet<String>,
+    nominal_candidates: BTreeMap<String, BTreeSet<usize>>,
     annotation_candidates: BTreeSet<String>,
+    outlined_module: Option<String>,
+    placeholder: Option<String>,
 }
 impl Types {
     pub fn new(prefix: &str, module: &str) -> Self {
@@ -96,18 +105,23 @@ impl Types {
             module: module.into(),
             unimportable_module: false,
             aliases: BTreeMap::new(),
-            modules: BTreeSet::from([module.to_owned()]),
+            modules: Arc::new(BTreeSet::from([module.to_owned()])),
             project_context,
             import_bindings: BTreeMap::new(),
             imported_symbols: BTreeMap::new(),
             imported_modules: BTreeMap::new(),
             imported_virtual_modules: BTreeMap::new(),
+            virtual_references: BTreeSet::new(),
+            virtual_declarations: false,
+            protocol_imports: BTreeMap::new(),
             unresolved_bindings: BTreeSet::new(),
             self_context: None,
             snapshots: BTreeMap::new(),
             protocol_types: BTreeMap::new(),
-            nominal_candidates: BTreeSet::new(),
+            nominal_candidates: BTreeMap::new(),
             annotation_candidates: BTreeSet::new(),
+            outlined_module: None,
+            placeholder: None,
         }
     }
     pub fn with_project(prefix: &str, module: &str, project: &Project) -> Self {
@@ -118,8 +132,16 @@ impl Types {
             .is_some_and(|module| module.source.protocol_module.is_some());
         renderer
     }
+    #[cfg(test)]
     pub fn add_module(&mut self, module: &str) {
-        self.modules.insert(module.to_owned());
+        Arc::make_mut(&mut self.modules).insert(module.to_owned());
+    }
+    pub fn set_modules(&mut self, modules: Arc<BTreeSet<String>>) {
+        self.modules = modules;
+    }
+    pub fn confirm_native_evidence(&mut self, project: &Project) {
+        self.project_context.nominal_resolution = project.snapshot_nominals.clone();
+        self.project_context.annotation_resolution = project.snapshot_symbols.clone();
     }
     fn known_module<'a>(&self, name: &'a str) -> Option<&'a str> {
         let mut remaining = name;
@@ -156,29 +178,41 @@ impl Types {
     }
     /// Preserve structural declarations through the checker's short hover names.
     pub fn register_protocol_types(&self, runtime: &mut crate::runtime::Runtime) {
-        runtime.register_protocol_types(&self.module, &self.prefix, self.protocol_types.clone());
         runtime
-            .nominal_candidates
-            .extend(self.nominal_candidates.iter().cloned());
+            .requested_virtual_types
+            .extend(self.virtual_references.iter().cloned());
+        let mut types = self.protocol_types.clone();
+        if let Some(module) = &self.outlined_module {
+            types.extend(
+                self.protocol_types
+                    .iter()
+                    .map(|(name, value)| (format!("{module}.{name}"), value.clone())),
+            );
+        }
+        runtime.register_protocol_types(&self.module, &self.prefix, types);
+        for (name, arities) in &self.nominal_candidates {
+            runtime
+                .nominal_candidates
+                .entry(name.clone())
+                .or_default()
+                .extend(arities);
+        }
         runtime
             .annotation_candidates
             .extend(self.annotation_candidates.iter().cloned());
     }
     fn protocol_annotation(&self, rendered: &str) -> String {
-        let names: BTreeMap<_, _> = self
-            .imported_modules
-            .iter()
-            .chain(self.imported_virtual_modules.iter())
-            .map(|(module, alias)| (alias.clone(), module.clone()))
-            .chain(
-                self.imported_symbols
-                    .iter()
-                    .map(|((module, symbol), alias)| (alias.clone(), format!("{module}.{symbol}"))),
-            )
-            .collect();
         crate::project::rewrite_names(rendered, |name| {
+            let mut owner = Some(name);
+            while let Some(candidate) = owner {
+                let short = candidate.rsplit('.').next().unwrap_or(candidate);
+                if let Some(public) = self.project_context.virtual_identities.get(short) {
+                    return format!("{public}{}", &name[candidate.len()..]);
+                }
+                owner = candidate.rsplit_once('.').map(|(parent, _)| parent);
+            }
             let (head, tail) = name.split_once('.').unwrap_or((name, ""));
-            names.get(head).map_or_else(
+            self.protocol_imports.get(head).map_or_else(
                 || name.to_owned(),
                 |origin| {
                     if tail.is_empty() {
@@ -207,6 +241,19 @@ impl Types {
     }
     pub fn builtins_alias(&mut self) -> String {
         self.module_alias("builtins")
+    }
+    /// Generated declarations need a value compatible with their explicit type,
+    /// not thousands of separately inferred constructor/default expressions.
+    pub fn placeholder(&mut self) -> String {
+        if let Some(name) = &self.placeholder {
+            return name.clone();
+        }
+        let name = format!("{}placeholder", self.prefix);
+        let typing = self.typing_alias();
+        self.definitions
+            .push_str(&format!("{name} = {typing}.cast({typing}.Any, ...)\n"));
+        self.placeholder = Some(name.clone());
+        name
     }
     pub fn set_self_context(&mut self, context: Option<Value>) -> Option<Value> {
         std::mem::replace(&mut self.self_context, context)
@@ -287,6 +334,8 @@ impl Types {
                 let generated = format!("{}symbol_{}", self.prefix, self.imported_symbols.len());
                 self.imports
                     .insert(format!("from {module} import {name} as {generated}"));
+                self.protocol_imports
+                    .insert(generated.clone(), format!("{module}.{name}"));
                 self.imported_symbols.insert(key, generated.clone());
                 generated
             };
@@ -321,7 +370,10 @@ impl Types {
                         return Ok(None);
                     }
                 } else {
-                    self.nominal_candidates.insert(name.to_owned());
+                    self.nominal_candidates
+                        .entry(name.to_owned())
+                        .or_default()
+                        .insert(arguments.len());
                 }
                 let base = self.text(name)?;
                 if arguments.is_empty() {
@@ -813,8 +865,7 @@ impl Types {
             let default = if !p["required"].as_bool().unwrap_or(false)
                 && !matches!(kind, "var-args" | "kwargs")
             {
-                let typing = self.typing_alias();
-                format!(" = {typing}.cast({typing}.Any, ...)")
+                format!(" = {}", self.placeholder())
             } else {
                 String::new()
             };
@@ -830,11 +881,116 @@ impl Types {
         Ok(output.join(", "))
     }
     pub fn prelude(&self) -> String {
+        if self.imports.is_empty() && self.definitions.is_empty() {
+            return String::new();
+        }
         format!(
             "{}\n{}",
             self.imports.iter().cloned().collect::<Vec<_>>().join("\n"),
             self.definitions
         )
+    }
+    /// Large generated declarations are imported from a private stub. The
+    /// checker still resolves every annotation and descriptor at its use site,
+    /// without repeatedly checking thousands of synthetic implementations.
+    /// Only closed declarations can move: references to the source module's
+    /// implicit namespace (including notebook locals) keep the inline form.
+    pub fn outlined_prelude(&mut self) -> Result<(String, BTreeMap<String, String>)> {
+        self.outlined_module = None;
+        const MIN_BYTES: usize = 32 * 1024;
+        if self.unimportable_module || self.definitions.len() < MIN_BYTES {
+            return Ok((self.prelude(), BTreeMap::new()));
+        }
+        let definitions = ruff_python_parser::parse_module(&self.definitions)?;
+        let mut exports = BTreeSet::new();
+        for statement in definitions.suite() {
+            match statement {
+                Stmt::ClassDef(class) => {
+                    exports.insert(class.name.to_string());
+                }
+                Stmt::FunctionDef(function) => {
+                    exports.insert(function.name.to_string());
+                }
+                Stmt::Assign(assign) => {
+                    for target in &assign.targets {
+                        let Expr::Name(name) = target else {
+                            return Ok((self.prelude(), BTreeMap::new()));
+                        };
+                        exports.insert(name.id.to_string());
+                    }
+                }
+                _ => return Ok((self.prelude(), BTreeMap::new())),
+            }
+        }
+        let imports = self.imports.iter().cloned().collect::<Vec<_>>().join("\n");
+        let mut bindings = exports.clone();
+        for statement in ruff_python_parser::parse_module(&imports)?.suite() {
+            match statement {
+                Stmt::Import(import) => {
+                    for alias in &import.names {
+                        bindings.insert(alias.asname.as_ref().map_or_else(
+                            || alias.name.split('.').next().unwrap_or("").to_owned(),
+                            ToString::to_string,
+                        ));
+                    }
+                }
+                Stmt::ImportFrom(import) => {
+                    for alias in &import.names {
+                        bindings.insert(alias.asname.as_ref().unwrap_or(&alias.name).to_string());
+                    }
+                }
+                _ => return Ok((self.prelude(), BTreeMap::new())),
+            }
+        }
+        struct References<'a> {
+            bindings: &'a BTreeSet<String>,
+            closed: bool,
+        }
+        impl<'a> Visitor<'a> for References<'_> {
+            fn visit_expr(&mut self, expression: &'a Expr) {
+                if let Expr::Name(name) = expression
+                    && name.ctx == ExprContext::Load
+                    && !self.bindings.contains(name.id.as_str())
+                {
+                    self.closed = false;
+                }
+                visitor::walk_expr(self, expression);
+            }
+        }
+        let mut references = References {
+            bindings: &bindings,
+            closed: true,
+        };
+        for statement in definitions.suite() {
+            references.visit_stmt(statement);
+        }
+        if !references.closed {
+            return Ok((self.prelude(), BTreeMap::new()));
+        }
+        use sha2::{Digest, Sha256};
+        let mut module = format!(
+            "{}declarations_{:x}",
+            self.prefix,
+            Sha256::digest(self.module.as_bytes())
+        );
+        while self.modules.contains(&module)
+            || self.project_context.modules.contains(&module)
+            || self.project_context.virtual_module(&module)
+        {
+            module.push('_');
+        }
+        let names = exports
+            .iter()
+            .map(|name| format!("{name} as {name}"))
+            .collect::<Vec<_>>()
+            .join(", ");
+        let prelude = format!("{imports}\nfrom {module} import {names}\n");
+        let stub = format!(
+            "from __future__ import annotations\n{imports}\n{}",
+            self.definitions
+        );
+        self.outlined_module = Some(module.clone());
+        Ok((prelude, BTreeMap::from([(module, stub)])))
     }
     fn unresolved(&self, name: &str) -> bool {
         let head = name.split('.').next().unwrap_or(name);
@@ -857,13 +1013,41 @@ impl Types {
     /// Only a registered virtual class is redirected. Ordinary classes can
     /// share its logical module and must still resolve through the real module.
     fn virtual_symbol(&mut self, name: &str) -> Option<String> {
+        if self.virtual_declarations {
+            // Local aliases cannot be shared between packed logical modules.
+            // Resolve them to the same globally unique identity as qualified
+            // references, retaining nested attributes after the class name.
+            let mut local = Some(name);
+            while let Some(candidate) = local {
+                let relative = format!("{}.{}", self.module, candidate);
+                if let Some(internal) = self.project_context.virtual_symbols.get(&relative) {
+                    self.virtual_references.insert(relative);
+                    return Some(format!("{internal}{}", &name[candidate.len()..]));
+                }
+                local = candidate.rsplit_once('.').map(|(owner, _)| owner);
+            }
+        }
         let mut qualified = name;
         while !self.project_context.virtual_class(qualified) {
             qualified = qualified.rsplit_once('.')?.0;
         }
         let (module, symbol) = qualified.rsplit_once('.')?;
+        self.virtual_references.insert(qualified.to_owned());
         let physical = self.project_context.virtual_modules.get(module)?;
-        let alias = if let Some(alias) = self.imported_virtual_modules.get(module) {
+        let symbol = self
+            .project_context
+            .virtual_symbols
+            .get(qualified)
+            .map_or(symbol, String::as_str);
+        if self.virtual_declarations
+            && self.project_context.virtual_modules.get(&self.module) == Some(physical)
+        {
+            return Some(format!("{symbol}{}", &name[qualified.len()..]));
+        }
+        // A packed module needs one import, even when many logical modules
+        // contribute classes. Internal class identities restore their public
+        // qualified names before protocol/display alias rewriting.
+        let alias = if let Some(alias) = self.imported_virtual_modules.get(physical) {
             alias.clone()
         } else {
             let alias = format!(
@@ -873,7 +1057,9 @@ impl Types {
             );
             self.imports.insert(format!("import {physical} as {alias}"));
             self.imported_virtual_modules
-                .insert(module.to_owned(), alias.clone());
+                .insert(physical.clone(), alias.clone());
+            self.protocol_imports
+                .insert(alias.clone(), physical.clone());
             alias
         };
         Some(format!("{alias}.{symbol}{}", &name[qualified.len()..]))
@@ -886,6 +1072,8 @@ impl Types {
         self.imports.insert(format!("import {module} as {alias}"));
         self.imported_modules
             .insert(module.to_owned(), alias.clone());
+        self.protocol_imports
+            .insert(alias.clone(), module.to_owned());
         alias
     }
     fn unknown(&mut self) -> String {
@@ -1078,6 +1266,62 @@ pub(crate) fn identifier(name: &str) -> bool {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn outlining_requires_a_closed_namespace_and_avoids_module_collisions() -> Result<()> {
+        let mut types = Types::new("_generated_", "models");
+        types.imports.insert("import builtins as _builtins".into());
+        types.definitions = (0..1000)
+            .map(|i| format!("class _helper_{i}:\n    value: _builtins.str\n"))
+            .collect();
+        let (prelude, modules) = types.outlined_prelude()?;
+        let (module, stub) = modules
+            .first_key_value()
+            .expect("large closed declarations outline");
+        assert!(prelude.contains(&format!("from {module} import _helper_0 as _helper_0")));
+        assert!(!prelude.contains("class _helper_0"));
+        assert!(stub.contains("class _helper_999"));
+        types.add_module(module);
+        let (_, collision) = types.outlined_prelude()?;
+        assert!(collision.contains_key(&format!("{module}_")));
+        types
+            .definitions
+            .push_str("class _local: value: SourceLocal\n");
+        let (inline, no_modules) = types.outlined_prelude()?;
+        assert!(no_modules.is_empty());
+        assert!(inline.contains("value: SourceLocal"));
+        types.definitions = types.definitions.replace("SourceLocal", "_builtins.str");
+        types.unimportable_module = true;
+        assert!(types.outlined_prelude()?.1.is_empty());
+        Ok(())
+    }
+
+    #[test]
+    fn outlined_structural_aliases_keep_protocol_identity_and_invalidate() -> Result<()> {
+        let mut types = Types::new("_generated_", "models");
+        let record =
+            serde_json::json!({"expression":"TypedDict('Row', {'name': str})","mode":"annotation"});
+        let name = types.render(&record)?;
+        types.definitions.push_str(&"\n".repeat(32 * 1024));
+        let (_, modules) = types.outlined_prelude()?;
+        let module = modules
+            .first_key_value()
+            .expect("structural declarations outline")
+            .0;
+        let mut runtime = crate::runtime::Runtime::from_plugins(&[])?;
+        types.register_protocol_types(&mut runtime);
+        let source =
+            crate::model::Source::new(String::new(), "consumer.py".into(), "consumer".into());
+        let value = runtime.type_expr(&source, &format!("{module}.{name}"));
+        assert_eq!(value["snapshot"]["kind"], "typed-dict");
+        assert_eq!(value["snapshot"]["fields"][0]["name"], "name");
+        Types::new("_generated_", "models").register_protocol_types(&mut runtime);
+        assert_eq!(
+            runtime.type_expr(&source, &format!("{module}.{name}"))["snapshot"]["kind"],
+            "nominal"
+        );
+        Ok(())
+    }
     #[test]
     fn qualification_does_not_rewrite_literals_or_name_substrings() {
         let mut types = Types::new("_generated_", "app.models");
@@ -1132,9 +1376,7 @@ mod tests {
     #[test]
     fn known_module_paths_can_contain_uppercase_segments() {
         let mut types = Types::new("_generated_", "models");
-        types
-            .modules
-            .insert("package.generated.models.Book".to_owned());
+        types.add_module("package.generated.models.Book");
         assert_eq!(
             types.text("package.generated.models.Book.Manager").unwrap(),
             "_generated_module_0.Manager"

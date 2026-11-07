@@ -216,7 +216,14 @@ enum Operation {
 }
 
 impl Edits {
+    pub fn is_empty(&self) -> bool {
+        self.operations.is_empty()
+    }
+
     pub fn insert(&mut self, offset: usize, text: String) {
+        if text.is_empty() {
+            return;
+        }
         self.operations.push(Operation::Insert {
             offset,
             text,

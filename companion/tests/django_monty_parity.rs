@@ -75,13 +75,23 @@ fn replay(limits: MontyLimits, reject_oversized: bool) -> Result<()> {
             total += 1;
             continue;
         }
-        let actual = response.with_context(|| {
+        let mut actual = response.with_context(|| {
             format!(
                 "embedded Monty regression record {index} ({}) with {} serialized expected response bytes",
                 record["request"]["kind"],
                 expected_size
             )
         })?;
+        if let (PluginResponse::ProjectIndex(actual), PluginResponse::ProjectIndex(expected)) =
+            (&mut actual, &expected)
+        {
+            // Protocol 0.8 adds an optional projection of the opaque index.
+            // Preserve the historical oracle for every existing response field;
+            // scoped class requests have their own CPython/Monty parity gate.
+            if expected.class_indexes.is_empty() {
+                actual.class_indexes.clear();
+            }
+        }
         ensure!(
             actual == expected,
             "Monty response differs from Rust regression record {index}: request={} expected={} actual={}",

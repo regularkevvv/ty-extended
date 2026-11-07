@@ -38,6 +38,99 @@ mod descriptor_tests {
     }
 
     #[test]
+    fn outlined_descriptors_preserve_nominal_identity_and_errors() -> Result<()> {
+        let binary = std::env::var("TY_COMPANION_TEST_OFFICIAL")?;
+        let root =
+            std::env::temp_dir().join(format!("ty-outlined-descriptors-{}", std::process::id()));
+        std::fs::create_dir_all(&root)?;
+        let mut types = Types::new("_ty_ext_", "demo");
+        let access = json!({"kind":"descriptor","instance-get-type":typ("str"),"instance-set-type":typ("str")});
+        for index in 0..800 {
+            let code = descriptor(&mut types, &format!("_ty_ext_field_{index}"), &access)?;
+            types.definitions.push_str(&code);
+        }
+        let placeholder = types.placeholder();
+        let inline = types.prelude();
+        let (outlined, modules) = types.outlined_prelude()?;
+        assert_eq!(modules.len(), 1);
+        for (module, source) in modules {
+            std::fs::write(root.join(format!("{module}.pyi")), source)?;
+        }
+        for persistent in [false, true] {
+            for prelude in [&inline, &outlined] {
+                let source = format!(
+                    "{prelude}\nfrom typing import assert_type\nclass A:\n    value: _ty_ext_field_0 = {placeholder}\nclass B:\n    value: _ty_ext_field_1 = {placeholder}\nassert_type(A().value, str)\nassert_type(A.value, _ty_ext_field_0)\nassert_type(B.value, _ty_ext_field_1)\nA().value = 1\nwrong: _ty_ext_field_0 = B.value\n"
+                );
+                let mut checker =
+                    crate::checker::Checker::new(Path::new(&binary), &root, persistent)?;
+                let diagnostics = checker.check(&root.join("demo.py"), &source)?;
+                assert_eq!(diagnostics.len(), 2, "{diagnostics:#?}");
+                assert!(
+                    diagnostics
+                        .iter()
+                        .all(|diagnostic| diagnostic["check_name"] == "invalid-assignment"),
+                    "{diagnostics:#?}"
+                );
+            }
+        }
+        std::fs::remove_dir_all(root)?;
+        Ok(())
+    }
+
+    #[test]
+    fn generic_descriptor_bodies_preserve_distinct_access_types() -> Result<()> {
+        let binary = std::env::var("TY_COMPANION_TEST_OFFICIAL")?;
+        let root =
+            std::env::temp_dir().join(format!("ty-generic-descriptors-{}", std::process::id()));
+        let mut types = Types::new("_ty_ext_", "demo");
+        let mut fields = String::new();
+        for (name, access) in [
+            (
+                "a",
+                json!({"instance-get-type":typ("str"),"instance-set-type":typ("str")}),
+            ),
+            (
+                "b",
+                json!({"instance-get-type":typ("int"),"instance-set-type":typ("int")}),
+            ),
+            (
+                "c",
+                json!({"instance-get-type":typ("str"),"class-type":typ("int"),"instance-set-type":typ("bytes")}),
+            ),
+            (
+                "d",
+                json!({"instance-get-type":typ("str"),"class-type":typ("bytes")}),
+            ),
+            ("e", json!({"instance-get-type":typ("bytes")})),
+        ] {
+            fields.push_str(&descriptor(
+                &mut types,
+                &format!("_ty_ext_{name}"),
+                &access,
+            )?);
+        }
+        assert_eq!(types.descriptor_bases.len(), 4);
+        let placeholder = types.placeholder();
+        let source = format!(
+            "{}\n{fields}\nfrom typing import assert_type\nclass Model:\n    a: _ty_ext_a = {placeholder}\n    b: _ty_ext_b = {placeholder}\n    c: _ty_ext_c = {placeholder}\n    d: _ty_ext_d = {placeholder}\n    e: _ty_ext_e = {placeholder}\nassert_type(Model().a, str)\nassert_type(Model().b, int)\nassert_type(Model.a, _ty_ext_a)\nassert_type(Model.b, _ty_ext_b)\nassert_type(Model().c, str)\nassert_type(Model.c, int)\nassert_type(Model().d, str)\nassert_type(Model.d, bytes)\nassert_type(Model().e, bytes)\nassert_type(Model.e, _ty_ext_e)\nModel().a = 'ok'\nModel().b = 1\nModel().c = b'ok'\nModel().a = 1\nModel().b = 'bad'\nModel().c = 'bad'\nwrong: _ty_ext_a = Model.b\n",
+            types.prelude()
+        );
+        for persistent in [false, true] {
+            let mut checker = crate::checker::Checker::new(Path::new(&binary), &root, persistent)?;
+            let diagnostics = checker.check(&root.join("demo.py"), &source)?;
+            assert_eq!(diagnostics.len(), 4, "{diagnostics:#?}");
+            assert!(
+                diagnostics
+                    .iter()
+                    .all(|diagnostic| diagnostic["check_name"] == "invalid-assignment"),
+                "{diagnostics:#?}"
+            );
+        }
+        std::fs::remove_dir_all(root)?;
+        Ok(())
+    }
+
+    #[test]
     #[ignore = "requires an official ty executable"]
     fn shared_descriptor_methods_preserve_instance_and_class_access() -> Result<()> {
         let binary = std::env::var("TY_COMPANION_TEST_OFFICIAL")?;
@@ -78,27 +171,59 @@ fn descriptor(types: &mut Types, helper: &str, access: &Value) -> Result<String>
         .get("instance-set-type")
         .map(|value| types.render(value))
         .transpose()?;
-    let key = (get.clone(), class.clone(), set.clone());
-    if let Some(base) = types.descriptor_bases.get(&key) {
-        return Ok(format!("class {helper}({base}):\n    pass\n"));
-    }
-    let base = format!("{helper}_base");
-    // The fallback class-access type is the individual descriptor subclass,
-    // not its shared base. Self preserves the identity of every field.
-    let class = class.unwrap_or_else(|| format!("{}.Self", types.typing_extensions_alias()));
-    let typing = types.typing_alias();
-    let builtins = types.builtins_alias();
-    let mut code = format!(
-        "class {base}:\n    @{typing}.overload\n    def __get__(self, obj: None, owner: {builtins}.type[{builtins}.object]) -> {class}: ...\n    @{typing}.overload\n    def __get__(self, obj: {builtins}.object, owner: {builtins}.type[{builtins}.object]) -> {get}: ...\n    def __get__(self, obj: {builtins}.object, owner: {builtins}.type[{builtins}.object]) -> {builtins}.object: raise {builtins}.NotImplementedError\n"
-    );
-    if let Some(set) = set {
+    let key = (class.is_some(), set.is_some());
+    let base = if let Some(base) = types.descriptor_bases.get(&key) {
+        base.clone()
+    } else {
+        let base = format!("{helper}_base");
+        let typing = types.typing_alias();
+        let extensions = types.typing_extensions_alias();
+        let builtins = types.builtins_alias();
+        let get_parameter = format!("{base}_Get");
+        let class_parameter = format!("{base}_Class");
+        let set_parameter = format!("{base}_Set");
+        let mut parameters = vec![get_parameter.clone()];
+        let mut code = format!(
+            "{get_parameter} = {extensions}.TypeVar(\"{get_parameter}\", covariant=True)\n"
+        );
+        if class.is_some() {
+            code.push_str(&format!(
+                "{class_parameter} = {extensions}.TypeVar(\"{class_parameter}\", covariant=True)\n"
+            ));
+            parameters.push(class_parameter.clone());
+        }
+        if set.is_some() {
+            code.push_str(&format!(
+                "{set_parameter} = {extensions}.TypeVar(\"{set_parameter}\", contravariant=True)\n"
+            ));
+            parameters.push(set_parameter.clone());
+        }
+        // Self binds to the individual field subclass, preserving the nominal
+        // identity exposed by descriptors without an explicit class type.
+        let class_parameter = if class.is_some() {
+            class_parameter
+        } else {
+            format!("{extensions}.Self")
+        };
+        let parameters = parameters.join(", ");
         code.push_str(&format!(
-            "    def __set__(self, obj: {builtins}.object, value: {set}) -> None: raise {builtins}.NotImplementedError\n"
+            "class {base}({typing}.Generic[{parameters}]):\n    @{typing}.overload\n    def __get__(self, obj: None, owner: {builtins}.type[{builtins}.object]) -> {class_parameter}: ...\n    @{typing}.overload\n    def __get__(self, obj: {builtins}.object, owner: {builtins}.type[{builtins}.object]) -> {get_parameter}: ...\n    def __get__(self, obj: {builtins}.object, owner: {builtins}.type[{builtins}.object]) -> {builtins}.object: raise {builtins}.NotImplementedError\n"
         ));
-    }
-    types.definitions.push_str(&code);
-    types.descriptor_bases.insert(key, base.clone());
-    Ok(format!("class {helper}({base}):\n    pass\n"))
+        if set.is_some() {
+            code.push_str(&format!(
+                "    def __set__(self, obj: {builtins}.object, value: {set_parameter}) -> None: raise {builtins}.NotImplementedError\n"
+            ));
+        }
+        types.definitions.push_str(&code);
+        types.descriptor_bases.insert(key, base.clone());
+        base
+    };
+    let arguments = std::iter::once(get)
+        .chain(class)
+        .chain(set)
+        .collect::<Vec<_>>()
+        .join(", ");
+    Ok(format!("class {helper}({base}[{arguments}]):\n    pass\n"))
 }
 fn member(
     types: &mut Types,
@@ -130,7 +255,7 @@ fn member(
             let helper = format!("{prefix}descriptor_{index}");
             (
                 descriptor(types, &helper, access)?,
-                format!("{name}: {helper} = {helper}()\n"),
+                format!("{name}: {helper} = {}\n", types.placeholder()),
             )
         }
         _ => {
@@ -202,10 +327,7 @@ fn class_patch(
     let mut constructor = response.get("constructor").cloned();
     // Contributions are already ordered by the project hook. Conflicting patch
     // keys are checked when the project index is installed.
-    for c in &runtime.project_contributions {
-        if c["target"]["qualified-name"] != qualified {
-            continue;
-        }
+    for c in runtime.contributions_for(qualified) {
         let patch = &c["patch"];
         match patch["kind"].as_str() {
             Some("field") => {
@@ -285,7 +407,7 @@ fn class_patch(
             let helper = format!("{}field_{}_{}", source.prefix, span(class).start, index);
             let access = json!({"kind":"descriptor","instance-get-type":field["instance-get-type"],"instance-set-type":field["instance-get-type"]});
             helper_code.push_str(&descriptor(types, &helper, &access)?);
-            class_code.push_str(&format!("{name}: {helper} = {helper}()\n"));
+            class_code.push_str(&format!("{name}: {helper} = {}\n", types.placeholder()));
             generated
                 .descriptors
                 .entry(qualified.to_owned())
@@ -945,6 +1067,12 @@ pub fn analyze_with_oracle(
     let constructor_calls = collector.constructor_calls;
     let unbound_calls = collector.unbound;
     let mut annotated_casts = collector.annotated_casts;
+    let metadata_probes = collector
+        .cast_metadata
+        .values()
+        .flatten()
+        .copied()
+        .collect();
     for (span, metadata) in collector.cast_metadata {
         let Some(value) = annotated_casts.get_mut(&span) else {
             continue;
@@ -1048,15 +1176,33 @@ pub fn analyze_with_oracle(
             diagnostics.push(json!({"diagnostic":diagnostic,"source":source.location(call.span)}));
         }
     }
-    edits.insert(
-        offset,
-        format!(
-            "from __future__ import annotations\nfrom typing import cast as {}\n{}",
-            source.cast_name(),
-            types.prelude()
-        ),
-    );
+    let (prelude, support_modules) = types.outlined_prelude()?;
+    // An unaffected module needs neither helper imports nor rewritten bytes.
+    // Retain the prelude for potential flow/probe edits discovered later.
+    if !edits.is_empty()
+        || !prelude.is_empty()
+        || !classes.is_empty()
+        || !calls.is_empty()
+        || !expression_probes.is_empty()
+    {
+        edits.insert(
+            offset,
+            format!(
+                "from __future__ import annotations\nfrom typing import cast as {}\n{}",
+                source.cast_name(),
+                prelude
+            ),
+        );
+    }
     helpers.extend(types.display_names());
+    for module in support_modules.keys() {
+        helpers.extend(
+            helpers
+                .clone()
+                .into_iter()
+                .map(|(name, display)| (format!("{module}.{name}"), display)),
+        );
+    }
     types.register_protocol_types(runtime);
     Ok(Analysis {
         prelude_offset: offset,
@@ -1066,11 +1212,14 @@ pub fn analyze_with_oracle(
         constructor_calls,
         unbound_calls,
         annotated_casts,
+        metadata_probes,
         edits,
         helpers,
         expression_probes,
+        required_expression_probes: None,
         context_free_arguments,
         plugin_diagnostics: diagnostics,
         generated_declarations: generated,
+        support_modules,
     })
 }

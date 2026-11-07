@@ -1,0 +1,44 @@
+{
+  "measurement_source_commit": "90d7f9e1b1ceeb591e786215d77bb54ebdf73433",
+  "files_sha256": {
+    "companion/Cargo.toml": "40075d084ed6c478d0918f37a64a403235ae746efcc9ebfe4e8d1a0de350e7cc",
+    "companion/Cargo.lock": "c9e0f4b964d8d9a68899f82bc9ab3ccd099180c6060bde5b5892ff6dc6cbb90f",
+    "pyproject.toml": "5b486af4f585a177fdbd62505754e9c02e4af268189eac41d3530b11381ce4c3",
+    "build_backend.py": "15fe2c57a3685e651ced92c4f7ca8a8773bcf9328fdd56b1152a1fa09964cc7b",
+    "companion/src/checker.rs": "01583a716d4fac7b645129982437ee763800205e40d0f912b37115adba8303ed",
+    "companion/src/cli.rs": "d1eafb23875767bdf4464598d0e4cd7c6a906e864cf2a14f46878b22389d6737",
+    "companion/src/cli_edits.rs": "01543f2a5d63f7a66545923b6ccd25e06161b6e3fd9b2936d09073768902c444",
+    "companion/src/editor_options.rs": "6c3d5540fdea2956a9ed179fb2291f087456a48cf744647063bdd11a3f775d46",
+    "companion/src/flow.rs": "d29b60d1dd65697b3112850502bcd6e6f0c6824ecf550d39cec004a9e9b389a0",
+    "companion/src/lower.rs": "d0cf912b6617ee7ae7e98a823e69e3e1bc9f5b05b8a85d867b1ce03e2119587b",
+    "companion/src/lsp_mapping.rs": "2a3d7cc63f066bc25db11d680819124e3ff609448d2f27ab93b15d877bfc48fb",
+    "companion/src/lsp_server.rs": "f6a49b11f82ef55a8028d78253fb210844135b9c93e7777074dab3c6f846676a",
+    "companion/src/main.rs": "99872fc0672e54164f6b0863a8c040e31531f1e3d9cd7477e492834c4ecdcf3a",
+    "companion/src/mapping.rs": "29d760b590b818264ac2d7c7585da95396dacb357d19da640031237dbdb04f3a",
+    "companion/src/model.rs": "910d42537fa63b97809bb99dba3a504202f2ddb692ccf07c5ecedfc9fd3273f0",
+    "companion/src/notebook.rs": "0bbd10d569d77019c19b7b76e7d2259c93afaaccc7f18c089e6478f3491cd24f",
+    "companion/src/project.rs": "dfad7e288ab8440c765b23498f299de93723abe84980e96205ccc84807c458fa",
+    "companion/src/project_check.rs": "42b4eb26d68db242849f24f87619ce24ab3084511b2f01e6133744e8f8a1eb5f",
+    "companion/src/project_config.rs": "08afa30de0b9259231bd998c7ef2b85d67bf5f92c148972aa501d3e83e706eba",
+    "companion/src/runtime.rs": "1d4339ee0fc9535f166bf7fbc48299b0dc74a800492ecb9af563ba373633248e",
+    "companion/src/static_project.rs": "2cf4c4a73ddc32996ed016abeb33132522b707ffb234831d5efba8b45a09ca35",
+    "companion/src/type_render.rs": "d354d60e388945e309175c4ce97619d2b8bbd023f646c1ebc1cb9ab57c267dd0",
+    "companion/src/type_snapshot.rs": "0c018b699a8d140782e3813a5606d188c27b392400d1796ab839d73002eba813",
+    "companion/src/verify.rs": "e7708860ec0bd32cdfb8d6a171a53b2c12d5a67703f5a5b4322fa72d1592603d",
+    "python/ty_extended/__init__.py": "3ddd74f26a9ea0b4eb1091433c228b5e9f641d9a237d080dde589ca2ee4551cf",
+    "python/ty_extended/__main__.py": "6961ec4bb143f4681be6e7437225ebf802d9cca7ced1279973560406ec11af93",
+    "python/ty_extended/_find_ty.py": "6d9bb659c8dcf05ccec44e26908fe8612f5691aff0cbd7f16d9f044475eb007e",
+    "python/ty_extended/plugin_sdk.py": "544d7577198916eef3732ac1a180d349a54f0bacfe39a2fcadeb946085860aad"
+  },
+  "files_digest": "2a60d1fd8e9db1828e41957476632c8aeb543f1b4ce43265e2455e3e2f876de1",
+  "ruff": {
+    "measured_commit": "c9db4dcc7e2e87e5df8485270c9ed187573d6601",
+    "qualified_commit": "55fc86cbeac3778734ddd23696192446cd6fea7b",
+    "non_runtime_changes": [
+      "scripts/memory_report.py",
+      "scripts/setup_primer_project.py"
+    ]
+  },
+  "executable_sha256": "f327a7e553dd17e8fcbbed682d18f206835e4653561dc2553e7068a8bc39b156",
+  "note": "Production inputs match the CI wheel measurement commit. Subsequent changes are validation, documentation and CI setup. Published executable identity is checked separately."
+}
