@@ -25,6 +25,10 @@ pair's 80.788 seconds to 6.366 seconds, approximately 12.7 times faster. Its mar
 against MyPy is only 2.7%; this is close to parity, not a large speed advantage.
 Smaller projects show larger gains. These measurements identify a local release
 candidate binary; hosted CI and public-package acceptance are separate checks.
+The installed macOS CI wheel separately passes the largest workload in five
+rotated runs: **6.282 seconds versus MyPy's 6.577 seconds** (bare ty: 0.259 seconds),
+with all typing and source-preservation controls passing. Its exact wheel and
+executable hashes are recorded in the same receipt.
 
 The same receipt preserves a follow-up with **published 0.88.0**: 6.593 seconds
 versus MyPy's 6.487 seconds. Correctness passed, but that run **failed** the strict

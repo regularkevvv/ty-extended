@@ -93,14 +93,15 @@ companion adapter even when existing checking workflows remain compatible.
 
 ## Plugin compatibility
 
-Companion 0.88.0 embeds Monty **1.5.0**. The SDK and host tests execute with
+Companion 0.89.0 embeds Monty **1.5.0**. The SDK and host tests execute with
 the runtime selected by the companion lockfile, including sandbox and execution
 limit controls. Plugin users do not install a separate Monty interpreter or
 Python worker.
 
-The companion runs embedded Monty plugins using protocol 0.8 and accepts existing
-protocol 0.7 plugins. Protocol 0.8 adds optional class-specific indexes and read-only
-index lookups; it does not change the official checker interfaces. Plugin package
+The companion runs embedded Monty plugins using protocol 0.9 and accepts existing
+protocol 0.7 and 0.8 plugins. Protocol 0.9 adds opt-in bounded class batches;
+protocol 0.8 adds optional class-specific indexes and read-only index lookups.
+These additions do not change the official checker interfaces. Plugin package
 requirements constrain companion versions. The legacy `ty-compatibility` manifest
 field remains part of the format, but does not select or install official ty.
 Protocol negotiation and capability validation remain separate from checker
