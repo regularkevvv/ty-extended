@@ -27,6 +27,17 @@ The Astral team maintains an official VS Code extension.
 
 Install the [ty extension](https://marketplace.visualstudio.com/items?itemName=astral-sh.ty) from the VS Code Marketplace.
 
+In a trusted workspace, select the companion explicitly in `settings.json`:
+
+```json
+{
+  "ty.path": ["/absolute/project/.venv/bin/ty-extended"]
+}
+```
+
+On Windows, select `.venv/Scripts/ty-extended.exe`. The extension's default
+discovery selects official `ty`; the explicit path enables companion plugins.
+
 The extension automatically disables the language server from the [Python
 extension](https://marketplace.visualstudio.com/items?itemName=ms-python.python)
 to avoid running two Python language servers. This is done by setting
@@ -58,6 +69,7 @@ you can add the following snippet to your config file:
 ```lua
 -- Optional: Only required if you need to update the language server settings
 vim.lsp.config('ty', {
+  cmd = { '/absolute/project/.venv/bin/ty-extended', 'server' },
   settings = {
     ty = {
       -- ty language server settings go here
@@ -74,6 +86,7 @@ to install an older version of nvim-lspconfig](https://github.com/neovim/nvim-ls
 
 ```lua
 require('lspconfig').ty.setup({
+  cmd = { '/absolute/project/.venv/bin/ty-extended', 'server' },
   settings = {
     ty = {
       -- ty language server settings go here
@@ -111,7 +124,7 @@ You can override the `ty` executable Zed uses by setting `lsp.ty.binary`:
   "lsp": {
     "ty": {
       "binary": {
-        "path": "/home/user/.local/bin/ty",
+        "path": "/home/user/.local/bin/ty-extended",
         "arguments": ["server"]
       }
     }
@@ -146,7 +159,7 @@ ty can be utilized as a language server via the built-in [Eglot](https://www.gnu
 ```elisp
 (with-eval-after-load 'eglot
   (add-to-list 'eglot-server-programs
-               '((python-base-mode :language-id "python") . ("ty" "server"))))
+               '((python-base-mode :language-id "python") . ("ty-extended" "server"))))
 
 (add-hook 'python-base-mode-hook 'eglot-ensure)
 ```

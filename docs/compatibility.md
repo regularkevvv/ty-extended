@@ -26,6 +26,12 @@ features, rather than every upstream version number.
 
 ## Qualified versions
 
+The [published 0.87.0 receipt](qualification/ty-extended-0.87.0.json) verifies
+all eight PyPI wheel/native archive pairs against release checksums and signed
+provenance. Installed package checks pass on Python 3.8, 3.9 and 3.13; the native
+installer also passes CLI and editor controls. The published macOS executable
+matches the CI-built executable used for the complete checker-version sweep.
+
 The 0.87.0 qualification checks every official ty release from **0.0.84 through
 0.0.99**, inclusive. The same executable passed all 18 generic CLI, editor,
 notebook, plugin and SDK gates on each version: **288 passing gates**. Django's
