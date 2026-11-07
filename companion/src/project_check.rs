@@ -642,6 +642,10 @@ fn check_units(
     if !persistent {
         return check(binary, root, config, paths);
     }
+    let sources = units
+        .iter()
+        .map(|(path, unit)| (path.clone(), unit.rendered.as_ref().unwrap().text.clone()))
+        .collect();
     if server.is_none() {
         // Both generated source and overlaid stubs participate in inference.
         // ty publishes no diagnostics for files outside its workspace, even
@@ -655,13 +659,11 @@ fn check_units(
                 capabilities.clone(),
             )?
         } else {
-            crate::checker::ProjectChecker::new(binary, workspace, config)?
+            crate::checker::ProjectChecker::new_with_disk_projection(
+                binary, workspace, config, &sources,
+            )?
         });
     }
-    let sources = units
-        .iter()
-        .map(|(path, unit)| (path.clone(), unit.rendered.as_ref().unwrap().text.clone()))
-        .collect();
     server.as_mut().unwrap().check_files(&sources, paths)
 }
 
@@ -2466,18 +2468,19 @@ impl Session {
                         .collect::<String>(),
                 )?;
                 let unavailable = if mode == "push" {
-                    if server.is_none() {
-                        *server = Some(crate::checker::ProjectChecker::new(
-                            &binary,
-                            &out,
-                            &checker_config_path,
-                        )?);
-                    }
                     let mut sources: BTreeMap<_, _> = units
                         .iter()
                         .map(|(p, u)| (p.clone(), u.rendered.as_ref().unwrap().text.clone()))
                         .collect();
                     sources.insert(preflight.clone(), std::fs::read_to_string(&preflight)?);
+                    if server.is_none() {
+                        *server = Some(crate::checker::ProjectChecker::new_with_disk_projection(
+                            &binary,
+                            &out,
+                            &checker_config_path,
+                            &sources,
+                        )?);
+                    }
                     server
                         .as_mut()
                         .unwrap()
@@ -2644,13 +2647,6 @@ impl Session {
                     server.as_mut(),
                 )?;
                 let diagnostics = if mode == "push" {
-                    if server.is_none() {
-                        *server = Some(crate::checker::ProjectChecker::new(
-                            &binary,
-                            &out,
-                            &checker_config_path,
-                        )?);
-                    }
                     let mut sources: BTreeMap<_, _> = units
                         .iter()
                         .map(|(path, unit)| {
@@ -2658,6 +2654,14 @@ impl Session {
                         })
                         .collect();
                     sources.insert(preflight.clone(), code);
+                    if server.is_none() {
+                        *server = Some(crate::checker::ProjectChecker::new_with_disk_projection(
+                            &binary,
+                            &out,
+                            &checker_config_path,
+                            &sources,
+                        )?);
+                    }
                     server
                         .as_mut()
                         .unwrap()

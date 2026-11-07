@@ -2,24 +2,40 @@
 
 Companion 0.89.0 adds opt-in bounded class batching and avoids rescanning all
 diagnostics for every file. Its [performance receipt](../docs/qualification/performance-0.89.0.json)
-records five local workloads below the MyPy median ceiling. The installed macOS
-CI wheel separately checks the largest project in 6.282 seconds versus MyPy's
-6.577 seconds, with exact ORM assertions, both negative controls and source
-preservation. The largest case remains close to parity. The failed public 0.88
-follow-up is retained in the same receipt.
+records five local workloads below the MyPy median ceiling. The corrected local
+candidate checks the largest project in 6.551 seconds versus MyPy's 6.685 seconds,
+with exact ORM assertions, both negative controls and source preservation. The
+largest case remains close to parity. Earlier candidate results and the failed
+public 0.88 follow-up remain available in the same receipt.
 
-The final-version suite passes **206 Rust unit tests**, **50 Python harness tests**,
-and **83 original SDK/host tests** with embedded Monty 1.5.0. The SDK suite retains
+The final-version suite passes **208 Rust unit tests** on Linux/macOS and
+**211 on Windows**, **50 Python harness tests**, and **83 original SDK/host tests**
+with embedded Monty 1.5.0. The SDK suite retains
 one explicitly excluded WASM doctest. Django's independent native baseline
 matches 152 responses in CPython and standalone Monty; embedded replay also checks
 the unchanged production response limit and the exact packaged manifest.
 Across 27 project indexes, **2,582 scoped class results and 3,012 batches** match
 individual full-index results, including varied batch boundaries and order.
 
+Generated disk projections receive distinct filesystem revisions when timestamps
+collide. The [regression receipt](evidence/projection-revisions-2026-11-07.json)
+forces equal file timestamps and equal directory timestamps during import
+deletion and restoration, including nested packages. These checks retain the
+checker process and preserve original external source bytes and modification times.
+Fresh checkers record the completed projection without sending initial file-change
+events. Revision tracking also covers restored underlying files when a projection
+is removed and later reinstated.
+On Windows, generated-workspace boundaries compare ordinary and canonical
+verbatim drive or network-share prefixes without rewriting filesystem paths.
+The lifecycle regression uses those mixed spellings for both checker constructors.
+The final published binary receives separate compatibility and performance checks.
+
 Django-ty 0.7 passes its 166-assertion and 83-runtime-contract CLI corpus across
 all 16 official ty releases from 0.0.84 through 0.0.99 with the installed 0.89 CI
-wheel. All 21 Django/Python pairs pass, and Python 3.15 separately passes the same
-contracts, nine QueryDict cases and an installed editor session. See the
+wheel. Additional qualification covers all 21 Django/Python pairs; its earlier
+companion identity remains in the ledger and the matrix is repeated against the
+public companion before the Django release. The current CI wheel also passes
+Python 3.15's contracts, nine QueryDict cases and an installed editor session. See the
 [compatibility ledger](../docs/compatibility.md) for executable identities,
 the generic version sweep, editor checks, hosted CI and public-package acceptance.
 Those checks are recorded separately from local candidate measurements.

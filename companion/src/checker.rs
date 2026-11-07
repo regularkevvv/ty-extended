@@ -11,7 +11,7 @@ use std::{
     process::{Child, ChildStdin, Command, Stdio},
     sync::mpsc::{self, Receiver},
     thread,
-    time::{Duration, Instant},
+    time::{Duration, Instant, SystemTime},
 };
 
 use anyhow::{Context, Result, anyhow, bail, ensure};
@@ -158,11 +158,130 @@ pub struct ProjectChecker {
     documents: BTreeMap<PathBuf, (String, i32, String)>,
     notebooks: BTreeMap<PathBuf, String>,
     external_sources: BTreeSet<PathBuf>,
-    disk_sources: BTreeMap<PathBuf, [u8; 32]>,
+    disk_sources: BTreeMap<PathBuf, ([u8; 32], SystemTime)>,
+    retired_disk_revisions: BTreeMap<PathBuf, SystemTime>,
+    disk_directories: BTreeMap<PathBuf, SystemTime>,
+    projection_root: PathBuf,
     document_version: i32,
 }
 
+/// A watched-file event makes ty reread metadata, but equal modification times
+/// retain its cached source or directory listing. Give our generated files a
+/// distinct revision even on coarse filesystems and rapid delete/recreate cycles.
+/// This must never be called for original sources or memory-only overlays.
+fn advance_disk_revision(path: &Path, previous: Option<SystemTime>) -> Result<SystemTime> {
+    let modified = path.metadata()?.modified()?;
+    if previous.is_some_and(|previous| previous != modified) {
+        return Ok(modified);
+    }
+    // Two seconds also works on filesystems with coarse timestamp precision.
+    let next = modified
+        .checked_add(Duration::from_secs(2))
+        .context("projection timestamp overflow")?;
+    set_disk_modified(path, next)?;
+    let revised = path.metadata()?.modified()?;
+    ensure!(
+        revised != modified,
+        "cannot revise projection {}",
+        path.display()
+    );
+    Ok(revised)
+}
+
+fn set_disk_modified(path: &Path, modified: SystemTime) -> Result<()> {
+    let mut options = fs::OpenOptions::new();
+    options.read(true);
+    #[cfg(windows)]
+    {
+        use std::os::windows::fs::OpenOptionsExt;
+        // FILE_WRITE_ATTRIBUTES permits timestamp changes without writing file
+        // contents; FILE_FLAG_BACKUP_SEMANTICS also permits directory handles.
+        options.access_mode(0x100).custom_flags(0x0200_0000);
+    }
+    options.open(path)?.set_modified(modified)?;
+    Ok(())
+}
+
+/// Canonical Windows paths use verbatim prefixes, while editor workspace roots
+/// can use their ordinary spelling. Compare those prefix identities without
+/// rewriting filesystem paths, including names that require verbatim semantics.
+fn projection_contains(root: &Path, path: &Path) -> bool {
+    #[cfg(windows)]
+    {
+        use std::path::{Component, Prefix};
+        let mut components = path.components();
+        root.components().all(|root| {
+            let Some(path) = components.next() else {
+                return false;
+            };
+            match (root, path) {
+                (Component::Prefix(root), Component::Prefix(path)) => {
+                    match (root.kind(), path.kind()) {
+                        (
+                            Prefix::Disk(root) | Prefix::VerbatimDisk(root),
+                            Prefix::Disk(path) | Prefix::VerbatimDisk(path),
+                        ) => root == path,
+                        (
+                            Prefix::UNC(root_server, root_share)
+                            | Prefix::VerbatimUNC(root_server, root_share),
+                            Prefix::UNC(path_server, path_share)
+                            | Prefix::VerbatimUNC(path_server, path_share),
+                        ) => root_server == path_server && root_share == path_share,
+                        _ => root == path,
+                    }
+                }
+                _ => root == path,
+            }
+        })
+    }
+    #[cfg(not(windows))]
+    {
+        path.starts_with(root)
+    }
+}
+
 impl ProjectChecker {
+    /// Start a checker after every ordinary projection source has been written.
+    /// Its initial database already sees those bytes, so no watched-file events
+    /// or timestamp changes are needed. Record revisions for subsequent edits.
+    /// Notebook and external overlays use the general constructors instead.
+    pub fn new_with_disk_projection(
+        binary: &Path,
+        root: &Path,
+        config: &Path,
+        sources: &BTreeMap<PathBuf, String>,
+    ) -> Result<Self> {
+        use sha2::{Digest, Sha256};
+        let mut checker = Self::new(binary, root, config)?;
+        let mut directories = BTreeSet::new();
+        for (path, source) in sources {
+            ensure!(
+                projection_contains(root, path),
+                "disk projection outside generated workspace: {}",
+                path.display()
+            );
+            checker.disk_sources.insert(
+                path.clone(),
+                (
+                    Sha256::digest(source.as_bytes()).into(),
+                    path.metadata()?.modified()?,
+                ),
+            );
+            directories.extend(
+                path.ancestors()
+                    .skip(1)
+                    .take_while(|parent| projection_contains(root, parent))
+                    .map(Path::to_owned),
+            );
+        }
+        for path in directories {
+            checker
+                .disk_directories
+                .insert(path.clone(), path.metadata()?.modified()?);
+        }
+        Ok(checker)
+    }
+
     pub fn new(binary: &Path, root: &Path, config: &Path) -> Result<Self> {
         let mut server = Server::configured(binary, root, config, true)?;
         server.project = true;
@@ -172,6 +291,9 @@ impl ProjectChecker {
             notebooks: BTreeMap::new(),
             external_sources: BTreeSet::new(),
             disk_sources: BTreeMap::new(),
+            retired_disk_revisions: BTreeMap::new(),
+            disk_directories: BTreeMap::new(),
+            projection_root: root.to_owned(),
             document_version: 0,
         })
     }
@@ -226,6 +348,9 @@ impl ProjectChecker {
             notebooks: BTreeMap::new(),
             external_sources: BTreeSet::new(),
             disk_sources: BTreeMap::new(),
+            retired_disk_revisions: BTreeMap::new(),
+            disk_directories: BTreeMap::new(),
+            projection_root: root.to_owned(),
             document_version: 0,
         })
     }
@@ -508,6 +633,7 @@ impl ProjectChecker {
         let mut open = BTreeMap::new();
         let mut current = BTreeMap::new();
         let mut changes = Vec::new();
+        let mut structural_changes = BTreeSet::new();
         for (path, source) in sources {
             let overlay = self.notebooks.contains_key(path) || self.external_sources.contains(path);
             if queried.contains(path) || overlay {
@@ -515,10 +641,47 @@ impl ProjectChecker {
             }
             if !overlay {
                 let fingerprint: [u8; 32] = Sha256::digest(source.as_bytes()).into();
-                if self.disk_sources.get(path) != Some(&fingerprint) {
-                    changes.push(json!({"uri":file_uri(path)?,"type":if self.disk_sources.contains_key(path) {2} else {1}}));
-                }
-                current.insert(path.clone(), fingerprint);
+                let previous = self.disk_sources.get(path);
+                let retired_revision = if previous.is_none() {
+                    self.retired_disk_revisions.remove(path)
+                } else {
+                    None
+                };
+                let revision = if let Some((old, revision)) = previous
+                    && *old == fingerprint
+                {
+                    *revision
+                } else {
+                    ensure!(
+                        projection_contains(&self.projection_root, path),
+                        "disk projection outside generated workspace: {}",
+                        path.display()
+                    );
+                    let revision = if previous.is_none()
+                        && retired_revision.is_none()
+                        && self.documents.contains_key(path)
+                    {
+                        // The initial projection can replace a discovery-stage
+                        // memory overlay. Closing it below changes ty's source
+                        // revision independently of disk timestamps; a retained
+                        // query buffer receives a forced didChange instead.
+                        // Avoid touching thousands of already synchronized files.
+                        path.metadata()?.modified()?
+                    } else {
+                        advance_disk_revision(
+                            path,
+                            previous.map(|(_, revision)| *revision).or(retired_revision),
+                        )?
+                    };
+                    changes.push(
+                        json!({"uri":file_uri(path)?,"type":if previous.is_some() {2} else {1}}),
+                    );
+                    if previous.is_none() {
+                        structural_changes.insert(path.clone());
+                    }
+                    revision
+                };
+                current.insert(path.clone(), (fingerprint, revision));
             }
         }
         for path in self
@@ -526,7 +689,46 @@ impl ProjectChecker {
             .keys()
             .filter(|path| !current.contains_key(*path))
         {
-            changes.push(json!({"uri":file_uri(path)?,"type":if path.exists() {2} else {3}}));
+            let exists = path.exists();
+            if exists {
+                // Removing a projected contribution can restore underlying
+                // bytes in the same physical file. Remember its revision even
+                // while it is absent from this map: a later write may reuse a
+                // timestamp from before our explicit revision bump.
+                let revision = advance_disk_revision(path, Some(self.disk_sources[path].1))?;
+                self.retired_disk_revisions.insert(path.clone(), revision);
+            } else {
+                self.retired_disk_revisions.remove(path);
+            }
+            changes.push(json!({"uri":file_uri(path)?,"type":if exists {2} else {3}}));
+            // A preflight can leave the queried source map while remaining on
+            // disk. Its directory inventory has not changed.
+            if !exists {
+                structural_changes.insert(path.clone());
+            }
+        }
+        let mut directories = BTreeSet::new();
+        for path in &structural_changes {
+            directories.extend(
+                path.ancestors()
+                    .skip(1)
+                    .take_while(|parent| projection_contains(&self.projection_root, parent))
+                    .map(Path::to_owned),
+            );
+        }
+        for path in directories {
+            if path.is_dir() {
+                let previous = self.disk_directories.get(&path).copied();
+                let revision = advance_disk_revision(&path, previous)?;
+                // A new package can invalidate a missing ancestor lookup too.
+                // Initial file events already cover the initial workspace.
+                if previous.is_none() && !self.disk_sources.is_empty() {
+                    changes.push(json!({"uri":file_uri(&path)?,"type":1}));
+                }
+                self.disk_directories.insert(path, revision);
+            } else {
+                self.disk_directories.remove(&path);
+            }
         }
         // All ordinary sources already contain their final bytes on disk.
         // Close changed query buffers before invalidating imports, then open
@@ -1279,26 +1481,106 @@ mod tests {
     }
 
     #[test]
+    #[cfg(windows)]
+    fn projection_boundary_accepts_equivalent_windows_prefixes() {
+        for roots in [
+            [r"C:\analysis", r"\\?\C:\analysis"],
+            [r"\\server\share\analysis", r"\\?\UNC\server\share\analysis"],
+        ] {
+            for root in roots {
+                for spelling in roots {
+                    let root = Path::new(root);
+                    let path = Path::new(spelling).join("project/main.py");
+                    assert!(projection_contains(root, &path), "{root:?} {path:?}");
+                    assert_eq!(
+                        path.ancestors()
+                            .skip(1)
+                            .take_while(|parent| projection_contains(root, parent))
+                            .count(),
+                        2
+                    );
+                    assert!(!projection_contains(root, &root.with_extension("outside")));
+                    assert!(!projection_contains(root, root.parent().unwrap()));
+                }
+            }
+        }
+        // The boundary comparison must not simplify actual filesystem paths:
+        // this filename requires its verbatim spelling on Windows.
+        assert!(projection_contains(
+            Path::new(r"C:\analysis"),
+            Path::new(r"\\?\C:\analysis\aux.py")
+        ));
+        assert!(!projection_contains(
+            Path::new(r"C:\analysis"),
+            Path::new(r"\\?\D:\analysis\main.py")
+        ));
+        assert!(!projection_contains(
+            Path::new(r"\\server\share\analysis"),
+            Path::new(r"\\?\UNC\server\other\analysis\main.py")
+        ));
+    }
+
+    #[test]
     fn disk_projection_invalidates_closed_imports_and_inventory() -> Result<()> {
         let binary = std::env::var("TY_COMPANION_TEST_OFFICIAL")?;
-        let root = std::env::temp_dir().join(format!("ty-disk-projection-{}", std::process::id()));
+        for initialized in [false, true] {
+            disk_projection_case(&binary, initialized)?;
+        }
+        Ok(())
+    }
+
+    fn disk_projection_case(binary: &str, initialized: bool) -> Result<()> {
+        let root = std::env::temp_dir().join(format!(
+            "ty-disk-projection-{}-{initialized}",
+            std::process::id()
+        ));
         fs::create_dir_all(&root)?;
+        let root = root.canonicalize()?;
+        // Editors can provide an ordinary Windows workspace root while source
+        // discovery returns canonical verbatim paths. Exercise both constructors
+        // and every later file/directory revision with those different spellings.
+        let workspace = native_cli_path(&root).to_owned();
         let config = root.join("ty.toml");
         fs::write(&config, "[environment]\npython-version = '3.13'\n")?;
         let peer = root.join("peer.py");
         let consumer = root.join("consumer.py");
-        let mut server = ProjectChecker::new(Path::new(&binary), &root, &config)?;
         let mut sources = BTreeMap::from([
             (
                 consumer.clone(),
                 "from peer import value\nanswer: str = value\n".to_owned(),
             ),
-            (peer.clone(), String::new()),
+            (peer.clone(), "value: int\n".to_owned()),
         ]);
+        for (path, source) in &sources {
+            fs::write(path, source)?;
+        }
+        let initial_revision = peer.metadata()?.modified()?;
+        let mut server = if initialized {
+            ProjectChecker::new_with_disk_projection(
+                Path::new(binary),
+                &workspace,
+                &config,
+                &sources,
+            )?
+        } else {
+            ProjectChecker::new(Path::new(binary), &workspace, &config)?
+        };
+        let initial = server.check_files(&sources, std::slice::from_ref(&consumer))?;
+        assert_eq!(initial.len(), 1, "{initial:#?}");
+        if initialized {
+            assert_eq!(peer.metadata()?.modified()?, initial_revision);
+        }
         for (annotation, errors) in [("int", 1), ("str", 0), ("int", 1), ("str", 0)] {
             sources.insert(peer.clone(), format!("value: {annotation}\n"));
             for (path, source) in &sources {
+                let revision = path
+                    .metadata()
+                    .and_then(|metadata| metadata.modified())
+                    .ok();
                 fs::write(path, source)?;
+                if let Some(revision) = revision {
+                    set_disk_modified(path, revision)?;
+                }
             }
             let actual = server.check_files(&sources, std::slice::from_ref(&consumer))?;
             assert_eq!(actual.len(), errors, "{actual:#?}");
@@ -1331,15 +1613,144 @@ mod tests {
             "{missing:#?}"
         );
         assert!(!server.documents.contains_key(&peer));
+        let removed_revision = root.metadata()?.modified()?;
         sources.insert(peer.clone(), "value: str\n".into());
         fs::write(&peer, &sources[&peer])?;
+        set_disk_modified(&root, removed_revision)?;
+        assert_eq!(root.metadata()?.modified()?, removed_revision);
+        let restored = server.check_files(&sources, std::slice::from_ref(&consumer))?;
+        assert!(restored.is_empty(), "{restored:#?}");
+        let process = server.process_id();
+        let file_revision = peer.metadata()?.modified()?;
+        let directory_revision = root.metadata()?.modified()?;
         assert!(
             server
                 .check_files(&sources, std::slice::from_ref(&consumer))?
                 .is_empty()
         );
+        assert_eq!(peer.metadata()?.modified()?, file_revision);
+        assert_eq!(root.metadata()?.modified()?, directory_revision);
+        // Dropping a projection can restore an underlying file on disk. The
+        // physical file remains importable even though it leaves this map.
+        let projected_revision = peer.metadata()?.modified()?;
+        fs::write(&peer, "value: int\n")?;
+        set_disk_modified(&peer, projected_revision)?;
+        sources.remove(&peer);
+        let underlying = server.check_files(&sources, std::slice::from_ref(&consumer))?;
+        assert_eq!(underlying.len(), 1, "{underlying:#?}");
+        assert_eq!(underlying[0]["check_name"], "invalid-assignment");
+        assert_eq!(root.metadata()?.modified()?, directory_revision);
+        let underlying_revision = peer.metadata()?.modified()?;
+        sources.insert(peer.clone(), "value: str\n".into());
+        fs::write(&peer, &sources[&peer])?;
+        // A coarse write can reuse a timestamp from before the explicit bump.
+        // Re-entering the map must compare against the last observed revision.
+        set_disk_modified(&peer, underlying_revision - Duration::from_secs(2))?;
+        let reentered = server.check_files(&sources, std::slice::from_ref(&consumer))?;
+        assert!(reentered.is_empty(), "{reentered:#?}");
+
+        sources.insert(
+            consumer.clone(),
+            "from package.nested.peer import value\nanswer: str = value\n".into(),
+        );
+        fs::write(&consumer, &sources[&consumer])?;
+        let nested = root.join("package/nested/peer.py");
+        for _ in 0..3 {
+            let missing = server.check_files(&sources, std::slice::from_ref(&consumer))?;
+            assert!(
+                missing.iter().any(|item| matches!(
+                    item["check_name"].as_str(),
+                    Some("unresolved-import" | "import-not-found")
+                )),
+                "{missing:#?}"
+            );
+            let removed_revision = root.metadata()?.modified()?;
+            fs::create_dir_all(nested.parent().unwrap())?;
+            sources.insert(nested.clone(), "value: str\n".into());
+            fs::write(&nested, &sources[&nested])?;
+            set_disk_modified(&root, removed_revision)?;
+            let restored = server.check_files(&sources, std::slice::from_ref(&consumer))?;
+            assert!(restored.is_empty(), "{restored:#?}");
+            sources.remove(&nested);
+            fs::remove_dir_all(root.join("package"))?;
+        }
+        assert_eq!(
+            server.process_id(),
+            process,
+            "revisions retain the checker process"
+        );
         drop(server);
         fs::remove_dir_all(root)?;
+        Ok(())
+    }
+
+    #[test]
+    fn disk_revisions_preserve_external_sources() -> Result<()> {
+        let binary = std::env::var("TY_COMPANION_TEST_OFFICIAL")?;
+        let base =
+            std::env::temp_dir().join(format!("ty-projection-boundary-{}", std::process::id()));
+        let root = base.join("projection");
+        fs::create_dir_all(&root)?;
+        let config = root.join("ty.toml");
+        fs::write(&config, "[environment]\npython-version = '3.13'\n")?;
+        let original = base.join("original.py");
+        fs::write(&original, "value: int = 1\n")?;
+        let revision = original.metadata()?.modified()?;
+        let sources = BTreeMap::from([(original.clone(), "value: str = 1\n".into())]);
+        let mut server = ProjectChecker::new(Path::new(&binary), &root, &config)?;
+        assert!(
+            server
+                .check_files(&sources, std::slice::from_ref(&original))
+                .unwrap_err()
+                .to_string()
+                .contains("outside generated workspace")
+        );
+        server.register_external_source(&original)?;
+        let diagnostics = server.check_files(&sources, std::slice::from_ref(&original))?;
+        assert_eq!(diagnostics.len(), 1, "{diagnostics:#?}");
+        assert_eq!(original.metadata()?.modified()?, revision);
+        assert_eq!(fs::read_to_string(&original)?, "value: int = 1\n");
+        drop(server);
+        fs::remove_dir_all(base)?;
+        Ok(())
+    }
+
+    #[test]
+    fn initial_disk_projection_invalidates_open_and_closed_imports() -> Result<()> {
+        let binary = std::env::var("TY_COMPANION_TEST_OFFICIAL")?;
+        let base =
+            std::env::temp_dir().join(format!("ty-initial-projection-{}", std::process::id()));
+        for open_peer in [false, true] {
+            let root = base.join(if open_peer { "open" } else { "closed" });
+            fs::create_dir_all(&root)?;
+            let config = root.join("ty.toml");
+            fs::write(&config, "[environment]\npython-version = '3.13'\n")?;
+            let peer = root.join("peer.py");
+            let consumer = root.join("consumer.py");
+            fs::write(&peer, "value: int\n")?;
+            let revision = peer.metadata()?.modified()?;
+            let mut sources = BTreeMap::from([(
+                consumer.clone(),
+                "from peer import value\nanswer: str = value\n".into(),
+            )]);
+            fs::write(&consumer, &sources[&consumer])?;
+            if open_peer {
+                sources.insert(peer.clone(), "value: int\n".into());
+            }
+            let mut server = ProjectChecker::new(Path::new(&binary), &root, &config)?;
+            let old = server.check(&sources, std::slice::from_ref(&consumer))?;
+            assert_eq!(old.len(), 1, "{old:#?}");
+            sources.insert(peer.clone(), "value: str\n".into());
+            fs::write(&peer, &sources[&peer])?;
+            set_disk_modified(&peer, revision)?;
+            let current = server.check_files(&sources, std::slice::from_ref(&consumer))?;
+            assert!(current.is_empty(), "open_peer={open_peer}: {current:#?}");
+            assert!(!server.documents.contains_key(&peer));
+            if open_peer {
+                assert_eq!(peer.metadata()?.modified()?, revision);
+            }
+        }
+        fs::remove_dir_all(base)?;
         Ok(())
     }
 

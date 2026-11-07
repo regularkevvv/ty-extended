@@ -1,0 +1,1413 @@
+{
+  "scope": "Deterministic filesystem revision regression and local validation before final cross-platform and public artifact acceptance.",
+  "base_commit": "fcf5ec8483e14bf030239f46db1d1c1fe9e963ce",
+  "checker_source_sha256": "f1b01e33bde3f4b90a729a61bf1b50c03b3e4dca2320e70151c036d01970c761",
+  "original_ci_failure": "https://github.com/regularkevvv/ty-extended/actions/runs/42411111929/job/128519253043",
+  "red": [
+    {
+      "case": "closed import restored with the missing-state directory timestamp",
+      "result": "unresolved-import remains after restoration",
+      "log_sha256": "1f0408fb8e5b19ea0d3f2d64291d440bbfd77c0a6c64f4626aa6792e0d7bd143"
+    },
+    {
+      "case": "closed import changes from int to str with unchanged file timestamp",
+      "result": "old invalid-assignment remains",
+      "log_sha256": "24d0a54e02a7e35753ce4cb18aa334d86b6bb669be12eb3a842494b4f1b9974a"
+    },
+    {
+      "case": "removed projection restores underlying bytes with the same file timestamp",
+      "result": "old projected type remains and misses invalid-assignment",
+      "log_sha256": "129535f29dc07d7070fdf609825d8296948b44e3c2f1c19a85eb731589ba07cb"
+    },
+    {
+      "case": "reinstated projection reuses the timestamp from before an explicit bump",
+      "result": "old underlying type remains and reports invalid-assignment",
+      "log_sha256": "d178ce34f1e251af3056fb96a647376fb9acf5771c435f43737e0622fb87b55b"
+    }
+  ],
+  "green": {
+    "forced_collision_test": "checker::tests::disk_projection_invalidates_closed_imports_and_inventory",
+    "external_source_test": "checker::tests::disk_revisions_preserve_external_sources",
+    "initial_open_and_closed_import_test": "checker::tests::initial_disk_projection_invalidates_open_and_closed_imports",
+    "repeated": {
+      "passed": true,
+      "runs": [
+        {
+          "version": "0.0.84",
+          "iteration": 0,
+          "tests": 3,
+          "passed": true
+        },
+        {
+          "version": "0.0.84",
+          "iteration": 1,
+          "tests": 3,
+          "passed": true
+        },
+        {
+          "version": "0.0.84",
+          "iteration": 2,
+          "tests": 3,
+          "passed": true
+        },
+        {
+          "version": "0.0.84",
+          "iteration": 3,
+          "tests": 3,
+          "passed": true
+        },
+        {
+          "version": "0.0.84",
+          "iteration": 4,
+          "tests": 3,
+          "passed": true
+        },
+        {
+          "version": "0.0.84",
+          "iteration": 5,
+          "tests": 3,
+          "passed": true
+        },
+        {
+          "version": "0.0.84",
+          "iteration": 6,
+          "tests": 3,
+          "passed": true
+        },
+        {
+          "version": "0.0.84",
+          "iteration": 7,
+          "tests": 3,
+          "passed": true
+        },
+        {
+          "version": "0.0.84",
+          "iteration": 8,
+          "tests": 3,
+          "passed": true
+        },
+        {
+          "version": "0.0.84",
+          "iteration": 9,
+          "tests": 3,
+          "passed": true
+        },
+        {
+          "version": "0.0.84",
+          "iteration": 10,
+          "tests": 3,
+          "passed": true
+        },
+        {
+          "version": "0.0.84",
+          "iteration": 11,
+          "tests": 3,
+          "passed": true
+        },
+        {
+          "version": "0.0.84",
+          "iteration": 12,
+          "tests": 3,
+          "passed": true
+        },
+        {
+          "version": "0.0.84",
+          "iteration": 13,
+          "tests": 3,
+          "passed": true
+        },
+        {
+          "version": "0.0.84",
+          "iteration": 14,
+          "tests": 3,
+          "passed": true
+        },
+        {
+          "version": "0.0.84",
+          "iteration": 15,
+          "tests": 3,
+          "passed": true
+        },
+        {
+          "version": "0.0.84",
+          "iteration": 16,
+          "tests": 3,
+          "passed": true
+        },
+        {
+          "version": "0.0.84",
+          "iteration": 17,
+          "tests": 3,
+          "passed": true
+        },
+        {
+          "version": "0.0.84",
+          "iteration": 18,
+          "tests": 3,
+          "passed": true
+        },
+        {
+          "version": "0.0.84",
+          "iteration": 19,
+          "tests": 3,
+          "passed": true
+        },
+        {
+          "version": "0.0.99",
+          "iteration": 0,
+          "tests": 3,
+          "passed": true
+        },
+        {
+          "version": "0.0.99",
+          "iteration": 1,
+          "tests": 3,
+          "passed": true
+        },
+        {
+          "version": "0.0.99",
+          "iteration": 2,
+          "tests": 3,
+          "passed": true
+        },
+        {
+          "version": "0.0.99",
+          "iteration": 3,
+          "tests": 3,
+          "passed": true
+        },
+        {
+          "version": "0.0.99",
+          "iteration": 4,
+          "tests": 3,
+          "passed": true
+        },
+        {
+          "version": "0.0.99",
+          "iteration": 5,
+          "tests": 3,
+          "passed": true
+        },
+        {
+          "version": "0.0.99",
+          "iteration": 6,
+          "tests": 3,
+          "passed": true
+        },
+        {
+          "version": "0.0.99",
+          "iteration": 7,
+          "tests": 3,
+          "passed": true
+        },
+        {
+          "version": "0.0.99",
+          "iteration": 8,
+          "tests": 3,
+          "passed": true
+        },
+        {
+          "version": "0.0.99",
+          "iteration": 9,
+          "tests": 3,
+          "passed": true
+        },
+        {
+          "version": "0.0.99",
+          "iteration": 10,
+          "tests": 3,
+          "passed": true
+        },
+        {
+          "version": "0.0.99",
+          "iteration": 11,
+          "tests": 3,
+          "passed": true
+        },
+        {
+          "version": "0.0.99",
+          "iteration": 12,
+          "tests": 3,
+          "passed": true
+        },
+        {
+          "version": "0.0.99",
+          "iteration": 13,
+          "tests": 3,
+          "passed": true
+        },
+        {
+          "version": "0.0.99",
+          "iteration": 14,
+          "tests": 3,
+          "passed": true
+        },
+        {
+          "version": "0.0.99",
+          "iteration": 15,
+          "tests": 3,
+          "passed": true
+        },
+        {
+          "version": "0.0.99",
+          "iteration": 16,
+          "tests": 3,
+          "passed": true
+        },
+        {
+          "version": "0.0.99",
+          "iteration": 17,
+          "tests": 3,
+          "passed": true
+        },
+        {
+          "version": "0.0.99",
+          "iteration": 18,
+          "tests": 3,
+          "passed": true
+        },
+        {
+          "version": "0.0.99",
+          "iteration": 19,
+          "tests": 3,
+          "passed": true
+        }
+      ],
+      "test_binary_sha256": "d17721b981aea63805360e7d7189d5699fea1f2068435c32cea9db58cf1433c3"
+    },
+    "regular_units": 205,
+    "live_units": 3,
+    "integration_units": 7,
+    "strict_clippy": true,
+    "logs": {
+      "projection-revision4-units.log": "1b857a95286ecd798b3a53c6c71064fb67ff10aaefcb29422b7d8e2aa566f977",
+      "projection-revision4-live-units.log": "8bcdd9c5119da5e5391d4af0e715934bebcadc91a5f7c4442affcaf5ccce0a6f",
+      "projection-revision4-clippy.log": "32865f2fdb3e655184fd1a231ae565dd6f5618f8f579aaf716ab7027ce273190",
+      "projection-revision4-clean.log": "3c88021e2be6402fcce13bae180ef44d6302c0bee233e1f5add00891de775fc5"
+    },
+    "initial_state_modes": [
+      "general existing checker",
+      "fresh checker with completed disk projection"
+    ]
+  },
+  "initial_fix_green": {
+    "forced_collision_test": "checker::tests::disk_projection_invalidates_closed_imports_and_inventory",
+    "external_source_test": "checker::tests::disk_revisions_preserve_external_sources",
+    "repeated": {
+      "passed": true,
+      "cases_per_run": 2,
+      "runs": [
+        {
+          "version": "0.0.84",
+          "iteration": 0,
+          "passed": true
+        },
+        {
+          "version": "0.0.84",
+          "iteration": 1,
+          "passed": true
+        },
+        {
+          "version": "0.0.84",
+          "iteration": 2,
+          "passed": true
+        },
+        {
+          "version": "0.0.84",
+          "iteration": 3,
+          "passed": true
+        },
+        {
+          "version": "0.0.84",
+          "iteration": 4,
+          "passed": true
+        },
+        {
+          "version": "0.0.84",
+          "iteration": 5,
+          "passed": true
+        },
+        {
+          "version": "0.0.84",
+          "iteration": 6,
+          "passed": true
+        },
+        {
+          "version": "0.0.84",
+          "iteration": 7,
+          "passed": true
+        },
+        {
+          "version": "0.0.84",
+          "iteration": 8,
+          "passed": true
+        },
+        {
+          "version": "0.0.84",
+          "iteration": 9,
+          "passed": true
+        },
+        {
+          "version": "0.0.84",
+          "iteration": 10,
+          "passed": true
+        },
+        {
+          "version": "0.0.84",
+          "iteration": 11,
+          "passed": true
+        },
+        {
+          "version": "0.0.84",
+          "iteration": 12,
+          "passed": true
+        },
+        {
+          "version": "0.0.84",
+          "iteration": 13,
+          "passed": true
+        },
+        {
+          "version": "0.0.84",
+          "iteration": 14,
+          "passed": true
+        },
+        {
+          "version": "0.0.84",
+          "iteration": 15,
+          "passed": true
+        },
+        {
+          "version": "0.0.84",
+          "iteration": 16,
+          "passed": true
+        },
+        {
+          "version": "0.0.84",
+          "iteration": 17,
+          "passed": true
+        },
+        {
+          "version": "0.0.84",
+          "iteration": 18,
+          "passed": true
+        },
+        {
+          "version": "0.0.84",
+          "iteration": 19,
+          "passed": true
+        },
+        {
+          "version": "0.0.99",
+          "iteration": 0,
+          "passed": true
+        },
+        {
+          "version": "0.0.99",
+          "iteration": 1,
+          "passed": true
+        },
+        {
+          "version": "0.0.99",
+          "iteration": 2,
+          "passed": true
+        },
+        {
+          "version": "0.0.99",
+          "iteration": 3,
+          "passed": true
+        },
+        {
+          "version": "0.0.99",
+          "iteration": 4,
+          "passed": true
+        },
+        {
+          "version": "0.0.99",
+          "iteration": 5,
+          "passed": true
+        },
+        {
+          "version": "0.0.99",
+          "iteration": 6,
+          "passed": true
+        },
+        {
+          "version": "0.0.99",
+          "iteration": 7,
+          "passed": true
+        },
+        {
+          "version": "0.0.99",
+          "iteration": 8,
+          "passed": true
+        },
+        {
+          "version": "0.0.99",
+          "iteration": 9,
+          "passed": true
+        },
+        {
+          "version": "0.0.99",
+          "iteration": 10,
+          "passed": true
+        },
+        {
+          "version": "0.0.99",
+          "iteration": 11,
+          "passed": true
+        },
+        {
+          "version": "0.0.99",
+          "iteration": 12,
+          "passed": true
+        },
+        {
+          "version": "0.0.99",
+          "iteration": 13,
+          "passed": true
+        },
+        {
+          "version": "0.0.99",
+          "iteration": 14,
+          "passed": true
+        },
+        {
+          "version": "0.0.99",
+          "iteration": 15,
+          "passed": true
+        },
+        {
+          "version": "0.0.99",
+          "iteration": 16,
+          "passed": true
+        },
+        {
+          "version": "0.0.99",
+          "iteration": 17,
+          "passed": true
+        },
+        {
+          "version": "0.0.99",
+          "iteration": 18,
+          "passed": true
+        },
+        {
+          "version": "0.0.99",
+          "iteration": 19,
+          "passed": true
+        }
+      ],
+      "test_binary_sha256": "45d630616a4f726b02548a3f26f10046221c318cd0bac011fe9566ffa0dd20fe"
+    },
+    "regular_units": 204,
+    "live_units": 3,
+    "integration_units": 7,
+    "strict_clippy": true,
+    "logs": {
+      "projection-revision-units.log": "d1c9c6229d5788570065609459dd0423825b3a13728fde0802fa53bad3d8ffe4",
+      "projection-revision-live-units.log": "b05ca81ad57275529f7da357d93956aeb44ef1aaafb9392b2fe3d05d431aed7a",
+      "projection-revision-clippy.log": "c17c52e5f102bf64f8b175b32205a82a054efcb7d20c72bbeafb22bb512b0be9"
+    }
+  },
+  "initial_fix_source": "9c10137c2682bc2b8e894732f3f0f758a79e3c5c",
+  "initial_fix_performance": {
+    "passed": false,
+    "complete": true,
+    "scope": "Corrected optimized local companion 0.89.0 with final Django 0.7 candidate wheel; five rotated fresh-process samples per workload.",
+    "runs": [
+      {
+        "name": "stress",
+        "exit": 1,
+        "passed": true,
+        "performance_target_met": false,
+        "median_seconds": {
+          "companion": 6.9326740419492126,
+          "bare-ty": 0.28146249998826534,
+          "mypy": 6.640598958008923
+        },
+        "report_sha256": "9035fc8edc87444d3efc0412198813b16450fb400587f2a48512fc9a3058d259",
+        "project_archive_sha256": "6dc2b9e1be166e223765affbc484b11202f59aa10e131a0e6586de0fed68e98e"
+      },
+      {
+        "name": "small",
+        "exit": 0,
+        "passed": true,
+        "performance_target_met": true,
+        "median_seconds": {
+          "companion": 0.5279505830258131,
+          "bare-ty": 0.0620896250475198,
+          "mypy": 1.5551552079850808
+        },
+        "report_sha256": "f62e9a8eb9fdf9378bcec81a529b7a45182bf0f5c07d96ebe88d16b25e69f5dd",
+        "project_archive_sha256": "6240aefa40b9247c79c1e03f1076df567b5d3c152814a822e507287b24d6631b"
+      },
+      {
+        "name": "distributed",
+        "exit": 0,
+        "passed": true,
+        "performance_target_met": true,
+        "median_seconds": {
+          "companion": 1.2694410410476848,
+          "bare-ty": 0.08215854200534523,
+          "mypy": 2.1272215000353754
+        },
+        "report_sha256": "a9db8afa9fbe87091c4a6a846babbdbb71da9b0cf1eff1f27ecad7f62f4cd2fa",
+        "project_archive_sha256": "f3820e08e29f987ae793f6661b5ffbca99a5058326190dc3fa9e29fd38b0e5d0"
+      },
+      {
+        "name": "many-files",
+        "exit": 0,
+        "passed": true,
+        "performance_target_met": true,
+        "median_seconds": {
+          "companion": 3.866462584002875,
+          "bare-ty": 0.1716734580695629,
+          "mypy": 4.2683076249668375
+        },
+        "report_sha256": "3c2ad56d3d1cf3a8e97d12991c2bd873ea1ecb28055de7a95727c4c6e7254974",
+        "project_archive_sha256": "c6cd551ae1331907f46b62bac4b351c50d0287404960ac7d8c39443d193b6f56"
+      },
+      {
+        "name": "split-models",
+        "exit": 0,
+        "passed": true,
+        "performance_target_met": true,
+        "median_seconds": {
+          "companion": 6.253766875015572,
+          "bare-ty": 0.19958233297802508,
+          "mypy": 6.610026250011288
+        },
+        "report_sha256": "2fac05c31dd5b708119590155fc868492d433865be4044a844a9d70aa9bdb3ba",
+        "project_archive_sha256": "d9c432556ce987129cbab50f99b5de76a211b746fd94d11420d6d7c05a70a190"
+      }
+    ]
+  },
+  "open_buffer_optimization": {
+    "source": "22490f4620a3cc2e9316a0cfbc60508b40ed0f21",
+    "green": {
+      "forced_collision_test": "checker::tests::disk_projection_invalidates_closed_imports_and_inventory",
+      "external_source_test": "checker::tests::disk_revisions_preserve_external_sources",
+      "initial_open_and_closed_import_test": "checker::tests::initial_disk_projection_invalidates_open_and_closed_imports",
+      "repeated": {
+        "passed": true,
+        "runs": [
+          {
+            "version": "0.0.84",
+            "iteration": 0,
+            "tests": 3,
+            "passed": true
+          },
+          {
+            "version": "0.0.84",
+            "iteration": 1,
+            "tests": 3,
+            "passed": true
+          },
+          {
+            "version": "0.0.84",
+            "iteration": 2,
+            "tests": 3,
+            "passed": true
+          },
+          {
+            "version": "0.0.84",
+            "iteration": 3,
+            "tests": 3,
+            "passed": true
+          },
+          {
+            "version": "0.0.84",
+            "iteration": 4,
+            "tests": 3,
+            "passed": true
+          },
+          {
+            "version": "0.0.84",
+            "iteration": 5,
+            "tests": 3,
+            "passed": true
+          },
+          {
+            "version": "0.0.84",
+            "iteration": 6,
+            "tests": 3,
+            "passed": true
+          },
+          {
+            "version": "0.0.84",
+            "iteration": 7,
+            "tests": 3,
+            "passed": true
+          },
+          {
+            "version": "0.0.84",
+            "iteration": 8,
+            "tests": 3,
+            "passed": true
+          },
+          {
+            "version": "0.0.84",
+            "iteration": 9,
+            "tests": 3,
+            "passed": true
+          },
+          {
+            "version": "0.0.84",
+            "iteration": 10,
+            "tests": 3,
+            "passed": true
+          },
+          {
+            "version": "0.0.84",
+            "iteration": 11,
+            "tests": 3,
+            "passed": true
+          },
+          {
+            "version": "0.0.84",
+            "iteration": 12,
+            "tests": 3,
+            "passed": true
+          },
+          {
+            "version": "0.0.84",
+            "iteration": 13,
+            "tests": 3,
+            "passed": true
+          },
+          {
+            "version": "0.0.84",
+            "iteration": 14,
+            "tests": 3,
+            "passed": true
+          },
+          {
+            "version": "0.0.84",
+            "iteration": 15,
+            "tests": 3,
+            "passed": true
+          },
+          {
+            "version": "0.0.84",
+            "iteration": 16,
+            "tests": 3,
+            "passed": true
+          },
+          {
+            "version": "0.0.84",
+            "iteration": 17,
+            "tests": 3,
+            "passed": true
+          },
+          {
+            "version": "0.0.84",
+            "iteration": 18,
+            "tests": 3,
+            "passed": true
+          },
+          {
+            "version": "0.0.84",
+            "iteration": 19,
+            "tests": 3,
+            "passed": true
+          },
+          {
+            "version": "0.0.99",
+            "iteration": 0,
+            "tests": 3,
+            "passed": true
+          },
+          {
+            "version": "0.0.99",
+            "iteration": 1,
+            "tests": 3,
+            "passed": true
+          },
+          {
+            "version": "0.0.99",
+            "iteration": 2,
+            "tests": 3,
+            "passed": true
+          },
+          {
+            "version": "0.0.99",
+            "iteration": 3,
+            "tests": 3,
+            "passed": true
+          },
+          {
+            "version": "0.0.99",
+            "iteration": 4,
+            "tests": 3,
+            "passed": true
+          },
+          {
+            "version": "0.0.99",
+            "iteration": 5,
+            "tests": 3,
+            "passed": true
+          },
+          {
+            "version": "0.0.99",
+            "iteration": 6,
+            "tests": 3,
+            "passed": true
+          },
+          {
+            "version": "0.0.99",
+            "iteration": 7,
+            "tests": 3,
+            "passed": true
+          },
+          {
+            "version": "0.0.99",
+            "iteration": 8,
+            "tests": 3,
+            "passed": true
+          },
+          {
+            "version": "0.0.99",
+            "iteration": 9,
+            "tests": 3,
+            "passed": true
+          },
+          {
+            "version": "0.0.99",
+            "iteration": 10,
+            "tests": 3,
+            "passed": true
+          },
+          {
+            "version": "0.0.99",
+            "iteration": 11,
+            "tests": 3,
+            "passed": true
+          },
+          {
+            "version": "0.0.99",
+            "iteration": 12,
+            "tests": 3,
+            "passed": true
+          },
+          {
+            "version": "0.0.99",
+            "iteration": 13,
+            "tests": 3,
+            "passed": true
+          },
+          {
+            "version": "0.0.99",
+            "iteration": 14,
+            "tests": 3,
+            "passed": true
+          },
+          {
+            "version": "0.0.99",
+            "iteration": 15,
+            "tests": 3,
+            "passed": true
+          },
+          {
+            "version": "0.0.99",
+            "iteration": 16,
+            "tests": 3,
+            "passed": true
+          },
+          {
+            "version": "0.0.99",
+            "iteration": 17,
+            "tests": 3,
+            "passed": true
+          },
+          {
+            "version": "0.0.99",
+            "iteration": 18,
+            "tests": 3,
+            "passed": true
+          },
+          {
+            "version": "0.0.99",
+            "iteration": 19,
+            "tests": 3,
+            "passed": true
+          }
+        ],
+        "test_binary_sha256": "c2f5a9ce9d7b7ecaffdd8cc6b69b2ae2c3e8ca3c3affbeb1cbcb649988278d76"
+      },
+      "regular_units": 205,
+      "live_units": 3,
+      "integration_units": 7,
+      "strict_clippy": true,
+      "logs": {
+        "projection-revision2-units.log": "b7ff592658e37610b8e3bb71095005082a3be58617efaae2268934ff044b6410",
+        "projection-revision2-live-units.log": "410f41cbcb1a3e6b5b22aa66e1e957f8c8e417f4a61fa93f9440a200108539c5",
+        "projection-revision2-clippy.log": "19181436738b475d939ed61dd386d9adb2a7ab19797af9709c5820faee9948ff",
+        "projection-revision2-clean.log": "3c88021e2be6402fcce13bae180ef44d6302c0bee233e1f5add00891de775fc5"
+      }
+    },
+    "performance": {
+      "passed": false,
+      "complete": true,
+      "scope": "Corrected optimized local companion 0.89.0 with final Django 0.7 candidate wheel; five rotated fresh-process samples per workload.",
+      "runs": [
+        {
+          "name": "stress",
+          "exit": 1,
+          "passed": true,
+          "performance_target_met": false,
+          "median_seconds": {
+            "companion": 6.802085792063735,
+            "bare-ty": 0.2728325000498444,
+            "mypy": 6.608181333052926
+          },
+          "report_sha256": "20f35c98d88c2b9956eff4c1aa1c5013deecd8405cd281bc56e31a01246f9095",
+          "project_archive_sha256": "0b35a50092a972692bb370263829fd74ca8dcdb21f541814763fc0e0f7c68eac"
+        },
+        {
+          "name": "small",
+          "exit": 0,
+          "passed": true,
+          "performance_target_met": true,
+          "median_seconds": {
+            "companion": 0.531759790959768,
+            "bare-ty": 0.06459045794326812,
+            "mypy": 1.5756342919776216
+          },
+          "report_sha256": "c8b927b30f7f04d4235870a18ae3290c38650ca123702c6981bee9782aa104ae",
+          "project_archive_sha256": "1f3a0929e5c92ef847ec80373205cb7087407f8f4db56e5358400f98d165171c"
+        },
+        {
+          "name": "distributed",
+          "exit": 0,
+          "passed": true,
+          "performance_target_met": true,
+          "median_seconds": {
+            "companion": 1.2831380830612034,
+            "bare-ty": 0.08876620908267796,
+            "mypy": 2.1568707909900695
+          },
+          "report_sha256": "07dbb93f9d0b557f929a55e9dc29c4b3204d00bd6d078790c92d8d58e9cf8b41",
+          "project_archive_sha256": "dec7854170a835ca6cff3747468092b09e45dc22cf311e6dcaba40e6717d7e3f"
+        },
+        {
+          "name": "many-files",
+          "exit": 0,
+          "passed": true,
+          "performance_target_met": true,
+          "median_seconds": {
+            "companion": 3.8928885840578005,
+            "bare-ty": 0.17378449998795986,
+            "mypy": 4.109695167047903
+          },
+          "report_sha256": "772f2c697e3970555c8c7f7aae25c50ba389f7a3094a4509c1f31df7ad650486",
+          "project_archive_sha256": "edc017baaebb96b61ae1ae261aac0eed70a41ee50bcc0505d881e940be9bf901"
+        },
+        {
+          "name": "split-models",
+          "exit": 0,
+          "passed": true,
+          "performance_target_met": true,
+          "median_seconds": {
+            "companion": 6.292600292013958,
+            "bare-ty": 0.19149495800957084,
+            "mypy": 6.518971708021127
+          },
+          "report_sha256": "82414269d016e255cbb24fe3ac5c034089c436ad19f1f4598542e03350ab7f29",
+          "project_archive_sha256": "676a69e4e8ac4d464dff6ab657138d41354f2a399ef29fb11e0b04e5136ec4ce"
+        }
+      ]
+    }
+  },
+  "phase_comparison": [
+    {
+      "binary": "candidate-089-bin",
+      "sha256": "38299eec07619ebecb55c02df2a2a792f13db51f7410378575e95d27fa45cbed",
+      "seconds": 6.527382583008148,
+      "phases": {
+        "startup_source_copy": 0.512,
+        "startup_configuration": 0.002,
+        "startup_runtime": 0.006,
+        "startup_overlays": 0.086,
+        "startup_selection": 0.106,
+        "startup_project": 0.575,
+        "source_scan": 0.2,
+        "external_resolution": 0.009,
+        "function_summaries": 0.0,
+        "project_index": 0.971,
+        "class_projection": 0.716,
+        "initial_lowering": 0.353,
+        "flow_and_render": 0.345,
+        "import_preflight": 0.486,
+        "oracle_check": 0.251,
+        "hook_responses": 0.091,
+        "final_render": 0.013,
+        "final_check": 1.127,
+        "diagnostic_mapping": 0.013,
+        "source_maps": 0.017
+      }
+    },
+    {
+      "binary": "candidate-089-revision2-bin",
+      "sha256": "8e6b5a4d3a1425cb59702c8a59437424cf5ae2e42a6f42507b6cb4ea344ba9fd",
+      "seconds": 6.988806042005308,
+      "phases": {
+        "startup_source_copy": 0.513,
+        "startup_configuration": 0.01,
+        "startup_runtime": 0.017,
+        "startup_overlays": 0.092,
+        "startup_selection": 0.104,
+        "startup_project": 0.561,
+        "source_scan": 0.189,
+        "external_resolution": 0.008,
+        "function_summaries": 0.0,
+        "project_index": 0.941,
+        "class_projection": 0.727,
+        "initial_lowering": 0.351,
+        "flow_and_render": 0.354,
+        "import_preflight": 0.828,
+        "oracle_check": 0.254,
+        "hook_responses": 0.089,
+        "final_render": 0.013,
+        "final_check": 1.226,
+        "diagnostic_mapping": 0.014,
+        "source_maps": 0.017
+      }
+    },
+    {
+      "binary": "candidate-089-bin",
+      "sha256": "38299eec07619ebecb55c02df2a2a792f13db51f7410378575e95d27fa45cbed",
+      "seconds": 6.589757083100267,
+      "phases": {
+        "startup_source_copy": 0.536,
+        "startup_configuration": 0.002,
+        "startup_runtime": 0.006,
+        "startup_overlays": 0.089,
+        "startup_selection": 0.103,
+        "startup_project": 0.574,
+        "source_scan": 0.194,
+        "external_resolution": 0.007,
+        "function_summaries": 0.0,
+        "project_index": 0.922,
+        "class_projection": 0.705,
+        "initial_lowering": 0.345,
+        "flow_and_render": 0.41800000000000004,
+        "import_preflight": 0.476,
+        "oracle_check": 0.254,
+        "hook_responses": 0.087,
+        "final_render": 0.013,
+        "final_check": 1.164,
+        "diagnostic_mapping": 0.013,
+        "source_maps": 0.016
+      }
+    },
+    {
+      "binary": "candidate-089-revision2-bin",
+      "sha256": "8e6b5a4d3a1425cb59702c8a59437424cf5ae2e42a6f42507b6cb4ea344ba9fd",
+      "seconds": 6.861939124995843,
+      "phases": {
+        "startup_source_copy": 0.547,
+        "startup_configuration": 0.002,
+        "startup_runtime": 0.006,
+        "startup_overlays": 0.088,
+        "startup_selection": 0.105,
+        "startup_project": 0.576,
+        "source_scan": 0.199,
+        "external_resolution": 0.008,
+        "function_summaries": 0.0,
+        "project_index": 0.957,
+        "class_projection": 0.72,
+        "initial_lowering": 0.349,
+        "flow_and_render": 0.35300000000000004,
+        "import_preflight": 0.82,
+        "oracle_check": 0.249,
+        "hook_responses": 0.087,
+        "final_render": 0.012,
+        "final_check": 1.138,
+        "diagnostic_mapping": 0.013,
+        "source_maps": 0.016
+      }
+    }
+  ],
+  "project_check_source_sha256": "e5eee51a104bf212b341b1425c4b82b5bd41537ddba2033b7efcd734706012a6",
+  "fresh_initialization": {
+    "source": "0f12b39cba4cc8d7d1609df13e05981def0c638c",
+    "green": {
+      "forced_collision_test": "checker::tests::disk_projection_invalidates_closed_imports_and_inventory",
+      "external_source_test": "checker::tests::disk_revisions_preserve_external_sources",
+      "initial_open_and_closed_import_test": "checker::tests::initial_disk_projection_invalidates_open_and_closed_imports",
+      "repeated": {
+        "passed": true,
+        "runs": [
+          {
+            "version": "0.0.84",
+            "iteration": 0,
+            "tests": 3,
+            "passed": true
+          },
+          {
+            "version": "0.0.84",
+            "iteration": 1,
+            "tests": 3,
+            "passed": true
+          },
+          {
+            "version": "0.0.84",
+            "iteration": 2,
+            "tests": 3,
+            "passed": true
+          },
+          {
+            "version": "0.0.84",
+            "iteration": 3,
+            "tests": 3,
+            "passed": true
+          },
+          {
+            "version": "0.0.84",
+            "iteration": 4,
+            "tests": 3,
+            "passed": true
+          },
+          {
+            "version": "0.0.84",
+            "iteration": 5,
+            "tests": 3,
+            "passed": true
+          },
+          {
+            "version": "0.0.84",
+            "iteration": 6,
+            "tests": 3,
+            "passed": true
+          },
+          {
+            "version": "0.0.84",
+            "iteration": 7,
+            "tests": 3,
+            "passed": true
+          },
+          {
+            "version": "0.0.84",
+            "iteration": 8,
+            "tests": 3,
+            "passed": true
+          },
+          {
+            "version": "0.0.84",
+            "iteration": 9,
+            "tests": 3,
+            "passed": true
+          },
+          {
+            "version": "0.0.84",
+            "iteration": 10,
+            "tests": 3,
+            "passed": true
+          },
+          {
+            "version": "0.0.84",
+            "iteration": 11,
+            "tests": 3,
+            "passed": true
+          },
+          {
+            "version": "0.0.84",
+            "iteration": 12,
+            "tests": 3,
+            "passed": true
+          },
+          {
+            "version": "0.0.84",
+            "iteration": 13,
+            "tests": 3,
+            "passed": true
+          },
+          {
+            "version": "0.0.84",
+            "iteration": 14,
+            "tests": 3,
+            "passed": true
+          },
+          {
+            "version": "0.0.84",
+            "iteration": 15,
+            "tests": 3,
+            "passed": true
+          },
+          {
+            "version": "0.0.84",
+            "iteration": 16,
+            "tests": 3,
+            "passed": true
+          },
+          {
+            "version": "0.0.84",
+            "iteration": 17,
+            "tests": 3,
+            "passed": true
+          },
+          {
+            "version": "0.0.84",
+            "iteration": 18,
+            "tests": 3,
+            "passed": true
+          },
+          {
+            "version": "0.0.84",
+            "iteration": 19,
+            "tests": 3,
+            "passed": true
+          },
+          {
+            "version": "0.0.99",
+            "iteration": 0,
+            "tests": 3,
+            "passed": true
+          },
+          {
+            "version": "0.0.99",
+            "iteration": 1,
+            "tests": 3,
+            "passed": true
+          },
+          {
+            "version": "0.0.99",
+            "iteration": 2,
+            "tests": 3,
+            "passed": true
+          },
+          {
+            "version": "0.0.99",
+            "iteration": 3,
+            "tests": 3,
+            "passed": true
+          },
+          {
+            "version": "0.0.99",
+            "iteration": 4,
+            "tests": 3,
+            "passed": true
+          },
+          {
+            "version": "0.0.99",
+            "iteration": 5,
+            "tests": 3,
+            "passed": true
+          },
+          {
+            "version": "0.0.99",
+            "iteration": 6,
+            "tests": 3,
+            "passed": true
+          },
+          {
+            "version": "0.0.99",
+            "iteration": 7,
+            "tests": 3,
+            "passed": true
+          },
+          {
+            "version": "0.0.99",
+            "iteration": 8,
+            "tests": 3,
+            "passed": true
+          },
+          {
+            "version": "0.0.99",
+            "iteration": 9,
+            "tests": 3,
+            "passed": true
+          },
+          {
+            "version": "0.0.99",
+            "iteration": 10,
+            "tests": 3,
+            "passed": true
+          },
+          {
+            "version": "0.0.99",
+            "iteration": 11,
+            "tests": 3,
+            "passed": true
+          },
+          {
+            "version": "0.0.99",
+            "iteration": 12,
+            "tests": 3,
+            "passed": true
+          },
+          {
+            "version": "0.0.99",
+            "iteration": 13,
+            "tests": 3,
+            "passed": true
+          },
+          {
+            "version": "0.0.99",
+            "iteration": 14,
+            "tests": 3,
+            "passed": true
+          },
+          {
+            "version": "0.0.99",
+            "iteration": 15,
+            "tests": 3,
+            "passed": true
+          },
+          {
+            "version": "0.0.99",
+            "iteration": 16,
+            "tests": 3,
+            "passed": true
+          },
+          {
+            "version": "0.0.99",
+            "iteration": 17,
+            "tests": 3,
+            "passed": true
+          },
+          {
+            "version": "0.0.99",
+            "iteration": 18,
+            "tests": 3,
+            "passed": true
+          },
+          {
+            "version": "0.0.99",
+            "iteration": 19,
+            "tests": 3,
+            "passed": true
+          }
+        ],
+        "test_binary_sha256": "608356e658454634b49da82db9396b80193a72658d4ec42e7f6905415afa2f23"
+      },
+      "regular_units": 205,
+      "live_units": 3,
+      "integration_units": 7,
+      "strict_clippy": true,
+      "logs": {
+        "projection-revision3-units.log": "8eb93526957365f06e7f1540f0fa177ef6a0061e2cbb6038e60f69b5db535b11",
+        "projection-revision3-live-units.log": "3da12956a8b975c41cb57e97a413f3ef67c04becf96efe075c896cf028421e2b",
+        "projection-revision3-clippy.log": "dd0fa9051fba8ffcfa7e388382be14f44f339fe19ffac0ec70558a6de0024830",
+        "projection-revision3-clean.log": "3c88021e2be6402fcce13bae180ef44d6302c0bee233e1f5add00891de775fc5"
+      },
+      "initial_state_modes": [
+        "general existing checker",
+        "fresh checker with completed disk projection"
+      ]
+    },
+    "performance": {
+      "passed": true,
+      "complete": true,
+      "scope": "Corrected optimized local companion 0.89.0 with final Django 0.7 candidate wheel; five rotated fresh-process samples per workload.",
+      "runs": [
+        {
+          "name": "stress",
+          "exit": 0,
+          "passed": true,
+          "performance_target_met": true,
+          "median_seconds": {
+            "companion": 6.8048825829755515,
+            "bare-ty": 0.2836580000584945,
+            "mypy": 6.930683417012915
+          },
+          "report_sha256": "70306de5f674dc08a8e9c49fb37b53f900b541c3f2ccf54bd816af19bd792ba6",
+          "project_archive_sha256": "65e6f118806b8c303a8a2a38f3e56e3da3acba06eb92760ebcffed48c101d45b"
+        },
+        {
+          "name": "small",
+          "exit": 0,
+          "passed": true,
+          "performance_target_met": true,
+          "median_seconds": {
+            "companion": 0.5485856659943238,
+            "bare-ty": 0.06468720897100866,
+            "mypy": 1.635605457937345
+          },
+          "report_sha256": "6ed53810299551d20639437b13f26ecadac98dd145722afd67335c05a3452f48",
+          "project_archive_sha256": "ad97b892a8755293cdc3c30b4f3f208c6932fa771250792f93fbbb01e6b0ff44"
+        },
+        {
+          "name": "distributed",
+          "exit": 0,
+          "passed": true,
+          "performance_target_met": true,
+          "median_seconds": {
+            "companion": 1.311750708031468,
+            "bare-ty": 0.09175925003364682,
+            "mypy": 2.2498290829826146
+          },
+          "report_sha256": "ffca6bc0a04875492b1e8af8cbd7424b54e4de0651a5ec52220db6ddb6a63965",
+          "project_archive_sha256": "6a7f2e5252b916beccc71e700928812f47889ebd56aea9acfbb5ae2bf3dca745"
+        },
+        {
+          "name": "many-files",
+          "exit": 0,
+          "passed": true,
+          "performance_target_met": true,
+          "median_seconds": {
+            "companion": 3.8207987500354648,
+            "bare-ty": 0.18203591695055366,
+            "mypy": 4.603276667068712
+          },
+          "report_sha256": "3669880516d8afdb931d16262bc6fb795025b5a5b49b239dbc721d04fffbd494",
+          "project_archive_sha256": "193102eeb7649257f42ebb7c3ae10cdfeeb01a9b5a2556ef33971c70f3400ace"
+        },
+        {
+          "name": "split-models",
+          "exit": 0,
+          "passed": true,
+          "performance_target_met": true,
+          "median_seconds": {
+            "companion": 6.16738770797383,
+            "bare-ty": 0.20192216604482383,
+            "mypy": 6.695478082983755
+          },
+          "report_sha256": "3be4dbb0fd5b7a44b91eb2f13c241d51db8eda57932c4002067bdd35c391d1f3",
+          "project_archive_sha256": "f8aea757bdaa5d21fe91d17f93a0627febbb0668f79fc1676adf9e96650c7058"
+        }
+      ]
+    }
+  },
+  "windows_path_followup": {
+    "source": "a235af9feaf5500c3be0e6d89453f10a7eeedf5c",
+    "ci_run": "https://github.com/regularkevvv/ty-extended/actions/runs/42417844209",
+    "failed_gate": "lsp_configuration",
+    "message": "disk projection outside generated workspace",
+    "cause": "Editor workspace roots use ordinary Windows paths while discovered generated sources use canonical verbatim paths. Raw starts_with rejected equivalent drive prefixes.",
+    "ci_report_sha256": "394e7063c3ec8b2a7cb12d9f0e9e46638667a7e6968cc31bdb848b132fec3c5c",
+    "failed_log_sha256": "c117cc06b81b5d6c660832f2babad289f2e9c9a8a9d59a78f34923460650510f",
+    "other_windows_gates_passed": 30,
+    "correction": "Compare drive and UNC prefix identity without rewriting actual paths; retain component boundaries and reject other drives, shares, siblings and ancestors. The existing live projection lifecycle test now exercises ordinary roots with canonical sources.",
+    "verification": "Final-source Linux, macOS and Windows CI passed, including the Windows prefix regression and full editor configuration gate.",
+    "local_validation": {
+      "passed": true,
+      "rust_unit_tests": 208,
+      "rust_integration_units": 7,
+      "repeated_revision_tests": 18,
+      "clippy": "all targets; warnings denied",
+      "windows_prefix_test": "Windows CI only; covers drive and UNC spellings, required verbatim names, and rejected siblings, ancestors, drives and shares.",
+      "logs_sha256": {
+        "projection-revision5-units.log": "9cf2f55f9632070ab892e9018d949946914e52648449ec1cf18bc85375aefdcb",
+        "projection-revision5-live-units.log": "8bcdd9c5119da5e5391d4af0e715934bebcadc91a5f7c4442affcaf5ccce0a6f",
+        "projection-revision5-clippy.log": "8b98f837d3ea7ba791df82df6653d9b4ec82ed213d088bd63a3047a29b1a69eb",
+        "projection-revision5-hooks.log": "8ec8b757831f3edcc30db16c8626fceb647962ccb242f076f1f8f721a774030b",
+        "projection-revision5-clean.log": "3c88021e2be6402fcce13bae180ef44d6302c0bee233e1f5add00891de775fc5"
+      }
+    },
+    "final_verification": {
+      "source": "77b2fea050738a385f1748b7772f08ccd4886b67",
+      "pull_request": "https://github.com/regularkevvv/ty-extended/pull/47",
+      "platform_reports_sha256": {
+        "ubuntu-latest": "2ee3e4e39f28c523713442d6b3fd619152a6b0ea4384854b7a1f3e525cec43ce",
+        "macos-latest": "6d0dbf4fce6a50e0318dbd3abd619c75c73ca6754a6b37a9fd1b00532ba33f0d",
+        "windows-latest": "b27d2a1edca1615bce053587485daf6670e3ee2f787728c0b539dcd5c864eb90"
+      },
+      "windows_units_log_sha256": "fdcd931eab0fb9e5f89290abc47115baeffb186ce7565dc8d9ff015dfa52a263",
+      "checker_version_sweep_sha256": "e5e8e75451e541a77ead3a5436b08642dcbf9e07f0ea3d163c92922b65835186",
+      "performance_summary_sha256": "7237ce8d69b154cfab8c3b25b643d24e8a79ed9e94915c8394da7bb073d731de",
+      "ci_wheel_qualification_sha256": "d640f0e78c1fc742449da369c38b9b1e53624613e8fce63bf4dc06e55cd2cfde"
+    }
+  }
+}
