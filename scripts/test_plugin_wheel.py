@@ -25,7 +25,7 @@ def main() -> None:
     official = Path(find_ty_bin()).resolve()
     assert binary != official, (binary, official)
     version = importlib.metadata.version("ty-extended")
-    assert plugin_sdk.PROTOCOL_VERSION == {"major": 0, "minor": 8}
+    assert plugin_sdk.PROTOCOL_VERSION == {"major": 0, "minor": 9}
     assert (
         subprocess.check_output([str(binary), "--version"], text=True).strip()
         == f"ty-extended {version}"
