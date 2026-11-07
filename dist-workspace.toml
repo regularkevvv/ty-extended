@@ -53,7 +53,7 @@ build-local-artifacts = false
 # Local artifacts jobs to run in CI
 local-artifacts-jobs = ["./build-binaries"]
 # Publish jobs to run in CI
-publish-jobs = ["./publish-pypi"]
+publish-jobs = ["./publish-pypi", "./publish-sdk-crates"]
 # Post-announce jobs to run in CI
 post-announce-jobs = []
 # Custom permissions for GitHub Jobs

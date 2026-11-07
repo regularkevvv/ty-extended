@@ -2253,6 +2253,14 @@ impl Session {
             if !dirty.contains(name)
                 && let Some(mut cached) = previous.remove(&path)
             {
+                // Import/function preflights temporarily write original source.
+                // Closed dependencies must regain their cached projection before
+                // the checker reads them through a dirty importing module.
+                if path.starts_with(&out)
+                    && let Some(rendered) = &cached.rendered
+                {
+                    write(&path, &rendered.text)?;
+                }
                 cached.selected = selected.contains(Path::new(&module.source.path));
                 cached.dirty = false;
                 units.insert(path, cached);
@@ -4270,11 +4278,11 @@ mod tests {
         )?;
         write(
             &root.join("consumer.py"),
-            "import middle as bridge\ntyped: int = bridge.alias\n",
+            "import middle as bridge\nfrom demo import item\ntyped: int = bridge.alias\nlabel: str = item.label\n",
         )?;
         write(
             &root.join("demo.py"),
-            "class Resource: pass\nitem = Resource()\nlabel: str = item.label\n",
+            "class Resource: pass\nitem = Resource()\nlabel: str = item.label\ndef trigger_index_preflight() -> None: pass\n",
         )?;
         let plugin = directory.join("plugin.py");
         write(
@@ -4347,13 +4355,12 @@ mod tests {
         let fallback = session.check(&failing)?;
         assert_eq!(
             fallback["diagnostics"].as_array().unwrap().len(),
-            1,
+            2,
             "{fallback:#}"
         );
-        assert_eq!(
-            fallback["diagnostics"][0]["check_name"],
-            "unresolved-attribute"
-        );
+        for diagnostic in fallback["diagnostics"].as_array().unwrap() {
+            assert_eq!(diagnostic["check_name"], "unresolved-attribute");
+        }
         assert_eq!(
             session.check(&failing)?["diagnostics"],
             fallback["diagnostics"],

@@ -127,5 +127,5 @@
     }
   },
   "host-condition": "${{ always() && needs.plan.result == 'success' && needs.plan.outputs.publishing == 'true' && needs.generate-checksum-manifest.result == 'success' && (needs.build-global-artifacts.result == 'skipped' || needs.build-global-artifacts.result == 'success') && (needs.custom-build-binaries.result == 'skipped' || needs.custom-build-binaries.result == 'success') && needs.release-gate.result == 'success' }}",
-  "announce-condition": "${{ always() && needs.host.result == 'success' && needs.release-gate.result == 'success' && (needs.custom-publish-pypi.result == 'skipped' || needs.custom-publish-pypi.result == 'success') }}"
+  "announce-condition": "${{ always() && needs.host.result == 'success' && needs.release-gate.result == 'success' && (needs.custom-publish-pypi.result == 'skipped' || needs.custom-publish-pypi.result == 'success') && (needs.custom-publish-sdk-crates.result == 'skipped' || needs.custom-publish-sdk-crates.result == 'success') }}"
 }
