@@ -202,6 +202,44 @@ fn set_disk_modified(path: &Path, modified: SystemTime) -> Result<()> {
     Ok(())
 }
 
+/// Canonical Windows paths use verbatim prefixes, while editor workspace roots
+/// can use their ordinary spelling. Compare those prefix identities without
+/// rewriting filesystem paths, including names that require verbatim semantics.
+fn projection_contains(root: &Path, path: &Path) -> bool {
+    #[cfg(windows)]
+    {
+        use std::path::{Component, Prefix};
+        let mut components = path.components();
+        root.components().all(|root| {
+            let Some(path) = components.next() else {
+                return false;
+            };
+            match (root, path) {
+                (Component::Prefix(root), Component::Prefix(path)) => {
+                    match (root.kind(), path.kind()) {
+                        (
+                            Prefix::Disk(root) | Prefix::VerbatimDisk(root),
+                            Prefix::Disk(path) | Prefix::VerbatimDisk(path),
+                        ) => root == path,
+                        (
+                            Prefix::UNC(root_server, root_share)
+                            | Prefix::VerbatimUNC(root_server, root_share),
+                            Prefix::UNC(path_server, path_share)
+                            | Prefix::VerbatimUNC(path_server, path_share),
+                        ) => root_server == path_server && root_share == path_share,
+                        _ => root == path,
+                    }
+                }
+                _ => root == path,
+            }
+        })
+    }
+    #[cfg(not(windows))]
+    {
+        path.starts_with(root)
+    }
+}
+
 impl ProjectChecker {
     /// Start a checker after every ordinary projection source has been written.
     /// Its initial database already sees those bytes, so no watched-file events
@@ -218,7 +256,7 @@ impl ProjectChecker {
         let mut directories = BTreeSet::new();
         for (path, source) in sources {
             ensure!(
-                path.starts_with(root),
+                projection_contains(root, path),
                 "disk projection outside generated workspace: {}",
                 path.display()
             );
@@ -232,7 +270,7 @@ impl ProjectChecker {
             directories.extend(
                 path.ancestors()
                     .skip(1)
-                    .take_while(|parent| parent.starts_with(root))
+                    .take_while(|parent| projection_contains(root, parent))
                     .map(Path::to_owned),
             );
         }
@@ -615,7 +653,7 @@ impl ProjectChecker {
                     *revision
                 } else {
                     ensure!(
-                        path.starts_with(&self.projection_root),
+                        projection_contains(&self.projection_root, path),
                         "disk projection outside generated workspace: {}",
                         path.display()
                     );
@@ -674,7 +712,7 @@ impl ProjectChecker {
             directories.extend(
                 path.ancestors()
                     .skip(1)
-                    .take_while(|parent| parent.starts_with(&self.projection_root))
+                    .take_while(|parent| projection_contains(&self.projection_root, parent))
                     .map(Path::to_owned),
             );
         }
@@ -1443,6 +1481,46 @@ mod tests {
     }
 
     #[test]
+    #[cfg(windows)]
+    fn projection_boundary_accepts_equivalent_windows_prefixes() {
+        for roots in [
+            [r"C:\analysis", r"\\?\C:\analysis"],
+            [r"\\server\share\analysis", r"\\?\UNC\server\share\analysis"],
+        ] {
+            for root in roots {
+                for spelling in roots {
+                    let root = Path::new(root);
+                    let path = Path::new(spelling).join("project/main.py");
+                    assert!(projection_contains(root, &path), "{root:?} {path:?}");
+                    assert_eq!(
+                        path.ancestors()
+                            .skip(1)
+                            .take_while(|parent| projection_contains(root, parent))
+                            .count(),
+                        2
+                    );
+                    assert!(!projection_contains(root, &root.with_extension("outside")));
+                    assert!(!projection_contains(root, root.parent().unwrap()));
+                }
+            }
+        }
+        // The boundary comparison must not simplify actual filesystem paths:
+        // this filename requires its verbatim spelling on Windows.
+        assert!(projection_contains(
+            Path::new(r"C:\analysis"),
+            Path::new(r"\\?\C:\analysis\aux.py")
+        ));
+        assert!(!projection_contains(
+            Path::new(r"C:\analysis"),
+            Path::new(r"\\?\D:\analysis\main.py")
+        ));
+        assert!(!projection_contains(
+            Path::new(r"\\server\share\analysis"),
+            Path::new(r"\\?\UNC\server\other\analysis\main.py")
+        ));
+    }
+
+    #[test]
     fn disk_projection_invalidates_closed_imports_and_inventory() -> Result<()> {
         let binary = std::env::var("TY_COMPANION_TEST_OFFICIAL")?;
         for initialized in [false, true] {
@@ -1457,6 +1535,11 @@ mod tests {
             std::process::id()
         ));
         fs::create_dir_all(&root)?;
+        let root = root.canonicalize()?;
+        // Editors can provide an ordinary Windows workspace root while source
+        // discovery returns canonical verbatim paths. Exercise both constructors
+        // and every later file/directory revision with those different spellings.
+        let workspace = native_cli_path(&root).to_owned();
         let config = root.join("ty.toml");
         fs::write(&config, "[environment]\npython-version = '3.13'\n")?;
         let peer = root.join("peer.py");
@@ -1473,9 +1556,14 @@ mod tests {
         }
         let initial_revision = peer.metadata()?.modified()?;
         let mut server = if initialized {
-            ProjectChecker::new_with_disk_projection(Path::new(binary), &root, &config, &sources)?
+            ProjectChecker::new_with_disk_projection(
+                Path::new(binary),
+                &workspace,
+                &config,
+                &sources,
+            )?
         } else {
-            ProjectChecker::new(Path::new(binary), &root, &config)?
+            ProjectChecker::new(Path::new(binary), &workspace, &config)?
         };
         let initial = server.check_files(&sources, std::slice::from_ref(&consumer))?;
         assert_eq!(initial.len(), 1, "{initial:#?}");

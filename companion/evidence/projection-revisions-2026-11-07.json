@@ -1369,5 +1369,32 @@
         }
       ]
     }
+  },
+  "windows_path_followup": {
+    "source": "a235af9feaf5500c3be0e6d89453f10a7eeedf5c",
+    "ci_run": "https://github.com/regularkevvv/ty-extended/actions/runs/42417844209",
+    "failed_gate": "lsp_configuration",
+    "message": "disk projection outside generated workspace",
+    "cause": "Editor workspace roots use ordinary Windows paths while discovered generated sources use canonical verbatim paths. Raw starts_with rejected equivalent drive prefixes.",
+    "ci_report_sha256": "394e7063c3ec8b2a7cb12d9f0e9e46638667a7e6968cc31bdb848b132fec3c5c",
+    "failed_log_sha256": "c117cc06b81b5d6c660832f2babad289f2e9c9a8a9d59a78f34923460650510f",
+    "other_windows_gates_passed": 30,
+    "correction": "Compare drive and UNC prefix identity without rewriting actual paths; retain component boundaries and reject other drives, shares, siblings and ancestors. The existing live projection lifecycle test now exercises ordinary roots with canonical sources.",
+    "verification": "Local tests, repeated endpoint regressions, Clippy and repository checks passed. Windows CI is required before merge or release.",
+    "local_validation": {
+      "passed": true,
+      "rust_unit_tests": 208,
+      "rust_integration_units": 7,
+      "repeated_revision_tests": 18,
+      "clippy": "all targets; warnings denied",
+      "windows_prefix_test": "Windows CI only; covers drive and UNC spellings, required verbatim names, and rejected siblings, ancestors, drives and shares.",
+      "logs_sha256": {
+        "projection-revision5-units.log": "9cf2f55f9632070ab892e9018d949946914e52648449ec1cf18bc85375aefdcb",
+        "projection-revision5-live-units.log": "8bcdd9c5119da5e5391d4af0e715934bebcadc91a5f7c4442affcaf5ccce0a6f",
+        "projection-revision5-clippy.log": "8b98f837d3ea7ba791df82df6653d9b4ec82ed213d088bd63a3047a29b1a69eb",
+        "projection-revision5-hooks.log": "8ec8b757831f3edcc30db16c8626fceb647962ccb242f076f1f8f721a774030b",
+        "projection-revision5-clean.log": "3c88021e2be6402fcce13bae180ef44d6302c0bee233e1f5add00891de775fc5"
+      }
+    }
   }
 }

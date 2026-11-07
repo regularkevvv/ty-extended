@@ -24,6 +24,9 @@ checker process and preserve original external source bytes and modification tim
 Fresh checkers record the completed projection without sending initial file-change
 events. Revision tracking also covers restored underlying files when a projection
 is removed and later reinstated.
+On Windows, generated-workspace boundaries compare ordinary and canonical
+verbatim drive or network-share prefixes without rewriting filesystem paths.
+The lifecycle regression uses those mixed spellings for both checker constructors.
 The final published binary receives separate compatibility and performance checks.
 
 Django-ty 0.7 passes its 166-assertion and 83-runtime-contract CLI corpus across
