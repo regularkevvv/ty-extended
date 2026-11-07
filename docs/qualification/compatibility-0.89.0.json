@@ -6714,5 +6714,15 @@
   "expectation_corrections": {
     "description": "Before the complete sweep, update two tests for the protocol 0.9 version string and the new class-batch response variant. No diagnostic source location or severity is relaxed. Preserve the interrupted pre-correction run.",
     "interrupted_archive_sha256": "c60e54295e7d8d53741e1f857ca3b546d5949ca6232e002e196311073c35125d"
+  },
+  "sdk_documentation_followup": {
+    "base": "b9ef8eaa32b1f1703e370e9ec54de6a3a3f059bb",
+    "source": "7014a751a69f00d359f21fb9be6df67fb4dde4dc",
+    "changed_files": [
+      "crates/ty_plugin_protocol/README.md",
+      "crates/ty_plugin_sdk/README.md"
+    ],
+    "diff_sha256": "7be5d06ee885d6f7f2f7c05188e0aa2b35c54e5829ef055f536028a0299ab1ae",
+    "scope": "Replace obsolete WASM packaging instructions with Monty companion guidance. Runtime source and Python SDK are unchanged; the final source also receives hosted CI."
   }
 }
