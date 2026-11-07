@@ -1,0 +1,252 @@
+{
+  "schema_version": 1,
+  "version": "0.87.0",
+  "publication_commit": "d7b8a5080cbc33f9ff33d8e12cbd23cb9e538e1d",
+  "release": "https://github.com/regularkevvv/ty-extended/releases/tag/v0.87.0",
+  "published_artifacts": {
+    "complete": true,
+    "passed": true,
+    "version": "0.87.0",
+    "source_commit": "d7b8a5080cbc33f9ff33d8e12cbd23cb9e538e1d",
+    "artifacts": [
+      {
+        "target": "aarch64-apple-darwin",
+        "wheel": "ty_extended-0.87.0-py3-none-macosx_11_0_arm64.whl",
+        "wheel_sha256": "600d3a75a4e3a9d840d82dea8bc49dbc4d860742efc3ccfa59e1d5dd95a836d7",
+        "archive": "ty-extended-aarch64-apple-darwin.tar.gz",
+        "archive_sha256": "2cfdd0b4504101042e4cbdbf2ac521a35f1753ec9914af9b8b9b5f3a275c1561",
+        "executable_sha256": "60e54546513e253a712f797fa2cb12660b3bad3637c25547c856718b7dab2c62",
+        "sdk_source_matches": true,
+        "wheel_record_verified": true,
+        "native_payload_matches": true,
+        "provenance_verified": true
+      },
+      {
+        "target": "x86_64-apple-darwin",
+        "wheel": "ty_extended-0.87.0-py3-none-macosx_10_12_x86_64.whl",
+        "wheel_sha256": "4c460614cc7098607450dc529c95af3b3789a8fef8383af650c218fe28ae30b4",
+        "archive": "ty-extended-x86_64-apple-darwin.tar.gz",
+        "archive_sha256": "5a0044dba12b49bf7c03fe780e703a0c8ec1eb2917f017a7c7226c60a153f60b",
+        "executable_sha256": "b095d6c9fdfc7236ba2619d62dac784ff7d9c5b57f42103d3020d0d6292d7993",
+        "sdk_source_matches": true,
+        "wheel_record_verified": true,
+        "native_payload_matches": true,
+        "provenance_verified": true
+      },
+      {
+        "target": "aarch64-unknown-linux-gnu",
+        "wheel": "ty_extended-0.87.0-py3-none-manylinux2014_aarch64.manylinux_2_17_aarch64.whl",
+        "wheel_sha256": "c06b9ddc3f9f56582ed5014678e7b9a28b6be73696fafe24e72a09785b41049b",
+        "archive": "ty-extended-aarch64-unknown-linux-gnu.tar.gz",
+        "archive_sha256": "5c6439290bad2f48ca7f4408933b8232bd0b48c35b64ceebc5de17739d7cdf70",
+        "executable_sha256": "cd398210ecc59ca67376101c78b45c1f35a50bcfb78aebfd6ef2122685f98613",
+        "sdk_source_matches": true,
+        "wheel_record_verified": true,
+        "native_payload_matches": true,
+        "provenance_verified": true
+      },
+      {
+        "target": "x86_64-unknown-linux-gnu",
+        "wheel": "ty_extended-0.87.0-py3-none-manylinux2014_x86_64.manylinux_2_17_x86_64.whl",
+        "wheel_sha256": "a5bc7323837eacf199e6d36616f79e538c74e50ffc78137d6b7996b7b994629f",
+        "archive": "ty-extended-x86_64-unknown-linux-gnu.tar.gz",
+        "archive_sha256": "69c18a86886c9a31dcd61a1d24f7720b44d26b4a1e976d0b623b3d3aa55a936e",
+        "executable_sha256": "996121b7d5bacf8ae9559a82e59d657e73f866cd85f963824a1b9a7578729954",
+        "sdk_source_matches": true,
+        "wheel_record_verified": true,
+        "native_payload_matches": true,
+        "provenance_verified": true
+      },
+      {
+        "target": "aarch64-unknown-linux-musl",
+        "wheel": "ty_extended-0.87.0-py3-none-musllinux_1_2_aarch64.whl",
+        "wheel_sha256": "7d654161fdb12a89169e797ac40da93bba558b8f66fe8156ac8d7253aa363a8a",
+        "archive": "ty-extended-aarch64-unknown-linux-musl.tar.gz",
+        "archive_sha256": "26d249541a03c71bc7b16438eeb7f7bb6815cb3bf412f6999092651f34b189e1",
+        "executable_sha256": "dfdc84674977de5c1798b52d3a866016c9a075fc594e6c89903e381aefa16eda",
+        "sdk_source_matches": true,
+        "wheel_record_verified": true,
+        "native_payload_matches": true,
+        "provenance_verified": true
+      },
+      {
+        "target": "x86_64-unknown-linux-musl",
+        "wheel": "ty_extended-0.87.0-py3-none-musllinux_1_2_x86_64.whl",
+        "wheel_sha256": "5a4324085969d1790260514752b9f08cc0433ae853e9fc9d45158a934434e19c",
+        "archive": "ty-extended-x86_64-unknown-linux-musl.tar.gz",
+        "archive_sha256": "d7b6a6129c97f50c6eb294c7c4078b472547ca83de9d4b7b9090acfcf7810c0b",
+        "executable_sha256": "17f0cdfe51d67f840576865f962fce8440c71b6b9ea2281609568bee04888cb7",
+        "sdk_source_matches": true,
+        "wheel_record_verified": true,
+        "native_payload_matches": true,
+        "provenance_verified": true
+      },
+      {
+        "target": "aarch64-pc-windows-msvc",
+        "wheel": "ty_extended-0.87.0-py3-none-win_arm64.whl",
+        "wheel_sha256": "dd3c151d153308be0e0e2fec97674f331f31f464347c167004b74346d6b43b3b",
+        "archive": "ty-extended-aarch64-pc-windows-msvc.zip",
+        "archive_sha256": "0923b271bacac5664ff4c86db6395d95d713b368e113a7fc9f885404ac75f9fa",
+        "executable_sha256": "87c904f92859fbeed8249abf43b2b76dbfae49670cdcf3ffbe19b54db3ec5847",
+        "sdk_source_matches": true,
+        "wheel_record_verified": true,
+        "native_payload_matches": true,
+        "provenance_verified": true
+      },
+      {
+        "target": "x86_64-pc-windows-msvc",
+        "wheel": "ty_extended-0.87.0-py3-none-win_amd64.whl",
+        "wheel_sha256": "9da7e0d205aadb950c16ac69f640f553e706904fc1db4382d48d6233b3660986",
+        "archive": "ty-extended-x86_64-pc-windows-msvc.zip",
+        "archive_sha256": "28255418b309b9eec83e2151a8625727e45d930c3319f4c4280595fb5dddec1a",
+        "executable_sha256": "b0e9f6d2a0531ba62bddf7f7c73da0123ba90f4de6e6b4db176bee06734daa82",
+        "sdk_source_matches": true,
+        "wheel_record_verified": true,
+        "native_payload_matches": true,
+        "provenance_verified": true
+      }
+    ],
+    "sdist": {
+      "filename": "ty_extended-0.87.0.tar.gz",
+      "sha256": "920f878b17eb21ebd6a8783850ecee4210ae3a101a9c5f2ff91763aa7dc4c648",
+      "lockfile_backend_schema_license_match": true
+    }
+  },
+  "installed_package": {
+    "passed": true,
+    "source_commit": "d7b8a5080cbc33f9ff33d8e12cbd23cb9e538e1d",
+    "binary_sha256": "60e54546513e253a712f797fa2cb12660b3bad3637c25547c856718b7dab2c62",
+    "matches_qualified_288_gate_binary": true,
+    "checks": "PyPI installed SDK, official ty coexistence, module launcher, CLI positive and negative controls, embedded Monty without worker, LSP diagnostics and hover"
+  },
+  "minimum_python_versions": {
+    "passed": true,
+    "runs": [
+      {
+        "python": "Python 3.8.20",
+        "passed": true,
+        "binary_sha256": "60e54546513e253a712f797fa2cb12660b3bad3637c25547c856718b7dab2c62",
+        "checks": "Installed public SDK, module launcher, adjacent official checker, CLI positive and negative controls, source preservation, embedded Monty without worker, LSP diagnostics and hover"
+      },
+      {
+        "python": "Python 3.9.13",
+        "passed": true,
+        "binary_sha256": "60e54546513e253a712f797fa2cb12660b3bad3637c25547c856718b7dab2c62",
+        "checks": "Installed public SDK, module launcher, adjacent official checker, CLI positive and negative controls, source preservation, embedded Monty without worker, LSP diagnostics and hover"
+      }
+    ]
+  },
+  "native_installer": {
+    "passed": true,
+    "installer_sha256": "a5355eeb1466096e2735283d64ceba13a624ddc8d156f84a625f21276ef377ee",
+    "native_sha256": "60e54546513e253a712f797fa2cb12660b3bad3637c25547c856718b7dab2c62",
+    "matches_pypi_wheel": true,
+    "provenance_verified": true,
+    "checks": [
+      "task-owned install directory and receipt",
+      "no shell profile changes",
+      "empty PATH with explicit official checker",
+      "positive and negative typing controls",
+      "source preservation",
+      "real LSP session"
+    ]
+  },
+  "prepublication_cross_platform": {
+    "passed": true,
+    "source": "b542cccb448e13dfe371f3b761c33afa71a08887",
+    "run": "https://github.com/regularkevvv/ty-extended/actions/runs/42314601738",
+    "platforms": [
+      {
+        "platform": "linux",
+        "gates_passed": 36,
+        "failures": [],
+        "report_sha256": "ea541c118e8a4b9281ccbaf3e9e2fc30cf797632b4e806b04c7b662632670e92",
+        "binary_sha256": "0ba4622e9ca76b9d93a0c34cbd92b111b4bb27d8082916fa761b4cc9232d6477"
+      },
+      {
+        "platform": "macos",
+        "gates_passed": 31,
+        "failures": [],
+        "report_sha256": "51e9fd0e98886c56fd63940ae51a7cb81fcc6968b32e01a3ce805c17a378f5c1",
+        "binary_sha256": "90e93d688116f3c62ff507bedaf7e02957424b7562c77ef3600b471504634405"
+      },
+      {
+        "platform": "windows",
+        "gates_passed": 31,
+        "failures": [],
+        "report_sha256": "f5ed4a3a900983ced120e9325d441be73f6807b7844354fed6913e098356a4eb",
+        "binary_sha256": "d5c0f808df95ba0a169dd193453ba54ec2f8d34ce25c7d51b769e166878da414"
+      }
+    ]
+  },
+  "windows_repetitions": {
+    "passed": true,
+    "run": "https://github.com/regularkevvv/ty-extended/actions/runs/42314309004",
+    "source": "d83cccb",
+    "runs": [
+      {
+        "official_version": "0.0.84",
+        "complete_inventory_passes": 100,
+        "failures": 0,
+        "results_sha256": "87457aa2309d93d659795e98ff1a2c092a37bfd8225c653a4fc9a137b29278d9",
+        "binaries": {
+          "companion": "72619469250e6a2fe1dd8bdc6484ff53ef4ab7f7a187de82d74aa4a70c67227d",
+          "official": "191052d4af12a507e468307e94d6ad112507e3fde13f57116a6eb501317071ea",
+          "fork": "99b70123db931c005ec8bad14188840b74cc6f48fe02781fd4ffcdc022f7177c"
+        },
+        "probe_report_sha256": "9a0c11aa138a43ab4944c519019bde3040f1e2b0ec91a7c0d6056e0fb473a0c8"
+      },
+      {
+        "official_version": "0.0.99",
+        "complete_inventory_passes": 100,
+        "failures": 0,
+        "results_sha256": "87457aa2309d93d659795e98ff1a2c092a37bfd8225c653a4fc9a137b29278d9",
+        "binaries": {
+          "companion": "72619469250e6a2fe1dd8bdc6484ff53ef4ab7f7a187de82d74aa4a70c67227d",
+          "official": "68a68da441e903bb1330ba769fd47278d60fe12fb7fb9b00220b87a516ebb35b",
+          "fork": "99b70123db931c005ec8bad14188840b74cc6f48fe02781fd4ffcdc022f7177c"
+        },
+        "probe_report_sha256": "724959a98723383c182e60718f1e9455f92e2dfe3db6f700b97da3a9e4843adc"
+      }
+    ]
+  },
+  "main_and_release_ci": {
+    "release": {
+      "passed": true,
+      "run": "https://github.com/regularkevvv/ty-extended/actions/runs/42316837111",
+      "source_commit": "d7b8a5080cbc33f9ff33d8e12cbd23cb9e538e1d",
+      "passing_jobs": 16
+    },
+    "main_companion": {
+      "passed": true,
+      "run": "https://github.com/regularkevvv/ty-extended/actions/runs/42316731462",
+      "source_commit": "d7b8a5080cbc33f9ff33d8e12cbd23cb9e538e1d",
+      "passing_jobs": 3
+    },
+    "main_ci": {
+      "passed": true,
+      "run": "https://github.com/regularkevvv/ty-extended/actions/runs/42316731439",
+      "source_commit": "d7b8a5080cbc33f9ff33d8e12cbd23cb9e538e1d",
+      "passing_jobs": 5
+    }
+  },
+  "editor_launcher_source_review": {
+    "extension": "astral-sh.ty 2026.90.0",
+    "server_source": "https://github.com/astral-sh/ty-vscode/blob/2026.90.0/src/common/server.ts",
+    "server_source_sha256": "de33ca2b5db19f9ec2b2b1150c5ffff5009bdeea109d0cc96186e63d77d7df1c",
+    "observations": [
+      "ty.path overrides binary discovery in trusted workspaces",
+      "Version discovery parses the second whitespace-delimited token without requiring a ty name prefix",
+      "The extension starts the selected executable with the server subcommand",
+      "Version-gated initialization fields in this extension require ty versions older than the qualified 0.0.84 floor"
+    ],
+    "scope": "Source review plus real framed LSP qualification; an interactive VS Code session was not executed."
+  },
+  "scope": [
+    "The complete 16-version generic and Django checker sweeps ran on macOS; published executable equality ties them to this artifact.",
+    "Hosted compatibility gates ran on Linux, macOS and Windows against the latest official checker.",
+    "The Windows overlay inventory also passed 100 repetitions on each of the 0.0.84 and 0.0.99 endpoints.",
+    "Windows ARM64 artifacts were cross-built and statically inspected; native Windows ARM64 execution is not claimed.",
+    "Future upstream versions and unavailable private Django projects are outside the recorded qualification."
+  ]
+}
