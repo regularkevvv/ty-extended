@@ -1,0 +1,573 @@
+{
+  "schema_version": 1,
+  "version": "0.88.0",
+  "publication_commit": "e56ff381498509afab404e31020dccf5ad313be0",
+  "release": "https://github.com/regularkevvv/ty-extended/releases/tag/v0.88.0",
+  "published_artifacts": {
+    "complete": true,
+    "passed": true,
+    "version": "0.88.0",
+    "source_commit": "e56ff381498509afab404e31020dccf5ad313be0",
+    "artifacts": [
+      {
+        "target": "aarch64-apple-darwin",
+        "wheel": "ty_extended-0.88.0-py3-none-macosx_11_0_arm64.whl",
+        "wheel_sha256": "e85f0d5f8f8d8232a01ba607bb810f330e7993d9fc22216534c4459aec08664b",
+        "archive": "ty-extended-aarch64-apple-darwin.tar.gz",
+        "archive_sha256": "13fb85acdc1bcad8c26b9a40c456d580fe38ededcc1f23d176c9854fe2ed8de1",
+        "executable_sha256": "9049dc6c6287591528661569d31f48f52aa34542315e98a28cb5ee1569744341",
+        "sdk_source_matches": true,
+        "wheel_record_verified": true,
+        "native_payload_matches": true,
+        "provenance_verified": true
+      },
+      {
+        "target": "x86_64-apple-darwin",
+        "wheel": "ty_extended-0.88.0-py3-none-macosx_10_12_x86_64.whl",
+        "wheel_sha256": "6946c30c357d02e9603128e49d96ee2a61f4b4e1978ee16da5f8901c8f477c59",
+        "archive": "ty-extended-x86_64-apple-darwin.tar.gz",
+        "archive_sha256": "a6a1ca036913bc303d039ebad58fccdbeaeb1a426a1100dad779456ad333cfd9",
+        "executable_sha256": "b46ea2746d7a77584245738972c93c707dfdfb4178fac29c03e046065fbd8092",
+        "sdk_source_matches": true,
+        "wheel_record_verified": true,
+        "native_payload_matches": true,
+        "provenance_verified": true
+      },
+      {
+        "target": "aarch64-unknown-linux-gnu",
+        "wheel": "ty_extended-0.88.0-py3-none-manylinux2014_aarch64.manylinux_2_17_aarch64.whl",
+        "wheel_sha256": "396c370ad22183d82465ef72508e3fa4a74fad0c2a7488053633a27c8a693e94",
+        "archive": "ty-extended-aarch64-unknown-linux-gnu.tar.gz",
+        "archive_sha256": "1bbce7c371b298643f94e59d4f5b1e4ba9b40b2ee6d49bf7e85df500dfde7b38",
+        "executable_sha256": "9fc554fad521ffc3d2f99990b794e79bd3b5553a959a0ba3e75bd5338277b157",
+        "sdk_source_matches": true,
+        "wheel_record_verified": true,
+        "native_payload_matches": true,
+        "provenance_verified": true
+      },
+      {
+        "target": "x86_64-unknown-linux-gnu",
+        "wheel": "ty_extended-0.88.0-py3-none-manylinux2014_x86_64.manylinux_2_17_x86_64.whl",
+        "wheel_sha256": "1ce35959c44bf9dbea8edacb28c19659109db96f97b3b8e01ddd86fbb557992d",
+        "archive": "ty-extended-x86_64-unknown-linux-gnu.tar.gz",
+        "archive_sha256": "db9de0c7f1b95365022cd82418e1de6f404e450ea256f3073071ee613f8e7b0b",
+        "executable_sha256": "119d71d6099bcb54ecaa45ce5af3c29a34edbaac677ad0777d67c934383b998d",
+        "sdk_source_matches": true,
+        "wheel_record_verified": true,
+        "native_payload_matches": true,
+        "provenance_verified": true
+      },
+      {
+        "target": "aarch64-unknown-linux-musl",
+        "wheel": "ty_extended-0.88.0-py3-none-musllinux_1_2_aarch64.whl",
+        "wheel_sha256": "abe52804c11db2855cd0c2e19927c9d7aa942350d2bedfe14d5406bae4b37a2b",
+        "archive": "ty-extended-aarch64-unknown-linux-musl.tar.gz",
+        "archive_sha256": "0c783c13d26ef11a3b94a2e3a07116f19d0f7bbf21559ab9ab89ccd1bc49eff6",
+        "executable_sha256": "35496e04eda0a57dc5f00afed92cc22fbdd7a5103b022cb1245583c256dbd59c",
+        "sdk_source_matches": true,
+        "wheel_record_verified": true,
+        "native_payload_matches": true,
+        "provenance_verified": true
+      },
+      {
+        "target": "x86_64-unknown-linux-musl",
+        "wheel": "ty_extended-0.88.0-py3-none-musllinux_1_2_x86_64.whl",
+        "wheel_sha256": "2a762ff74a881c00afd121e942846239346c8f4f2ca12f5160b0e97f49677ad6",
+        "archive": "ty-extended-x86_64-unknown-linux-musl.tar.gz",
+        "archive_sha256": "c4916b09f5c40fefd5a3abf7e17f6e8eceadf8b0b4f0506e92858d99be052a91",
+        "executable_sha256": "3d87f328bd2f8dc9c4b2cdde5e3d44f44d2961bb982d53ef2e47de51e0ad704d",
+        "sdk_source_matches": true,
+        "wheel_record_verified": true,
+        "native_payload_matches": true,
+        "provenance_verified": true
+      },
+      {
+        "target": "aarch64-pc-windows-msvc",
+        "wheel": "ty_extended-0.88.0-py3-none-win_arm64.whl",
+        "wheel_sha256": "8ef2004e5c874a9f3b4cdae03f97dac3960425bc62be97b549a4d80322fb49e0",
+        "archive": "ty-extended-aarch64-pc-windows-msvc.zip",
+        "archive_sha256": "3eb11d1a84f2e769939b099bd45c5bbe4c8ac4101a5ff31b40f8cec2e0138992",
+        "executable_sha256": "d2bfeaf2ffbf0e3acfd156c77253ab71a68a4f794fcf645e008aa0a2f684b2bf",
+        "sdk_source_matches": true,
+        "wheel_record_verified": true,
+        "native_payload_matches": true,
+        "provenance_verified": true
+      },
+      {
+        "target": "x86_64-pc-windows-msvc",
+        "wheel": "ty_extended-0.88.0-py3-none-win_amd64.whl",
+        "wheel_sha256": "74c15c5f4eec55b654f27034b9066273e04ae61e029c57b7b3e4003a4f661aa6",
+        "archive": "ty-extended-x86_64-pc-windows-msvc.zip",
+        "archive_sha256": "392cc568868ee02ca0be639b77380ec554aa32871b6896f5181c4fa8e72627de",
+        "executable_sha256": "b78814d96d18765430430ad3d14144ca59d0c62b2a6f25de25ceda99a72423b8",
+        "sdk_source_matches": true,
+        "wheel_record_verified": true,
+        "native_payload_matches": true,
+        "provenance_verified": true
+      }
+    ],
+    "sdist": {
+      "filename": "ty_extended-0.88.0.tar.gz",
+      "sha256": "f4b5d0ed9743e9f96ba0ba37c1f54785a0cfdccd7cdfc06f43dd8321fc26feb9",
+      "lockfile_backend_schema_license_match": true
+    }
+  },
+  "published_sdk_crates": {
+    "passed": true,
+    "version": "0.0.10",
+    "crates": [
+      {
+        "name": "ty_plugin_protocol",
+        "sha256": "f760dfadc14c80705dd7f742d3d065bf69d2079f0d3c5e09e9a6ff6d4baac38e",
+        "source_files_verified": [
+          "src/lib.rs"
+        ],
+        "vcs": {
+          "git": {
+            "sha1": "55fc86cbeac3778734ddd23696192446cd6fea7b"
+          },
+          "path_in_vcs": "crates/ty_plugin_protocol"
+        }
+      },
+      {
+        "name": "ty_plugin_sdk",
+        "sha256": "d1465ea24cbe6a7bbffc570e722b67d2aec7eafb936f74b985569c97d3feef09",
+        "source_files_verified": [
+          "src/dsl.rs",
+          "src/lib.rs",
+          "src/manifest.rs",
+          "src/wasm.rs"
+        ],
+        "vcs": {
+          "git": {
+            "sha1": "55fc86cbeac3778734ddd23696192446cd6fea7b"
+          },
+          "path_in_vcs": "crates/ty_plugin_sdk"
+        }
+      }
+    ]
+  },
+  "installed_python_minimums": {
+    "passed": true,
+    "runs": [
+      {
+        "python": "Python 3.8.20",
+        "passed": true,
+        "binary_sha256": "9049dc6c6287591528661569d31f48f52aa34542315e98a28cb5ee1569744341"
+      },
+      {
+        "python": "Python 3.9.13",
+        "passed": true,
+        "binary_sha256": "9049dc6c6287591528661569d31f48f52aa34542315e98a28cb5ee1569744341"
+      }
+    ]
+  },
+  "native_installer": {
+    "passed": true,
+    "installer_sha256": "3052ef358fbb397fb71a88464f3c2952c1abdebdb9ce8463d1ff05eca8f980f7",
+    "native_sha256": "9049dc6c6287591528661569d31f48f52aa34542315e98a28cb5ee1569744341",
+    "matches_pypi_wheel": true,
+    "provenance_verified": true,
+    "checks": [
+      "task-owned install directory and receipt",
+      "no shell profile changes",
+      "empty PATH with explicit official checker",
+      "positive and negative typing controls",
+      "source preservation",
+      "real LSP session"
+    ]
+  },
+  "qualified_runtime_comparison": {
+    "passed": true,
+    "scope": "All bytes compared after normalizing the mimalloc __TIME__ string, Mach-O UUID and ad hoc code signature. Zero-fill sections are represented as zeroes, not file offsets.",
+    "compile_time_source": "libmimalloc-sys-0.1.49/c_src/mimalloc/v2/src/options.c:222",
+    "baseline": {
+      "sha256": "f327a7e553dd17e8fcbbed682d18f206835e4653561dc2553e7068a8bc39b156",
+      "size": 17266496,
+      "sections": [
+        {
+          "name": "__TEXT,__text",
+          "size": 12028060,
+          "zero_fill": false,
+          "sha256": "f6b341bbd887c7e18195968426065341ff4de44e4ebcb26a44ce6799599ec962"
+        },
+        {
+          "name": "__TEXT,__stubs",
+          "size": 2400,
+          "zero_fill": false,
+          "sha256": "f785d1e9740c556707b055cf3a2609171d7a29db0e5f173592431e7cb09e556c"
+        },
+        {
+          "name": "__TEXT,__stub_helper",
+          "size": 2424,
+          "zero_fill": false,
+          "sha256": "0185ff330203293ee57ccab952be2acc74ec2cbea4cdec9fbb09278e5c18fab1"
+        },
+        {
+          "name": "__TEXT,__gcc_except_tab",
+          "size": 471352,
+          "zero_fill": false,
+          "sha256": "e385db8f58739e6da4f236c46e5a0daf8eda54f4f646830309e864c14567988d"
+        },
+        {
+          "name": "__TEXT,__literals",
+          "size": 35196,
+          "zero_fill": false,
+          "sha256": "3f8e0b89d3c0953b52cd5768f6e117fe69cd48d18a6db7cda01d0f96cfe2e321"
+        },
+        {
+          "name": "__TEXT,__const",
+          "size": 2780896,
+          "zero_fill": false,
+          "sha256": "8fc47f9399f0b9b91624e8f0d9e449da82b436ad3926a00d278a3f513f8f5d5b"
+        },
+        {
+          "name": "__TEXT,__cstring",
+          "size": 98203,
+          "zero_fill": false,
+          "sha256": "35f46cc8e3d61aa7bc837236a1fda484de53e284a83afb1a6ab8877e6ff0355a"
+        },
+        {
+          "name": "__TEXT,__unwind_info",
+          "size": 172520,
+          "zero_fill": false,
+          "sha256": "a7c5bc248998df959ffaf319ca4ad99bf658c6ae02ef36938992a12ff2e53011"
+        },
+        {
+          "name": "__TEXT,__eh_frame",
+          "size": 1033016,
+          "zero_fill": false,
+          "sha256": "359ddaade4266a2423e894e0de705c2e352e9a8a8688223fce43826703672ecc"
+        },
+        {
+          "name": "__DATA_CONST,__got",
+          "size": 64,
+          "zero_fill": false,
+          "sha256": "d251526b44c56dc73bdde6eae41dec810f406e85e0ad92f3a215f2d386625414"
+        },
+        {
+          "name": "__DATA_CONST,__const",
+          "size": 412032,
+          "zero_fill": false,
+          "sha256": "4824dba7f6cb393b786aeeddaeb46e350f57fbac53b4d5b6ed3faff6d4bab89c"
+        },
+        {
+          "name": "__DATA_CONST,__mod_init_func",
+          "size": 16,
+          "zero_fill": false,
+          "sha256": "25365f6e077aea8251ab4f641356fb570ab18eba490025cd8f77c44a5c2b4b58"
+        },
+        {
+          "name": "__DATA,__la_symbol_ptr",
+          "size": 1600,
+          "zero_fill": false,
+          "sha256": "6d910dd5ccd285439b1482f203c92b20561a639955bfa5ffaa6cd30065301c87"
+        },
+        {
+          "name": "__DATA,__data",
+          "size": 16728,
+          "zero_fill": false,
+          "sha256": "6c759883e3d4add7e47057bc636d017a1fbe47031de75bf7e4e1218cee13d964"
+        },
+        {
+          "name": "__DATA,__thread_vars",
+          "size": 312,
+          "zero_fill": false,
+          "sha256": "aca531754696f853743be85c202be834f4abf44a51e536e9e9fe5edb5e9736a2"
+        },
+        {
+          "name": "__DATA,__thread_data",
+          "size": 64,
+          "zero_fill": false,
+          "sha256": "8f9eb3e858915e6ab4778391bfc682621957b505d2e50d561b86c6626335896b"
+        },
+        {
+          "name": "__DATA,__thread_bss",
+          "size": 121,
+          "zero_fill": true,
+          "sha256": "d8129de4286dc4fd245c7776b51d76aaa727956e8fc88ff928eb69ff7fc17e0b"
+        },
+        {
+          "name": "__DATA,__bss",
+          "size": 24032,
+          "zero_fill": true,
+          "sha256": "3bbefcc61c55c5503e95fb64a8426f946d97a68ab475318a1b87e6efbb9ca873"
+        },
+        {
+          "name": "__DATA,__common",
+          "size": 1,
+          "zero_fill": true,
+          "sha256": "6e340b9cffb37a989ca544e6bb780a2c78901d3fb33738768511a30617afa01d"
+        }
+      ],
+      "mimalloc_build_time": "09:37:41",
+      "uuid": "4c4c44b755553144a1ffc0915ddb5dda",
+      "code_signature": [
+        17132496,
+        134000
+      ],
+      "normalized_sha256": "21fbee4f13ceb8884ef644b4b1d6a54020272a41650a84905ab1683a75cfa262",
+      "origin": "qualified CI executable"
+    },
+    "candidate": {
+      "sha256": "9049dc6c6287591528661569d31f48f52aa34542315e98a28cb5ee1569744341",
+      "size": 17266496,
+      "sections": [
+        {
+          "name": "__TEXT,__text",
+          "size": 12028060,
+          "zero_fill": false,
+          "sha256": "f6b341bbd887c7e18195968426065341ff4de44e4ebcb26a44ce6799599ec962"
+        },
+        {
+          "name": "__TEXT,__stubs",
+          "size": 2400,
+          "zero_fill": false,
+          "sha256": "f785d1e9740c556707b055cf3a2609171d7a29db0e5f173592431e7cb09e556c"
+        },
+        {
+          "name": "__TEXT,__stub_helper",
+          "size": 2424,
+          "zero_fill": false,
+          "sha256": "0185ff330203293ee57ccab952be2acc74ec2cbea4cdec9fbb09278e5c18fab1"
+        },
+        {
+          "name": "__TEXT,__gcc_except_tab",
+          "size": 471352,
+          "zero_fill": false,
+          "sha256": "e385db8f58739e6da4f236c46e5a0daf8eda54f4f646830309e864c14567988d"
+        },
+        {
+          "name": "__TEXT,__literals",
+          "size": 35196,
+          "zero_fill": false,
+          "sha256": "3f8e0b89d3c0953b52cd5768f6e117fe69cd48d18a6db7cda01d0f96cfe2e321"
+        },
+        {
+          "name": "__TEXT,__const",
+          "size": 2780896,
+          "zero_fill": false,
+          "sha256": "8fc47f9399f0b9b91624e8f0d9e449da82b436ad3926a00d278a3f513f8f5d5b"
+        },
+        {
+          "name": "__TEXT,__cstring",
+          "size": 98203,
+          "zero_fill": false,
+          "sha256": "d694315a76f63ba825e7035c435368e182917110e11853cbad37a2dfe68a8e24"
+        },
+        {
+          "name": "__TEXT,__unwind_info",
+          "size": 172520,
+          "zero_fill": false,
+          "sha256": "a7c5bc248998df959ffaf319ca4ad99bf658c6ae02ef36938992a12ff2e53011"
+        },
+        {
+          "name": "__TEXT,__eh_frame",
+          "size": 1033016,
+          "zero_fill": false,
+          "sha256": "359ddaade4266a2423e894e0de705c2e352e9a8a8688223fce43826703672ecc"
+        },
+        {
+          "name": "__DATA_CONST,__got",
+          "size": 64,
+          "zero_fill": false,
+          "sha256": "d251526b44c56dc73bdde6eae41dec810f406e85e0ad92f3a215f2d386625414"
+        },
+        {
+          "name": "__DATA_CONST,__const",
+          "size": 412032,
+          "zero_fill": false,
+          "sha256": "4824dba7f6cb393b786aeeddaeb46e350f57fbac53b4d5b6ed3faff6d4bab89c"
+        },
+        {
+          "name": "__DATA_CONST,__mod_init_func",
+          "size": 16,
+          "zero_fill": false,
+          "sha256": "25365f6e077aea8251ab4f641356fb570ab18eba490025cd8f77c44a5c2b4b58"
+        },
+        {
+          "name": "__DATA,__la_symbol_ptr",
+          "size": 1600,
+          "zero_fill": false,
+          "sha256": "6d910dd5ccd285439b1482f203c92b20561a639955bfa5ffaa6cd30065301c87"
+        },
+        {
+          "name": "__DATA,__data",
+          "size": 16728,
+          "zero_fill": false,
+          "sha256": "6c759883e3d4add7e47057bc636d017a1fbe47031de75bf7e4e1218cee13d964"
+        },
+        {
+          "name": "__DATA,__thread_vars",
+          "size": 312,
+          "zero_fill": false,
+          "sha256": "aca531754696f853743be85c202be834f4abf44a51e536e9e9fe5edb5e9736a2"
+        },
+        {
+          "name": "__DATA,__thread_data",
+          "size": 64,
+          "zero_fill": false,
+          "sha256": "8f9eb3e858915e6ab4778391bfc682621957b505d2e50d561b86c6626335896b"
+        },
+        {
+          "name": "__DATA,__thread_bss",
+          "size": 121,
+          "zero_fill": true,
+          "sha256": "d8129de4286dc4fd245c7776b51d76aaa727956e8fc88ff928eb69ff7fc17e0b"
+        },
+        {
+          "name": "__DATA,__bss",
+          "size": 24032,
+          "zero_fill": true,
+          "sha256": "3bbefcc61c55c5503e95fb64a8426f946d97a68ab475318a1b87e6efbb9ca873"
+        },
+        {
+          "name": "__DATA,__common",
+          "size": 1,
+          "zero_fill": true,
+          "sha256": "6e340b9cffb37a989ca544e6bb780a2c78901d3fb33738768511a30617afa01d"
+        }
+      ],
+      "mimalloc_build_time": "17:33:29",
+      "uuid": "4c4c446155553144a13712fa59874f65",
+      "code_signature": [
+        17132496,
+        134000
+      ],
+      "normalized_sha256": "21fbee4f13ceb8884ef644b4b1d6a54020272a41650a84905ab1683a75cfa262",
+      "origin": "public PyPI executable"
+    }
+  },
+  "qualification_ledgers": {
+    "compatibility-2026-11-07.json": {
+      "url": "https://github.com/regularkevvv/ty-extended/blob/v0.88.0/companion/evidence/compatibility-2026-11-07.json",
+      "sha256": "58c24acff76600489290b4f1def19dd0dd2d15e2ddb96ddb56a8754361b4ed64"
+    },
+    "performance-2026-11-07.json": {
+      "url": "https://github.com/regularkevvv/ty-extended/blob/v0.88.0/companion/evidence/performance-2026-11-07.json",
+      "sha256": "180b1679e8b04350f6c0ad302f65dbf19f13339a687d3925a6426372fd0a5666"
+    },
+    "embedded-runtime-2026-11-07.json": {
+      "url": "https://github.com/regularkevvv/ty-extended/blob/v0.88.0/companion/evidence/embedded-runtime-2026-11-07.json",
+      "sha256": "353b3df646af9568d3c2b5e926fc890c6e8f8da742295866e1284ae6e6ac55ef"
+    },
+    "production-inputs-2026-11-07.json": {
+      "url": "https://github.com/regularkevvv/ty-extended/blob/v0.88.0/companion/evidence/production-inputs-2026-11-07.json",
+      "sha256": "6d32164a9064ff6c51f6c1645cfab613d0d01b4898e5aedd602a5699935b2791"
+    }
+  },
+  "merged_source_gates": [
+    {
+      "conclusion": "success",
+      "databaseId": 42393953797,
+      "headSha": "e56ff381498509afab404e31020dccf5ad313be0",
+      "name": "Companion",
+      "status": "completed",
+      "url": "https://github.com/regularkevvv/ty-extended/actions/runs/42393953797",
+      "repository": "regularkevvv/ty-extended"
+    },
+    {
+      "conclusion": "success",
+      "databaseId": 42393953867,
+      "headSha": "e56ff381498509afab404e31020dccf5ad313be0",
+      "name": "CI",
+      "status": "completed",
+      "url": "https://github.com/regularkevvv/ty-extended/actions/runs/42393953867",
+      "repository": "regularkevvv/ty-extended"
+    },
+    {
+      "conclusion": "success",
+      "databaseId": 42393925991,
+      "headSha": "a12ee594bc5332e77820965e37b1618da80c9fb3",
+      "name": "CI",
+      "status": "completed",
+      "url": "https://github.com/regularkevvv/ruff-extended/actions/runs/42393925991",
+      "repository": "regularkevvv/ruff-extended"
+    },
+    {
+      "conclusion": "success",
+      "databaseId": 42393925073,
+      "headSha": "a12ee594bc5332e77820965e37b1618da80c9fb3",
+      "name": "[ty Playground] Release",
+      "status": "completed",
+      "url": "https://github.com/regularkevvv/ruff-extended/actions/runs/42393925073",
+      "repository": "regularkevvv/ruff-extended"
+    }
+  ],
+  "release_workflow": {
+    "url": "https://github.com/regularkevvv/ty-extended/actions/runs/42396717702",
+    "source_commit": "e56ff381498509afab404e31020dccf5ad313be0",
+    "conclusion": "success",
+    "jobs": [
+      {
+        "name": "plan",
+        "conclusion": "success"
+      },
+      {
+        "name": "release-gate",
+        "conclusion": "success"
+      },
+      {
+        "name": "custom-build-binaries / musllinux-cross (aarch64-unknown-linux-musl, linux/arm64, -e JEMALLOC_SYS_WITH_LG_PAGE=16)",
+        "conclusion": "success"
+      },
+      {
+        "name": "custom-build-binaries / linux-aarch64",
+        "conclusion": "success"
+      },
+      {
+        "name": "custom-build-binaries / musllinux (x86_64-unknown-linux-musl)",
+        "conclusion": "success"
+      },
+      {
+        "name": "custom-build-binaries / macos-aarch64",
+        "conclusion": "success"
+      },
+      {
+        "name": "custom-build-binaries / linux (x86_64-unknown-linux-gnu)",
+        "conclusion": "success"
+      },
+      {
+        "name": "custom-build-binaries / sdist",
+        "conclusion": "success"
+      },
+      {
+        "name": "custom-build-binaries / windows (x86_64-pc-windows-msvc, x64)",
+        "conclusion": "success"
+      },
+      {
+        "name": "custom-build-binaries / macos-x86_64",
+        "conclusion": "success"
+      },
+      {
+        "name": "custom-build-binaries / windows (aarch64-pc-windows-msvc, x64)",
+        "conclusion": "success"
+      },
+      {
+        "name": "generate-checksum-manifest",
+        "conclusion": "success"
+      },
+      {
+        "name": "build-global-artifacts",
+        "conclusion": "success"
+      },
+      {
+        "name": "host",
+        "conclusion": "success"
+      },
+      {
+        "name": "custom-publish-pypi / Upload to PyPI",
+        "conclusion": "success"
+      },
+      {
+        "name": "custom-publish-sdk-crates / Upload ty plugin SDK crates to crates.io",
+        "conclusion": "success"
+      },
+      {
+        "name": "announce",
+        "conclusion": "success"
+      }
+    ]
+  },
+  "scope": "The CI wheel completed the full 16-version sweep. The published macOS executable is compared byte-for-byte after normalizing only identified build metadata. Public installation checks exercise the separately downloaded packages. Native archives and wheels are compared on all eight targets; runtime execution is qualified on the documented CI platforms."
+}
