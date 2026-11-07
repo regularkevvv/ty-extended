@@ -1067,6 +1067,12 @@ pub fn analyze_with_oracle(
     let constructor_calls = collector.constructor_calls;
     let unbound_calls = collector.unbound;
     let mut annotated_casts = collector.annotated_casts;
+    let metadata_probes = collector
+        .cast_metadata
+        .values()
+        .flatten()
+        .copied()
+        .collect();
     for (span, metadata) in collector.cast_metadata {
         let Some(value) = annotated_casts.get_mut(&span) else {
             continue;
@@ -1206,6 +1212,7 @@ pub fn analyze_with_oracle(
         constructor_calls,
         unbound_calls,
         annotated_casts,
+        metadata_probes,
         edits,
         helpers,
         expression_probes,

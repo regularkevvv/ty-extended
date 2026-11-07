@@ -116,6 +116,7 @@ pub struct Analysis {
     pub constructor_calls: BTreeMap<Span, String>,
     pub unbound_calls: BTreeSet<Span>,
     pub annotated_casts: BTreeMap<Span, Value>,
+    pub metadata_probes: BTreeSet<Span>,
     pub edits: Edits,
     pub helpers: BTreeMap<String, String>,
     pub expression_probes: BTreeMap<Span, String>,

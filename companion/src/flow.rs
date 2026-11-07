@@ -284,6 +284,9 @@ pub fn project_with_return_types(
         || Types::new(&prefix, &source.module),
         |project| Types::with_project(&prefix, &source.module, project),
     );
+    // Lowering consumes these observations when constructing Annotated
+    // snapshots, independently of the identities requested by flow.
+    let required_probes = analysis.metadata_probes.clone();
     let mut project = Project {
         source,
         analysis,
@@ -299,7 +302,7 @@ pub fn project_with_return_types(
         returns,
         raw_returns,
         types,
-        required_probes: BTreeSet::new(),
+        required_probes,
     };
     let mut scope = Scope {
         module: true,
@@ -864,6 +867,15 @@ impl Project<'_> {
                 if let Some(identity) = self.identity(scope, &target.value) {
                     let owner = scope.types[&identity].clone();
                     let class = crate::runtime::generic_parts(&owner).0;
+                    if self.runtime.project_patches.contains_key(class)
+                        || self.runtime.project.as_ref().is_some_and(|project| {
+                            project.renderer_virtual_class_names().contains(class)
+                        })
+                    {
+                        // Diagnostic origin recovery needs the native owner
+                        // even when flow already knows this projected type.
+                        self.required_probes.insert(span(target.value.as_ref()));
+                    }
                     let setter = self
                         .runtime
                         .project_patches

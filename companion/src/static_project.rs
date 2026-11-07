@@ -528,6 +528,7 @@ pub fn analyze(source: &Source, suite: &[Stmt], runtime: &mut Runtime) -> Result
         calls: collector.calls,
         unbound_calls: BTreeSet::new(),
         annotated_casts: BTreeMap::new(),
+        metadata_probes: BTreeSet::new(),
         constructor_calls: BTreeMap::new(),
         edits,
         helpers,
