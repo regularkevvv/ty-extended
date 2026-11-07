@@ -20,7 +20,10 @@ Generated disk projections receive distinct filesystem revisions when timestamps
 collide. The [regression receipt](evidence/projection-revisions-2026-11-07.json)
 forces equal file timestamps and equal directory timestamps during import
 deletion and restoration, including nested packages. These checks retain the
-checker process and preserve original external source bytes and timestamps.
+checker process and preserve original external source bytes and modification times.
+Fresh checkers record the completed projection without sending initial file-change
+events. Revision tracking also covers restored underlying files when a projection
+is removed and later reinstated.
 The final published binary receives separate compatibility and performance checks.
 
 Django-ty 0.7 passes its 166-assertion and 83-runtime-contract CLI corpus across

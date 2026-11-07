@@ -1,7 +1,7 @@
 {
   "scope": "Deterministic filesystem revision regression and local validation before final cross-platform and public artifact acceptance.",
   "base_commit": "fcf5ec8483e14bf030239f46db1d1c1fe9e963ce",
-  "checker_source_sha256": "7d92fe43dd4a37e64195c2b2191236bddbbe32139fb8b91db93ca158fd2c51b7",
+  "checker_source_sha256": "f1b01e33bde3f4b90a729a61bf1b50c03b3e4dca2320e70151c036d01970c761",
   "original_ci_failure": "https://github.com/regularkevvv/ty-extended/actions/runs/42411111929/job/128519253043",
   "red": [
     {
@@ -13,6 +13,16 @@
       "case": "closed import changes from int to str with unchanged file timestamp",
       "result": "old invalid-assignment remains",
       "log_sha256": "24d0a54e02a7e35753ce4cb18aa334d86b6bb669be12eb3a842494b4f1b9974a"
+    },
+    {
+      "case": "removed projection restores underlying bytes with the same file timestamp",
+      "result": "old projected type remains and misses invalid-assignment",
+      "log_sha256": "129535f29dc07d7070fdf609825d8296948b44e3c2f1c19a85eb731589ba07cb"
+    },
+    {
+      "case": "reinstated projection reuses the timestamp from before an explicit bump",
+      "result": "old underlying type remains and reports invalid-assignment",
+      "log_sha256": "d178ce34f1e251af3056fb96a647376fb9acf5771c435f43737e0622fb87b55b"
     }
   ],
   "green": {
@@ -263,17 +273,17 @@
           "passed": true
         }
       ],
-      "test_binary_sha256": "608356e658454634b49da82db9396b80193a72658d4ec42e7f6905415afa2f23"
+      "test_binary_sha256": "d17721b981aea63805360e7d7189d5699fea1f2068435c32cea9db58cf1433c3"
     },
     "regular_units": 205,
     "live_units": 3,
     "integration_units": 7,
     "strict_clippy": true,
     "logs": {
-      "projection-revision3-units.log": "8eb93526957365f06e7f1540f0fa177ef6a0061e2cbb6038e60f69b5db535b11",
-      "projection-revision3-live-units.log": "3da12956a8b975c41cb57e97a413f3ef67c04becf96efe075c896cf028421e2b",
-      "projection-revision3-clippy.log": "dd0fa9051fba8ffcfa7e388382be14f44f339fe19ffac0ec70558a6de0024830",
-      "projection-revision3-clean.log": "3c88021e2be6402fcce13bae180ef44d6302c0bee233e1f5add00891de775fc5"
+      "projection-revision4-units.log": "1b857a95286ecd798b3a53c6c71064fb67ff10aaefcb29422b7d8e2aa566f977",
+      "projection-revision4-live-units.log": "8bcdd9c5119da5e5391d4af0e715934bebcadc91a5f7c4442affcaf5ccce0a6f",
+      "projection-revision4-clippy.log": "32865f2fdb3e655184fd1a231ae565dd6f5618f8f579aaf716ab7027ce273190",
+      "projection-revision4-clean.log": "3c88021e2be6402fcce13bae180ef44d6302c0bee233e1f5add00891de775fc5"
     },
     "initial_state_modes": [
       "general existing checker",
@@ -1019,5 +1029,345 @@
       }
     }
   ],
-  "project_check_source_sha256": "e5eee51a104bf212b341b1425c4b82b5bd41537ddba2033b7efcd734706012a6"
+  "project_check_source_sha256": "e5eee51a104bf212b341b1425c4b82b5bd41537ddba2033b7efcd734706012a6",
+  "fresh_initialization": {
+    "source": "0f12b39cba4cc8d7d1609df13e05981def0c638c",
+    "green": {
+      "forced_collision_test": "checker::tests::disk_projection_invalidates_closed_imports_and_inventory",
+      "external_source_test": "checker::tests::disk_revisions_preserve_external_sources",
+      "initial_open_and_closed_import_test": "checker::tests::initial_disk_projection_invalidates_open_and_closed_imports",
+      "repeated": {
+        "passed": true,
+        "runs": [
+          {
+            "version": "0.0.84",
+            "iteration": 0,
+            "tests": 3,
+            "passed": true
+          },
+          {
+            "version": "0.0.84",
+            "iteration": 1,
+            "tests": 3,
+            "passed": true
+          },
+          {
+            "version": "0.0.84",
+            "iteration": 2,
+            "tests": 3,
+            "passed": true
+          },
+          {
+            "version": "0.0.84",
+            "iteration": 3,
+            "tests": 3,
+            "passed": true
+          },
+          {
+            "version": "0.0.84",
+            "iteration": 4,
+            "tests": 3,
+            "passed": true
+          },
+          {
+            "version": "0.0.84",
+            "iteration": 5,
+            "tests": 3,
+            "passed": true
+          },
+          {
+            "version": "0.0.84",
+            "iteration": 6,
+            "tests": 3,
+            "passed": true
+          },
+          {
+            "version": "0.0.84",
+            "iteration": 7,
+            "tests": 3,
+            "passed": true
+          },
+          {
+            "version": "0.0.84",
+            "iteration": 8,
+            "tests": 3,
+            "passed": true
+          },
+          {
+            "version": "0.0.84",
+            "iteration": 9,
+            "tests": 3,
+            "passed": true
+          },
+          {
+            "version": "0.0.84",
+            "iteration": 10,
+            "tests": 3,
+            "passed": true
+          },
+          {
+            "version": "0.0.84",
+            "iteration": 11,
+            "tests": 3,
+            "passed": true
+          },
+          {
+            "version": "0.0.84",
+            "iteration": 12,
+            "tests": 3,
+            "passed": true
+          },
+          {
+            "version": "0.0.84",
+            "iteration": 13,
+            "tests": 3,
+            "passed": true
+          },
+          {
+            "version": "0.0.84",
+            "iteration": 14,
+            "tests": 3,
+            "passed": true
+          },
+          {
+            "version": "0.0.84",
+            "iteration": 15,
+            "tests": 3,
+            "passed": true
+          },
+          {
+            "version": "0.0.84",
+            "iteration": 16,
+            "tests": 3,
+            "passed": true
+          },
+          {
+            "version": "0.0.84",
+            "iteration": 17,
+            "tests": 3,
+            "passed": true
+          },
+          {
+            "version": "0.0.84",
+            "iteration": 18,
+            "tests": 3,
+            "passed": true
+          },
+          {
+            "version": "0.0.84",
+            "iteration": 19,
+            "tests": 3,
+            "passed": true
+          },
+          {
+            "version": "0.0.99",
+            "iteration": 0,
+            "tests": 3,
+            "passed": true
+          },
+          {
+            "version": "0.0.99",
+            "iteration": 1,
+            "tests": 3,
+            "passed": true
+          },
+          {
+            "version": "0.0.99",
+            "iteration": 2,
+            "tests": 3,
+            "passed": true
+          },
+          {
+            "version": "0.0.99",
+            "iteration": 3,
+            "tests": 3,
+            "passed": true
+          },
+          {
+            "version": "0.0.99",
+            "iteration": 4,
+            "tests": 3,
+            "passed": true
+          },
+          {
+            "version": "0.0.99",
+            "iteration": 5,
+            "tests": 3,
+            "passed": true
+          },
+          {
+            "version": "0.0.99",
+            "iteration": 6,
+            "tests": 3,
+            "passed": true
+          },
+          {
+            "version": "0.0.99",
+            "iteration": 7,
+            "tests": 3,
+            "passed": true
+          },
+          {
+            "version": "0.0.99",
+            "iteration": 8,
+            "tests": 3,
+            "passed": true
+          },
+          {
+            "version": "0.0.99",
+            "iteration": 9,
+            "tests": 3,
+            "passed": true
+          },
+          {
+            "version": "0.0.99",
+            "iteration": 10,
+            "tests": 3,
+            "passed": true
+          },
+          {
+            "version": "0.0.99",
+            "iteration": 11,
+            "tests": 3,
+            "passed": true
+          },
+          {
+            "version": "0.0.99",
+            "iteration": 12,
+            "tests": 3,
+            "passed": true
+          },
+          {
+            "version": "0.0.99",
+            "iteration": 13,
+            "tests": 3,
+            "passed": true
+          },
+          {
+            "version": "0.0.99",
+            "iteration": 14,
+            "tests": 3,
+            "passed": true
+          },
+          {
+            "version": "0.0.99",
+            "iteration": 15,
+            "tests": 3,
+            "passed": true
+          },
+          {
+            "version": "0.0.99",
+            "iteration": 16,
+            "tests": 3,
+            "passed": true
+          },
+          {
+            "version": "0.0.99",
+            "iteration": 17,
+            "tests": 3,
+            "passed": true
+          },
+          {
+            "version": "0.0.99",
+            "iteration": 18,
+            "tests": 3,
+            "passed": true
+          },
+          {
+            "version": "0.0.99",
+            "iteration": 19,
+            "tests": 3,
+            "passed": true
+          }
+        ],
+        "test_binary_sha256": "608356e658454634b49da82db9396b80193a72658d4ec42e7f6905415afa2f23"
+      },
+      "regular_units": 205,
+      "live_units": 3,
+      "integration_units": 7,
+      "strict_clippy": true,
+      "logs": {
+        "projection-revision3-units.log": "8eb93526957365f06e7f1540f0fa177ef6a0061e2cbb6038e60f69b5db535b11",
+        "projection-revision3-live-units.log": "3da12956a8b975c41cb57e97a413f3ef67c04becf96efe075c896cf028421e2b",
+        "projection-revision3-clippy.log": "dd0fa9051fba8ffcfa7e388382be14f44f339fe19ffac0ec70558a6de0024830",
+        "projection-revision3-clean.log": "3c88021e2be6402fcce13bae180ef44d6302c0bee233e1f5add00891de775fc5"
+      },
+      "initial_state_modes": [
+        "general existing checker",
+        "fresh checker with completed disk projection"
+      ]
+    },
+    "performance": {
+      "passed": true,
+      "complete": true,
+      "scope": "Corrected optimized local companion 0.89.0 with final Django 0.7 candidate wheel; five rotated fresh-process samples per workload.",
+      "runs": [
+        {
+          "name": "stress",
+          "exit": 0,
+          "passed": true,
+          "performance_target_met": true,
+          "median_seconds": {
+            "companion": 6.8048825829755515,
+            "bare-ty": 0.2836580000584945,
+            "mypy": 6.930683417012915
+          },
+          "report_sha256": "70306de5f674dc08a8e9c49fb37b53f900b541c3f2ccf54bd816af19bd792ba6",
+          "project_archive_sha256": "65e6f118806b8c303a8a2a38f3e56e3da3acba06eb92760ebcffed48c101d45b"
+        },
+        {
+          "name": "small",
+          "exit": 0,
+          "passed": true,
+          "performance_target_met": true,
+          "median_seconds": {
+            "companion": 0.5485856659943238,
+            "bare-ty": 0.06468720897100866,
+            "mypy": 1.635605457937345
+          },
+          "report_sha256": "6ed53810299551d20639437b13f26ecadac98dd145722afd67335c05a3452f48",
+          "project_archive_sha256": "ad97b892a8755293cdc3c30b4f3f208c6932fa771250792f93fbbb01e6b0ff44"
+        },
+        {
+          "name": "distributed",
+          "exit": 0,
+          "passed": true,
+          "performance_target_met": true,
+          "median_seconds": {
+            "companion": 1.311750708031468,
+            "bare-ty": 0.09175925003364682,
+            "mypy": 2.2498290829826146
+          },
+          "report_sha256": "ffca6bc0a04875492b1e8af8cbd7424b54e4de0651a5ec52220db6ddb6a63965",
+          "project_archive_sha256": "6a7f2e5252b916beccc71e700928812f47889ebd56aea9acfbb5ae2bf3dca745"
+        },
+        {
+          "name": "many-files",
+          "exit": 0,
+          "passed": true,
+          "performance_target_met": true,
+          "median_seconds": {
+            "companion": 3.8207987500354648,
+            "bare-ty": 0.18203591695055366,
+            "mypy": 4.603276667068712
+          },
+          "report_sha256": "3669880516d8afdb931d16262bc6fb795025b5a5b49b239dbc721d04fffbd494",
+          "project_archive_sha256": "193102eeb7649257f42ebb7c3ae10cdfeeb01a9b5a2556ef33971c70f3400ace"
+        },
+        {
+          "name": "split-models",
+          "exit": 0,
+          "passed": true,
+          "performance_target_met": true,
+          "median_seconds": {
+            "companion": 6.16738770797383,
+            "bare-ty": 0.20192216604482383,
+            "mypy": 6.695478082983755
+          },
+          "report_sha256": "3be4dbb0fd5b7a44b91eb2f13c241d51db8eda57932c4002067bdd35c391d1f3",
+          "project_archive_sha256": "f8aea757bdaa5d21fe91d17f93a0627febbb0668f79fc1676adf9e96650c7058"
+        }
+      ]
+    }
+  }
 }

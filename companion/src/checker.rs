@@ -159,6 +159,7 @@ pub struct ProjectChecker {
     notebooks: BTreeMap<PathBuf, String>,
     external_sources: BTreeSet<PathBuf>,
     disk_sources: BTreeMap<PathBuf, ([u8; 32], SystemTime)>,
+    retired_disk_revisions: BTreeMap<PathBuf, SystemTime>,
     disk_directories: BTreeMap<PathBuf, SystemTime>,
     projection_root: PathBuf,
     document_version: i32,
@@ -252,6 +253,7 @@ impl ProjectChecker {
             notebooks: BTreeMap::new(),
             external_sources: BTreeSet::new(),
             disk_sources: BTreeMap::new(),
+            retired_disk_revisions: BTreeMap::new(),
             disk_directories: BTreeMap::new(),
             projection_root: root.to_owned(),
             document_version: 0,
@@ -308,6 +310,7 @@ impl ProjectChecker {
             notebooks: BTreeMap::new(),
             external_sources: BTreeSet::new(),
             disk_sources: BTreeMap::new(),
+            retired_disk_revisions: BTreeMap::new(),
             disk_directories: BTreeMap::new(),
             projection_root: root.to_owned(),
             document_version: 0,
@@ -601,6 +604,11 @@ impl ProjectChecker {
             if !overlay {
                 let fingerprint: [u8; 32] = Sha256::digest(source.as_bytes()).into();
                 let previous = self.disk_sources.get(path);
+                let retired_revision = if previous.is_none() {
+                    self.retired_disk_revisions.remove(path)
+                } else {
+                    None
+                };
                 let revision = if let Some((old, revision)) = previous
                     && *old == fingerprint
                 {
@@ -611,7 +619,10 @@ impl ProjectChecker {
                         "disk projection outside generated workspace: {}",
                         path.display()
                     );
-                    let revision = if previous.is_none() && self.documents.contains_key(path) {
+                    let revision = if previous.is_none()
+                        && retired_revision.is_none()
+                        && self.documents.contains_key(path)
+                    {
                         // The initial projection can replace a discovery-stage
                         // memory overlay. Closing it below changes ty's source
                         // revision independently of disk timestamps; a retained
@@ -619,7 +630,10 @@ impl ProjectChecker {
                         // Avoid touching thousands of already synchronized files.
                         path.metadata()?.modified()?
                     } else {
-                        advance_disk_revision(path, previous.map(|(_, revision)| *revision))?
+                        advance_disk_revision(
+                            path,
+                            previous.map(|(_, revision)| *revision).or(retired_revision),
+                        )?
                     };
                     changes.push(
                         json!({"uri":file_uri(path)?,"type":if previous.is_some() {2} else {1}}),
@@ -638,6 +652,16 @@ impl ProjectChecker {
             .filter(|path| !current.contains_key(*path))
         {
             let exists = path.exists();
+            if exists {
+                // Removing a projected contribution can restore underlying
+                // bytes in the same physical file. Remember its revision even
+                // while it is absent from this map: a later write may reuse a
+                // timestamp from before our explicit revision bump.
+                let revision = advance_disk_revision(path, Some(self.disk_sources[path].1))?;
+                self.retired_disk_revisions.insert(path.clone(), revision);
+            } else {
+                self.retired_disk_revisions.remove(path);
+            }
             changes.push(json!({"uri":file_uri(path)?,"type":if exists {2} else {3}}));
             // A preflight can leave the queried source map while remaining on
             // disk. Its directory inventory has not changed.
@@ -1518,14 +1542,24 @@ mod tests {
         );
         assert_eq!(peer.metadata()?.modified()?, file_revision);
         assert_eq!(root.metadata()?.modified()?, directory_revision);
+        // Dropping a projection can restore an underlying file on disk. The
+        // physical file remains importable even though it leaves this map.
+        let projected_revision = peer.metadata()?.modified()?;
+        fs::write(&peer, "value: int\n")?;
+        set_disk_modified(&peer, projected_revision)?;
         sources.remove(&peer);
-        assert!(
-            server
-                .check_files(&sources, std::slice::from_ref(&consumer))?
-                .is_empty()
-        );
+        let underlying = server.check_files(&sources, std::slice::from_ref(&consumer))?;
+        assert_eq!(underlying.len(), 1, "{underlying:#?}");
+        assert_eq!(underlying[0]["check_name"], "invalid-assignment");
         assert_eq!(root.metadata()?.modified()?, directory_revision);
+        let underlying_revision = peer.metadata()?.modified()?;
         sources.insert(peer.clone(), "value: str\n".into());
+        fs::write(&peer, &sources[&peer])?;
+        // A coarse write can reuse a timestamp from before the explicit bump.
+        // Re-entering the map must compare against the last observed revision.
+        set_disk_modified(&peer, underlying_revision - Duration::from_secs(2))?;
+        let reentered = server.check_files(&sources, std::slice::from_ref(&consumer))?;
+        assert!(reentered.is_empty(), "{reentered:#?}");
 
         sources.insert(
             consumer.clone(),
