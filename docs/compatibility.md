@@ -43,13 +43,18 @@ this is not a version-matched Python 3.15 comparator pair.
 
 Protocol 0.9's batch path is checked against the individual full-index reference:
 **2,582 class results and 3,012 batches** across 27 projects match through embedded
-Monty 1.5.0. The companion's 206 Rust tests, 50 Python harness tests and 83 SDK/host
-tests pass, together with 152 Django responses through both CPython and Monty.
-Tests cover batch limits, opt-in negotiation, individual-hook fallback, cache
+Monty 1.5.0. The companion passes 208 Rust tests on Linux/macOS and 211 on Windows,
+50 Python harness tests and 83 SDK/host tests, together with 152 Django responses
+through both CPython and Monty. Windows includes a dedicated drive/UNC
+projection-boundary test. Tests cover batch limits, opt-in negotiation, individual-hook fallback, cache
 invalidation and preservation of plugin indexes.
 
-These are CI-wheel and local source results. Hosted checks and published-package
-acceptance remain separate release gates. Measurements against MyPy and bare
+The final source passes Linux, macOS and Windows CI, including forced timestamp
+collisions and Windows editor reconfiguration. The full version sweep uses the
+exact CI wheel. Additional Django matrix results retain their earlier companion
+identity in the ledger and are repeated against the public companion before the
+Django release. Published-package acceptance remains a separate release gate.
+Measurements against MyPy and bare
 official ty are recorded in [the performance report](performance.md), including
 the failed 0.88.0 follow-up that motivated this release.
 

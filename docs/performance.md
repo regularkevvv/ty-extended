@@ -7,28 +7,32 @@ execution, projection, type queries and the final checker run.
 ## Version 0.89.0
 
 The [0.89.0 local receipts](qualification/performance-0.89.0.json) record five
-rotated serial runs on macOS arm64 with the final-version companion executable,
-Django-ty 0.7.0, official ty 0.0.99, MyPy 2.4.1, django-stubs 6.1.2 and Django 6.1.3.
-All five workloads meet the MyPy median ceiling, preserve source bytes and pass
-exact ORM assertions plus both intentional-error controls.
+rotated serial runs on macOS arm64 with the release candidate, Django-ty 0.7.0,
+official ty 0.0.99, MyPy 2.4.1, django-stubs 6.1.2 and Django 6.1.3. This candidate
+includes the filesystem revision and Windows path corrections. All five workloads
+meet the MyPy median ceiling, preserve source bytes and pass exact ORM assertions
+plus both intentional-error controls.
 
 | Python files / models / model modules | Companion | MyPy + django-stubs | Bare ty |
 | ------------------------------------- | --------: | ------------------: | ------: |
-| 100 / 25 / 5                          |   0.514 s |             1.567 s | 0.062 s |
-| 1,000 / 250 / 25                      |   1.219 s |             2.122 s | 0.086 s |
-| 7,082 / 250 / 25                      |   3.394 s |             4.048 s | 0.164 s |
-| 7,082 / 2,501 / 1                     |   6.366 s |             6.542 s | 0.257 s |
-| 7,082 / 2,501 / 250                   |   5.878 s |             6.412 s | 0.195 s |
+| 100 / 25 / 5                          |   0.535 s |             1.600 s | 0.064 s |
+| 1,000 / 250 / 25                      |   1.252 s |             2.172 s | 0.084 s |
+| 7,082 / 250 / 25                      |   3.577 s |             4.166 s | 0.165 s |
+| 7,082 / 2,501 / 1                     |   6.551 s |             6.685 s | 0.270 s |
+| 7,082 / 2,501 / 250                   |   6.065 s |             6.545 s | 0.195 s |
 
 The largest single-module case improves from the published 0.87/Django-ty 0.6
-pair's 80.788 seconds to 6.366 seconds, approximately 12.7 times faster. Its margin
-against MyPy is only 2.7%; this is close to parity, not a large speed advantage.
+pair's 80.788 seconds to 6.551 seconds, approximately 12.3 times faster. Its margin
+against MyPy is only 2.0%; this is close to parity, not a large speed advantage.
 Smaller projects show larger gains. These measurements identify a local release
 candidate binary; hosted CI and public-package acceptance are separate checks.
-The installed macOS CI wheel separately passes the largest workload in five
-rotated runs: **6.282 seconds versus MyPy's 6.577 seconds** (bare ty: 0.259 seconds),
-with all typing and source-preservation controls passing. Its exact wheel and
-executable hashes are recorded in the same receipt.
+The receipt links the earlier candidate measurements and retains the public
+0.88.0 failure below, so results from different executables remain distinguishable.
+
+The installed CI wheel separately passes the largest case in five rotated runs:
+**6.424 seconds versus MyPy's 6.691 seconds** (bare ty:
+0.271 seconds). All five Linux CI workloads also meet the MyPy median
+ceiling. Their complete samples and executable identities are in the same receipt.
 
 The same receipt preserves a follow-up with **published 0.88.0**: 6.593 seconds
 versus MyPy's 6.487 seconds. Correctness passed, but that run **failed** the strict

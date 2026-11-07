@@ -1380,7 +1380,7 @@
     "failed_log_sha256": "c117cc06b81b5d6c660832f2babad289f2e9c9a8a9d59a78f34923460650510f",
     "other_windows_gates_passed": 30,
     "correction": "Compare drive and UNC prefix identity without rewriting actual paths; retain component boundaries and reject other drives, shares, siblings and ancestors. The existing live projection lifecycle test now exercises ordinary roots with canonical sources.",
-    "verification": "Local tests, repeated endpoint regressions, Clippy and repository checks passed. Windows CI is required before merge or release.",
+    "verification": "Final-source Linux, macOS and Windows CI passed, including the Windows prefix regression and full editor configuration gate.",
     "local_validation": {
       "passed": true,
       "rust_unit_tests": 208,
@@ -1395,6 +1395,19 @@
         "projection-revision5-hooks.log": "8ec8b757831f3edcc30db16c8626fceb647962ccb242f076f1f8f721a774030b",
         "projection-revision5-clean.log": "3c88021e2be6402fcce13bae180ef44d6302c0bee233e1f5add00891de775fc5"
       }
+    },
+    "final_verification": {
+      "source": "77b2fea050738a385f1748b7772f08ccd4886b67",
+      "pull_request": "https://github.com/regularkevvv/ty-extended/pull/47",
+      "platform_reports_sha256": {
+        "ubuntu-latest": "2ee3e4e39f28c523713442d6b3fd619152a6b0ea4384854b7a1f3e525cec43ce",
+        "macos-latest": "6d0dbf4fce6a50e0318dbd3abd619c75c73ca6754a6b37a9fd1b00532ba33f0d",
+        "windows-latest": "b27d2a1edca1615bce053587485daf6670e3ee2f787728c0b539dcd5c864eb90"
+      },
+      "windows_units_log_sha256": "fdcd931eab0fb9e5f89290abc47115baeffb186ce7565dc8d9ff015dfa52a263",
+      "checker_version_sweep_sha256": "e5e8e75451e541a77ead3a5436b08642dcbf9e07f0ea3d163c92922b65835186",
+      "performance_summary_sha256": "7237ce8d69b154cfab8c3b25b643d24e8a79ed9e94915c8394da7bb073d731de",
+      "ci_wheel_qualification_sha256": "d640f0e78c1fc742449da369c38b9b1e53624613e8fce63bf4dc06e55cd2cfde"
     }
   }
 }
