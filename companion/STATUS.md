@@ -1,5 +1,35 @@
 # Current compatibility qualification
 
+Companion 0.88.0's [2026-11-07 ledger](evidence/compatibility-2026-11-07.json)
+records **288 passing gates** with one installed CI wheel across official ty
+0.0.84–0.0.99. Django-ty 0.7.0 passes its full 166-assertion and 83-runtime-contract
+CLI corpus on all 16 versions, plus 16 complete editor sessions with unsaved
+semantic changes and exact diagnostic spans. Python 3.8, 3.9 and 3.13 installed
+SDK/CLI/LSP checks pass. Cross-platform companion CI passes 43 Linux, 31 macOS
+and 31 Windows gates.
+
+The refactor retains cast metadata probes, descriptor diagnostic origins and
+cached model projections after editor type-query preflights. The regression suite
+passes 205 Rust unit tests, including the three live-checker units, and 50 Python
+harness tests. The [embedded Monty 1.5.0 protocol/SDK suite](evidence/embedded-runtime-2026-11-07.json) passes 82 tests and
+retains its explicit WASM documentation exclusion. Django's independent native
+oracle matches 152 responses through both CPython and standalone Monty 1.5.0.
+Class-specific indexes also preserve the full-index results for 2,582 classes
+across 27 projects through CPython and embedded Monty.
+
+The [performance receipts](evidence/performance-2026-11-07.json) compare public
+commands on identical files with exact ORM types and negative controls. On the
+largest Mac workload, published 0.87/Django-ty 0.6 takes 80.788 seconds; the
+0.88/Django-ty 0.7 CI wheel takes 6.963 seconds, versus MyPy's 7.035 seconds.
+This is 11.6× faster than the previous pair and effectively at MyPy parity.
+The four initial workloads meet the MyPy median ceiling on both macOS and Linux CI.
+An additional Mac workload spreads all 2,501 models across 250 modules and passes
+at 6.315 seconds versus MyPy's 6.966 seconds. CI now covers all five shapes.
+See [methodology and limits](../docs/performance.md). Published-artifact acceptance
+is a separate release check; these measurements identify the tested CI binary.
+
+## Previous 0.87.0 qualification
+
 The [2026-11-06 ledger](evidence/compatibility-2026-11-06.json) records the same
 companion's 288 generic gates across official ty 0.0.84–0.0.99, 32 complete Django
 checker-version runs, and 42 Django/Python matrix runs including Django 6.1.3.

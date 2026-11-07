@@ -56,6 +56,22 @@ class ComparisonTests(unittest.TestCase):
         )
         self.assertFalse(row["source_preserved"])
 
+    def test_duplicate_python_error_cannot_replace_missing_orm_error(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            output = root / "runs/negative/mypy"
+            output.mkdir(parents=True)
+            error = {"file": "filler00000.py", "line": 1, "code": "assignment"}
+            (output / "stdout.json").write_text((json.dumps(error) + "\n") * 2)
+            args = SimpleNamespace(output=root, project=root / "project", queries=100)
+            row = {
+                "label": "negative/mypy",
+                "exit": 1,
+                "diagnostic_codes": {"assignment": 2},
+            }
+            with self.assertRaisesRegex(RuntimeError, "Lost an ORM"):
+                compare_checkers.verify_negative_controls(args, "mypy", row)
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -1,0 +1,5363 @@
+{
+  "schema_version": 1,
+  "date": "2026-11-07",
+  "source_commit": "90d7f9e1b1ceeb591e786215d77bb54ebdf73433",
+  "wheel": {
+    "filename": "ty_extended-0.88.0-py3-none-macosx_11_0_arm64.whl",
+    "sha256": "2ed35f2d395d3abf0ec9b10625f7b32098e26073d6d621ed297127a2c635d205"
+  },
+  "ci_build": "https://github.com/regularkevvv/ty-extended/actions/runs/42360428478",
+  "ci_qualification": "https://github.com/regularkevvv/ty-extended/actions/runs/42360428611",
+  "runner_sha256": "03a94a7f56738de2fbb0569d62e8b9d66bf1384db1df6b72d773b099f542b8ba",
+  "runs": [
+    {
+      "host": "macOS-27.0.1-arm64-arm-64bit-Mach-O",
+      "workload": {
+        "files": 100,
+        "models": 25,
+        "model_modules": 5,
+        "queries": 25
+      },
+      "method": "Fresh processes; warm filesystem caches; MyPy --no-incremental and disposable cache; rotated serial runs; process-tree RSS sampled every 100ms.",
+      "threads": "default",
+      "source_sha256": "d56dec6ca0858f30863af951cfd8ee50cc0820bc9d0acc5fd5774b85ef95908e",
+      "binaries": {
+        "companion": {
+          "path": "/private/tmp/ty-companion-performance-refactor/installed-088/bin/ty-extended",
+          "version": "ty-extended 0.88.0",
+          "sha256": "f327a7e553dd17e8fcbbed682d18f206835e4653561dc2553e7068a8bc39b156"
+        },
+        "official": {
+          "path": "/private/tmp/ty-companion-performance-refactor/installed-088/bin/ty",
+          "version": "ty 0.0.99 (9b48f40c9 2026-11-06)",
+          "sha256": "34688103a83c3123d9eb0f4d85cdaa15f06ff16ce422d8a42616e6b1c885200e"
+        },
+        "mypy": {
+          "path": "/private/tmp/ty-companion-performance-refactor/reference/bin/mypy",
+          "version": "mypy 2.4.1 (compiled: yes)",
+          "sha256": "63d6c3b84797b5b26ab85d4674403fadbed76b7dad0bcc500188aa61fd37dd15"
+        }
+      },
+      "environments": {
+        "companion": {
+          "python": "3.13.0 (main, Oct 16 2024, 08:05:40) [Clang 18.1.8 ]",
+          "packages": {
+            "sqlparse": "0.6.1",
+            "django-ty": "0.7.0",
+            "ty-extended": "0.88.0",
+            "ty": "0.0.99",
+            "asgiref": "3.13.0",
+            "Django": "6.1.3",
+            "typing_extensions": "4.16.0",
+            "types-PyYAML": "6.0.12.20261103"
+          }
+        },
+        "mypy": {
+          "python": "3.13.0 (main, Oct 16 2024, 08:05:40) [Clang 18.1.8 ]",
+          "packages": {
+            "sqlparse": "0.6.1",
+            "django-stubs-ext": "6.1.2",
+            "mypy_extensions": "1.2.0",
+            "asgiref": "3.13.0",
+            "django-stubs": "6.1.2",
+            "Django": "6.1.3",
+            "ast_serialize": "0.13.1",
+            "pathspec": "1.1.1",
+            "librt": "0.16.0",
+            "typing_extensions": "4.16.0",
+            "types-PyYAML": "6.0.12.20261103",
+            "mypy": "2.4.1"
+          }
+        }
+      },
+      "plugin": {
+        "id": "django-ty",
+        "version": "0.7.0",
+        "protocol-version": {
+          "major": 0,
+          "minor": 8
+        }
+      },
+      "median_seconds": {
+        "companion": 0.5466670419555157,
+        "bare-ty": 0.06381845893338323,
+        "mypy": 1.6901665420737118
+      },
+      "passed": true,
+      "performance_target_met": true,
+      "records": [
+        {
+          "backend": "companion",
+          "label": "0/companion",
+          "command": [
+            "/private/tmp/ty-companion-performance-refactor/installed-088/bin/ty-extended",
+            "check",
+            "--python",
+            "/private/tmp/ty-companion-performance-refactor/installed-088/bin/python",
+            "--output-format",
+            "gitlab",
+            "--no-progress",
+            "--color",
+            "never",
+            "/private/tmp/ty-companion-performance-refactor/ci-90d-small/project",
+            "--ty",
+            "/private/tmp/ty-companion-performance-refactor/installed-088/bin/ty",
+            "--config-file",
+            "/private/tmp/ty-companion-performance-refactor/ci-90d-small/companion.toml"
+          ],
+          "seconds": 0.5701635830337182,
+          "exit": 0,
+          "diagnostic_codes": {},
+          "user_cpu_seconds": 0.325376,
+          "system_cpu_seconds": 0.270995,
+          "sampled_process_tree_peak_rss_kib": 224368,
+          "stopped": null,
+          "monitor_error": null,
+          "parse_error": null,
+          "load_before": [
+            5.775390625,
+            6.5927734375,
+            7.65869140625
+          ],
+          "load_after": [
+            5.775390625,
+            6.5927734375,
+            7.65869140625
+          ],
+          "source_sha256": "d56dec6ca0858f30863af951cfd8ee50cc0820bc9d0acc5fd5774b85ef95908e",
+          "source_preserved": true
+        },
+        {
+          "backend": "bare-ty",
+          "label": "0/bare-ty",
+          "command": [
+            "/private/tmp/ty-companion-performance-refactor/installed-088/bin/ty",
+            "check",
+            "--python",
+            "/private/tmp/ty-companion-performance-refactor/installed-088/bin/python",
+            "--output-format",
+            "gitlab",
+            "--no-progress",
+            "--color",
+            "never",
+            "/private/tmp/ty-companion-performance-refactor/ci-90d-small/project",
+            "--config-file",
+            "/private/tmp/ty-companion-performance-refactor/ci-90d-small/bare.toml"
+          ],
+          "seconds": 0.06899270799476653,
+          "exit": 1,
+          "diagnostic_codes": {
+            "type-assertion-failure": 25,
+            "unresolved-attribute": 25
+          },
+          "user_cpu_seconds": 0.061186,
+          "system_cpu_seconds": 0.019266,
+          "sampled_process_tree_peak_rss_kib": 6800,
+          "stopped": null,
+          "monitor_error": null,
+          "parse_error": null,
+          "load_before": [
+            5.775390625,
+            6.5927734375,
+            7.65869140625
+          ],
+          "load_after": [
+            5.775390625,
+            6.5927734375,
+            7.65869140625
+          ],
+          "source_sha256": "d56dec6ca0858f30863af951cfd8ee50cc0820bc9d0acc5fd5774b85ef95908e",
+          "source_preserved": true
+        },
+        {
+          "backend": "mypy",
+          "label": "0/mypy",
+          "command": [
+            "/private/tmp/ty-companion-performance-refactor/reference/bin/mypy",
+            "--config-file",
+            "/private/tmp/ty-companion-performance-refactor/ci-90d-small/mypy.ini",
+            "--output",
+            "json",
+            "--no-incremental",
+            "/private/tmp/ty-companion-performance-refactor/ci-90d-small/project",
+            "--cache-dir",
+            "/private/tmp/ty-companion-performance-refactor/ci-90d-small/runs/0/mypy/scratch/mypy-cache"
+          ],
+          "seconds": 1.6263334170216694,
+          "exit": 0,
+          "diagnostic_codes": {},
+          "user_cpu_seconds": 1.4562,
+          "system_cpu_seconds": 0.23873799999999998,
+          "sampled_process_tree_peak_rss_kib": 190096,
+          "stopped": null,
+          "monitor_error": null,
+          "parse_error": null,
+          "load_before": [
+            5.775390625,
+            6.5927734375,
+            7.65869140625
+          ],
+          "load_after": [
+            5.79296875,
+            6.58251953125,
+            7.64892578125
+          ],
+          "source_sha256": "d56dec6ca0858f30863af951cfd8ee50cc0820bc9d0acc5fd5774b85ef95908e",
+          "source_preserved": true
+        },
+        {
+          "backend": "bare-ty",
+          "label": "1/bare-ty",
+          "command": [
+            "/private/tmp/ty-companion-performance-refactor/installed-088/bin/ty",
+            "check",
+            "--python",
+            "/private/tmp/ty-companion-performance-refactor/installed-088/bin/python",
+            "--output-format",
+            "gitlab",
+            "--no-progress",
+            "--color",
+            "never",
+            "/private/tmp/ty-companion-performance-refactor/ci-90d-small/project",
+            "--config-file",
+            "/private/tmp/ty-companion-performance-refactor/ci-90d-small/bare.toml"
+          ],
+          "seconds": 0.06374050001613796,
+          "exit": 1,
+          "diagnostic_codes": {
+            "type-assertion-failure": 25,
+            "unresolved-attribute": 25
+          },
+          "user_cpu_seconds": 0.060142999999999995,
+          "system_cpu_seconds": 0.019475,
+          "sampled_process_tree_peak_rss_kib": 6784,
+          "stopped": null,
+          "monitor_error": null,
+          "parse_error": null,
+          "load_before": [
+            5.79296875,
+            6.58251953125,
+            7.64892578125
+          ],
+          "load_after": [
+            5.79296875,
+            6.58251953125,
+            7.64892578125
+          ],
+          "source_sha256": "d56dec6ca0858f30863af951cfd8ee50cc0820bc9d0acc5fd5774b85ef95908e",
+          "source_preserved": true
+        },
+        {
+          "backend": "mypy",
+          "label": "1/mypy",
+          "command": [
+            "/private/tmp/ty-companion-performance-refactor/reference/bin/mypy",
+            "--config-file",
+            "/private/tmp/ty-companion-performance-refactor/ci-90d-small/mypy.ini",
+            "--output",
+            "json",
+            "--no-incremental",
+            "/private/tmp/ty-companion-performance-refactor/ci-90d-small/project",
+            "--cache-dir",
+            "/private/tmp/ty-companion-performance-refactor/ci-90d-small/runs/1/mypy/scratch/mypy-cache"
+          ],
+          "seconds": 1.6981842919485644,
+          "exit": 0,
+          "diagnostic_codes": {},
+          "user_cpu_seconds": 1.471668,
+          "system_cpu_seconds": 0.24620299999999998,
+          "sampled_process_tree_peak_rss_kib": 188624,
+          "stopped": null,
+          "monitor_error": null,
+          "parse_error": null,
+          "load_before": [
+            5.79296875,
+            6.58251953125,
+            7.64892578125
+          ],
+          "load_after": [
+            5.79296875,
+            6.58251953125,
+            7.64892578125
+          ],
+          "source_sha256": "d56dec6ca0858f30863af951cfd8ee50cc0820bc9d0acc5fd5774b85ef95908e",
+          "source_preserved": true
+        },
+        {
+          "backend": "companion",
+          "label": "1/companion",
+          "command": [
+            "/private/tmp/ty-companion-performance-refactor/installed-088/bin/ty-extended",
+            "check",
+            "--python",
+            "/private/tmp/ty-companion-performance-refactor/installed-088/bin/python",
+            "--output-format",
+            "gitlab",
+            "--no-progress",
+            "--color",
+            "never",
+            "/private/tmp/ty-companion-performance-refactor/ci-90d-small/project",
+            "--ty",
+            "/private/tmp/ty-companion-performance-refactor/installed-088/bin/ty",
+            "--config-file",
+            "/private/tmp/ty-companion-performance-refactor/ci-90d-small/companion.toml"
+          ],
+          "seconds": 0.5385092500364408,
+          "exit": 0,
+          "diagnostic_codes": {},
+          "user_cpu_seconds": 0.31587299999999996,
+          "system_cpu_seconds": 0.26820299999999997,
+          "sampled_process_tree_peak_rss_kib": 229840,
+          "stopped": null,
+          "monitor_error": null,
+          "parse_error": null,
+          "load_before": [
+            5.79296875,
+            6.58251953125,
+            7.64892578125
+          ],
+          "load_after": [
+            5.79296875,
+            6.58251953125,
+            7.64892578125
+          ],
+          "source_sha256": "d56dec6ca0858f30863af951cfd8ee50cc0820bc9d0acc5fd5774b85ef95908e",
+          "source_preserved": true
+        },
+        {
+          "backend": "mypy",
+          "label": "2/mypy",
+          "command": [
+            "/private/tmp/ty-companion-performance-refactor/reference/bin/mypy",
+            "--config-file",
+            "/private/tmp/ty-companion-performance-refactor/ci-90d-small/mypy.ini",
+            "--output",
+            "json",
+            "--no-incremental",
+            "/private/tmp/ty-companion-performance-refactor/ci-90d-small/project",
+            "--cache-dir",
+            "/private/tmp/ty-companion-performance-refactor/ci-90d-small/runs/2/mypy/scratch/mypy-cache"
+          ],
+          "seconds": 1.6901665420737118,
+          "exit": 0,
+          "diagnostic_codes": {},
+          "user_cpu_seconds": 1.482883,
+          "system_cpu_seconds": 0.244686,
+          "sampled_process_tree_peak_rss_kib": 188880,
+          "stopped": null,
+          "monitor_error": null,
+          "parse_error": null,
+          "load_before": [
+            5.79296875,
+            6.58251953125,
+            7.64892578125
+          ],
+          "load_after": [
+            6.28955078125,
+            6.67236328125,
+            7.67431640625
+          ],
+          "source_sha256": "d56dec6ca0858f30863af951cfd8ee50cc0820bc9d0acc5fd5774b85ef95908e",
+          "source_preserved": true
+        },
+        {
+          "backend": "companion",
+          "label": "2/companion",
+          "command": [
+            "/private/tmp/ty-companion-performance-refactor/installed-088/bin/ty-extended",
+            "check",
+            "--python",
+            "/private/tmp/ty-companion-performance-refactor/installed-088/bin/python",
+            "--output-format",
+            "gitlab",
+            "--no-progress",
+            "--color",
+            "never",
+            "/private/tmp/ty-companion-performance-refactor/ci-90d-small/project",
+            "--ty",
+            "/private/tmp/ty-companion-performance-refactor/installed-088/bin/ty",
+            "--config-file",
+            "/private/tmp/ty-companion-performance-refactor/ci-90d-small/companion.toml"
+          ],
+          "seconds": 0.5466670419555157,
+          "exit": 0,
+          "diagnostic_codes": {},
+          "user_cpu_seconds": 0.317415,
+          "system_cpu_seconds": 0.280234,
+          "sampled_process_tree_peak_rss_kib": 227280,
+          "stopped": null,
+          "monitor_error": null,
+          "parse_error": null,
+          "load_before": [
+            6.28955078125,
+            6.67236328125,
+            7.67431640625
+          ],
+          "load_after": [
+            6.28955078125,
+            6.67236328125,
+            7.67431640625
+          ],
+          "source_sha256": "d56dec6ca0858f30863af951cfd8ee50cc0820bc9d0acc5fd5774b85ef95908e",
+          "source_preserved": true
+        },
+        {
+          "backend": "bare-ty",
+          "label": "2/bare-ty",
+          "command": [
+            "/private/tmp/ty-companion-performance-refactor/installed-088/bin/ty",
+            "check",
+            "--python",
+            "/private/tmp/ty-companion-performance-refactor/installed-088/bin/python",
+            "--output-format",
+            "gitlab",
+            "--no-progress",
+            "--color",
+            "never",
+            "/private/tmp/ty-companion-performance-refactor/ci-90d-small/project",
+            "--config-file",
+            "/private/tmp/ty-companion-performance-refactor/ci-90d-small/bare.toml"
+          ],
+          "seconds": 0.06381845893338323,
+          "exit": 1,
+          "diagnostic_codes": {
+            "type-assertion-failure": 25,
+            "unresolved-attribute": 25
+          },
+          "user_cpu_seconds": 0.061263,
+          "system_cpu_seconds": 0.019237,
+          "sampled_process_tree_peak_rss_kib": 6640,
+          "stopped": null,
+          "monitor_error": null,
+          "parse_error": null,
+          "load_before": [
+            6.28955078125,
+            6.67236328125,
+            7.67431640625
+          ],
+          "load_after": [
+            6.28955078125,
+            6.67236328125,
+            7.67431640625
+          ],
+          "source_sha256": "d56dec6ca0858f30863af951cfd8ee50cc0820bc9d0acc5fd5774b85ef95908e",
+          "source_preserved": true
+        }
+      ],
+      "negative_controls": [
+        {
+          "backend": "companion",
+          "label": "negative/companion",
+          "command": [
+            "/private/tmp/ty-companion-performance-refactor/installed-088/bin/ty-extended",
+            "check",
+            "--python",
+            "/private/tmp/ty-companion-performance-refactor/installed-088/bin/python",
+            "--output-format",
+            "gitlab",
+            "--no-progress",
+            "--color",
+            "never",
+            "/private/tmp/ty-companion-performance-refactor/ci-90d-small/project",
+            "--ty",
+            "/private/tmp/ty-companion-performance-refactor/installed-088/bin/ty",
+            "--config-file",
+            "/private/tmp/ty-companion-performance-refactor/ci-90d-small/companion.toml"
+          ],
+          "seconds": 0.5851569999940693,
+          "exit": 1,
+          "diagnostic_codes": {
+            "invalid-assignment": 2
+          },
+          "user_cpu_seconds": 0.328159,
+          "system_cpu_seconds": 0.285769,
+          "sampled_process_tree_peak_rss_kib": 226720,
+          "stopped": null,
+          "monitor_error": null,
+          "parse_error": null,
+          "load_before": [
+            6.28955078125,
+            6.67236328125,
+            7.67431640625
+          ],
+          "load_after": [
+            6.28955078125,
+            6.67236328125,
+            7.67431640625
+          ],
+          "source_sha256": "8666d8c681c438491e30c5b51be243c1acc36176c2a15847be4d33d73779eed6",
+          "source_preserved": true,
+          "verified_negative_locations": [
+            {
+              "path": "checks.py",
+              "line": 28
+            },
+            {
+              "path": "filler00000.py",
+              "line": 1
+            }
+          ]
+        },
+        {
+          "backend": "mypy",
+          "label": "negative/mypy",
+          "command": [
+            "/private/tmp/ty-companion-performance-refactor/reference/bin/mypy",
+            "--config-file",
+            "/private/tmp/ty-companion-performance-refactor/ci-90d-small/mypy.ini",
+            "--output",
+            "json",
+            "--no-incremental",
+            "/private/tmp/ty-companion-performance-refactor/ci-90d-small/project",
+            "--cache-dir",
+            "/private/tmp/ty-companion-performance-refactor/ci-90d-small/runs/negative/mypy/scratch/mypy-cache"
+          ],
+          "seconds": 1.6689006250817329,
+          "exit": 1,
+          "diagnostic_codes": {
+            "assignment": 2
+          },
+          "user_cpu_seconds": 1.473527,
+          "system_cpu_seconds": 0.24209899999999998,
+          "sampled_process_tree_peak_rss_kib": 190784,
+          "stopped": null,
+          "monitor_error": null,
+          "parse_error": null,
+          "load_before": [
+            6.28955078125,
+            6.67236328125,
+            7.67431640625
+          ],
+          "load_after": [
+            6.28955078125,
+            6.67236328125,
+            7.67431640625
+          ],
+          "source_sha256": "8666d8c681c438491e30c5b51be243c1acc36176c2a15847be4d33d73779eed6",
+          "source_preserved": true,
+          "verified_negative_locations": [
+            {
+              "path": "checks.py",
+              "line": 28
+            },
+            {
+              "path": "filler00000.py",
+              "line": 1
+            }
+          ]
+        }
+      ],
+      "platform": "macos-arm64",
+      "shape": "small",
+      "raw_report_sha256": "42abffa083c4532ab4ff148cfd5b6d8e7e99729c8c9e939dda0439b53a54989a",
+      "plugin_files_sha256": "6e2f1f265ec99db47eae4dfb07aa9d87d87f9c454284a67579cd97a680f2169e"
+    },
+    {
+      "host": "macOS-27.0.1-arm64-arm-64bit-Mach-O",
+      "workload": {
+        "files": 1000,
+        "models": 250,
+        "model_modules": 25,
+        "queries": 100
+      },
+      "method": "Fresh processes; warm filesystem caches; MyPy --no-incremental and disposable cache; rotated serial runs; process-tree RSS sampled every 100ms.",
+      "threads": "default",
+      "source_sha256": "215897d7d242aeb2411e9f446fed78cd4105eb934b051c4035f409b7323e45a0",
+      "binaries": {
+        "companion": {
+          "path": "/private/tmp/ty-companion-performance-refactor/installed-088/bin/ty-extended",
+          "version": "ty-extended 0.88.0",
+          "sha256": "f327a7e553dd17e8fcbbed682d18f206835e4653561dc2553e7068a8bc39b156"
+        },
+        "official": {
+          "path": "/private/tmp/ty-companion-performance-refactor/installed-088/bin/ty",
+          "version": "ty 0.0.99 (9b48f40c9 2026-11-06)",
+          "sha256": "34688103a83c3123d9eb0f4d85cdaa15f06ff16ce422d8a42616e6b1c885200e"
+        },
+        "mypy": {
+          "path": "/private/tmp/ty-companion-performance-refactor/reference/bin/mypy",
+          "version": "mypy 2.4.1 (compiled: yes)",
+          "sha256": "63d6c3b84797b5b26ab85d4674403fadbed76b7dad0bcc500188aa61fd37dd15"
+        }
+      },
+      "environments": {
+        "companion": {
+          "python": "3.13.0 (main, Oct 16 2024, 08:05:40) [Clang 18.1.8 ]",
+          "packages": {
+            "sqlparse": "0.6.1",
+            "django-ty": "0.7.0",
+            "ty-extended": "0.88.0",
+            "ty": "0.0.99",
+            "asgiref": "3.13.0",
+            "Django": "6.1.3",
+            "typing_extensions": "4.16.0",
+            "types-PyYAML": "6.0.12.20261103"
+          }
+        },
+        "mypy": {
+          "python": "3.13.0 (main, Oct 16 2024, 08:05:40) [Clang 18.1.8 ]",
+          "packages": {
+            "sqlparse": "0.6.1",
+            "django-stubs-ext": "6.1.2",
+            "mypy_extensions": "1.2.0",
+            "asgiref": "3.13.0",
+            "django-stubs": "6.1.2",
+            "Django": "6.1.3",
+            "ast_serialize": "0.13.1",
+            "pathspec": "1.1.1",
+            "librt": "0.16.0",
+            "typing_extensions": "4.16.0",
+            "types-PyYAML": "6.0.12.20261103",
+            "mypy": "2.4.1"
+          }
+        }
+      },
+      "plugin": {
+        "id": "django-ty",
+        "version": "0.7.0",
+        "protocol-version": {
+          "major": 0,
+          "minor": 8
+        }
+      },
+      "median_seconds": {
+        "companion": 1.298720500082709,
+        "bare-ty": 0.08924329199362546,
+        "mypy": 2.2210616669617593
+      },
+      "passed": true,
+      "performance_target_met": true,
+      "records": [
+        {
+          "backend": "companion",
+          "label": "0/companion",
+          "command": [
+            "/private/tmp/ty-companion-performance-refactor/installed-088/bin/ty-extended",
+            "check",
+            "--python",
+            "/private/tmp/ty-companion-performance-refactor/installed-088/bin/python",
+            "--output-format",
+            "gitlab",
+            "--no-progress",
+            "--color",
+            "never",
+            "/private/tmp/ty-companion-performance-refactor/ci-90d-distributed/project",
+            "--ty",
+            "/private/tmp/ty-companion-performance-refactor/installed-088/bin/ty",
+            "--config-file",
+            "/private/tmp/ty-companion-performance-refactor/ci-90d-distributed/companion.toml"
+          ],
+          "seconds": 1.31365150003694,
+          "exit": 0,
+          "diagnostic_codes": {},
+          "user_cpu_seconds": 1.010341,
+          "system_cpu_seconds": 0.681754,
+          "sampled_process_tree_peak_rss_kib": 375248,
+          "stopped": null,
+          "monitor_error": null,
+          "parse_error": null,
+          "load_before": [
+            6.28955078125,
+            6.67236328125,
+            7.67431640625
+          ],
+          "load_after": [
+            6.10595703125,
+            6.6279296875,
+            7.65234375
+          ],
+          "source_sha256": "215897d7d242aeb2411e9f446fed78cd4105eb934b051c4035f409b7323e45a0",
+          "source_preserved": true
+        },
+        {
+          "backend": "bare-ty",
+          "label": "0/bare-ty",
+          "command": [
+            "/private/tmp/ty-companion-performance-refactor/installed-088/bin/ty",
+            "check",
+            "--python",
+            "/private/tmp/ty-companion-performance-refactor/installed-088/bin/python",
+            "--output-format",
+            "gitlab",
+            "--no-progress",
+            "--color",
+            "never",
+            "/private/tmp/ty-companion-performance-refactor/ci-90d-distributed/project",
+            "--config-file",
+            "/private/tmp/ty-companion-performance-refactor/ci-90d-distributed/bare.toml"
+          ],
+          "seconds": 0.08824258297681808,
+          "exit": 1,
+          "diagnostic_codes": {
+            "type-assertion-failure": 100,
+            "unresolved-attribute": 100
+          },
+          "user_cpu_seconds": 0.109054,
+          "system_cpu_seconds": 0.081948,
+          "sampled_process_tree_peak_rss_kib": 7488,
+          "stopped": null,
+          "monitor_error": null,
+          "parse_error": null,
+          "load_before": [
+            6.10595703125,
+            6.6279296875,
+            7.65234375
+          ],
+          "load_after": [
+            6.10595703125,
+            6.6279296875,
+            7.65234375
+          ],
+          "source_sha256": "215897d7d242aeb2411e9f446fed78cd4105eb934b051c4035f409b7323e45a0",
+          "source_preserved": true
+        },
+        {
+          "backend": "mypy",
+          "label": "0/mypy",
+          "command": [
+            "/private/tmp/ty-companion-performance-refactor/reference/bin/mypy",
+            "--config-file",
+            "/private/tmp/ty-companion-performance-refactor/ci-90d-distributed/mypy.ini",
+            "--output",
+            "json",
+            "--no-incremental",
+            "/private/tmp/ty-companion-performance-refactor/ci-90d-distributed/project",
+            "--cache-dir",
+            "/private/tmp/ty-companion-performance-refactor/ci-90d-distributed/runs/0/mypy/scratch/mypy-cache"
+          ],
+          "seconds": 2.2109509999863803,
+          "exit": 0,
+          "diagnostic_codes": {},
+          "user_cpu_seconds": 1.91315,
+          "system_cpu_seconds": 0.380032,
+          "sampled_process_tree_peak_rss_kib": 217392,
+          "stopped": null,
+          "monitor_error": null,
+          "parse_error": null,
+          "load_before": [
+            6.10595703125,
+            6.6279296875,
+            7.65234375
+          ],
+          "load_after": [
+            6.10595703125,
+            6.6279296875,
+            7.65234375
+          ],
+          "source_sha256": "215897d7d242aeb2411e9f446fed78cd4105eb934b051c4035f409b7323e45a0",
+          "source_preserved": true
+        },
+        {
+          "backend": "bare-ty",
+          "label": "1/bare-ty",
+          "command": [
+            "/private/tmp/ty-companion-performance-refactor/installed-088/bin/ty",
+            "check",
+            "--python",
+            "/private/tmp/ty-companion-performance-refactor/installed-088/bin/python",
+            "--output-format",
+            "gitlab",
+            "--no-progress",
+            "--color",
+            "never",
+            "/private/tmp/ty-companion-performance-refactor/ci-90d-distributed/project",
+            "--config-file",
+            "/private/tmp/ty-companion-performance-refactor/ci-90d-distributed/bare.toml"
+          ],
+          "seconds": 0.08924329199362546,
+          "exit": 1,
+          "diagnostic_codes": {
+            "type-assertion-failure": 100,
+            "unresolved-attribute": 100
+          },
+          "user_cpu_seconds": 0.11465099999999999,
+          "system_cpu_seconds": 0.085599,
+          "sampled_process_tree_peak_rss_kib": 6864,
+          "stopped": null,
+          "monitor_error": null,
+          "parse_error": null,
+          "load_before": [
+            6.10595703125,
+            6.6279296875,
+            7.65234375
+          ],
+          "load_after": [
+            6.10595703125,
+            6.6279296875,
+            7.65234375
+          ],
+          "source_sha256": "215897d7d242aeb2411e9f446fed78cd4105eb934b051c4035f409b7323e45a0",
+          "source_preserved": true
+        },
+        {
+          "backend": "mypy",
+          "label": "1/mypy",
+          "command": [
+            "/private/tmp/ty-companion-performance-refactor/reference/bin/mypy",
+            "--config-file",
+            "/private/tmp/ty-companion-performance-refactor/ci-90d-distributed/mypy.ini",
+            "--output",
+            "json",
+            "--no-incremental",
+            "/private/tmp/ty-companion-performance-refactor/ci-90d-distributed/project",
+            "--cache-dir",
+            "/private/tmp/ty-companion-performance-refactor/ci-90d-distributed/runs/1/mypy/scratch/mypy-cache"
+          ],
+          "seconds": 2.2210616669617593,
+          "exit": 0,
+          "diagnostic_codes": {},
+          "user_cpu_seconds": 1.917257,
+          "system_cpu_seconds": 0.378606,
+          "sampled_process_tree_peak_rss_kib": 216800,
+          "stopped": null,
+          "monitor_error": null,
+          "parse_error": null,
+          "load_before": [
+            6.10595703125,
+            6.6279296875,
+            7.65234375
+          ],
+          "load_after": [
+            5.93701171875,
+            6.583984375,
+            7.630859375
+          ],
+          "source_sha256": "215897d7d242aeb2411e9f446fed78cd4105eb934b051c4035f409b7323e45a0",
+          "source_preserved": true
+        },
+        {
+          "backend": "companion",
+          "label": "1/companion",
+          "command": [
+            "/private/tmp/ty-companion-performance-refactor/installed-088/bin/ty-extended",
+            "check",
+            "--python",
+            "/private/tmp/ty-companion-performance-refactor/installed-088/bin/python",
+            "--output-format",
+            "gitlab",
+            "--no-progress",
+            "--color",
+            "never",
+            "/private/tmp/ty-companion-performance-refactor/ci-90d-distributed/project",
+            "--ty",
+            "/private/tmp/ty-companion-performance-refactor/installed-088/bin/ty",
+            "--config-file",
+            "/private/tmp/ty-companion-performance-refactor/ci-90d-distributed/companion.toml"
+          ],
+          "seconds": 1.298720500082709,
+          "exit": 0,
+          "diagnostic_codes": {},
+          "user_cpu_seconds": 1.010103,
+          "system_cpu_seconds": 0.6812809999999999,
+          "sampled_process_tree_peak_rss_kib": 395520,
+          "stopped": null,
+          "monitor_error": null,
+          "parse_error": null,
+          "load_before": [
+            5.93701171875,
+            6.583984375,
+            7.630859375
+          ],
+          "load_after": [
+            5.93701171875,
+            6.583984375,
+            7.630859375
+          ],
+          "source_sha256": "215897d7d242aeb2411e9f446fed78cd4105eb934b051c4035f409b7323e45a0",
+          "source_preserved": true
+        },
+        {
+          "backend": "mypy",
+          "label": "2/mypy",
+          "command": [
+            "/private/tmp/ty-companion-performance-refactor/reference/bin/mypy",
+            "--config-file",
+            "/private/tmp/ty-companion-performance-refactor/ci-90d-distributed/mypy.ini",
+            "--output",
+            "json",
+            "--no-incremental",
+            "/private/tmp/ty-companion-performance-refactor/ci-90d-distributed/project",
+            "--cache-dir",
+            "/private/tmp/ty-companion-performance-refactor/ci-90d-distributed/runs/2/mypy/scratch/mypy-cache"
+          ],
+          "seconds": 2.423241666983813,
+          "exit": 0,
+          "diagnostic_codes": {},
+          "user_cpu_seconds": 1.966142,
+          "system_cpu_seconds": 0.39546699999999996,
+          "sampled_process_tree_peak_rss_kib": 218272,
+          "stopped": null,
+          "monitor_error": null,
+          "parse_error": null,
+          "load_before": [
+            5.93701171875,
+            6.583984375,
+            7.630859375
+          ],
+          "load_after": [
+            5.93701171875,
+            6.583984375,
+            7.630859375
+          ],
+          "source_sha256": "215897d7d242aeb2411e9f446fed78cd4105eb934b051c4035f409b7323e45a0",
+          "source_preserved": true
+        },
+        {
+          "backend": "companion",
+          "label": "2/companion",
+          "command": [
+            "/private/tmp/ty-companion-performance-refactor/installed-088/bin/ty-extended",
+            "check",
+            "--python",
+            "/private/tmp/ty-companion-performance-refactor/installed-088/bin/python",
+            "--output-format",
+            "gitlab",
+            "--no-progress",
+            "--color",
+            "never",
+            "/private/tmp/ty-companion-performance-refactor/ci-90d-distributed/project",
+            "--ty",
+            "/private/tmp/ty-companion-performance-refactor/installed-088/bin/ty",
+            "--config-file",
+            "/private/tmp/ty-companion-performance-refactor/ci-90d-distributed/companion.toml"
+          ],
+          "seconds": 1.2912451670272276,
+          "exit": 0,
+          "diagnostic_codes": {},
+          "user_cpu_seconds": 1.002058,
+          "system_cpu_seconds": 0.672061,
+          "sampled_process_tree_peak_rss_kib": 349424,
+          "stopped": null,
+          "monitor_error": null,
+          "parse_error": null,
+          "load_before": [
+            5.93701171875,
+            6.583984375,
+            7.630859375
+          ],
+          "load_after": [
+            6.02197265625,
+            6.5908203125,
+            7.626953125
+          ],
+          "source_sha256": "215897d7d242aeb2411e9f446fed78cd4105eb934b051c4035f409b7323e45a0",
+          "source_preserved": true
+        },
+        {
+          "backend": "bare-ty",
+          "label": "2/bare-ty",
+          "command": [
+            "/private/tmp/ty-companion-performance-refactor/installed-088/bin/ty",
+            "check",
+            "--python",
+            "/private/tmp/ty-companion-performance-refactor/installed-088/bin/python",
+            "--output-format",
+            "gitlab",
+            "--no-progress",
+            "--color",
+            "never",
+            "/private/tmp/ty-companion-performance-refactor/ci-90d-distributed/project",
+            "--config-file",
+            "/private/tmp/ty-companion-performance-refactor/ci-90d-distributed/bare.toml"
+          ],
+          "seconds": 0.09018770803231746,
+          "exit": 1,
+          "diagnostic_codes": {
+            "type-assertion-failure": 100,
+            "unresolved-attribute": 100
+          },
+          "user_cpu_seconds": 0.10768499999999999,
+          "system_cpu_seconds": 0.082282,
+          "sampled_process_tree_peak_rss_kib": 7104,
+          "stopped": null,
+          "monitor_error": null,
+          "parse_error": null,
+          "load_before": [
+            6.02197265625,
+            6.5908203125,
+            7.626953125
+          ],
+          "load_after": [
+            6.02197265625,
+            6.5908203125,
+            7.626953125
+          ],
+          "source_sha256": "215897d7d242aeb2411e9f446fed78cd4105eb934b051c4035f409b7323e45a0",
+          "source_preserved": true
+        }
+      ],
+      "negative_controls": [
+        {
+          "backend": "companion",
+          "label": "negative/companion",
+          "command": [
+            "/private/tmp/ty-companion-performance-refactor/installed-088/bin/ty-extended",
+            "check",
+            "--python",
+            "/private/tmp/ty-companion-performance-refactor/installed-088/bin/python",
+            "--output-format",
+            "gitlab",
+            "--no-progress",
+            "--color",
+            "never",
+            "/private/tmp/ty-companion-performance-refactor/ci-90d-distributed/project",
+            "--ty",
+            "/private/tmp/ty-companion-performance-refactor/installed-088/bin/ty",
+            "--config-file",
+            "/private/tmp/ty-companion-performance-refactor/ci-90d-distributed/companion.toml"
+          ],
+          "seconds": 1.362237667082809,
+          "exit": 1,
+          "diagnostic_codes": {
+            "invalid-assignment": 2
+          },
+          "user_cpu_seconds": 1.047974,
+          "system_cpu_seconds": 0.688835,
+          "sampled_process_tree_peak_rss_kib": 326400,
+          "stopped": null,
+          "monitor_error": null,
+          "parse_error": null,
+          "load_before": [
+            6.02197265625,
+            6.5908203125,
+            7.626953125
+          ],
+          "load_after": [
+            6.02197265625,
+            6.5908203125,
+            7.626953125
+          ],
+          "source_sha256": "acd92868d51aaec7df04618b847fdd70f12d9bda7e6a02f4f2b3c12957842933",
+          "source_preserved": true,
+          "verified_negative_locations": [
+            {
+              "path": "checks.py",
+              "line": 103
+            },
+            {
+              "path": "filler00000.py",
+              "line": 1
+            }
+          ]
+        },
+        {
+          "backend": "mypy",
+          "label": "negative/mypy",
+          "command": [
+            "/private/tmp/ty-companion-performance-refactor/reference/bin/mypy",
+            "--config-file",
+            "/private/tmp/ty-companion-performance-refactor/ci-90d-distributed/mypy.ini",
+            "--output",
+            "json",
+            "--no-incremental",
+            "/private/tmp/ty-companion-performance-refactor/ci-90d-distributed/project",
+            "--cache-dir",
+            "/private/tmp/ty-companion-performance-refactor/ci-90d-distributed/runs/negative/mypy/scratch/mypy-cache"
+          ],
+          "seconds": 2.2529925419948995,
+          "exit": 1,
+          "diagnostic_codes": {
+            "assignment": 2
+          },
+          "user_cpu_seconds": 1.9319089999999999,
+          "system_cpu_seconds": 0.38261999999999996,
+          "sampled_process_tree_peak_rss_kib": 217904,
+          "stopped": null,
+          "monitor_error": null,
+          "parse_error": null,
+          "load_before": [
+            6.02197265625,
+            6.5908203125,
+            7.626953125
+          ],
+          "load_after": [
+            6.02197265625,
+            6.5908203125,
+            7.626953125
+          ],
+          "source_sha256": "acd92868d51aaec7df04618b847fdd70f12d9bda7e6a02f4f2b3c12957842933",
+          "source_preserved": true,
+          "verified_negative_locations": [
+            {
+              "path": "checks.py",
+              "line": 103
+            },
+            {
+              "path": "filler00000.py",
+              "line": 1
+            }
+          ]
+        }
+      ],
+      "platform": "macos-arm64",
+      "shape": "distributed",
+      "raw_report_sha256": "8ccdd6626ba4de4ae5cc91e731f698d5991f71d86c45af2c0b75dec6096588a4",
+      "plugin_files_sha256": "6e2f1f265ec99db47eae4dfb07aa9d87d87f9c454284a67579cd97a680f2169e"
+    },
+    {
+      "host": "macOS-27.0.1-arm64-arm-64bit-Mach-O",
+      "workload": {
+        "files": 7082,
+        "models": 250,
+        "model_modules": 25,
+        "queries": 100
+      },
+      "method": "Fresh processes; warm filesystem caches; MyPy --no-incremental and disposable cache; rotated serial runs; process-tree RSS sampled every 100ms.",
+      "threads": "default",
+      "source_sha256": "ba0380a4b1aa169061e65909e3ec9d9ecec7d4679a12e6dc914c7c2a5659b731",
+      "binaries": {
+        "companion": {
+          "path": "/private/tmp/ty-companion-performance-refactor/installed-088/bin/ty-extended",
+          "version": "ty-extended 0.88.0",
+          "sha256": "f327a7e553dd17e8fcbbed682d18f206835e4653561dc2553e7068a8bc39b156"
+        },
+        "official": {
+          "path": "/private/tmp/ty-companion-performance-refactor/installed-088/bin/ty",
+          "version": "ty 0.0.99 (9b48f40c9 2026-11-06)",
+          "sha256": "34688103a83c3123d9eb0f4d85cdaa15f06ff16ce422d8a42616e6b1c885200e"
+        },
+        "mypy": {
+          "path": "/private/tmp/ty-companion-performance-refactor/reference/bin/mypy",
+          "version": "mypy 2.4.1 (compiled: yes)",
+          "sha256": "63d6c3b84797b5b26ab85d4674403fadbed76b7dad0bcc500188aa61fd37dd15"
+        }
+      },
+      "environments": {
+        "companion": {
+          "python": "3.13.0 (main, Oct 16 2024, 08:05:40) [Clang 18.1.8 ]",
+          "packages": {
+            "sqlparse": "0.6.1",
+            "django-ty": "0.7.0",
+            "ty-extended": "0.88.0",
+            "ty": "0.0.99",
+            "asgiref": "3.13.0",
+            "Django": "6.1.3",
+            "typing_extensions": "4.16.0",
+            "types-PyYAML": "6.0.12.20261103"
+          }
+        },
+        "mypy": {
+          "python": "3.13.0 (main, Oct 16 2024, 08:05:40) [Clang 18.1.8 ]",
+          "packages": {
+            "sqlparse": "0.6.1",
+            "django-stubs-ext": "6.1.2",
+            "mypy_extensions": "1.2.0",
+            "asgiref": "3.13.0",
+            "django-stubs": "6.1.2",
+            "Django": "6.1.3",
+            "ast_serialize": "0.13.1",
+            "pathspec": "1.1.1",
+            "librt": "0.16.0",
+            "typing_extensions": "4.16.0",
+            "types-PyYAML": "6.0.12.20261103",
+            "mypy": "2.4.1"
+          }
+        }
+      },
+      "plugin": {
+        "id": "django-ty",
+        "version": "0.7.0",
+        "protocol-version": {
+          "major": 0,
+          "minor": 8
+        }
+      },
+      "median_seconds": {
+        "companion": 3.596702125039883,
+        "bare-ty": 0.16552466701250523,
+        "mypy": 4.367701375042088
+      },
+      "passed": true,
+      "performance_target_met": true,
+      "records": [
+        {
+          "backend": "companion",
+          "label": "0/companion",
+          "command": [
+            "/private/tmp/ty-companion-performance-refactor/installed-088/bin/ty-extended",
+            "check",
+            "--python",
+            "/private/tmp/ty-companion-performance-refactor/installed-088/bin/python",
+            "--output-format",
+            "gitlab",
+            "--no-progress",
+            "--color",
+            "never",
+            "/private/tmp/ty-companion-performance-refactor/ci-90d-many-files/project",
+            "--ty",
+            "/private/tmp/ty-companion-performance-refactor/installed-088/bin/ty",
+            "--config-file",
+            "/private/tmp/ty-companion-performance-refactor/ci-90d-many-files/companion.toml"
+          ],
+          "seconds": 3.596702125039883,
+          "exit": 0,
+          "diagnostic_codes": {},
+          "user_cpu_seconds": 1.992054,
+          "system_cpu_seconds": 3.024265,
+          "sampled_process_tree_peak_rss_kib": 493824,
+          "stopped": null,
+          "monitor_error": null,
+          "parse_error": null,
+          "load_before": [
+            6.42041015625,
+            6.66357421875,
+            7.646484375
+          ],
+          "load_after": [
+            6.42041015625,
+            6.66357421875,
+            7.646484375
+          ],
+          "source_sha256": "ba0380a4b1aa169061e65909e3ec9d9ecec7d4679a12e6dc914c7c2a5659b731",
+          "source_preserved": true
+        },
+        {
+          "backend": "bare-ty",
+          "label": "0/bare-ty",
+          "command": [
+            "/private/tmp/ty-companion-performance-refactor/installed-088/bin/ty",
+            "check",
+            "--python",
+            "/private/tmp/ty-companion-performance-refactor/installed-088/bin/python",
+            "--output-format",
+            "gitlab",
+            "--no-progress",
+            "--color",
+            "never",
+            "/private/tmp/ty-companion-performance-refactor/ci-90d-many-files/project",
+            "--config-file",
+            "/private/tmp/ty-companion-performance-refactor/ci-90d-many-files/bare.toml"
+          ],
+          "seconds": 0.174140291986987,
+          "exit": 1,
+          "diagnostic_codes": {
+            "type-assertion-failure": 100,
+            "unresolved-attribute": 100
+          },
+          "user_cpu_seconds": 0.29517899999999997,
+          "system_cpu_seconds": 0.500521,
+          "sampled_process_tree_peak_rss_kib": 66720,
+          "stopped": null,
+          "monitor_error": null,
+          "parse_error": null,
+          "load_before": [
+            6.787109375,
+            6.7353515625,
+            7.666015625
+          ],
+          "load_after": [
+            6.787109375,
+            6.7353515625,
+            7.666015625
+          ],
+          "source_sha256": "ba0380a4b1aa169061e65909e3ec9d9ecec7d4679a12e6dc914c7c2a5659b731",
+          "source_preserved": true
+        },
+        {
+          "backend": "mypy",
+          "label": "0/mypy",
+          "command": [
+            "/private/tmp/ty-companion-performance-refactor/reference/bin/mypy",
+            "--config-file",
+            "/private/tmp/ty-companion-performance-refactor/ci-90d-many-files/mypy.ini",
+            "--output",
+            "json",
+            "--no-incremental",
+            "/private/tmp/ty-companion-performance-refactor/ci-90d-many-files/project",
+            "--cache-dir",
+            "/private/tmp/ty-companion-performance-refactor/ci-90d-many-files/runs/0/mypy/scratch/mypy-cache"
+          ],
+          "seconds": 4.278975083027035,
+          "exit": 0,
+          "diagnostic_codes": {},
+          "user_cpu_seconds": 3.348869,
+          "system_cpu_seconds": 1.210371,
+          "sampled_process_tree_peak_rss_kib": 300080,
+          "stopped": null,
+          "monitor_error": null,
+          "parse_error": null,
+          "load_before": [
+            6.787109375,
+            6.7353515625,
+            7.666015625
+          ],
+          "load_after": [
+            6.6435546875,
+            6.7060546875,
+            7.650390625
+          ],
+          "source_sha256": "ba0380a4b1aa169061e65909e3ec9d9ecec7d4679a12e6dc914c7c2a5659b731",
+          "source_preserved": true
+        },
+        {
+          "backend": "bare-ty",
+          "label": "1/bare-ty",
+          "command": [
+            "/private/tmp/ty-companion-performance-refactor/installed-088/bin/ty",
+            "check",
+            "--python",
+            "/private/tmp/ty-companion-performance-refactor/installed-088/bin/python",
+            "--output-format",
+            "gitlab",
+            "--no-progress",
+            "--color",
+            "never",
+            "/private/tmp/ty-companion-performance-refactor/ci-90d-many-files/project",
+            "--config-file",
+            "/private/tmp/ty-companion-performance-refactor/ci-90d-many-files/bare.toml"
+          ],
+          "seconds": 0.1626010419568047,
+          "exit": 1,
+          "diagnostic_codes": {
+            "type-assertion-failure": 100,
+            "unresolved-attribute": 100
+          },
+          "user_cpu_seconds": 0.290467,
+          "system_cpu_seconds": 0.499202,
+          "sampled_process_tree_peak_rss_kib": 72784,
+          "stopped": null,
+          "monitor_error": null,
+          "parse_error": null,
+          "load_before": [
+            6.6435546875,
+            6.7060546875,
+            7.650390625
+          ],
+          "load_after": [
+            6.6435546875,
+            6.7060546875,
+            7.650390625
+          ],
+          "source_sha256": "ba0380a4b1aa169061e65909e3ec9d9ecec7d4679a12e6dc914c7c2a5659b731",
+          "source_preserved": true
+        },
+        {
+          "backend": "mypy",
+          "label": "1/mypy",
+          "command": [
+            "/private/tmp/ty-companion-performance-refactor/reference/bin/mypy",
+            "--config-file",
+            "/private/tmp/ty-companion-performance-refactor/ci-90d-many-files/mypy.ini",
+            "--output",
+            "json",
+            "--no-incremental",
+            "/private/tmp/ty-companion-performance-refactor/ci-90d-many-files/project",
+            "--cache-dir",
+            "/private/tmp/ty-companion-performance-refactor/ci-90d-many-files/runs/1/mypy/scratch/mypy-cache"
+          ],
+          "seconds": 4.42747745802626,
+          "exit": 0,
+          "diagnostic_codes": {},
+          "user_cpu_seconds": 3.402406,
+          "system_cpu_seconds": 1.313495,
+          "sampled_process_tree_peak_rss_kib": 301184,
+          "stopped": null,
+          "monitor_error": null,
+          "parse_error": null,
+          "load_before": [
+            6.6435546875,
+            6.7060546875,
+            7.650390625
+          ],
+          "load_after": [
+            6.431640625,
+            6.66064453125,
+            7.62890625
+          ],
+          "source_sha256": "ba0380a4b1aa169061e65909e3ec9d9ecec7d4679a12e6dc914c7c2a5659b731",
+          "source_preserved": true
+        },
+        {
+          "backend": "companion",
+          "label": "1/companion",
+          "command": [
+            "/private/tmp/ty-companion-performance-refactor/installed-088/bin/ty-extended",
+            "check",
+            "--python",
+            "/private/tmp/ty-companion-performance-refactor/installed-088/bin/python",
+            "--output-format",
+            "gitlab",
+            "--no-progress",
+            "--color",
+            "never",
+            "/private/tmp/ty-companion-performance-refactor/ci-90d-many-files/project",
+            "--ty",
+            "/private/tmp/ty-companion-performance-refactor/installed-088/bin/ty",
+            "--config-file",
+            "/private/tmp/ty-companion-performance-refactor/ci-90d-many-files/companion.toml"
+          ],
+          "seconds": 3.5284441250842065,
+          "exit": 0,
+          "diagnostic_codes": {},
+          "user_cpu_seconds": 1.96206,
+          "system_cpu_seconds": 2.970505,
+          "sampled_process_tree_peak_rss_kib": 446016,
+          "stopped": null,
+          "monitor_error": null,
+          "parse_error": null,
+          "load_before": [
+            6.431640625,
+            6.66064453125,
+            7.62890625
+          ],
+          "load_after": [
+            6.15673828125,
+            6.599609375,
+            7.6015625
+          ],
+          "source_sha256": "ba0380a4b1aa169061e65909e3ec9d9ecec7d4679a12e6dc914c7c2a5659b731",
+          "source_preserved": true
+        },
+        {
+          "backend": "mypy",
+          "label": "2/mypy",
+          "command": [
+            "/private/tmp/ty-companion-performance-refactor/reference/bin/mypy",
+            "--config-file",
+            "/private/tmp/ty-companion-performance-refactor/ci-90d-many-files/mypy.ini",
+            "--output",
+            "json",
+            "--no-incremental",
+            "/private/tmp/ty-companion-performance-refactor/ci-90d-many-files/project",
+            "--cache-dir",
+            "/private/tmp/ty-companion-performance-refactor/ci-90d-many-files/runs/2/mypy/scratch/mypy-cache"
+          ],
+          "seconds": 4.367701375042088,
+          "exit": 0,
+          "diagnostic_codes": {},
+          "user_cpu_seconds": 3.445983,
+          "system_cpu_seconds": 1.219487,
+          "sampled_process_tree_peak_rss_kib": 300496,
+          "stopped": null,
+          "monitor_error": null,
+          "parse_error": null,
+          "load_before": [
+            6.15673828125,
+            6.599609375,
+            7.6015625
+          ],
+          "load_after": [
+            6.22412109375,
+            6.60595703125,
+            7.59765625
+          ],
+          "source_sha256": "ba0380a4b1aa169061e65909e3ec9d9ecec7d4679a12e6dc914c7c2a5659b731",
+          "source_preserved": true
+        },
+        {
+          "backend": "companion",
+          "label": "2/companion",
+          "command": [
+            "/private/tmp/ty-companion-performance-refactor/installed-088/bin/ty-extended",
+            "check",
+            "--python",
+            "/private/tmp/ty-companion-performance-refactor/installed-088/bin/python",
+            "--output-format",
+            "gitlab",
+            "--no-progress",
+            "--color",
+            "never",
+            "/private/tmp/ty-companion-performance-refactor/ci-90d-many-files/project",
+            "--ty",
+            "/private/tmp/ty-companion-performance-refactor/installed-088/bin/ty",
+            "--config-file",
+            "/private/tmp/ty-companion-performance-refactor/ci-90d-many-files/companion.toml"
+          ],
+          "seconds": 3.7050797919509932,
+          "exit": 0,
+          "diagnostic_codes": {},
+          "user_cpu_seconds": 1.9689919999999999,
+          "system_cpu_seconds": 3.826512,
+          "sampled_process_tree_peak_rss_kib": 449424,
+          "stopped": null,
+          "monitor_error": null,
+          "parse_error": null,
+          "load_before": [
+            6.22412109375,
+            6.60595703125,
+            7.59765625
+          ],
+          "load_after": [
+            6.22412109375,
+            6.60595703125,
+            7.59765625
+          ],
+          "source_sha256": "ba0380a4b1aa169061e65909e3ec9d9ecec7d4679a12e6dc914c7c2a5659b731",
+          "source_preserved": true
+        },
+        {
+          "backend": "bare-ty",
+          "label": "2/bare-ty",
+          "command": [
+            "/private/tmp/ty-companion-performance-refactor/installed-088/bin/ty",
+            "check",
+            "--python",
+            "/private/tmp/ty-companion-performance-refactor/installed-088/bin/python",
+            "--output-format",
+            "gitlab",
+            "--no-progress",
+            "--color",
+            "never",
+            "/private/tmp/ty-companion-performance-refactor/ci-90d-many-files/project",
+            "--config-file",
+            "/private/tmp/ty-companion-performance-refactor/ci-90d-many-files/bare.toml"
+          ],
+          "seconds": 0.16552466701250523,
+          "exit": 1,
+          "diagnostic_codes": {
+            "type-assertion-failure": 100,
+            "unresolved-attribute": 100
+          },
+          "user_cpu_seconds": 0.297609,
+          "system_cpu_seconds": 0.47538199999999997,
+          "sampled_process_tree_peak_rss_kib": 65760,
+          "stopped": null,
+          "monitor_error": null,
+          "parse_error": null,
+          "load_before": [
+            6.1259765625,
+            6.5791015625,
+            7.58203125
+          ],
+          "load_after": [
+            6.1259765625,
+            6.5791015625,
+            7.58203125
+          ],
+          "source_sha256": "ba0380a4b1aa169061e65909e3ec9d9ecec7d4679a12e6dc914c7c2a5659b731",
+          "source_preserved": true
+        }
+      ],
+      "negative_controls": [
+        {
+          "backend": "companion",
+          "label": "negative/companion",
+          "command": [
+            "/private/tmp/ty-companion-performance-refactor/installed-088/bin/ty-extended",
+            "check",
+            "--python",
+            "/private/tmp/ty-companion-performance-refactor/installed-088/bin/python",
+            "--output-format",
+            "gitlab",
+            "--no-progress",
+            "--color",
+            "never",
+            "/private/tmp/ty-companion-performance-refactor/ci-90d-many-files/project",
+            "--ty",
+            "/private/tmp/ty-companion-performance-refactor/installed-088/bin/ty",
+            "--config-file",
+            "/private/tmp/ty-companion-performance-refactor/ci-90d-many-files/companion.toml"
+          ],
+          "seconds": 3.748207375057973,
+          "exit": 1,
+          "diagnostic_codes": {
+            "invalid-assignment": 2
+          },
+          "user_cpu_seconds": 2.134201,
+          "system_cpu_seconds": 2.9738219999999997,
+          "sampled_process_tree_peak_rss_kib": 493568,
+          "stopped": null,
+          "monitor_error": null,
+          "parse_error": null,
+          "load_before": [
+            6.1259765625,
+            6.5791015625,
+            7.58203125
+          ],
+          "load_after": [
+            6.1259765625,
+            6.5791015625,
+            7.58203125
+          ],
+          "source_sha256": "7f2aa83ea157f0fef30d176ac63389383690ab797ff36e936ed4ca95251be897",
+          "source_preserved": true,
+          "verified_negative_locations": [
+            {
+              "path": "checks.py",
+              "line": 103
+            },
+            {
+              "path": "filler00000.py",
+              "line": 1
+            }
+          ]
+        },
+        {
+          "backend": "mypy",
+          "label": "negative/mypy",
+          "command": [
+            "/private/tmp/ty-companion-performance-refactor/reference/bin/mypy",
+            "--config-file",
+            "/private/tmp/ty-companion-performance-refactor/ci-90d-many-files/mypy.ini",
+            "--output",
+            "json",
+            "--no-incremental",
+            "/private/tmp/ty-companion-performance-refactor/ci-90d-many-files/project",
+            "--cache-dir",
+            "/private/tmp/ty-companion-performance-refactor/ci-90d-many-files/runs/negative/mypy/scratch/mypy-cache"
+          ],
+          "seconds": 4.484653249965049,
+          "exit": 1,
+          "diagnostic_codes": {
+            "assignment": 2
+          },
+          "user_cpu_seconds": 3.490801,
+          "system_cpu_seconds": 1.301847,
+          "sampled_process_tree_peak_rss_kib": 296736,
+          "stopped": null,
+          "monitor_error": null,
+          "parse_error": null,
+          "load_before": [
+            6.03564453125,
+            6.552734375,
+            7.56689453125
+          ],
+          "load_after": [
+            6.03564453125,
+            6.552734375,
+            7.56689453125
+          ],
+          "source_sha256": "7f2aa83ea157f0fef30d176ac63389383690ab797ff36e936ed4ca95251be897",
+          "source_preserved": true,
+          "verified_negative_locations": [
+            {
+              "path": "checks.py",
+              "line": 103
+            },
+            {
+              "path": "filler00000.py",
+              "line": 1
+            }
+          ]
+        }
+      ],
+      "platform": "macos-arm64",
+      "shape": "many-files",
+      "raw_report_sha256": "24ee8cae516f3526f30216c2eda9fc59311dcb985502ebeb19f9948b45c6ee61",
+      "plugin_files_sha256": "6e2f1f265ec99db47eae4dfb07aa9d87d87f9c454284a67579cd97a680f2169e"
+    },
+    {
+      "host": "macOS-27.0.1-arm64-arm-64bit-Mach-O",
+      "workload": {
+        "files": 7082,
+        "models": 2501,
+        "model_modules": 1,
+        "queries": 100
+      },
+      "method": "Fresh processes; warm filesystem caches; MyPy --no-incremental and disposable cache; rotated serial runs; process-tree RSS sampled every 100ms.",
+      "threads": "default",
+      "source_sha256": "51c1a88b05a169f1222685fe6105e4be5f43d4213aaaf57c60bf99dbe0d82df9",
+      "binaries": {
+        "companion": {
+          "path": "/private/tmp/ty-companion-performance-refactor/installed-088/bin/ty-extended",
+          "version": "ty-extended 0.88.0",
+          "sha256": "f327a7e553dd17e8fcbbed682d18f206835e4653561dc2553e7068a8bc39b156"
+        },
+        "official": {
+          "path": "/private/tmp/ty-companion-performance-refactor/installed-088/bin/ty",
+          "version": "ty 0.0.99 (9b48f40c9 2026-11-06)",
+          "sha256": "34688103a83c3123d9eb0f4d85cdaa15f06ff16ce422d8a42616e6b1c885200e"
+        },
+        "mypy": {
+          "path": "/private/tmp/ty-companion-performance-refactor/reference/bin/mypy",
+          "version": "mypy 2.4.1 (compiled: yes)",
+          "sha256": "63d6c3b84797b5b26ab85d4674403fadbed76b7dad0bcc500188aa61fd37dd15"
+        }
+      },
+      "environments": {
+        "companion": {
+          "python": "3.13.0 (main, Oct 16 2024, 08:05:40) [Clang 18.1.8 ]",
+          "packages": {
+            "sqlparse": "0.6.1",
+            "django-ty": "0.7.0",
+            "ty-extended": "0.88.0",
+            "ty": "0.0.99",
+            "asgiref": "3.13.0",
+            "Django": "6.1.3",
+            "typing_extensions": "4.16.0",
+            "types-PyYAML": "6.0.12.20261103"
+          }
+        },
+        "mypy": {
+          "python": "3.13.0 (main, Oct 16 2024, 08:05:40) [Clang 18.1.8 ]",
+          "packages": {
+            "sqlparse": "0.6.1",
+            "django-stubs-ext": "6.1.2",
+            "mypy_extensions": "1.2.0",
+            "asgiref": "3.13.0",
+            "django-stubs": "6.1.2",
+            "Django": "6.1.3",
+            "ast_serialize": "0.13.1",
+            "pathspec": "1.1.1",
+            "librt": "0.16.0",
+            "typing_extensions": "4.16.0",
+            "types-PyYAML": "6.0.12.20261103",
+            "mypy": "2.4.1"
+          }
+        }
+      },
+      "plugin": {
+        "id": "django-ty",
+        "version": "0.7.0",
+        "protocol-version": {
+          "major": 0,
+          "minor": 8
+        }
+      },
+      "median_seconds": {
+        "companion": 6.963233957998455,
+        "bare-ty": 0.28099741600453854,
+        "mypy": 7.035117999999784
+      },
+      "passed": true,
+      "performance_target_met": true,
+      "records": [
+        {
+          "backend": "companion",
+          "label": "0/companion",
+          "command": [
+            "/private/tmp/ty-companion-performance-refactor/installed-088/bin/ty-extended",
+            "check",
+            "--python",
+            "/private/tmp/ty-companion-performance-refactor/installed-088/bin/python",
+            "--output-format",
+            "gitlab",
+            "--no-progress",
+            "--color",
+            "never",
+            "/private/tmp/ty-companion-performance-refactor/ci-90d-stress/project",
+            "--ty",
+            "/private/tmp/ty-companion-performance-refactor/installed-088/bin/ty",
+            "--config-file",
+            "/private/tmp/ty-companion-performance-refactor/ci-90d-stress/companion.toml"
+          ],
+          "seconds": 6.969567916006781,
+          "exit": 0,
+          "diagnostic_codes": {},
+          "user_cpu_seconds": 4.878602,
+          "system_cpu_seconds": 4.104624,
+          "sampled_process_tree_peak_rss_kib": 1387984,
+          "stopped": null,
+          "monitor_error": null,
+          "parse_error": null,
+          "load_before": [
+            6.03271484375,
+            6.54345703125,
+            7.5576171875
+          ],
+          "load_after": [
+            6.10986328125,
+            6.55078125,
+            7.55419921875
+          ],
+          "source_sha256": "51c1a88b05a169f1222685fe6105e4be5f43d4213aaaf57c60bf99dbe0d82df9",
+          "source_preserved": true
+        },
+        {
+          "backend": "bare-ty",
+          "label": "0/bare-ty",
+          "command": [
+            "/private/tmp/ty-companion-performance-refactor/installed-088/bin/ty",
+            "check",
+            "--python",
+            "/private/tmp/ty-companion-performance-refactor/installed-088/bin/python",
+            "--output-format",
+            "gitlab",
+            "--no-progress",
+            "--color",
+            "never",
+            "/private/tmp/ty-companion-performance-refactor/ci-90d-stress/project",
+            "--config-file",
+            "/private/tmp/ty-companion-performance-refactor/ci-90d-stress/bare.toml"
+          ],
+          "seconds": 0.262111583026126,
+          "exit": 1,
+          "diagnostic_codes": {
+            "type-assertion-failure": 100,
+            "unresolved-attribute": 100
+          },
+          "user_cpu_seconds": 0.398366,
+          "system_cpu_seconds": 0.500026,
+          "sampled_process_tree_peak_rss_kib": 89360,
+          "stopped": null,
+          "monitor_error": null,
+          "parse_error": null,
+          "load_before": [
+            6.10986328125,
+            6.55078125,
+            7.55419921875
+          ],
+          "load_after": [
+            6.10986328125,
+            6.55078125,
+            7.55419921875
+          ],
+          "source_sha256": "51c1a88b05a169f1222685fe6105e4be5f43d4213aaaf57c60bf99dbe0d82df9",
+          "source_preserved": true
+        },
+        {
+          "backend": "mypy",
+          "label": "0/mypy",
+          "command": [
+            "/private/tmp/ty-companion-performance-refactor/reference/bin/mypy",
+            "--config-file",
+            "/private/tmp/ty-companion-performance-refactor/ci-90d-stress/mypy.ini",
+            "--output",
+            "json",
+            "--no-incremental",
+            "/private/tmp/ty-companion-performance-refactor/ci-90d-stress/project",
+            "--cache-dir",
+            "/private/tmp/ty-companion-performance-refactor/ci-90d-stress/runs/0/mypy/scratch/mypy-cache"
+          ],
+          "seconds": 7.035117999999784,
+          "exit": 0,
+          "diagnostic_codes": {},
+          "user_cpu_seconds": 5.94499,
+          "system_cpu_seconds": 1.293287,
+          "sampled_process_tree_peak_rss_kib": 507248,
+          "stopped": null,
+          "monitor_error": null,
+          "parse_error": null,
+          "load_before": [
+            5.8603515625,
+            6.49169921875,
+            7.52734375
+          ],
+          "load_after": [
+            5.87109375,
+            6.4833984375,
+            7.51806640625
+          ],
+          "source_sha256": "51c1a88b05a169f1222685fe6105e4be5f43d4213aaaf57c60bf99dbe0d82df9",
+          "source_preserved": true
+        },
+        {
+          "backend": "bare-ty",
+          "label": "1/bare-ty",
+          "command": [
+            "/private/tmp/ty-companion-performance-refactor/installed-088/bin/ty",
+            "check",
+            "--python",
+            "/private/tmp/ty-companion-performance-refactor/installed-088/bin/python",
+            "--output-format",
+            "gitlab",
+            "--no-progress",
+            "--color",
+            "never",
+            "/private/tmp/ty-companion-performance-refactor/ci-90d-stress/project",
+            "--config-file",
+            "/private/tmp/ty-companion-performance-refactor/ci-90d-stress/bare.toml"
+          ],
+          "seconds": 0.28099741600453854,
+          "exit": 1,
+          "diagnostic_codes": {
+            "type-assertion-failure": 100,
+            "unresolved-attribute": 100
+          },
+          "user_cpu_seconds": 0.404644,
+          "system_cpu_seconds": 0.517938,
+          "sampled_process_tree_peak_rss_kib": 100144,
+          "stopped": null,
+          "monitor_error": null,
+          "parse_error": null,
+          "load_before": [
+            5.87109375,
+            6.4833984375,
+            7.51806640625
+          ],
+          "load_after": [
+            5.87109375,
+            6.4833984375,
+            7.51806640625
+          ],
+          "source_sha256": "51c1a88b05a169f1222685fe6105e4be5f43d4213aaaf57c60bf99dbe0d82df9",
+          "source_preserved": true
+        },
+        {
+          "backend": "mypy",
+          "label": "1/mypy",
+          "command": [
+            "/private/tmp/ty-companion-performance-refactor/reference/bin/mypy",
+            "--config-file",
+            "/private/tmp/ty-companion-performance-refactor/ci-90d-stress/mypy.ini",
+            "--output",
+            "json",
+            "--no-incremental",
+            "/private/tmp/ty-companion-performance-refactor/ci-90d-stress/project",
+            "--cache-dir",
+            "/private/tmp/ty-companion-performance-refactor/ci-90d-stress/runs/1/mypy/scratch/mypy-cache"
+          ],
+          "seconds": 7.110552459023893,
+          "exit": 0,
+          "diagnostic_codes": {},
+          "user_cpu_seconds": 5.957366,
+          "system_cpu_seconds": 1.274154,
+          "sampled_process_tree_peak_rss_kib": 503776,
+          "stopped": null,
+          "monitor_error": null,
+          "parse_error": null,
+          "load_before": [
+            5.87109375,
+            6.4833984375,
+            7.51806640625
+          ],
+          "load_after": [
+            6.1181640625,
+            6.51611328125,
+            7.51708984375
+          ],
+          "source_sha256": "51c1a88b05a169f1222685fe6105e4be5f43d4213aaaf57c60bf99dbe0d82df9",
+          "source_preserved": true
+        },
+        {
+          "backend": "companion",
+          "label": "1/companion",
+          "command": [
+            "/private/tmp/ty-companion-performance-refactor/installed-088/bin/ty-extended",
+            "check",
+            "--python",
+            "/private/tmp/ty-companion-performance-refactor/installed-088/bin/python",
+            "--output-format",
+            "gitlab",
+            "--no-progress",
+            "--color",
+            "never",
+            "/private/tmp/ty-companion-performance-refactor/ci-90d-stress/project",
+            "--ty",
+            "/private/tmp/ty-companion-performance-refactor/installed-088/bin/ty",
+            "--config-file",
+            "/private/tmp/ty-companion-performance-refactor/ci-90d-stress/companion.toml"
+          ],
+          "seconds": 6.963233957998455,
+          "exit": 0,
+          "diagnostic_codes": {},
+          "user_cpu_seconds": 4.894027,
+          "system_cpu_seconds": 3.264454,
+          "sampled_process_tree_peak_rss_kib": 1378768,
+          "stopped": null,
+          "monitor_error": null,
+          "parse_error": null,
+          "load_before": [
+            6.1181640625,
+            6.51611328125,
+            7.51708984375
+          ],
+          "load_after": [
+            6.1083984375,
+            6.50732421875,
+            7.5078125
+          ],
+          "source_sha256": "51c1a88b05a169f1222685fe6105e4be5f43d4213aaaf57c60bf99dbe0d82df9",
+          "source_preserved": true
+        },
+        {
+          "backend": "mypy",
+          "label": "2/mypy",
+          "command": [
+            "/private/tmp/ty-companion-performance-refactor/reference/bin/mypy",
+            "--config-file",
+            "/private/tmp/ty-companion-performance-refactor/ci-90d-stress/mypy.ini",
+            "--output",
+            "json",
+            "--no-incremental",
+            "/private/tmp/ty-companion-performance-refactor/ci-90d-stress/project",
+            "--cache-dir",
+            "/private/tmp/ty-companion-performance-refactor/ci-90d-stress/runs/2/mypy/scratch/mypy-cache"
+          ],
+          "seconds": 6.9316532500088215,
+          "exit": 0,
+          "diagnostic_codes": {},
+          "user_cpu_seconds": 5.90105,
+          "system_cpu_seconds": 1.296386,
+          "sampled_process_tree_peak_rss_kib": 507696,
+          "stopped": null,
+          "monitor_error": null,
+          "parse_error": null,
+          "load_before": [
+            6.1083984375,
+            6.50732421875,
+            7.5078125
+          ],
+          "load_after": [
+            5.62353515625,
+            6.39111328125,
+            7.45458984375
+          ],
+          "source_sha256": "51c1a88b05a169f1222685fe6105e4be5f43d4213aaaf57c60bf99dbe0d82df9",
+          "source_preserved": true
+        },
+        {
+          "backend": "companion",
+          "label": "2/companion",
+          "command": [
+            "/private/tmp/ty-companion-performance-refactor/installed-088/bin/ty-extended",
+            "check",
+            "--python",
+            "/private/tmp/ty-companion-performance-refactor/installed-088/bin/python",
+            "--output-format",
+            "gitlab",
+            "--no-progress",
+            "--color",
+            "never",
+            "/private/tmp/ty-companion-performance-refactor/ci-90d-stress/project",
+            "--ty",
+            "/private/tmp/ty-companion-performance-refactor/installed-088/bin/ty",
+            "--config-file",
+            "/private/tmp/ty-companion-performance-refactor/ci-90d-stress/companion.toml"
+          ],
+          "seconds": 6.81729949999135,
+          "exit": 0,
+          "diagnostic_codes": {},
+          "user_cpu_seconds": 4.827323,
+          "system_cpu_seconds": 3.198613,
+          "sampled_process_tree_peak_rss_kib": 1390224,
+          "stopped": null,
+          "monitor_error": null,
+          "parse_error": null,
+          "load_before": [
+            5.62353515625,
+            6.39111328125,
+            7.45458984375
+          ],
+          "load_after": [
+            5.5732421875,
+            6.36767578125,
+            7.43994140625
+          ],
+          "source_sha256": "51c1a88b05a169f1222685fe6105e4be5f43d4213aaaf57c60bf99dbe0d82df9",
+          "source_preserved": true
+        },
+        {
+          "backend": "bare-ty",
+          "label": "2/bare-ty",
+          "command": [
+            "/private/tmp/ty-companion-performance-refactor/installed-088/bin/ty",
+            "check",
+            "--python",
+            "/private/tmp/ty-companion-performance-refactor/installed-088/bin/python",
+            "--output-format",
+            "gitlab",
+            "--no-progress",
+            "--color",
+            "never",
+            "/private/tmp/ty-companion-performance-refactor/ci-90d-stress/project",
+            "--config-file",
+            "/private/tmp/ty-companion-performance-refactor/ci-90d-stress/bare.toml"
+          ],
+          "seconds": 0.3014549169456586,
+          "exit": 1,
+          "diagnostic_codes": {
+            "type-assertion-failure": 100,
+            "unresolved-attribute": 100
+          },
+          "user_cpu_seconds": 0.387519,
+          "system_cpu_seconds": 0.45206799999999997,
+          "sampled_process_tree_peak_rss_kib": 100976,
+          "stopped": null,
+          "monitor_error": null,
+          "parse_error": null,
+          "load_before": [
+            5.5732421875,
+            6.36767578125,
+            7.43994140625
+          ],
+          "load_after": [
+            5.5732421875,
+            6.36767578125,
+            7.43994140625
+          ],
+          "source_sha256": "51c1a88b05a169f1222685fe6105e4be5f43d4213aaaf57c60bf99dbe0d82df9",
+          "source_preserved": true
+        }
+      ],
+      "negative_controls": [
+        {
+          "backend": "companion",
+          "label": "negative/companion",
+          "command": [
+            "/private/tmp/ty-companion-performance-refactor/installed-088/bin/ty-extended",
+            "check",
+            "--python",
+            "/private/tmp/ty-companion-performance-refactor/installed-088/bin/python",
+            "--output-format",
+            "gitlab",
+            "--no-progress",
+            "--color",
+            "never",
+            "/private/tmp/ty-companion-performance-refactor/ci-90d-stress/project",
+            "--ty",
+            "/private/tmp/ty-companion-performance-refactor/installed-088/bin/ty",
+            "--config-file",
+            "/private/tmp/ty-companion-performance-refactor/ci-90d-stress/companion.toml"
+          ],
+          "seconds": 6.969034375040792,
+          "exit": 1,
+          "diagnostic_codes": {
+            "invalid-assignment": 2
+          },
+          "user_cpu_seconds": 5.026547,
+          "system_cpu_seconds": 3.170043,
+          "sampled_process_tree_peak_rss_kib": 1388752,
+          "stopped": null,
+          "monitor_error": null,
+          "parse_error": null,
+          "load_before": [
+            5.52685546875,
+            6.3447265625,
+            7.42529296875
+          ],
+          "load_after": [
+            6.205078125,
+            6.4716796875,
+            7.46337890625
+          ],
+          "source_sha256": "1d6a6430d5c3eaec3a1d648f4c95b35912d6efc7d7c15370efadb0d6f41164ef",
+          "source_preserved": true,
+          "verified_negative_locations": [
+            {
+              "path": "checks.py",
+              "line": 103
+            },
+            {
+              "path": "filler00000.py",
+              "line": 1
+            }
+          ]
+        },
+        {
+          "backend": "mypy",
+          "label": "negative/mypy",
+          "command": [
+            "/private/tmp/ty-companion-performance-refactor/reference/bin/mypy",
+            "--config-file",
+            "/private/tmp/ty-companion-performance-refactor/ci-90d-stress/mypy.ini",
+            "--output",
+            "json",
+            "--no-incremental",
+            "/private/tmp/ty-companion-performance-refactor/ci-90d-stress/project",
+            "--cache-dir",
+            "/private/tmp/ty-companion-performance-refactor/ci-90d-stress/runs/negative/mypy/scratch/mypy-cache"
+          ],
+          "seconds": 6.967815292067826,
+          "exit": 1,
+          "diagnostic_codes": {
+            "assignment": 2
+          },
+          "user_cpu_seconds": 5.981984,
+          "system_cpu_seconds": 1.360715,
+          "sampled_process_tree_peak_rss_kib": 507200,
+          "stopped": null,
+          "monitor_error": null,
+          "parse_error": null,
+          "load_before": [
+            6.205078125,
+            6.4716796875,
+            7.46337890625
+          ],
+          "load_after": [
+            6.2685546875,
+            6.47998046875,
+            7.46044921875
+          ],
+          "source_sha256": "1d6a6430d5c3eaec3a1d648f4c95b35912d6efc7d7c15370efadb0d6f41164ef",
+          "source_preserved": true,
+          "verified_negative_locations": [
+            {
+              "path": "checks.py",
+              "line": 103
+            },
+            {
+              "path": "filler00000.py",
+              "line": 1
+            }
+          ]
+        }
+      ],
+      "platform": "macos-arm64",
+      "shape": "stress",
+      "raw_report_sha256": "2b324ae52f3cd4bf4b58b92e49af7dda85263fbf67cf9399d094c3c2e389ae8e",
+      "plugin_files_sha256": "6e2f1f265ec99db47eae4dfb07aa9d87d87f9c454284a67579cd97a680f2169e"
+    },
+    {
+      "host": "Linux-7.0.0-1019-azure-x86_64-with-glibc2.43",
+      "workload": {
+        "files": 100,
+        "models": 25,
+        "model_modules": 5,
+        "queries": 25
+      },
+      "method": "Fresh processes; warm filesystem caches; MyPy --no-incremental and disposable cache; rotated serial runs; process-tree RSS sampled every 100ms.",
+      "threads": "default",
+      "source_sha256": "d56dec6ca0858f30863af951cfd8ee50cc0820bc9d0acc5fd5774b85ef95908e",
+      "binaries": {
+        "companion": {
+          "path": "/home/runner/work/ty-extended/ty-extended/companion/target/release/ty-extended",
+          "version": "ty-extended 0.88.0",
+          "sha256": "a735ea312fe31666041a3e90c05c618136ac4ee0232820dd8ec7cfb4f9dff70f"
+        },
+        "official": {
+          "path": "/home/runner/work/_temp/companion-ci-evidence/performance-candidate/bin/ty",
+          "version": "ty 0.0.99",
+          "sha256": "9a0493fa45b6d9bb03ce4fc4656e189621dac3e329f46012baf76e951af37ce2"
+        },
+        "mypy": {
+          "path": "/home/runner/work/_temp/companion-ci-evidence/performance-reference/bin/mypy",
+          "version": "mypy 2.4.1 (compiled: yes)",
+          "sha256": "1531b8c35c1e4124791a8f23b036cc6a9ded629c45bded982d4f4201d112f8ef"
+        }
+      },
+      "environments": {
+        "companion": {
+          "python": "3.13.18 (main, Oct 26 2026, 14:19:33) [GCC 15.2.0]",
+          "packages": {
+            "asgiref": "3.13.0",
+            "typing_extensions": "4.16.0",
+            "types-PyYAML": "6.0.12.20261103",
+            "ty": "0.0.99",
+            "pip": "26.2.2",
+            "Django": "6.1.3",
+            "sqlparse": "0.6.1"
+          }
+        },
+        "mypy": {
+          "python": "3.13.18 (main, Oct 26 2026, 14:19:33) [GCC 15.2.0]",
+          "packages": {
+            "asgiref": "3.13.0",
+            "librt": "0.16.0",
+            "mypy_extensions": "1.2.0",
+            "pathspec": "1.1.1",
+            "typing_extensions": "4.16.0",
+            "django-stubs-ext": "6.1.2",
+            "ast_serialize": "0.13.1",
+            "types-PyYAML": "6.0.12.20261103",
+            "pip": "26.2.2",
+            "Django": "6.1.3",
+            "django-stubs": "6.1.2",
+            "mypy": "2.4.1",
+            "sqlparse": "0.6.1"
+          }
+        }
+      },
+      "plugin": {
+        "id": "django-ty",
+        "version": "0.7.0",
+        "protocol-version": {
+          "major": 0,
+          "minor": 8
+        }
+      },
+      "median_seconds": {
+        "companion": 0.29983811900001456,
+        "bare-ty": 0.04588008799998988,
+        "mypy": 1.1642064689999643
+      },
+      "passed": true,
+      "performance_target_met": true,
+      "records": [
+        {
+          "backend": "companion",
+          "label": "0/companion",
+          "command": [
+            "/home/runner/work/ty-extended/ty-extended/companion/target/release/ty-extended",
+            "check",
+            "--python",
+            "/home/runner/work/_temp/companion-ci-evidence/performance-candidate/bin/python",
+            "--output-format",
+            "gitlab",
+            "--no-progress",
+            "--color",
+            "never",
+            "/home/runner/work/_temp/companion-ci-evidence/performance-small/project",
+            "--ty",
+            "/home/runner/work/_temp/companion-ci-evidence/performance-candidate/bin/ty",
+            "--config-file",
+            "/home/runner/work/_temp/companion-ci-evidence/performance-small/companion.toml"
+          ],
+          "seconds": 0.30144212699997297,
+          "exit": 0,
+          "diagnostic_codes": {},
+          "user_cpu_seconds": 0.22458299999999998,
+          "system_cpu_seconds": 0.08000299999999999,
+          "sampled_process_tree_peak_rss_kib": 238008,
+          "stopped": null,
+          "monitor_error": null,
+          "parse_error": null,
+          "load_before": [
+            1.1171875,
+            1.4189453125,
+            1.02685546875
+          ],
+          "load_after": [
+            1.1171875,
+            1.4189453125,
+            1.02685546875
+          ],
+          "source_sha256": "d56dec6ca0858f30863af951cfd8ee50cc0820bc9d0acc5fd5774b85ef95908e",
+          "source_preserved": true
+        },
+        {
+          "backend": "bare-ty",
+          "label": "0/bare-ty",
+          "command": [
+            "/home/runner/work/_temp/companion-ci-evidence/performance-candidate/bin/ty",
+            "check",
+            "--python",
+            "/home/runner/work/_temp/companion-ci-evidence/performance-candidate/bin/python",
+            "--output-format",
+            "gitlab",
+            "--no-progress",
+            "--color",
+            "never",
+            "/home/runner/work/_temp/companion-ci-evidence/performance-small/project",
+            "--config-file",
+            "/home/runner/work/_temp/companion-ci-evidence/performance-small/bare.toml"
+          ],
+          "seconds": 0.04561427700002696,
+          "exit": 1,
+          "diagnostic_codes": {
+            "type-assertion-failure": 25,
+            "unresolved-attribute": 25
+          },
+          "user_cpu_seconds": 0.042998,
+          "system_cpu_seconds": 0.012284999999999999,
+          "sampled_process_tree_peak_rss_kib": 23668,
+          "stopped": null,
+          "monitor_error": null,
+          "parse_error": null,
+          "load_before": [
+            1.1171875,
+            1.4189453125,
+            1.02685546875
+          ],
+          "load_after": [
+            1.1171875,
+            1.4189453125,
+            1.02685546875
+          ],
+          "source_sha256": "d56dec6ca0858f30863af951cfd8ee50cc0820bc9d0acc5fd5774b85ef95908e",
+          "source_preserved": true
+        },
+        {
+          "backend": "mypy",
+          "label": "0/mypy",
+          "command": [
+            "/home/runner/work/_temp/companion-ci-evidence/performance-reference/bin/mypy",
+            "--config-file",
+            "/home/runner/work/_temp/companion-ci-evidence/performance-small/mypy.ini",
+            "--output",
+            "json",
+            "--no-incremental",
+            "/home/runner/work/_temp/companion-ci-evidence/performance-small/project",
+            "--cache-dir",
+            "/home/runner/work/_temp/companion-ci-evidence/performance-small/runs/0/mypy/scratch/mypy-cache"
+          ],
+          "seconds": 1.1997574659999373,
+          "exit": 0,
+          "diagnostic_codes": {},
+          "user_cpu_seconds": 1.095139,
+          "system_cpu_seconds": 0.15234899999999998,
+          "sampled_process_tree_peak_rss_kib": 191540,
+          "stopped": null,
+          "monitor_error": null,
+          "parse_error": null,
+          "load_before": [
+            1.1171875,
+            1.4189453125,
+            1.02685546875
+          ],
+          "load_after": [
+            1.1171875,
+            1.4189453125,
+            1.02685546875
+          ],
+          "source_sha256": "d56dec6ca0858f30863af951cfd8ee50cc0820bc9d0acc5fd5774b85ef95908e",
+          "source_preserved": true
+        },
+        {
+          "backend": "bare-ty",
+          "label": "1/bare-ty",
+          "command": [
+            "/home/runner/work/_temp/companion-ci-evidence/performance-candidate/bin/ty",
+            "check",
+            "--python",
+            "/home/runner/work/_temp/companion-ci-evidence/performance-candidate/bin/python",
+            "--output-format",
+            "gitlab",
+            "--no-progress",
+            "--color",
+            "never",
+            "/home/runner/work/_temp/companion-ci-evidence/performance-small/project",
+            "--config-file",
+            "/home/runner/work/_temp/companion-ci-evidence/performance-small/bare.toml"
+          ],
+          "seconds": 0.04743106599994462,
+          "exit": 1,
+          "diagnostic_codes": {
+            "type-assertion-failure": 25,
+            "unresolved-attribute": 25
+          },
+          "user_cpu_seconds": 0.040228,
+          "system_cpu_seconds": 0.015879,
+          "sampled_process_tree_peak_rss_kib": 23316,
+          "stopped": null,
+          "monitor_error": null,
+          "parse_error": null,
+          "load_before": [
+            1.1171875,
+            1.4189453125,
+            1.02685546875
+          ],
+          "load_after": [
+            1.1171875,
+            1.4189453125,
+            1.02685546875
+          ],
+          "source_sha256": "d56dec6ca0858f30863af951cfd8ee50cc0820bc9d0acc5fd5774b85ef95908e",
+          "source_preserved": true
+        },
+        {
+          "backend": "mypy",
+          "label": "1/mypy",
+          "command": [
+            "/home/runner/work/_temp/companion-ci-evidence/performance-reference/bin/mypy",
+            "--config-file",
+            "/home/runner/work/_temp/companion-ci-evidence/performance-small/mypy.ini",
+            "--output",
+            "json",
+            "--no-incremental",
+            "/home/runner/work/_temp/companion-ci-evidence/performance-small/project",
+            "--cache-dir",
+            "/home/runner/work/_temp/companion-ci-evidence/performance-small/runs/1/mypy/scratch/mypy-cache"
+          ],
+          "seconds": 1.1642064689999643,
+          "exit": 0,
+          "diagnostic_codes": {},
+          "user_cpu_seconds": 1.075128,
+          "system_cpu_seconds": 0.136255,
+          "sampled_process_tree_peak_rss_kib": 189580,
+          "stopped": null,
+          "monitor_error": null,
+          "parse_error": null,
+          "load_before": [
+            1.1171875,
+            1.4189453125,
+            1.02685546875
+          ],
+          "load_after": [
+            1.1171875,
+            1.4189453125,
+            1.02685546875
+          ],
+          "source_sha256": "d56dec6ca0858f30863af951cfd8ee50cc0820bc9d0acc5fd5774b85ef95908e",
+          "source_preserved": true
+        },
+        {
+          "backend": "companion",
+          "label": "1/companion",
+          "command": [
+            "/home/runner/work/ty-extended/ty-extended/companion/target/release/ty-extended",
+            "check",
+            "--python",
+            "/home/runner/work/_temp/companion-ci-evidence/performance-candidate/bin/python",
+            "--output-format",
+            "gitlab",
+            "--no-progress",
+            "--color",
+            "never",
+            "/home/runner/work/_temp/companion-ci-evidence/performance-small/project",
+            "--ty",
+            "/home/runner/work/_temp/companion-ci-evidence/performance-candidate/bin/ty",
+            "--config-file",
+            "/home/runner/work/_temp/companion-ci-evidence/performance-small/companion.toml"
+          ],
+          "seconds": 0.29487129400001777,
+          "exit": 0,
+          "diagnostic_codes": {},
+          "user_cpu_seconds": 0.223322,
+          "system_cpu_seconds": 0.08270899999999999,
+          "sampled_process_tree_peak_rss_kib": 236100,
+          "stopped": null,
+          "monitor_error": null,
+          "parse_error": null,
+          "load_before": [
+            1.1171875,
+            1.4189453125,
+            1.02685546875
+          ],
+          "load_after": [
+            1.1171875,
+            1.4189453125,
+            1.02685546875
+          ],
+          "source_sha256": "d56dec6ca0858f30863af951cfd8ee50cc0820bc9d0acc5fd5774b85ef95908e",
+          "source_preserved": true
+        },
+        {
+          "backend": "mypy",
+          "label": "2/mypy",
+          "command": [
+            "/home/runner/work/_temp/companion-ci-evidence/performance-reference/bin/mypy",
+            "--config-file",
+            "/home/runner/work/_temp/companion-ci-evidence/performance-small/mypy.ini",
+            "--output",
+            "json",
+            "--no-incremental",
+            "/home/runner/work/_temp/companion-ci-evidence/performance-small/project",
+            "--cache-dir",
+            "/home/runner/work/_temp/companion-ci-evidence/performance-small/runs/2/mypy/scratch/mypy-cache"
+          ],
+          "seconds": 1.1188111840000374,
+          "exit": 0,
+          "diagnostic_codes": {},
+          "user_cpu_seconds": 1.011365,
+          "system_cpu_seconds": 0.155055,
+          "sampled_process_tree_peak_rss_kib": 190980,
+          "stopped": null,
+          "monitor_error": null,
+          "parse_error": null,
+          "load_before": [
+            1.1171875,
+            1.4189453125,
+            1.02685546875
+          ],
+          "load_after": [
+            1.1171875,
+            1.4189453125,
+            1.02685546875
+          ],
+          "source_sha256": "d56dec6ca0858f30863af951cfd8ee50cc0820bc9d0acc5fd5774b85ef95908e",
+          "source_preserved": true
+        },
+        {
+          "backend": "companion",
+          "label": "2/companion",
+          "command": [
+            "/home/runner/work/ty-extended/ty-extended/companion/target/release/ty-extended",
+            "check",
+            "--python",
+            "/home/runner/work/_temp/companion-ci-evidence/performance-candidate/bin/python",
+            "--output-format",
+            "gitlab",
+            "--no-progress",
+            "--color",
+            "never",
+            "/home/runner/work/_temp/companion-ci-evidence/performance-small/project",
+            "--ty",
+            "/home/runner/work/_temp/companion-ci-evidence/performance-candidate/bin/ty",
+            "--config-file",
+            "/home/runner/work/_temp/companion-ci-evidence/performance-small/companion.toml"
+          ],
+          "seconds": 0.29983811900001456,
+          "exit": 0,
+          "diagnostic_codes": {},
+          "user_cpu_seconds": 0.23934799999999998,
+          "system_cpu_seconds": 0.073782,
+          "sampled_process_tree_peak_rss_kib": 237100,
+          "stopped": null,
+          "monitor_error": null,
+          "parse_error": null,
+          "load_before": [
+            1.1171875,
+            1.4189453125,
+            1.02685546875
+          ],
+          "load_after": [
+            1.1171875,
+            1.4189453125,
+            1.02685546875
+          ],
+          "source_sha256": "d56dec6ca0858f30863af951cfd8ee50cc0820bc9d0acc5fd5774b85ef95908e",
+          "source_preserved": true
+        },
+        {
+          "backend": "bare-ty",
+          "label": "2/bare-ty",
+          "command": [
+            "/home/runner/work/_temp/companion-ci-evidence/performance-candidate/bin/ty",
+            "check",
+            "--python",
+            "/home/runner/work/_temp/companion-ci-evidence/performance-candidate/bin/python",
+            "--output-format",
+            "gitlab",
+            "--no-progress",
+            "--color",
+            "never",
+            "/home/runner/work/_temp/companion-ci-evidence/performance-small/project",
+            "--config-file",
+            "/home/runner/work/_temp/companion-ci-evidence/performance-small/bare.toml"
+          ],
+          "seconds": 0.04588008799998988,
+          "exit": 1,
+          "diagnostic_codes": {
+            "type-assertion-failure": 25,
+            "unresolved-attribute": 25
+          },
+          "user_cpu_seconds": 0.044805,
+          "system_cpu_seconds": 0.009377,
+          "sampled_process_tree_peak_rss_kib": 23812,
+          "stopped": null,
+          "monitor_error": null,
+          "parse_error": null,
+          "load_before": [
+            1.1171875,
+            1.4189453125,
+            1.02685546875
+          ],
+          "load_after": [
+            1.1171875,
+            1.4189453125,
+            1.02685546875
+          ],
+          "source_sha256": "d56dec6ca0858f30863af951cfd8ee50cc0820bc9d0acc5fd5774b85ef95908e",
+          "source_preserved": true
+        }
+      ],
+      "negative_controls": [
+        {
+          "backend": "companion",
+          "label": "negative/companion",
+          "command": [
+            "/home/runner/work/ty-extended/ty-extended/companion/target/release/ty-extended",
+            "check",
+            "--python",
+            "/home/runner/work/_temp/companion-ci-evidence/performance-candidate/bin/python",
+            "--output-format",
+            "gitlab",
+            "--no-progress",
+            "--color",
+            "never",
+            "/home/runner/work/_temp/companion-ci-evidence/performance-small/project",
+            "--ty",
+            "/home/runner/work/_temp/companion-ci-evidence/performance-candidate/bin/ty",
+            "--config-file",
+            "/home/runner/work/_temp/companion-ci-evidence/performance-small/companion.toml"
+          ],
+          "seconds": 0.30135403200006294,
+          "exit": 1,
+          "diagnostic_codes": {
+            "invalid-assignment": 2
+          },
+          "user_cpu_seconds": 0.24625799999999998,
+          "system_cpu_seconds": 0.06672,
+          "sampled_process_tree_peak_rss_kib": 241088,
+          "stopped": null,
+          "monitor_error": null,
+          "parse_error": null,
+          "load_before": [
+            1.1171875,
+            1.4189453125,
+            1.02685546875
+          ],
+          "load_after": [
+            1.107421875,
+            1.41162109375,
+            1.0263671875
+          ],
+          "source_sha256": "8666d8c681c438491e30c5b51be243c1acc36176c2a15847be4d33d73779eed6",
+          "source_preserved": true
+        },
+        {
+          "backend": "mypy",
+          "label": "negative/mypy",
+          "command": [
+            "/home/runner/work/_temp/companion-ci-evidence/performance-reference/bin/mypy",
+            "--config-file",
+            "/home/runner/work/_temp/companion-ci-evidence/performance-small/mypy.ini",
+            "--output",
+            "json",
+            "--no-incremental",
+            "/home/runner/work/_temp/companion-ci-evidence/performance-small/project",
+            "--cache-dir",
+            "/home/runner/work/_temp/companion-ci-evidence/performance-small/runs/negative/mypy/scratch/mypy-cache"
+          ],
+          "seconds": 1.1419549210000923,
+          "exit": 1,
+          "diagnostic_codes": {
+            "assignment": 2
+          },
+          "user_cpu_seconds": 1.059459,
+          "system_cpu_seconds": 0.130179,
+          "sampled_process_tree_peak_rss_kib": 190224,
+          "stopped": null,
+          "monitor_error": null,
+          "parse_error": null,
+          "load_before": [
+            1.107421875,
+            1.41162109375,
+            1.0263671875
+          ],
+          "load_after": [
+            1.107421875,
+            1.41162109375,
+            1.0263671875
+          ],
+          "source_sha256": "8666d8c681c438491e30c5b51be243c1acc36176c2a15847be4d33d73779eed6",
+          "source_preserved": true
+        }
+      ],
+      "platform": "linux-x86_64",
+      "shape": "small",
+      "raw_report_sha256": "aaa1dc82958c7ed0449cb3004d87903c75ae4ca2caef714f71a0f76777440ed4",
+      "plugin_files_sha256": "6e2f1f265ec99db47eae4dfb07aa9d87d87f9c454284a67579cd97a680f2169e"
+    },
+    {
+      "host": "Linux-7.0.0-1019-azure-x86_64-with-glibc2.43",
+      "workload": {
+        "files": 1000,
+        "models": 250,
+        "model_modules": 25,
+        "queries": 100
+      },
+      "method": "Fresh processes; warm filesystem caches; MyPy --no-incremental and disposable cache; rotated serial runs; process-tree RSS sampled every 100ms.",
+      "threads": "default",
+      "source_sha256": "215897d7d242aeb2411e9f446fed78cd4105eb934b051c4035f409b7323e45a0",
+      "binaries": {
+        "companion": {
+          "path": "/home/runner/work/ty-extended/ty-extended/companion/target/release/ty-extended",
+          "version": "ty-extended 0.88.0",
+          "sha256": "a735ea312fe31666041a3e90c05c618136ac4ee0232820dd8ec7cfb4f9dff70f"
+        },
+        "official": {
+          "path": "/home/runner/work/_temp/companion-ci-evidence/performance-candidate/bin/ty",
+          "version": "ty 0.0.99",
+          "sha256": "9a0493fa45b6d9bb03ce4fc4656e189621dac3e329f46012baf76e951af37ce2"
+        },
+        "mypy": {
+          "path": "/home/runner/work/_temp/companion-ci-evidence/performance-reference/bin/mypy",
+          "version": "mypy 2.4.1 (compiled: yes)",
+          "sha256": "1531b8c35c1e4124791a8f23b036cc6a9ded629c45bded982d4f4201d112f8ef"
+        }
+      },
+      "environments": {
+        "companion": {
+          "python": "3.13.18 (main, Oct 26 2026, 14:19:33) [GCC 15.2.0]",
+          "packages": {
+            "asgiref": "3.13.0",
+            "typing_extensions": "4.16.0",
+            "types-PyYAML": "6.0.12.20261103",
+            "ty": "0.0.99",
+            "pip": "26.2.2",
+            "Django": "6.1.3",
+            "sqlparse": "0.6.1"
+          }
+        },
+        "mypy": {
+          "python": "3.13.18 (main, Oct 26 2026, 14:19:33) [GCC 15.2.0]",
+          "packages": {
+            "asgiref": "3.13.0",
+            "librt": "0.16.0",
+            "mypy_extensions": "1.2.0",
+            "pathspec": "1.1.1",
+            "typing_extensions": "4.16.0",
+            "django-stubs-ext": "6.1.2",
+            "ast_serialize": "0.13.1",
+            "types-PyYAML": "6.0.12.20261103",
+            "pip": "26.2.2",
+            "Django": "6.1.3",
+            "django-stubs": "6.1.2",
+            "mypy": "2.4.1",
+            "sqlparse": "0.6.1"
+          }
+        }
+      },
+      "plugin": {
+        "id": "django-ty",
+        "version": "0.7.0",
+        "protocol-version": {
+          "major": 0,
+          "minor": 8
+        }
+      },
+      "median_seconds": {
+        "companion": 0.7318836059999967,
+        "bare-ty": 0.06090138800004752,
+        "mypy": 1.6875648090000368
+      },
+      "passed": true,
+      "performance_target_met": true,
+      "records": [
+        {
+          "backend": "companion",
+          "label": "0/companion",
+          "command": [
+            "/home/runner/work/ty-extended/ty-extended/companion/target/release/ty-extended",
+            "check",
+            "--python",
+            "/home/runner/work/_temp/companion-ci-evidence/performance-candidate/bin/python",
+            "--output-format",
+            "gitlab",
+            "--no-progress",
+            "--color",
+            "never",
+            "/home/runner/work/_temp/companion-ci-evidence/performance-distributed/project",
+            "--ty",
+            "/home/runner/work/_temp/companion-ci-evidence/performance-candidate/bin/ty",
+            "--config-file",
+            "/home/runner/work/_temp/companion-ci-evidence/performance-distributed/companion.toml"
+          ],
+          "seconds": 0.742932321000012,
+          "exit": 0,
+          "diagnostic_codes": {},
+          "user_cpu_seconds": 0.680597,
+          "system_cpu_seconds": 0.186719,
+          "sampled_process_tree_peak_rss_kib": 328556,
+          "stopped": null,
+          "monitor_error": null,
+          "parse_error": null,
+          "load_before": [
+            1.107421875,
+            1.41162109375,
+            1.0263671875
+          ],
+          "load_after": [
+            1.107421875,
+            1.41162109375,
+            1.0263671875
+          ],
+          "source_sha256": "215897d7d242aeb2411e9f446fed78cd4105eb934b051c4035f409b7323e45a0",
+          "source_preserved": true
+        },
+        {
+          "backend": "bare-ty",
+          "label": "0/bare-ty",
+          "command": [
+            "/home/runner/work/_temp/companion-ci-evidence/performance-candidate/bin/ty",
+            "check",
+            "--python",
+            "/home/runner/work/_temp/companion-ci-evidence/performance-candidate/bin/python",
+            "--output-format",
+            "gitlab",
+            "--no-progress",
+            "--color",
+            "never",
+            "/home/runner/work/_temp/companion-ci-evidence/performance-distributed/project",
+            "--config-file",
+            "/home/runner/work/_temp/companion-ci-evidence/performance-distributed/bare.toml"
+          ],
+          "seconds": 0.061132726999971965,
+          "exit": 1,
+          "diagnostic_codes": {
+            "type-assertion-failure": 100,
+            "unresolved-attribute": 100
+          },
+          "user_cpu_seconds": 0.063221,
+          "system_cpu_seconds": 0.026091,
+          "sampled_process_tree_peak_rss_kib": 26640,
+          "stopped": null,
+          "monitor_error": null,
+          "parse_error": null,
+          "load_before": [
+            1.107421875,
+            1.41162109375,
+            1.0263671875
+          ],
+          "load_after": [
+            1.107421875,
+            1.41162109375,
+            1.0263671875
+          ],
+          "source_sha256": "215897d7d242aeb2411e9f446fed78cd4105eb934b051c4035f409b7323e45a0",
+          "source_preserved": true
+        },
+        {
+          "backend": "mypy",
+          "label": "0/mypy",
+          "command": [
+            "/home/runner/work/_temp/companion-ci-evidence/performance-reference/bin/mypy",
+            "--config-file",
+            "/home/runner/work/_temp/companion-ci-evidence/performance-distributed/mypy.ini",
+            "--output",
+            "json",
+            "--no-incremental",
+            "/home/runner/work/_temp/companion-ci-evidence/performance-distributed/project",
+            "--cache-dir",
+            "/home/runner/work/_temp/companion-ci-evidence/performance-distributed/runs/0/mypy/scratch/mypy-cache"
+          ],
+          "seconds": 1.6784441439999682,
+          "exit": 0,
+          "diagnostic_codes": {},
+          "user_cpu_seconds": 1.522973,
+          "system_cpu_seconds": 0.218142,
+          "sampled_process_tree_peak_rss_kib": 216360,
+          "stopped": null,
+          "monitor_error": null,
+          "parse_error": null,
+          "load_before": [
+            1.107421875,
+            1.41162109375,
+            1.0263671875
+          ],
+          "load_after": [
+            1.107421875,
+            1.41162109375,
+            1.0263671875
+          ],
+          "source_sha256": "215897d7d242aeb2411e9f446fed78cd4105eb934b051c4035f409b7323e45a0",
+          "source_preserved": true
+        },
+        {
+          "backend": "bare-ty",
+          "label": "1/bare-ty",
+          "command": [
+            "/home/runner/work/_temp/companion-ci-evidence/performance-candidate/bin/ty",
+            "check",
+            "--python",
+            "/home/runner/work/_temp/companion-ci-evidence/performance-candidate/bin/python",
+            "--output-format",
+            "gitlab",
+            "--no-progress",
+            "--color",
+            "never",
+            "/home/runner/work/_temp/companion-ci-evidence/performance-distributed/project",
+            "--config-file",
+            "/home/runner/work/_temp/companion-ci-evidence/performance-distributed/bare.toml"
+          ],
+          "seconds": 0.060702136000031715,
+          "exit": 1,
+          "diagnostic_codes": {
+            "type-assertion-failure": 100,
+            "unresolved-attribute": 100
+          },
+          "user_cpu_seconds": 0.074182,
+          "system_cpu_seconds": 0.014835999999999998,
+          "sampled_process_tree_peak_rss_kib": 27264,
+          "stopped": null,
+          "monitor_error": null,
+          "parse_error": null,
+          "load_before": [
+            1.107421875,
+            1.41162109375,
+            1.0263671875
+          ],
+          "load_after": [
+            1.107421875,
+            1.41162109375,
+            1.0263671875
+          ],
+          "source_sha256": "215897d7d242aeb2411e9f446fed78cd4105eb934b051c4035f409b7323e45a0",
+          "source_preserved": true
+        },
+        {
+          "backend": "mypy",
+          "label": "1/mypy",
+          "command": [
+            "/home/runner/work/_temp/companion-ci-evidence/performance-reference/bin/mypy",
+            "--config-file",
+            "/home/runner/work/_temp/companion-ci-evidence/performance-distributed/mypy.ini",
+            "--output",
+            "json",
+            "--no-incremental",
+            "/home/runner/work/_temp/companion-ci-evidence/performance-distributed/project",
+            "--cache-dir",
+            "/home/runner/work/_temp/companion-ci-evidence/performance-distributed/runs/1/mypy/scratch/mypy-cache"
+          ],
+          "seconds": 1.6978285609999375,
+          "exit": 0,
+          "diagnostic_codes": {},
+          "user_cpu_seconds": 1.523428,
+          "system_cpu_seconds": 0.23568499999999998,
+          "sampled_process_tree_peak_rss_kib": 215828,
+          "stopped": null,
+          "monitor_error": null,
+          "parse_error": null,
+          "load_before": [
+            1.107421875,
+            1.41162109375,
+            1.0263671875
+          ],
+          "load_after": [
+            1.0986328125,
+            1.40478515625,
+            1.02587890625
+          ],
+          "source_sha256": "215897d7d242aeb2411e9f446fed78cd4105eb934b051c4035f409b7323e45a0",
+          "source_preserved": true
+        },
+        {
+          "backend": "companion",
+          "label": "1/companion",
+          "command": [
+            "/home/runner/work/ty-extended/ty-extended/companion/target/release/ty-extended",
+            "check",
+            "--python",
+            "/home/runner/work/_temp/companion-ci-evidence/performance-candidate/bin/python",
+            "--output-format",
+            "gitlab",
+            "--no-progress",
+            "--color",
+            "never",
+            "/home/runner/work/_temp/companion-ci-evidence/performance-distributed/project",
+            "--ty",
+            "/home/runner/work/_temp/companion-ci-evidence/performance-candidate/bin/ty",
+            "--config-file",
+            "/home/runner/work/_temp/companion-ci-evidence/performance-distributed/companion.toml"
+          ],
+          "seconds": 0.7318836059999967,
+          "exit": 0,
+          "diagnostic_codes": {},
+          "user_cpu_seconds": 0.6807679999999999,
+          "system_cpu_seconds": 0.199451,
+          "sampled_process_tree_peak_rss_kib": 328412,
+          "stopped": null,
+          "monitor_error": null,
+          "parse_error": null,
+          "load_before": [
+            1.0986328125,
+            1.40478515625,
+            1.02587890625
+          ],
+          "load_after": [
+            1.0986328125,
+            1.40478515625,
+            1.02587890625
+          ],
+          "source_sha256": "215897d7d242aeb2411e9f446fed78cd4105eb934b051c4035f409b7323e45a0",
+          "source_preserved": true
+        },
+        {
+          "backend": "mypy",
+          "label": "2/mypy",
+          "command": [
+            "/home/runner/work/_temp/companion-ci-evidence/performance-reference/bin/mypy",
+            "--config-file",
+            "/home/runner/work/_temp/companion-ci-evidence/performance-distributed/mypy.ini",
+            "--output",
+            "json",
+            "--no-incremental",
+            "/home/runner/work/_temp/companion-ci-evidence/performance-distributed/project",
+            "--cache-dir",
+            "/home/runner/work/_temp/companion-ci-evidence/performance-distributed/runs/2/mypy/scratch/mypy-cache"
+          ],
+          "seconds": 1.6875648090000368,
+          "exit": 0,
+          "diagnostic_codes": {},
+          "user_cpu_seconds": 1.508651,
+          "system_cpu_seconds": 0.24323299999999998,
+          "sampled_process_tree_peak_rss_kib": 216572,
+          "stopped": null,
+          "monitor_error": null,
+          "parse_error": null,
+          "load_before": [
+            1.0986328125,
+            1.40478515625,
+            1.02587890625
+          ],
+          "load_after": [
+            1.0986328125,
+            1.40478515625,
+            1.02587890625
+          ],
+          "source_sha256": "215897d7d242aeb2411e9f446fed78cd4105eb934b051c4035f409b7323e45a0",
+          "source_preserved": true
+        },
+        {
+          "backend": "companion",
+          "label": "2/companion",
+          "command": [
+            "/home/runner/work/ty-extended/ty-extended/companion/target/release/ty-extended",
+            "check",
+            "--python",
+            "/home/runner/work/_temp/companion-ci-evidence/performance-candidate/bin/python",
+            "--output-format",
+            "gitlab",
+            "--no-progress",
+            "--color",
+            "never",
+            "/home/runner/work/_temp/companion-ci-evidence/performance-distributed/project",
+            "--ty",
+            "/home/runner/work/_temp/companion-ci-evidence/performance-candidate/bin/ty",
+            "--config-file",
+            "/home/runner/work/_temp/companion-ci-evidence/performance-distributed/companion.toml"
+          ],
+          "seconds": 0.7101956599999539,
+          "exit": 0,
+          "diagnostic_codes": {},
+          "user_cpu_seconds": 0.669999,
+          "system_cpu_seconds": 0.18487399999999998,
+          "sampled_process_tree_peak_rss_kib": 328936,
+          "stopped": null,
+          "monitor_error": null,
+          "parse_error": null,
+          "load_before": [
+            1.0986328125,
+            1.40478515625,
+            1.02587890625
+          ],
+          "load_after": [
+            1.0986328125,
+            1.40478515625,
+            1.02587890625
+          ],
+          "source_sha256": "215897d7d242aeb2411e9f446fed78cd4105eb934b051c4035f409b7323e45a0",
+          "source_preserved": true
+        },
+        {
+          "backend": "bare-ty",
+          "label": "2/bare-ty",
+          "command": [
+            "/home/runner/work/_temp/companion-ci-evidence/performance-candidate/bin/ty",
+            "check",
+            "--python",
+            "/home/runner/work/_temp/companion-ci-evidence/performance-candidate/bin/python",
+            "--output-format",
+            "gitlab",
+            "--no-progress",
+            "--color",
+            "never",
+            "/home/runner/work/_temp/companion-ci-evidence/performance-distributed/project",
+            "--config-file",
+            "/home/runner/work/_temp/companion-ci-evidence/performance-distributed/bare.toml"
+          ],
+          "seconds": 0.06090138800004752,
+          "exit": 1,
+          "diagnostic_codes": {
+            "type-assertion-failure": 100,
+            "unresolved-attribute": 100
+          },
+          "user_cpu_seconds": 0.069227,
+          "system_cpu_seconds": 0.020361,
+          "sampled_process_tree_peak_rss_kib": 24992,
+          "stopped": null,
+          "monitor_error": null,
+          "parse_error": null,
+          "load_before": [
+            1.0986328125,
+            1.40478515625,
+            1.02587890625
+          ],
+          "load_after": [
+            1.0986328125,
+            1.40478515625,
+            1.02587890625
+          ],
+          "source_sha256": "215897d7d242aeb2411e9f446fed78cd4105eb934b051c4035f409b7323e45a0",
+          "source_preserved": true
+        }
+      ],
+      "negative_controls": [
+        {
+          "backend": "companion",
+          "label": "negative/companion",
+          "command": [
+            "/home/runner/work/ty-extended/ty-extended/companion/target/release/ty-extended",
+            "check",
+            "--python",
+            "/home/runner/work/_temp/companion-ci-evidence/performance-candidate/bin/python",
+            "--output-format",
+            "gitlab",
+            "--no-progress",
+            "--color",
+            "never",
+            "/home/runner/work/_temp/companion-ci-evidence/performance-distributed/project",
+            "--ty",
+            "/home/runner/work/_temp/companion-ci-evidence/performance-candidate/bin/ty",
+            "--config-file",
+            "/home/runner/work/_temp/companion-ci-evidence/performance-distributed/companion.toml"
+          ],
+          "seconds": 0.7503938840000046,
+          "exit": 1,
+          "diagnostic_codes": {
+            "invalid-assignment": 2
+          },
+          "user_cpu_seconds": 0.684829,
+          "system_cpu_seconds": 0.207926,
+          "sampled_process_tree_peak_rss_kib": 330644,
+          "stopped": null,
+          "monitor_error": null,
+          "parse_error": null,
+          "load_before": [
+            1.0986328125,
+            1.40478515625,
+            1.02587890625
+          ],
+          "load_after": [
+            1.1708984375,
+            1.4150390625,
+            1.03125
+          ],
+          "source_sha256": "acd92868d51aaec7df04618b847fdd70f12d9bda7e6a02f4f2b3c12957842933",
+          "source_preserved": true
+        },
+        {
+          "backend": "mypy",
+          "label": "negative/mypy",
+          "command": [
+            "/home/runner/work/_temp/companion-ci-evidence/performance-reference/bin/mypy",
+            "--config-file",
+            "/home/runner/work/_temp/companion-ci-evidence/performance-distributed/mypy.ini",
+            "--output",
+            "json",
+            "--no-incremental",
+            "/home/runner/work/_temp/companion-ci-evidence/performance-distributed/project",
+            "--cache-dir",
+            "/home/runner/work/_temp/companion-ci-evidence/performance-distributed/runs/negative/mypy/scratch/mypy-cache"
+          ],
+          "seconds": 1.64691321600003,
+          "exit": 1,
+          "diagnostic_codes": {
+            "assignment": 2
+          },
+          "user_cpu_seconds": 1.460401,
+          "system_cpu_seconds": 0.246913,
+          "sampled_process_tree_peak_rss_kib": 217108,
+          "stopped": null,
+          "monitor_error": null,
+          "parse_error": null,
+          "load_before": [
+            1.1708984375,
+            1.4150390625,
+            1.03125
+          ],
+          "load_after": [
+            1.1708984375,
+            1.4150390625,
+            1.03125
+          ],
+          "source_sha256": "acd92868d51aaec7df04618b847fdd70f12d9bda7e6a02f4f2b3c12957842933",
+          "source_preserved": true
+        }
+      ],
+      "platform": "linux-x86_64",
+      "shape": "distributed",
+      "raw_report_sha256": "0ddeaacc5e50d5e10c1fcf6cf65b6baacbff8e866fee97edeac27bc1b291ad00",
+      "plugin_files_sha256": "6e2f1f265ec99db47eae4dfb07aa9d87d87f9c454284a67579cd97a680f2169e"
+    },
+    {
+      "host": "Linux-7.0.0-1019-azure-x86_64-with-glibc2.43",
+      "workload": {
+        "files": 7082,
+        "models": 250,
+        "model_modules": 25,
+        "queries": 100
+      },
+      "method": "Fresh processes; warm filesystem caches; MyPy --no-incremental and disposable cache; rotated serial runs; process-tree RSS sampled every 100ms.",
+      "threads": "default",
+      "source_sha256": "ba0380a4b1aa169061e65909e3ec9d9ecec7d4679a12e6dc914c7c2a5659b731",
+      "binaries": {
+        "companion": {
+          "path": "/home/runner/work/ty-extended/ty-extended/companion/target/release/ty-extended",
+          "version": "ty-extended 0.88.0",
+          "sha256": "a735ea312fe31666041a3e90c05c618136ac4ee0232820dd8ec7cfb4f9dff70f"
+        },
+        "official": {
+          "path": "/home/runner/work/_temp/companion-ci-evidence/performance-candidate/bin/ty",
+          "version": "ty 0.0.99",
+          "sha256": "9a0493fa45b6d9bb03ce4fc4656e189621dac3e329f46012baf76e951af37ce2"
+        },
+        "mypy": {
+          "path": "/home/runner/work/_temp/companion-ci-evidence/performance-reference/bin/mypy",
+          "version": "mypy 2.4.1 (compiled: yes)",
+          "sha256": "1531b8c35c1e4124791a8f23b036cc6a9ded629c45bded982d4f4201d112f8ef"
+        }
+      },
+      "environments": {
+        "companion": {
+          "python": "3.13.18 (main, Oct 26 2026, 14:19:33) [GCC 15.2.0]",
+          "packages": {
+            "asgiref": "3.13.0",
+            "typing_extensions": "4.16.0",
+            "types-PyYAML": "6.0.12.20261103",
+            "ty": "0.0.99",
+            "pip": "26.2.2",
+            "Django": "6.1.3",
+            "sqlparse": "0.6.1"
+          }
+        },
+        "mypy": {
+          "python": "3.13.18 (main, Oct 26 2026, 14:19:33) [GCC 15.2.0]",
+          "packages": {
+            "asgiref": "3.13.0",
+            "librt": "0.16.0",
+            "mypy_extensions": "1.2.0",
+            "pathspec": "1.1.1",
+            "typing_extensions": "4.16.0",
+            "django-stubs-ext": "6.1.2",
+            "ast_serialize": "0.13.1",
+            "types-PyYAML": "6.0.12.20261103",
+            "pip": "26.2.2",
+            "Django": "6.1.3",
+            "django-stubs": "6.1.2",
+            "mypy": "2.4.1",
+            "sqlparse": "0.6.1"
+          }
+        }
+      },
+      "plugin": {
+        "id": "django-ty",
+        "version": "0.7.0",
+        "protocol-version": {
+          "major": 0,
+          "minor": 8
+        }
+      },
+      "median_seconds": {
+        "companion": 1.6951339590000316,
+        "bare-ty": 0.10479294700007813,
+        "mypy": 3.3434461589999955
+      },
+      "passed": true,
+      "performance_target_met": true,
+      "records": [
+        {
+          "backend": "companion",
+          "label": "0/companion",
+          "command": [
+            "/home/runner/work/ty-extended/ty-extended/companion/target/release/ty-extended",
+            "check",
+            "--python",
+            "/home/runner/work/_temp/companion-ci-evidence/performance-candidate/bin/python",
+            "--output-format",
+            "gitlab",
+            "--no-progress",
+            "--color",
+            "never",
+            "/home/runner/work/_temp/companion-ci-evidence/performance-many-files/project",
+            "--ty",
+            "/home/runner/work/_temp/companion-ci-evidence/performance-candidate/bin/ty",
+            "--config-file",
+            "/home/runner/work/_temp/companion-ci-evidence/performance-many-files/companion.toml"
+          ],
+          "seconds": 1.6951339590000316,
+          "exit": 0,
+          "diagnostic_codes": {},
+          "user_cpu_seconds": 1.304146,
+          "system_cpu_seconds": 0.7604839999999999,
+          "sampled_process_tree_peak_rss_kib": 457900,
+          "stopped": null,
+          "monitor_error": null,
+          "parse_error": null,
+          "load_before": [
+            1.1708984375,
+            1.4150390625,
+            1.03125
+          ],
+          "load_after": [
+            1.1708984375,
+            1.4150390625,
+            1.03125
+          ],
+          "source_sha256": "ba0380a4b1aa169061e65909e3ec9d9ecec7d4679a12e6dc914c7c2a5659b731",
+          "source_preserved": true
+        },
+        {
+          "backend": "bare-ty",
+          "label": "0/bare-ty",
+          "command": [
+            "/home/runner/work/_temp/companion-ci-evidence/performance-candidate/bin/ty",
+            "check",
+            "--python",
+            "/home/runner/work/_temp/companion-ci-evidence/performance-candidate/bin/python",
+            "--output-format",
+            "gitlab",
+            "--no-progress",
+            "--color",
+            "never",
+            "/home/runner/work/_temp/companion-ci-evidence/performance-many-files/project",
+            "--config-file",
+            "/home/runner/work/_temp/companion-ci-evidence/performance-many-files/bare.toml"
+          ],
+          "seconds": 0.10503564199996163,
+          "exit": 1,
+          "diagnostic_codes": {
+            "type-assertion-failure": 100,
+            "unresolved-attribute": 100
+          },
+          "user_cpu_seconds": 0.149938,
+          "system_cpu_seconds": 0.09036,
+          "sampled_process_tree_peak_rss_kib": 25992,
+          "stopped": null,
+          "monitor_error": null,
+          "parse_error": null,
+          "load_before": [
+            1.1708984375,
+            1.4150390625,
+            1.03125
+          ],
+          "load_after": [
+            1.1708984375,
+            1.4150390625,
+            1.03125
+          ],
+          "source_sha256": "ba0380a4b1aa169061e65909e3ec9d9ecec7d4679a12e6dc914c7c2a5659b731",
+          "source_preserved": true
+        },
+        {
+          "backend": "mypy",
+          "label": "0/mypy",
+          "command": [
+            "/home/runner/work/_temp/companion-ci-evidence/performance-reference/bin/mypy",
+            "--config-file",
+            "/home/runner/work/_temp/companion-ci-evidence/performance-many-files/mypy.ini",
+            "--output",
+            "json",
+            "--no-incremental",
+            "/home/runner/work/_temp/companion-ci-evidence/performance-many-files/project",
+            "--cache-dir",
+            "/home/runner/work/_temp/companion-ci-evidence/performance-many-files/runs/0/mypy/scratch/mypy-cache"
+          ],
+          "seconds": 3.2149497369999835,
+          "exit": 0,
+          "diagnostic_codes": {},
+          "user_cpu_seconds": 2.733912,
+          "system_cpu_seconds": 0.627339,
+          "sampled_process_tree_peak_rss_kib": 292476,
+          "stopped": null,
+          "monitor_error": null,
+          "parse_error": null,
+          "load_before": [
+            1.1708984375,
+            1.4150390625,
+            1.03125
+          ],
+          "load_after": [
+            1.2373046875,
+            1.4248046875,
+            1.03662109375
+          ],
+          "source_sha256": "ba0380a4b1aa169061e65909e3ec9d9ecec7d4679a12e6dc914c7c2a5659b731",
+          "source_preserved": true
+        },
+        {
+          "backend": "bare-ty",
+          "label": "1/bare-ty",
+          "command": [
+            "/home/runner/work/_temp/companion-ci-evidence/performance-candidate/bin/ty",
+            "check",
+            "--python",
+            "/home/runner/work/_temp/companion-ci-evidence/performance-candidate/bin/python",
+            "--output-format",
+            "gitlab",
+            "--no-progress",
+            "--color",
+            "never",
+            "/home/runner/work/_temp/companion-ci-evidence/performance-many-files/project",
+            "--config-file",
+            "/home/runner/work/_temp/companion-ci-evidence/performance-many-files/bare.toml"
+          ],
+          "seconds": 0.10041850699997212,
+          "exit": 1,
+          "diagnostic_codes": {
+            "type-assertion-failure": 100,
+            "unresolved-attribute": 100
+          },
+          "user_cpu_seconds": 0.149758,
+          "system_cpu_seconds": 0.09447799999999999,
+          "sampled_process_tree_peak_rss_kib": 23148,
+          "stopped": null,
+          "monitor_error": null,
+          "parse_error": null,
+          "load_before": [
+            1.2373046875,
+            1.4248046875,
+            1.03662109375
+          ],
+          "load_after": [
+            1.2373046875,
+            1.4248046875,
+            1.03662109375
+          ],
+          "source_sha256": "ba0380a4b1aa169061e65909e3ec9d9ecec7d4679a12e6dc914c7c2a5659b731",
+          "source_preserved": true
+        },
+        {
+          "backend": "mypy",
+          "label": "1/mypy",
+          "command": [
+            "/home/runner/work/_temp/companion-ci-evidence/performance-reference/bin/mypy",
+            "--config-file",
+            "/home/runner/work/_temp/companion-ci-evidence/performance-many-files/mypy.ini",
+            "--output",
+            "json",
+            "--no-incremental",
+            "/home/runner/work/_temp/companion-ci-evidence/performance-many-files/project",
+            "--cache-dir",
+            "/home/runner/work/_temp/companion-ci-evidence/performance-many-files/runs/1/mypy/scratch/mypy-cache"
+          ],
+          "seconds": 3.3434461589999955,
+          "exit": 0,
+          "diagnostic_codes": {},
+          "user_cpu_seconds": 2.812042,
+          "system_cpu_seconds": 0.676786,
+          "sampled_process_tree_peak_rss_kib": 291936,
+          "stopped": null,
+          "monitor_error": null,
+          "parse_error": null,
+          "load_before": [
+            1.2373046875,
+            1.4248046875,
+            1.03662109375
+          ],
+          "load_after": [
+            1.298828125,
+            1.4345703125,
+            1.0419921875
+          ],
+          "source_sha256": "ba0380a4b1aa169061e65909e3ec9d9ecec7d4679a12e6dc914c7c2a5659b731",
+          "source_preserved": true
+        },
+        {
+          "backend": "companion",
+          "label": "1/companion",
+          "command": [
+            "/home/runner/work/ty-extended/ty-extended/companion/target/release/ty-extended",
+            "check",
+            "--python",
+            "/home/runner/work/_temp/companion-ci-evidence/performance-candidate/bin/python",
+            "--output-format",
+            "gitlab",
+            "--no-progress",
+            "--color",
+            "never",
+            "/home/runner/work/_temp/companion-ci-evidence/performance-many-files/project",
+            "--ty",
+            "/home/runner/work/_temp/companion-ci-evidence/performance-candidate/bin/ty",
+            "--config-file",
+            "/home/runner/work/_temp/companion-ci-evidence/performance-many-files/companion.toml"
+          ],
+          "seconds": 1.6868482339999673,
+          "exit": 0,
+          "diagnostic_codes": {},
+          "user_cpu_seconds": 1.294003,
+          "system_cpu_seconds": 0.7754519999999999,
+          "sampled_process_tree_peak_rss_kib": 465320,
+          "stopped": null,
+          "monitor_error": null,
+          "parse_error": null,
+          "load_before": [
+            1.298828125,
+            1.4345703125,
+            1.0419921875
+          ],
+          "load_after": [
+            1.298828125,
+            1.4345703125,
+            1.0419921875
+          ],
+          "source_sha256": "ba0380a4b1aa169061e65909e3ec9d9ecec7d4679a12e6dc914c7c2a5659b731",
+          "source_preserved": true
+        },
+        {
+          "backend": "mypy",
+          "label": "2/mypy",
+          "command": [
+            "/home/runner/work/_temp/companion-ci-evidence/performance-reference/bin/mypy",
+            "--config-file",
+            "/home/runner/work/_temp/companion-ci-evidence/performance-many-files/mypy.ini",
+            "--output",
+            "json",
+            "--no-incremental",
+            "/home/runner/work/_temp/companion-ci-evidence/performance-many-files/project",
+            "--cache-dir",
+            "/home/runner/work/_temp/companion-ci-evidence/performance-many-files/runs/2/mypy/scratch/mypy-cache"
+          ],
+          "seconds": 3.361680065000087,
+          "exit": 0,
+          "diagnostic_codes": {},
+          "user_cpu_seconds": 2.8574640000000002,
+          "system_cpu_seconds": 0.6469539999999999,
+          "sampled_process_tree_peak_rss_kib": 291796,
+          "stopped": null,
+          "monitor_error": null,
+          "parse_error": null,
+          "load_before": [
+            1.298828125,
+            1.4345703125,
+            1.0419921875
+          ],
+          "load_after": [
+            1.2744140625,
+            1.42724609375,
+            1.04150390625
+          ],
+          "source_sha256": "ba0380a4b1aa169061e65909e3ec9d9ecec7d4679a12e6dc914c7c2a5659b731",
+          "source_preserved": true
+        },
+        {
+          "backend": "companion",
+          "label": "2/companion",
+          "command": [
+            "/home/runner/work/ty-extended/ty-extended/companion/target/release/ty-extended",
+            "check",
+            "--python",
+            "/home/runner/work/_temp/companion-ci-evidence/performance-candidate/bin/python",
+            "--output-format",
+            "gitlab",
+            "--no-progress",
+            "--color",
+            "never",
+            "/home/runner/work/_temp/companion-ci-evidence/performance-many-files/project",
+            "--ty",
+            "/home/runner/work/_temp/companion-ci-evidence/performance-candidate/bin/ty",
+            "--config-file",
+            "/home/runner/work/_temp/companion-ci-evidence/performance-many-files/companion.toml"
+          ],
+          "seconds": 1.736384949000012,
+          "exit": 0,
+          "diagnostic_codes": {},
+          "user_cpu_seconds": 1.325369,
+          "system_cpu_seconds": 0.800273,
+          "sampled_process_tree_peak_rss_kib": 507576,
+          "stopped": null,
+          "monitor_error": null,
+          "parse_error": null,
+          "load_before": [
+            1.2744140625,
+            1.42724609375,
+            1.04150390625
+          ],
+          "load_after": [
+            1.2744140625,
+            1.42724609375,
+            1.04150390625
+          ],
+          "source_sha256": "ba0380a4b1aa169061e65909e3ec9d9ecec7d4679a12e6dc914c7c2a5659b731",
+          "source_preserved": true
+        },
+        {
+          "backend": "bare-ty",
+          "label": "2/bare-ty",
+          "command": [
+            "/home/runner/work/_temp/companion-ci-evidence/performance-candidate/bin/ty",
+            "check",
+            "--python",
+            "/home/runner/work/_temp/companion-ci-evidence/performance-candidate/bin/python",
+            "--output-format",
+            "gitlab",
+            "--no-progress",
+            "--color",
+            "never",
+            "/home/runner/work/_temp/companion-ci-evidence/performance-many-files/project",
+            "--config-file",
+            "/home/runner/work/_temp/companion-ci-evidence/performance-many-files/bare.toml"
+          ],
+          "seconds": 0.10479294700007813,
+          "exit": 1,
+          "diagnostic_codes": {
+            "type-assertion-failure": 100,
+            "unresolved-attribute": 100
+          },
+          "user_cpu_seconds": 0.161053,
+          "system_cpu_seconds": 0.080526,
+          "sampled_process_tree_peak_rss_kib": 26000,
+          "stopped": null,
+          "monitor_error": null,
+          "parse_error": null,
+          "load_before": [
+            1.2744140625,
+            1.42724609375,
+            1.04150390625
+          ],
+          "load_after": [
+            1.49267578125,
+            1.47021484375,
+            1.0576171875
+          ],
+          "source_sha256": "ba0380a4b1aa169061e65909e3ec9d9ecec7d4679a12e6dc914c7c2a5659b731",
+          "source_preserved": true
+        }
+      ],
+      "negative_controls": [
+        {
+          "backend": "companion",
+          "label": "negative/companion",
+          "command": [
+            "/home/runner/work/ty-extended/ty-extended/companion/target/release/ty-extended",
+            "check",
+            "--python",
+            "/home/runner/work/_temp/companion-ci-evidence/performance-candidate/bin/python",
+            "--output-format",
+            "gitlab",
+            "--no-progress",
+            "--color",
+            "never",
+            "/home/runner/work/_temp/companion-ci-evidence/performance-many-files/project",
+            "--ty",
+            "/home/runner/work/_temp/companion-ci-evidence/performance-candidate/bin/ty",
+            "--config-file",
+            "/home/runner/work/_temp/companion-ci-evidence/performance-many-files/companion.toml"
+          ],
+          "seconds": 1.8040730610000537,
+          "exit": 1,
+          "diagnostic_codes": {
+            "invalid-assignment": 2
+          },
+          "user_cpu_seconds": 1.4434529999999999,
+          "system_cpu_seconds": 0.754848,
+          "sampled_process_tree_peak_rss_kib": 464824,
+          "stopped": null,
+          "monitor_error": null,
+          "parse_error": null,
+          "load_before": [
+            1.49267578125,
+            1.47021484375,
+            1.0576171875
+          ],
+          "load_after": [
+            1.49267578125,
+            1.47021484375,
+            1.0576171875
+          ],
+          "source_sha256": "7f2aa83ea157f0fef30d176ac63389383690ab797ff36e936ed4ca95251be897",
+          "source_preserved": true
+        },
+        {
+          "backend": "mypy",
+          "label": "negative/mypy",
+          "command": [
+            "/home/runner/work/_temp/companion-ci-evidence/performance-reference/bin/mypy",
+            "--config-file",
+            "/home/runner/work/_temp/companion-ci-evidence/performance-many-files/mypy.ini",
+            "--output",
+            "json",
+            "--no-incremental",
+            "/home/runner/work/_temp/companion-ci-evidence/performance-many-files/project",
+            "--cache-dir",
+            "/home/runner/work/_temp/companion-ci-evidence/performance-many-files/runs/negative/mypy/scratch/mypy-cache"
+          ],
+          "seconds": 3.435193947000016,
+          "exit": 1,
+          "diagnostic_codes": {
+            "assignment": 2
+          },
+          "user_cpu_seconds": 2.942472,
+          "system_cpu_seconds": 0.639929,
+          "sampled_process_tree_peak_rss_kib": 291844,
+          "stopped": null,
+          "monitor_error": null,
+          "parse_error": null,
+          "load_before": [
+            1.49267578125,
+            1.47021484375,
+            1.0576171875
+          ],
+          "load_after": [
+            1.53369140625,
+            1.4794921875,
+            1.06298828125
+          ],
+          "source_sha256": "7f2aa83ea157f0fef30d176ac63389383690ab797ff36e936ed4ca95251be897",
+          "source_preserved": true
+        }
+      ],
+      "platform": "linux-x86_64",
+      "shape": "many-files",
+      "raw_report_sha256": "dcbb14634c1662cfb5825a71adea47aa72c97edaea58af36c19f5357f2aa8ec4",
+      "plugin_files_sha256": "6e2f1f265ec99db47eae4dfb07aa9d87d87f9c454284a67579cd97a680f2169e"
+    },
+    {
+      "host": "Linux-7.0.0-1019-azure-x86_64-with-glibc2.43",
+      "workload": {
+        "files": 7082,
+        "models": 2501,
+        "model_modules": 1,
+        "queries": 100
+      },
+      "method": "Fresh processes; warm filesystem caches; MyPy --no-incremental and disposable cache; rotated serial runs; process-tree RSS sampled every 100ms.",
+      "threads": "default",
+      "source_sha256": "51c1a88b05a169f1222685fe6105e4be5f43d4213aaaf57c60bf99dbe0d82df9",
+      "binaries": {
+        "companion": {
+          "path": "/home/runner/work/ty-extended/ty-extended/companion/target/release/ty-extended",
+          "version": "ty-extended 0.88.0",
+          "sha256": "a735ea312fe31666041a3e90c05c618136ac4ee0232820dd8ec7cfb4f9dff70f"
+        },
+        "official": {
+          "path": "/home/runner/work/_temp/companion-ci-evidence/performance-candidate/bin/ty",
+          "version": "ty 0.0.99",
+          "sha256": "9a0493fa45b6d9bb03ce4fc4656e189621dac3e329f46012baf76e951af37ce2"
+        },
+        "mypy": {
+          "path": "/home/runner/work/_temp/companion-ci-evidence/performance-reference/bin/mypy",
+          "version": "mypy 2.4.1 (compiled: yes)",
+          "sha256": "1531b8c35c1e4124791a8f23b036cc6a9ded629c45bded982d4f4201d112f8ef"
+        }
+      },
+      "environments": {
+        "companion": {
+          "python": "3.13.18 (main, Oct 26 2026, 14:19:33) [GCC 15.2.0]",
+          "packages": {
+            "asgiref": "3.13.0",
+            "typing_extensions": "4.16.0",
+            "types-PyYAML": "6.0.12.20261103",
+            "ty": "0.0.99",
+            "pip": "26.2.2",
+            "Django": "6.1.3",
+            "sqlparse": "0.6.1"
+          }
+        },
+        "mypy": {
+          "python": "3.13.18 (main, Oct 26 2026, 14:19:33) [GCC 15.2.0]",
+          "packages": {
+            "asgiref": "3.13.0",
+            "librt": "0.16.0",
+            "mypy_extensions": "1.2.0",
+            "pathspec": "1.1.1",
+            "typing_extensions": "4.16.0",
+            "django-stubs-ext": "6.1.2",
+            "ast_serialize": "0.13.1",
+            "types-PyYAML": "6.0.12.20261103",
+            "pip": "26.2.2",
+            "Django": "6.1.3",
+            "django-stubs": "6.1.2",
+            "mypy": "2.4.1",
+            "sqlparse": "0.6.1"
+          }
+        }
+      },
+      "plugin": {
+        "id": "django-ty",
+        "version": "0.7.0",
+        "protocol-version": {
+          "major": 0,
+          "minor": 8
+        }
+      },
+      "median_seconds": {
+        "companion": 4.298963646999937,
+        "bare-ty": 0.17121122200001082,
+        "mypy": 5.887628328999995
+      },
+      "passed": true,
+      "performance_target_met": true,
+      "records": [
+        {
+          "backend": "companion",
+          "label": "0/companion",
+          "command": [
+            "/home/runner/work/ty-extended/ty-extended/companion/target/release/ty-extended",
+            "check",
+            "--python",
+            "/home/runner/work/_temp/companion-ci-evidence/performance-candidate/bin/python",
+            "--output-format",
+            "gitlab",
+            "--no-progress",
+            "--color",
+            "never",
+            "/home/runner/work/_temp/companion-ci-evidence/performance-stress/project",
+            "--ty",
+            "/home/runner/work/_temp/companion-ci-evidence/performance-candidate/bin/ty",
+            "--config-file",
+            "/home/runner/work/_temp/companion-ci-evidence/performance-stress/companion.toml"
+          ],
+          "seconds": 4.298963646999937,
+          "exit": 0,
+          "diagnostic_codes": {},
+          "user_cpu_seconds": 3.69214,
+          "system_cpu_seconds": 0.933927,
+          "sampled_process_tree_peak_rss_kib": 1321424,
+          "stopped": null,
+          "monitor_error": null,
+          "parse_error": null,
+          "load_before": [
+            1.53369140625,
+            1.4794921875,
+            1.06298828125
+          ],
+          "load_after": [
+            1.7314453125,
+            1.521484375,
+            1.0791015625
+          ],
+          "source_sha256": "51c1a88b05a169f1222685fe6105e4be5f43d4213aaaf57c60bf99dbe0d82df9",
+          "source_preserved": true
+        },
+        {
+          "backend": "bare-ty",
+          "label": "0/bare-ty",
+          "command": [
+            "/home/runner/work/_temp/companion-ci-evidence/performance-candidate/bin/ty",
+            "check",
+            "--python",
+            "/home/runner/work/_temp/companion-ci-evidence/performance-candidate/bin/python",
+            "--output-format",
+            "gitlab",
+            "--no-progress",
+            "--color",
+            "never",
+            "/home/runner/work/_temp/companion-ci-evidence/performance-stress/project",
+            "--config-file",
+            "/home/runner/work/_temp/companion-ci-evidence/performance-stress/bare.toml"
+          ],
+          "seconds": 0.17598267699997905,
+          "exit": 1,
+          "diagnostic_codes": {
+            "type-assertion-failure": 100,
+            "unresolved-attribute": 100
+          },
+          "user_cpu_seconds": 0.20992899999999998,
+          "system_cpu_seconds": 0.104964,
+          "sampled_process_tree_peak_rss_kib": 92924,
+          "stopped": null,
+          "monitor_error": null,
+          "parse_error": null,
+          "load_before": [
+            1.7314453125,
+            1.521484375,
+            1.0791015625
+          ],
+          "load_after": [
+            1.7314453125,
+            1.521484375,
+            1.0791015625
+          ],
+          "source_sha256": "51c1a88b05a169f1222685fe6105e4be5f43d4213aaaf57c60bf99dbe0d82df9",
+          "source_preserved": true
+        },
+        {
+          "backend": "mypy",
+          "label": "0/mypy",
+          "command": [
+            "/home/runner/work/_temp/companion-ci-evidence/performance-reference/bin/mypy",
+            "--config-file",
+            "/home/runner/work/_temp/companion-ci-evidence/performance-stress/mypy.ini",
+            "--output",
+            "json",
+            "--no-incremental",
+            "/home/runner/work/_temp/companion-ci-evidence/performance-stress/project",
+            "--cache-dir",
+            "/home/runner/work/_temp/companion-ci-evidence/performance-stress/runs/0/mypy/scratch/mypy-cache"
+          ],
+          "seconds": 5.887628328999995,
+          "exit": 0,
+          "diagnostic_codes": {},
+          "user_cpu_seconds": 5.332071,
+          "system_cpu_seconds": 0.715363,
+          "sampled_process_tree_peak_rss_kib": 460104,
+          "stopped": null,
+          "monitor_error": null,
+          "parse_error": null,
+          "load_before": [
+            1.7314453125,
+            1.521484375,
+            1.0791015625
+          ],
+          "load_after": [
+            1.6728515625,
+            1.5126953125,
+            1.07861328125
+          ],
+          "source_sha256": "51c1a88b05a169f1222685fe6105e4be5f43d4213aaaf57c60bf99dbe0d82df9",
+          "source_preserved": true
+        },
+        {
+          "backend": "bare-ty",
+          "label": "1/bare-ty",
+          "command": [
+            "/home/runner/work/_temp/companion-ci-evidence/performance-candidate/bin/ty",
+            "check",
+            "--python",
+            "/home/runner/work/_temp/companion-ci-evidence/performance-candidate/bin/python",
+            "--output-format",
+            "gitlab",
+            "--no-progress",
+            "--color",
+            "never",
+            "/home/runner/work/_temp/companion-ci-evidence/performance-stress/project",
+            "--config-file",
+            "/home/runner/work/_temp/companion-ci-evidence/performance-stress/bare.toml"
+          ],
+          "seconds": 0.17121122200001082,
+          "exit": 1,
+          "diagnostic_codes": {
+            "type-assertion-failure": 100,
+            "unresolved-attribute": 100
+          },
+          "user_cpu_seconds": 0.220861,
+          "system_cpu_seconds": 0.097824,
+          "sampled_process_tree_peak_rss_kib": 89912,
+          "stopped": null,
+          "monitor_error": null,
+          "parse_error": null,
+          "load_before": [
+            1.6728515625,
+            1.5126953125,
+            1.07861328125
+          ],
+          "load_after": [
+            1.6728515625,
+            1.5126953125,
+            1.07861328125
+          ],
+          "source_sha256": "51c1a88b05a169f1222685fe6105e4be5f43d4213aaaf57c60bf99dbe0d82df9",
+          "source_preserved": true
+        },
+        {
+          "backend": "mypy",
+          "label": "1/mypy",
+          "command": [
+            "/home/runner/work/_temp/companion-ci-evidence/performance-reference/bin/mypy",
+            "--config-file",
+            "/home/runner/work/_temp/companion-ci-evidence/performance-stress/mypy.ini",
+            "--output",
+            "json",
+            "--no-incremental",
+            "/home/runner/work/_temp/companion-ci-evidence/performance-stress/project",
+            "--cache-dir",
+            "/home/runner/work/_temp/companion-ci-evidence/performance-stress/runs/1/mypy/scratch/mypy-cache"
+          ],
+          "seconds": 5.821014321999996,
+          "exit": 0,
+          "diagnostic_codes": {},
+          "user_cpu_seconds": 5.237481,
+          "system_cpu_seconds": 0.73974,
+          "sampled_process_tree_peak_rss_kib": 460344,
+          "stopped": null,
+          "monitor_error": null,
+          "parse_error": null,
+          "load_before": [
+            1.6728515625,
+            1.5126953125,
+            1.07861328125
+          ],
+          "load_after": [
+            1.69921875,
+            1.52099609375,
+            1.083984375
+          ],
+          "source_sha256": "51c1a88b05a169f1222685fe6105e4be5f43d4213aaaf57c60bf99dbe0d82df9",
+          "source_preserved": true
+        },
+        {
+          "backend": "companion",
+          "label": "1/companion",
+          "command": [
+            "/home/runner/work/ty-extended/ty-extended/companion/target/release/ty-extended",
+            "check",
+            "--python",
+            "/home/runner/work/_temp/companion-ci-evidence/performance-candidate/bin/python",
+            "--output-format",
+            "gitlab",
+            "--no-progress",
+            "--color",
+            "never",
+            "/home/runner/work/_temp/companion-ci-evidence/performance-stress/project",
+            "--ty",
+            "/home/runner/work/_temp/companion-ci-evidence/performance-candidate/bin/ty",
+            "--config-file",
+            "/home/runner/work/_temp/companion-ci-evidence/performance-stress/companion.toml"
+          ],
+          "seconds": 4.279915391999907,
+          "exit": 0,
+          "diagnostic_codes": {},
+          "user_cpu_seconds": 3.677133,
+          "system_cpu_seconds": 0.9252579999999999,
+          "sampled_process_tree_peak_rss_kib": 1342168,
+          "stopped": null,
+          "monitor_error": null,
+          "parse_error": null,
+          "load_before": [
+            1.69921875,
+            1.52099609375,
+            1.083984375
+          ],
+          "load_after": [
+            1.64306640625,
+            1.51220703125,
+            1.08349609375
+          ],
+          "source_sha256": "51c1a88b05a169f1222685fe6105e4be5f43d4213aaaf57c60bf99dbe0d82df9",
+          "source_preserved": true
+        },
+        {
+          "backend": "mypy",
+          "label": "2/mypy",
+          "command": [
+            "/home/runner/work/_temp/companion-ci-evidence/performance-reference/bin/mypy",
+            "--config-file",
+            "/home/runner/work/_temp/companion-ci-evidence/performance-stress/mypy.ini",
+            "--output",
+            "json",
+            "--no-incremental",
+            "/home/runner/work/_temp/companion-ci-evidence/performance-stress/project",
+            "--cache-dir",
+            "/home/runner/work/_temp/companion-ci-evidence/performance-stress/runs/2/mypy/scratch/mypy-cache"
+          ],
+          "seconds": 5.9535509339999635,
+          "exit": 0,
+          "diagnostic_codes": {},
+          "user_cpu_seconds": 5.34454,
+          "system_cpu_seconds": 0.7678119999999999,
+          "sampled_process_tree_peak_rss_kib": 460332,
+          "stopped": null,
+          "monitor_error": null,
+          "parse_error": null,
+          "load_before": [
+            1.64306640625,
+            1.51220703125,
+            1.08349609375
+          ],
+          "load_after": [
+            1.5439453125,
+            1.49462890625,
+            1.08251953125
+          ],
+          "source_sha256": "51c1a88b05a169f1222685fe6105e4be5f43d4213aaaf57c60bf99dbe0d82df9",
+          "source_preserved": true
+        },
+        {
+          "backend": "companion",
+          "label": "2/companion",
+          "command": [
+            "/home/runner/work/ty-extended/ty-extended/companion/target/release/ty-extended",
+            "check",
+            "--python",
+            "/home/runner/work/_temp/companion-ci-evidence/performance-candidate/bin/python",
+            "--output-format",
+            "gitlab",
+            "--no-progress",
+            "--color",
+            "never",
+            "/home/runner/work/_temp/companion-ci-evidence/performance-stress/project",
+            "--ty",
+            "/home/runner/work/_temp/companion-ci-evidence/performance-candidate/bin/ty",
+            "--config-file",
+            "/home/runner/work/_temp/companion-ci-evidence/performance-stress/companion.toml"
+          ],
+          "seconds": 4.379776082000035,
+          "exit": 0,
+          "diagnostic_codes": {},
+          "user_cpu_seconds": 3.7672499999999998,
+          "system_cpu_seconds": 0.9609289999999999,
+          "sampled_process_tree_peak_rss_kib": 1347836,
+          "stopped": null,
+          "monitor_error": null,
+          "parse_error": null,
+          "load_before": [
+            1.5439453125,
+            1.49462890625,
+            1.08251953125
+          ],
+          "load_after": [
+            1.5439453125,
+            1.49462890625,
+            1.08251953125
+          ],
+          "source_sha256": "51c1a88b05a169f1222685fe6105e4be5f43d4213aaaf57c60bf99dbe0d82df9",
+          "source_preserved": true
+        },
+        {
+          "backend": "bare-ty",
+          "label": "2/bare-ty",
+          "command": [
+            "/home/runner/work/_temp/companion-ci-evidence/performance-candidate/bin/ty",
+            "check",
+            "--python",
+            "/home/runner/work/_temp/companion-ci-evidence/performance-candidate/bin/python",
+            "--output-format",
+            "gitlab",
+            "--no-progress",
+            "--color",
+            "never",
+            "/home/runner/work/_temp/companion-ci-evidence/performance-stress/project",
+            "--config-file",
+            "/home/runner/work/_temp/companion-ci-evidence/performance-stress/bare.toml"
+          ],
+          "seconds": 0.16891554699998323,
+          "exit": 1,
+          "diagnostic_codes": {
+            "type-assertion-failure": 100,
+            "unresolved-attribute": 100
+          },
+          "user_cpu_seconds": 0.221595,
+          "system_cpu_seconds": 0.08460899999999999,
+          "sampled_process_tree_peak_rss_kib": 92768,
+          "stopped": null,
+          "monitor_error": null,
+          "parse_error": null,
+          "load_before": [
+            1.5,
+            1.486328125,
+            1.08203125
+          ],
+          "load_after": [
+            1.5,
+            1.486328125,
+            1.08203125
+          ],
+          "source_sha256": "51c1a88b05a169f1222685fe6105e4be5f43d4213aaaf57c60bf99dbe0d82df9",
+          "source_preserved": true
+        }
+      ],
+      "negative_controls": [
+        {
+          "backend": "companion",
+          "label": "negative/companion",
+          "command": [
+            "/home/runner/work/ty-extended/ty-extended/companion/target/release/ty-extended",
+            "check",
+            "--python",
+            "/home/runner/work/_temp/companion-ci-evidence/performance-candidate/bin/python",
+            "--output-format",
+            "gitlab",
+            "--no-progress",
+            "--color",
+            "never",
+            "/home/runner/work/_temp/companion-ci-evidence/performance-stress/project",
+            "--ty",
+            "/home/runner/work/_temp/companion-ci-evidence/performance-candidate/bin/ty",
+            "--config-file",
+            "/home/runner/work/_temp/companion-ci-evidence/performance-stress/companion.toml"
+          ],
+          "seconds": 4.533185898999932,
+          "exit": 1,
+          "diagnostic_codes": {
+            "invalid-assignment": 2
+          },
+          "user_cpu_seconds": 3.9094189999999998,
+          "system_cpu_seconds": 0.961452,
+          "sampled_process_tree_peak_rss_kib": 1331600,
+          "stopped": null,
+          "monitor_error": null,
+          "parse_error": null,
+          "load_before": [
+            1.5,
+            1.486328125,
+            1.08203125
+          ],
+          "load_after": [
+            1.5400390625,
+            1.4951171875,
+            1.08740234375
+          ],
+          "source_sha256": "1d6a6430d5c3eaec3a1d648f4c95b35912d6efc7d7c15370efadb0d6f41164ef",
+          "source_preserved": true
+        },
+        {
+          "backend": "mypy",
+          "label": "negative/mypy",
+          "command": [
+            "/home/runner/work/_temp/companion-ci-evidence/performance-reference/bin/mypy",
+            "--config-file",
+            "/home/runner/work/_temp/companion-ci-evidence/performance-stress/mypy.ini",
+            "--output",
+            "json",
+            "--no-incremental",
+            "/home/runner/work/_temp/companion-ci-evidence/performance-stress/project",
+            "--cache-dir",
+            "/home/runner/work/_temp/companion-ci-evidence/performance-stress/runs/negative/mypy/scratch/mypy-cache"
+          ],
+          "seconds": 6.1548377689999825,
+          "exit": 1,
+          "diagnostic_codes": {
+            "assignment": 2
+          },
+          "user_cpu_seconds": 5.5950109999999995,
+          "system_cpu_seconds": 0.7185969999999999,
+          "sampled_process_tree_peak_rss_kib": 459764,
+          "stopped": null,
+          "monitor_error": null,
+          "parse_error": null,
+          "load_before": [
+            1.5400390625,
+            1.4951171875,
+            1.08740234375
+          ],
+          "load_after": [
+            1.49658203125,
+            1.48681640625,
+            1.0869140625
+          ],
+          "source_sha256": "1d6a6430d5c3eaec3a1d648f4c95b35912d6efc7d7c15370efadb0d6f41164ef",
+          "source_preserved": true
+        }
+      ],
+      "platform": "linux-x86_64",
+      "shape": "stress",
+      "raw_report_sha256": "af38853eb30edcaf6cca00437f32c1761505709b1cf13a5137ee4d91581689b5",
+      "plugin_files_sha256": "6e2f1f265ec99db47eae4dfb07aa9d87d87f9c454284a67579cd97a680f2169e"
+    },
+    {
+      "host": "macOS-27.0.1-arm64-arm-64bit-Mach-O",
+      "workload": {
+        "files": 7082,
+        "models": 2501,
+        "model_modules": 250,
+        "queries": 100
+      },
+      "method": "Fresh processes; warm filesystem caches; MyPy --no-incremental and disposable cache; rotated serial runs; process-tree RSS sampled every 100ms.",
+      "threads": "default",
+      "source_sha256": "0b165879eeaa32cb6906921446ecaa428c3c4f44890779f7601511dc5d572124",
+      "binaries": {
+        "companion": {
+          "path": "/private/tmp/ty-companion-performance-refactor/installed-088/bin/ty-extended",
+          "version": "ty-extended 0.88.0",
+          "sha256": "f327a7e553dd17e8fcbbed682d18f206835e4653561dc2553e7068a8bc39b156"
+        },
+        "official": {
+          "path": "/private/tmp/ty-companion-performance-refactor/installed-088/bin/ty",
+          "version": "ty 0.0.99 (9b48f40c9 2026-11-06)",
+          "sha256": "34688103a83c3123d9eb0f4d85cdaa15f06ff16ce422d8a42616e6b1c885200e"
+        },
+        "mypy": {
+          "path": "/private/tmp/ty-companion-performance-refactor/reference/bin/mypy",
+          "version": "mypy 2.4.1 (compiled: yes)",
+          "sha256": "63d6c3b84797b5b26ab85d4674403fadbed76b7dad0bcc500188aa61fd37dd15"
+        }
+      },
+      "environments": {
+        "companion": {
+          "python": "3.13.0 (main, Oct 16 2024, 08:05:40) [Clang 18.1.8 ]",
+          "packages": {
+            "sqlparse": "0.6.1",
+            "django-ty": "0.7.0",
+            "ty-extended": "0.88.0",
+            "ty": "0.0.99",
+            "asgiref": "3.13.0",
+            "Django": "6.1.3",
+            "typing_extensions": "4.16.0",
+            "types-PyYAML": "6.0.12.20261103"
+          }
+        },
+        "mypy": {
+          "python": "3.13.0 (main, Oct 16 2024, 08:05:40) [Clang 18.1.8 ]",
+          "packages": {
+            "sqlparse": "0.6.1",
+            "django-stubs-ext": "6.1.2",
+            "mypy_extensions": "1.2.0",
+            "asgiref": "3.13.0",
+            "django-stubs": "6.1.2",
+            "Django": "6.1.3",
+            "ast_serialize": "0.13.1",
+            "pathspec": "1.1.1",
+            "librt": "0.16.0",
+            "typing_extensions": "4.16.0",
+            "types-PyYAML": "6.0.12.20261103",
+            "mypy": "2.4.1"
+          }
+        }
+      },
+      "plugin": {
+        "id": "django-ty",
+        "version": "0.7.0",
+        "protocol-version": {
+          "major": 0,
+          "minor": 8
+        }
+      },
+      "median_seconds": {
+        "companion": 6.314814375014976,
+        "bare-ty": 0.19976145797409117,
+        "mypy": 6.966332790907472
+      },
+      "passed": true,
+      "performance_target_met": true,
+      "records": [
+        {
+          "backend": "companion",
+          "label": "0/companion",
+          "command": [
+            "/private/tmp/ty-companion-performance-refactor/installed-088/bin/ty-extended",
+            "check",
+            "--python",
+            "/private/tmp/ty-companion-performance-refactor/installed-088/bin/python",
+            "--output-format",
+            "gitlab",
+            "--no-progress",
+            "--color",
+            "never",
+            "/private/tmp/ty-companion-performance-refactor/ci-90d-distributed-stress/project",
+            "--ty",
+            "/private/tmp/ty-companion-performance-refactor/installed-088/bin/ty",
+            "--config-file",
+            "/private/tmp/ty-companion-performance-refactor/ci-90d-distributed-stress/companion.toml"
+          ],
+          "seconds": 6.3516677090665326,
+          "exit": 0,
+          "diagnostic_codes": {},
+          "user_cpu_seconds": 5.651971,
+          "system_cpu_seconds": 3.243909,
+          "sampled_process_tree_peak_rss_kib": 1216608,
+          "stopped": null,
+          "monitor_error": null,
+          "parse_error": null,
+          "load_before": [
+            5.64794921875,
+            7.60302734375,
+            7.2119140625
+          ],
+          "load_after": [
+            5.515625,
+            7.54296875,
+            7.19287109375
+          ],
+          "source_sha256": "0b165879eeaa32cb6906921446ecaa428c3c4f44890779f7601511dc5d572124",
+          "source_preserved": true
+        },
+        {
+          "backend": "bare-ty",
+          "label": "0/bare-ty",
+          "command": [
+            "/private/tmp/ty-companion-performance-refactor/installed-088/bin/ty",
+            "check",
+            "--python",
+            "/private/tmp/ty-companion-performance-refactor/installed-088/bin/python",
+            "--output-format",
+            "gitlab",
+            "--no-progress",
+            "--color",
+            "never",
+            "/private/tmp/ty-companion-performance-refactor/ci-90d-distributed-stress/project",
+            "--config-file",
+            "/private/tmp/ty-companion-performance-refactor/ci-90d-distributed-stress/bare.toml"
+          ],
+          "seconds": 0.19976145797409117,
+          "exit": 1,
+          "diagnostic_codes": {
+            "type-assertion-failure": 100,
+            "unresolved-attribute": 100
+          },
+          "user_cpu_seconds": 0.473238,
+          "system_cpu_seconds": 0.527843,
+          "sampled_process_tree_peak_rss_kib": 57200,
+          "stopped": null,
+          "monitor_error": null,
+          "parse_error": null,
+          "load_before": [
+            5.515625,
+            7.54296875,
+            7.19287109375
+          ],
+          "load_after": [
+            5.515625,
+            7.54296875,
+            7.19287109375
+          ],
+          "source_sha256": "0b165879eeaa32cb6906921446ecaa428c3c4f44890779f7601511dc5d572124",
+          "source_preserved": true
+        },
+        {
+          "backend": "mypy",
+          "label": "0/mypy",
+          "command": [
+            "/private/tmp/ty-companion-performance-refactor/reference/bin/mypy",
+            "--config-file",
+            "/private/tmp/ty-companion-performance-refactor/ci-90d-distributed-stress/mypy.ini",
+            "--output",
+            "json",
+            "--no-incremental",
+            "/private/tmp/ty-companion-performance-refactor/ci-90d-distributed-stress/project",
+            "--cache-dir",
+            "/private/tmp/ty-companion-performance-refactor/ci-90d-distributed-stress/runs/0/mypy/scratch/mypy-cache"
+          ],
+          "seconds": 6.966332790907472,
+          "exit": 0,
+          "diagnostic_codes": {},
+          "user_cpu_seconds": 5.813419,
+          "system_cpu_seconds": 1.338033,
+          "sampled_process_tree_peak_rss_kib": 470976,
+          "stopped": null,
+          "monitor_error": null,
+          "parse_error": null,
+          "load_before": [
+            5.79443359375,
+            7.56689453125,
+            7.203125
+          ],
+          "load_after": [
+            5.5703125,
+            7.49072265625,
+            7.17822265625
+          ],
+          "source_sha256": "0b165879eeaa32cb6906921446ecaa428c3c4f44890779f7601511dc5d572124",
+          "source_preserved": true
+        },
+        {
+          "backend": "bare-ty",
+          "label": "1/bare-ty",
+          "command": [
+            "/private/tmp/ty-companion-performance-refactor/installed-088/bin/ty",
+            "check",
+            "--python",
+            "/private/tmp/ty-companion-performance-refactor/installed-088/bin/python",
+            "--output-format",
+            "gitlab",
+            "--no-progress",
+            "--color",
+            "never",
+            "/private/tmp/ty-companion-performance-refactor/ci-90d-distributed-stress/project",
+            "--config-file",
+            "/private/tmp/ty-companion-performance-refactor/ci-90d-distributed-stress/bare.toml"
+          ],
+          "seconds": 0.19486608309671283,
+          "exit": 1,
+          "diagnostic_codes": {
+            "type-assertion-failure": 100,
+            "unresolved-attribute": 100
+          },
+          "user_cpu_seconds": 0.476329,
+          "system_cpu_seconds": 0.515011,
+          "sampled_process_tree_peak_rss_kib": 60656,
+          "stopped": null,
+          "monitor_error": null,
+          "parse_error": null,
+          "load_before": [
+            5.5703125,
+            7.49072265625,
+            7.17822265625
+          ],
+          "load_after": [
+            5.5703125,
+            7.49072265625,
+            7.17822265625
+          ],
+          "source_sha256": "0b165879eeaa32cb6906921446ecaa428c3c4f44890779f7601511dc5d572124",
+          "source_preserved": true
+        },
+        {
+          "backend": "mypy",
+          "label": "1/mypy",
+          "command": [
+            "/private/tmp/ty-companion-performance-refactor/reference/bin/mypy",
+            "--config-file",
+            "/private/tmp/ty-companion-performance-refactor/ci-90d-distributed-stress/mypy.ini",
+            "--output",
+            "json",
+            "--no-incremental",
+            "/private/tmp/ty-companion-performance-refactor/ci-90d-distributed-stress/project",
+            "--cache-dir",
+            "/private/tmp/ty-companion-performance-refactor/ci-90d-distributed-stress/runs/1/mypy/scratch/mypy-cache"
+          ],
+          "seconds": 6.781031832913868,
+          "exit": 0,
+          "diagnostic_codes": {},
+          "user_cpu_seconds": 5.774755,
+          "system_cpu_seconds": 1.277262,
+          "sampled_process_tree_peak_rss_kib": 468784,
+          "stopped": null,
+          "monitor_error": null,
+          "parse_error": null,
+          "load_before": [
+            5.5703125,
+            7.49072265625,
+            7.17822265625
+          ],
+          "load_after": [
+            5.24853515625,
+            7.35888671875,
+            7.134765625
+          ],
+          "source_sha256": "0b165879eeaa32cb6906921446ecaa428c3c4f44890779f7601511dc5d572124",
+          "source_preserved": true
+        },
+        {
+          "backend": "companion",
+          "label": "1/companion",
+          "command": [
+            "/private/tmp/ty-companion-performance-refactor/installed-088/bin/ty-extended",
+            "check",
+            "--python",
+            "/private/tmp/ty-companion-performance-refactor/installed-088/bin/python",
+            "--output-format",
+            "gitlab",
+            "--no-progress",
+            "--color",
+            "never",
+            "/private/tmp/ty-companion-performance-refactor/ci-90d-distributed-stress/project",
+            "--ty",
+            "/private/tmp/ty-companion-performance-refactor/installed-088/bin/ty",
+            "--config-file",
+            "/private/tmp/ty-companion-performance-refactor/ci-90d-distributed-stress/companion.toml"
+          ],
+          "seconds": 6.314814375014976,
+          "exit": 0,
+          "diagnostic_codes": {},
+          "user_cpu_seconds": 5.636281,
+          "system_cpu_seconds": 3.9636109999999998,
+          "sampled_process_tree_peak_rss_kib": 1212912,
+          "stopped": null,
+          "monitor_error": null,
+          "parse_error": null,
+          "load_before": [
+            5.24853515625,
+            7.35888671875,
+            7.134765625
+          ],
+          "load_after": [
+            5.228515625,
+            7.3193359375,
+            7.1220703125
+          ],
+          "source_sha256": "0b165879eeaa32cb6906921446ecaa428c3c4f44890779f7601511dc5d572124",
+          "source_preserved": true
+        },
+        {
+          "backend": "mypy",
+          "label": "2/mypy",
+          "command": [
+            "/private/tmp/ty-companion-performance-refactor/reference/bin/mypy",
+            "--config-file",
+            "/private/tmp/ty-companion-performance-refactor/ci-90d-distributed-stress/mypy.ini",
+            "--output",
+            "json",
+            "--no-incremental",
+            "/private/tmp/ty-companion-performance-refactor/ci-90d-distributed-stress/project",
+            "--cache-dir",
+            "/private/tmp/ty-companion-performance-refactor/ci-90d-distributed-stress/runs/2/mypy/scratch/mypy-cache"
+          ],
+          "seconds": 7.0347829579841346,
+          "exit": 0,
+          "diagnostic_codes": {},
+          "user_cpu_seconds": 5.886986,
+          "system_cpu_seconds": 1.32246,
+          "sampled_process_tree_peak_rss_kib": 470080,
+          "stopped": null,
+          "monitor_error": null,
+          "parse_error": null,
+          "load_before": [
+            5.228515625,
+            7.3193359375,
+            7.1220703125
+          ],
+          "load_after": [
+            5.1298828125,
+            7.26416015625,
+            7.103515625
+          ],
+          "source_sha256": "0b165879eeaa32cb6906921446ecaa428c3c4f44890779f7601511dc5d572124",
+          "source_preserved": true
+        },
+        {
+          "backend": "companion",
+          "label": "2/companion",
+          "command": [
+            "/private/tmp/ty-companion-performance-refactor/installed-088/bin/ty-extended",
+            "check",
+            "--python",
+            "/private/tmp/ty-companion-performance-refactor/installed-088/bin/python",
+            "--output-format",
+            "gitlab",
+            "--no-progress",
+            "--color",
+            "never",
+            "/private/tmp/ty-companion-performance-refactor/ci-90d-distributed-stress/project",
+            "--ty",
+            "/private/tmp/ty-companion-performance-refactor/installed-088/bin/ty",
+            "--config-file",
+            "/private/tmp/ty-companion-performance-refactor/ci-90d-distributed-stress/companion.toml"
+          ],
+          "seconds": 6.2447598750004545,
+          "exit": 0,
+          "diagnostic_codes": {},
+          "user_cpu_seconds": 5.637695,
+          "system_cpu_seconds": 3.120677,
+          "sampled_process_tree_peak_rss_kib": 1254320,
+          "stopped": null,
+          "monitor_error": null,
+          "parse_error": null,
+          "load_before": [
+            5.359375,
+            7.2763671875,
+            7.1083984375
+          ],
+          "load_after": [
+            5.33056640625,
+            7.23828125,
+            7.095703125
+          ],
+          "source_sha256": "0b165879eeaa32cb6906921446ecaa428c3c4f44890779f7601511dc5d572124",
+          "source_preserved": true
+        },
+        {
+          "backend": "bare-ty",
+          "label": "2/bare-ty",
+          "command": [
+            "/private/tmp/ty-companion-performance-refactor/installed-088/bin/ty",
+            "check",
+            "--python",
+            "/private/tmp/ty-companion-performance-refactor/installed-088/bin/python",
+            "--output-format",
+            "gitlab",
+            "--no-progress",
+            "--color",
+            "never",
+            "/private/tmp/ty-companion-performance-refactor/ci-90d-distributed-stress/project",
+            "--config-file",
+            "/private/tmp/ty-companion-performance-refactor/ci-90d-distributed-stress/bare.toml"
+          ],
+          "seconds": 0.20426545897498727,
+          "exit": 1,
+          "diagnostic_codes": {
+            "type-assertion-failure": 100,
+            "unresolved-attribute": 100
+          },
+          "user_cpu_seconds": 0.4764,
+          "system_cpu_seconds": 0.514095,
+          "sampled_process_tree_peak_rss_kib": 58400,
+          "stopped": null,
+          "monitor_error": null,
+          "parse_error": null,
+          "load_before": [
+            5.33056640625,
+            7.23828125,
+            7.095703125
+          ],
+          "load_after": [
+            5.33056640625,
+            7.23828125,
+            7.095703125
+          ],
+          "source_sha256": "0b165879eeaa32cb6906921446ecaa428c3c4f44890779f7601511dc5d572124",
+          "source_preserved": true
+        }
+      ],
+      "negative_controls": [
+        {
+          "backend": "companion",
+          "label": "negative/companion",
+          "command": [
+            "/private/tmp/ty-companion-performance-refactor/installed-088/bin/ty-extended",
+            "check",
+            "--python",
+            "/private/tmp/ty-companion-performance-refactor/installed-088/bin/python",
+            "--output-format",
+            "gitlab",
+            "--no-progress",
+            "--color",
+            "never",
+            "/private/tmp/ty-companion-performance-refactor/ci-90d-distributed-stress/project",
+            "--ty",
+            "/private/tmp/ty-companion-performance-refactor/installed-088/bin/ty",
+            "--config-file",
+            "/private/tmp/ty-companion-performance-refactor/ci-90d-distributed-stress/companion.toml"
+          ],
+          "seconds": 6.504548124969006,
+          "exit": 1,
+          "diagnostic_codes": {
+            "invalid-assignment": 2
+          },
+          "user_cpu_seconds": 5.869378,
+          "system_cpu_seconds": 3.179264,
+          "sampled_process_tree_peak_rss_kib": 1246672,
+          "stopped": null,
+          "monitor_error": null,
+          "parse_error": null,
+          "load_before": [
+            5.33056640625,
+            7.23828125,
+            7.095703125
+          ],
+          "load_after": [
+            5.0634765625,
+            7.15087890625,
+            7.0654296875
+          ],
+          "source_sha256": "628da1439f892b3fb83fe5de2c329b41bdb0c3941db254f7f3a814c90442e641",
+          "source_preserved": true,
+          "verified_negative_locations": [
+            {
+              "path": "checks.py",
+              "line": 103
+            },
+            {
+              "path": "filler00000.py",
+              "line": 1
+            }
+          ]
+        },
+        {
+          "backend": "mypy",
+          "label": "negative/mypy",
+          "command": [
+            "/private/tmp/ty-companion-performance-refactor/reference/bin/mypy",
+            "--config-file",
+            "/private/tmp/ty-companion-performance-refactor/ci-90d-distributed-stress/mypy.ini",
+            "--output",
+            "json",
+            "--no-incremental",
+            "/private/tmp/ty-companion-performance-refactor/ci-90d-distributed-stress/project",
+            "--cache-dir",
+            "/private/tmp/ty-companion-performance-refactor/ci-90d-distributed-stress/runs/negative/mypy/scratch/mypy-cache"
+          ],
+          "seconds": 6.959996209014207,
+          "exit": 1,
+          "diagnostic_codes": {
+            "assignment": 2
+          },
+          "user_cpu_seconds": 5.833646,
+          "system_cpu_seconds": 1.328084,
+          "sampled_process_tree_peak_rss_kib": 471168,
+          "stopped": null,
+          "monitor_error": null,
+          "parse_error": null,
+          "load_before": [
+            4.97802734375,
+            7.09814453125,
+            7.04736328125
+          ],
+          "load_after": [
+            5.1396484375,
+            7.09619140625,
+            7.046875
+          ],
+          "source_sha256": "628da1439f892b3fb83fe5de2c329b41bdb0c3941db254f7f3a814c90442e641",
+          "source_preserved": true,
+          "verified_negative_locations": [
+            {
+              "path": "checks.py",
+              "line": 103
+            },
+            {
+              "path": "filler00000.py",
+              "line": 1
+            }
+          ]
+        }
+      ],
+      "platform": "macos-arm64",
+      "shape": "distributed-stress",
+      "raw_report_sha256": "e7115fd80e12fba4370a52ef73df6ed98e7b9386d0e2188b4a9a7cca3e5b023f",
+      "plugin_files_sha256": "6e2f1f265ec99db47eae4dfb07aa9d87d87f9c454284a67579cd97a680f2169e"
+    }
+  ],
+  "published_baseline": {
+    "host": "macOS-27.0.1-arm64-arm-64bit-Mach-O",
+    "workload": {
+      "files": 7082,
+      "models": 2501,
+      "model_modules": 1,
+      "queries": 100
+    },
+    "method": "Fresh processes; warm filesystem caches; MyPy --no-incremental and disposable cache; rotated serial runs; process-tree RSS sampled every 100ms.",
+    "threads": "default",
+    "source_sha256": "51c1a88b05a169f1222685fe6105e4be5f43d4213aaaf57c60bf99dbe0d82df9",
+    "binaries": {
+      "companion": {
+        "path": "/private/tmp/ty-companion-performance-refactor/candidate/bin/ty-extended",
+        "version": "ty-extended 0.87.0",
+        "sha256": "60e54546513e253a712f797fa2cb12660b3bad3637c25547c856718b7dab2c62"
+      },
+      "official": {
+        "path": "/private/tmp/ty-companion-performance-refactor/candidate/bin/ty",
+        "version": "ty 0.0.99 (9b48f40c9 2026-11-06)",
+        "sha256": "34688103a83c3123d9eb0f4d85cdaa15f06ff16ce422d8a42616e6b1c885200e"
+      },
+      "mypy": {
+        "path": "/private/tmp/ty-companion-performance-refactor/reference/bin/mypy",
+        "version": "mypy 2.4.1 (compiled: yes)",
+        "sha256": "63d6c3b84797b5b26ab85d4674403fadbed76b7dad0bcc500188aa61fd37dd15"
+      }
+    },
+    "environments": {
+      "companion": {
+        "python": "3.13.0 (main, Oct 16 2024, 08:05:40) [Clang 18.1.8 ]",
+        "packages": {
+          "sqlparse": "0.6.1",
+          "django-ty": "0.6.0",
+          "ty": "0.0.99",
+          "asgiref": "3.13.0",
+          "Django": "6.1.3",
+          "typing_extensions": "4.16.0",
+          "ty-extended": "0.87.0",
+          "types-PyYAML": "6.0.12.20261103"
+        }
+      },
+      "mypy": {
+        "python": "3.13.0 (main, Oct 16 2024, 08:05:40) [Clang 18.1.8 ]",
+        "packages": {
+          "sqlparse": "0.6.1",
+          "django-stubs-ext": "6.1.2",
+          "mypy_extensions": "1.2.0",
+          "asgiref": "3.13.0",
+          "django-stubs": "6.1.2",
+          "Django": "6.1.3",
+          "ast_serialize": "0.13.1",
+          "pathspec": "1.1.1",
+          "librt": "0.16.0",
+          "typing_extensions": "4.16.0",
+          "types-PyYAML": "6.0.12.20261103",
+          "mypy": "2.4.1"
+        }
+      }
+    },
+    "plugin": {
+      "id": "django-ty",
+      "version": "0.6.0",
+      "protocol-version": {
+        "major": 0,
+        "minor": 7
+      }
+    },
+    "median_seconds": {
+      "companion": 80.78792799997609,
+      "bare-ty": 0.2766690410207957,
+      "mypy": 7.148572208010592
+    },
+    "passed": true,
+    "performance_target_met": false,
+    "records": [
+      {
+        "backend": "companion",
+        "label": "0/companion",
+        "command": [
+          "/private/tmp/ty-companion-performance-refactor/candidate/bin/ty-extended",
+          "check",
+          "--python",
+          "/private/tmp/ty-companion-performance-refactor/candidate/bin/python",
+          "--output-format",
+          "gitlab",
+          "--no-progress",
+          "--color",
+          "never",
+          "/private/tmp/ty-companion-performance-refactor/published-087-same-stress/project",
+          "--ty",
+          "/private/tmp/ty-companion-performance-refactor/candidate/bin/ty",
+          "--config-file",
+          "/private/tmp/ty-companion-performance-refactor/published-087-same-stress/companion.toml"
+        ],
+        "seconds": 81.13017820904497,
+        "exit": 0,
+        "diagnostic_codes": {},
+        "user_cpu_seconds": 65.904407,
+        "system_cpu_seconds": 13.567364,
+        "sampled_process_tree_peak_rss_kib": 2554688,
+        "stopped": null,
+        "monitor_error": null,
+        "parse_error": null,
+        "load_before": [
+          7.9111328125,
+          7.64599609375,
+          8.634765625
+        ],
+        "load_after": [
+          5.0283203125,
+          6.79833984375,
+          8.22021484375
+        ],
+        "source_sha256": "51c1a88b05a169f1222685fe6105e4be5f43d4213aaaf57c60bf99dbe0d82df9",
+        "source_preserved": true
+      },
+      {
+        "backend": "bare-ty",
+        "label": "0/bare-ty",
+        "command": [
+          "/private/tmp/ty-companion-performance-refactor/candidate/bin/ty",
+          "check",
+          "--python",
+          "/private/tmp/ty-companion-performance-refactor/candidate/bin/python",
+          "--output-format",
+          "gitlab",
+          "--no-progress",
+          "--color",
+          "never",
+          "/private/tmp/ty-companion-performance-refactor/published-087-same-stress/project",
+          "--config-file",
+          "/private/tmp/ty-companion-performance-refactor/published-087-same-stress/bare.toml"
+        ],
+        "seconds": 0.2766690410207957,
+        "exit": 1,
+        "diagnostic_codes": {
+          "type-assertion-failure": 100,
+          "unresolved-attribute": 100
+        },
+        "user_cpu_seconds": 0.394806,
+        "system_cpu_seconds": 0.49685599999999996,
+        "sampled_process_tree_peak_rss_kib": 83952,
+        "stopped": null,
+        "monitor_error": null,
+        "parse_error": null,
+        "load_before": [
+          5.0283203125,
+          6.79833984375,
+          8.22021484375
+        ],
+        "load_after": [
+          5.0283203125,
+          6.79833984375,
+          8.22021484375
+        ],
+        "source_sha256": "51c1a88b05a169f1222685fe6105e4be5f43d4213aaaf57c60bf99dbe0d82df9",
+        "source_preserved": true
+      },
+      {
+        "backend": "mypy",
+        "label": "0/mypy",
+        "command": [
+          "/private/tmp/ty-companion-performance-refactor/reference/bin/mypy",
+          "--config-file",
+          "/private/tmp/ty-companion-performance-refactor/published-087-same-stress/mypy.ini",
+          "--output",
+          "json",
+          "--no-incremental",
+          "/private/tmp/ty-companion-performance-refactor/published-087-same-stress/project",
+          "--cache-dir",
+          "/private/tmp/ty-companion-performance-refactor/published-087-same-stress/runs/0/mypy/scratch/mypy-cache"
+        ],
+        "seconds": 7.098516041995026,
+        "exit": 0,
+        "diagnostic_codes": {},
+        "user_cpu_seconds": 5.8928139999999996,
+        "system_cpu_seconds": 1.4157899999999999,
+        "sampled_process_tree_peak_rss_kib": 511376,
+        "stopped": null,
+        "monitor_error": null,
+        "parse_error": null,
+        "load_before": [
+          5.0283203125,
+          6.79833984375,
+          8.22021484375
+        ],
+        "load_after": [
+          5.35009765625,
+          6.80517578125,
+          8.20556640625
+        ],
+        "source_sha256": "51c1a88b05a169f1222685fe6105e4be5f43d4213aaaf57c60bf99dbe0d82df9",
+        "source_preserved": true
+      },
+      {
+        "backend": "bare-ty",
+        "label": "1/bare-ty",
+        "command": [
+          "/private/tmp/ty-companion-performance-refactor/candidate/bin/ty",
+          "check",
+          "--python",
+          "/private/tmp/ty-companion-performance-refactor/candidate/bin/python",
+          "--output-format",
+          "gitlab",
+          "--no-progress",
+          "--color",
+          "never",
+          "/private/tmp/ty-companion-performance-refactor/published-087-same-stress/project",
+          "--config-file",
+          "/private/tmp/ty-companion-performance-refactor/published-087-same-stress/bare.toml"
+        ],
+        "seconds": 0.2749602079857141,
+        "exit": 1,
+        "diagnostic_codes": {
+          "type-assertion-failure": 100,
+          "unresolved-attribute": 100
+        },
+        "user_cpu_seconds": 0.41961699999999996,
+        "system_cpu_seconds": 0.5443169999999999,
+        "sampled_process_tree_peak_rss_kib": 100352,
+        "stopped": null,
+        "monitor_error": null,
+        "parse_error": null,
+        "load_before": [
+          5.35009765625,
+          6.80517578125,
+          8.20556640625
+        ],
+        "load_after": [
+          5.35009765625,
+          6.80517578125,
+          8.20556640625
+        ],
+        "source_sha256": "51c1a88b05a169f1222685fe6105e4be5f43d4213aaaf57c60bf99dbe0d82df9",
+        "source_preserved": true
+      },
+      {
+        "backend": "mypy",
+        "label": "1/mypy",
+        "command": [
+          "/private/tmp/ty-companion-performance-refactor/reference/bin/mypy",
+          "--config-file",
+          "/private/tmp/ty-companion-performance-refactor/published-087-same-stress/mypy.ini",
+          "--output",
+          "json",
+          "--no-incremental",
+          "/private/tmp/ty-companion-performance-refactor/published-087-same-stress/project",
+          "--cache-dir",
+          "/private/tmp/ty-companion-performance-refactor/published-087-same-stress/runs/1/mypy/scratch/mypy-cache"
+        ],
+        "seconds": 7.17244545801077,
+        "exit": 0,
+        "diagnostic_codes": {},
+        "user_cpu_seconds": 5.973149,
+        "system_cpu_seconds": 1.3448039999999999,
+        "sampled_process_tree_peak_rss_kib": 510880,
+        "stopped": null,
+        "monitor_error": null,
+        "parse_error": null,
+        "load_before": [
+          5.35009765625,
+          6.80517578125,
+          8.20556640625
+        ],
+        "load_after": [
+          6.04248046875,
+          6.92431640625,
+          8.2392578125
+        ],
+        "source_sha256": "51c1a88b05a169f1222685fe6105e4be5f43d4213aaaf57c60bf99dbe0d82df9",
+        "source_preserved": true
+      },
+      {
+        "backend": "companion",
+        "label": "1/companion",
+        "command": [
+          "/private/tmp/ty-companion-performance-refactor/candidate/bin/ty-extended",
+          "check",
+          "--python",
+          "/private/tmp/ty-companion-performance-refactor/candidate/bin/python",
+          "--output-format",
+          "gitlab",
+          "--no-progress",
+          "--color",
+          "never",
+          "/private/tmp/ty-companion-performance-refactor/published-087-same-stress/project",
+          "--ty",
+          "/private/tmp/ty-companion-performance-refactor/candidate/bin/ty",
+          "--config-file",
+          "/private/tmp/ty-companion-performance-refactor/published-087-same-stress/companion.toml"
+        ],
+        "seconds": 80.56276695802808,
+        "exit": 0,
+        "diagnostic_codes": {},
+        "user_cpu_seconds": 66.135045,
+        "system_cpu_seconds": 13.378294,
+        "sampled_process_tree_peak_rss_kib": 2871616,
+        "stopped": null,
+        "monitor_error": null,
+        "parse_error": null,
+        "load_before": [
+          5.958984375,
+          6.89208984375,
+          8.22021484375
+        ],
+        "load_after": [
+          6.27197265625,
+          6.611328125,
+          7.98291015625
+        ],
+        "source_sha256": "51c1a88b05a169f1222685fe6105e4be5f43d4213aaaf57c60bf99dbe0d82df9",
+        "source_preserved": true
+      },
+      {
+        "backend": "mypy",
+        "label": "2/mypy",
+        "command": [
+          "/private/tmp/ty-companion-performance-refactor/reference/bin/mypy",
+          "--config-file",
+          "/private/tmp/ty-companion-performance-refactor/published-087-same-stress/mypy.ini",
+          "--output",
+          "json",
+          "--no-incremental",
+          "/private/tmp/ty-companion-performance-refactor/published-087-same-stress/project",
+          "--cache-dir",
+          "/private/tmp/ty-companion-performance-refactor/published-087-same-stress/runs/2/mypy/scratch/mypy-cache"
+        ],
+        "seconds": 7.148572208010592,
+        "exit": 0,
+        "diagnostic_codes": {},
+        "user_cpu_seconds": 5.867687,
+        "system_cpu_seconds": 1.431714,
+        "sampled_process_tree_peak_rss_kib": 508336,
+        "stopped": null,
+        "monitor_error": null,
+        "parse_error": null,
+        "load_before": [
+          6.27197265625,
+          6.611328125,
+          7.98291015625
+        ],
+        "load_after": [
+          6.490234375,
+          6.65087890625,
+          7.98876953125
+        ],
+        "source_sha256": "51c1a88b05a169f1222685fe6105e4be5f43d4213aaaf57c60bf99dbe0d82df9",
+        "source_preserved": true
+      },
+      {
+        "backend": "companion",
+        "label": "2/companion",
+        "command": [
+          "/private/tmp/ty-companion-performance-refactor/candidate/bin/ty-extended",
+          "check",
+          "--python",
+          "/private/tmp/ty-companion-performance-refactor/candidate/bin/python",
+          "--output-format",
+          "gitlab",
+          "--no-progress",
+          "--color",
+          "never",
+          "/private/tmp/ty-companion-performance-refactor/published-087-same-stress/project",
+          "--ty",
+          "/private/tmp/ty-companion-performance-refactor/candidate/bin/ty",
+          "--config-file",
+          "/private/tmp/ty-companion-performance-refactor/published-087-same-stress/companion.toml"
+        ],
+        "seconds": 80.78792799997609,
+        "exit": 0,
+        "diagnostic_codes": {},
+        "user_cpu_seconds": 65.645521,
+        "system_cpu_seconds": 13.391056,
+        "sampled_process_tree_peak_rss_kib": 2939616,
+        "stopped": null,
+        "monitor_error": null,
+        "parse_error": null,
+        "load_before": [
+          6.490234375,
+          6.65087890625,
+          7.98876953125
+        ],
+        "load_after": [
+          10.630859375,
+          8.2587890625,
+          8.50341796875
+        ],
+        "source_sha256": "51c1a88b05a169f1222685fe6105e4be5f43d4213aaaf57c60bf99dbe0d82df9",
+        "source_preserved": true
+      },
+      {
+        "backend": "bare-ty",
+        "label": "2/bare-ty",
+        "command": [
+          "/private/tmp/ty-companion-performance-refactor/candidate/bin/ty",
+          "check",
+          "--python",
+          "/private/tmp/ty-companion-performance-refactor/candidate/bin/python",
+          "--output-format",
+          "gitlab",
+          "--no-progress",
+          "--color",
+          "never",
+          "/private/tmp/ty-companion-performance-refactor/published-087-same-stress/project",
+          "--config-file",
+          "/private/tmp/ty-companion-performance-refactor/published-087-same-stress/bare.toml"
+        ],
+        "seconds": 0.28781925002112985,
+        "exit": 1,
+        "diagnostic_codes": {
+          "type-assertion-failure": 100,
+          "unresolved-attribute": 100
+        },
+        "user_cpu_seconds": 0.39100599999999996,
+        "system_cpu_seconds": 0.49008199999999996,
+        "sampled_process_tree_peak_rss_kib": 98816,
+        "stopped": null,
+        "monitor_error": null,
+        "parse_error": null,
+        "load_before": [
+          10.630859375,
+          8.2587890625,
+          8.50341796875
+        ],
+        "load_after": [
+          10.630859375,
+          8.2587890625,
+          8.50341796875
+        ],
+        "source_sha256": "51c1a88b05a169f1222685fe6105e4be5f43d4213aaaf57c60bf99dbe0d82df9",
+        "source_preserved": true
+      }
+    ],
+    "negative_controls": [
+      {
+        "backend": "companion",
+        "label": "negative/companion",
+        "command": [
+          "/private/tmp/ty-companion-performance-refactor/candidate/bin/ty-extended",
+          "check",
+          "--python",
+          "/private/tmp/ty-companion-performance-refactor/candidate/bin/python",
+          "--output-format",
+          "gitlab",
+          "--no-progress",
+          "--color",
+          "never",
+          "/private/tmp/ty-companion-performance-refactor/published-087-same-stress/project",
+          "--ty",
+          "/private/tmp/ty-companion-performance-refactor/candidate/bin/ty",
+          "--config-file",
+          "/private/tmp/ty-companion-performance-refactor/published-087-same-stress/companion.toml"
+        ],
+        "seconds": 79.45946274988819,
+        "exit": 1,
+        "diagnostic_codes": {
+          "invalid-assignment": 2
+        },
+        "user_cpu_seconds": 65.702419,
+        "system_cpu_seconds": 13.117691,
+        "sampled_process_tree_peak_rss_kib": 3184512,
+        "stopped": null,
+        "monitor_error": null,
+        "parse_error": null,
+        "load_before": [
+          10.630859375,
+          8.2587890625,
+          8.50341796875
+        ],
+        "load_after": [
+          6.376953125,
+          7.529296875,
+          8.20556640625
+        ],
+        "source_sha256": "1d6a6430d5c3eaec3a1d648f4c95b35912d6efc7d7c15370efadb0d6f41164ef",
+        "source_preserved": true,
+        "verified_negative_locations": [
+          {
+            "path": "checks.py",
+            "line": 103
+          },
+          {
+            "path": "filler00000.py",
+            "line": 1
+          }
+        ]
+      },
+      {
+        "backend": "mypy",
+        "label": "negative/mypy",
+        "command": [
+          "/private/tmp/ty-companion-performance-refactor/reference/bin/mypy",
+          "--config-file",
+          "/private/tmp/ty-companion-performance-refactor/published-087-same-stress/mypy.ini",
+          "--output",
+          "json",
+          "--no-incremental",
+          "/private/tmp/ty-companion-performance-refactor/published-087-same-stress/project",
+          "--cache-dir",
+          "/private/tmp/ty-companion-performance-refactor/published-087-same-stress/runs/negative/mypy/scratch/mypy-cache"
+        ],
+        "seconds": 7.195790082914755,
+        "exit": 1,
+        "diagnostic_codes": {
+          "assignment": 2
+        },
+        "user_cpu_seconds": 5.860662,
+        "system_cpu_seconds": 1.450282,
+        "sampled_process_tree_peak_rss_kib": 508288,
+        "stopped": null,
+        "monitor_error": null,
+        "parse_error": null,
+        "load_before": [
+          6.376953125,
+          7.529296875,
+          8.20556640625
+        ],
+        "load_after": [
+          6.1064453125,
+          7.4541015625,
+          8.1748046875
+        ],
+        "source_sha256": "1d6a6430d5c3eaec3a1d648f4c95b35912d6efc7d7c15370efadb0d6f41164ef",
+        "source_preserved": true,
+        "verified_negative_locations": [
+          {
+            "path": "checks.py",
+            "line": 103
+          },
+          {
+            "path": "filler00000.py",
+            "line": 1
+          }
+        ]
+      }
+    ]
+  },
+  "same_source_speedup": 11.602070027702784,
+  "scope": [
+    "Three rotating serial fresh-process samples per backend and workload; MyPy has an empty cache and uses --no-incremental.",
+    "Both plugin-enabled checkers accept exact ORM types and reject both ORM and ordinary Python assignment errors.",
+    "Bare official ty has the expected ORM errors and is not equivalent Django checking.",
+    "Measurements are specific to these generated projects and hosts; they do not bound arbitrary applications or compare persistent MyPy daemon performance.",
+    "The macOS stress result is near parity with MyPy; its one-percent margin is not evidence of a meaningful speed advantage."
+  ],
+  "negative_source_validation": {
+    "passed": true,
+    "runner_sha256": "ce40cc964d1a9ee91ff7025fb1f729b3c56693718e7a9c4b3e5dc4688a6e65ad",
+    "scope": "All five macOS candidate workloads and the published baseline: one diagnostic at the ORM assignment and one at the ordinary Python assignment. Original measurement-runner hash is retained separately."
+  }
+}

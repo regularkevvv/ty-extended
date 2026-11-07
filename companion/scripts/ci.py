@@ -354,6 +354,7 @@ def scoped_django_gate(
             ("distributed", 1000, 250, 25, 100),
             ("many-files", 7082, 250, 25, 100),
             ("stress", 7082, 2501, 1, 100),
+            ("distributed-stress", 7082, 2501, 250, 100),
         ):
             gates.run(
                 "performance-" + name,

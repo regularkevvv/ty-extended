@@ -26,6 +26,28 @@ features, rather than every upstream version number.
 
 ## Qualified versions
 
+The [0.88.0 CI-wheel ledger](https://github.com/regularkevvv/ty-extended/blob/main/companion/evidence/compatibility-2026-11-07.json)
+records the same installed executable against every official ty release from
+**0.0.84 through 0.0.99**: **288 passing generic gates**. Django-ty 0.7.0 also
+passes 16 complete CLI conformance runs and 16 editor runs across that group.
+Each CLI run checks 166 Django assertions and 83 independent runtime contracts;
+editor runs verify the complete diagnostic corpus, unsaved semantic edits and
+restoration. Installed SDK, CLI and LSP smoke checks pass on Python 3.8, 3.9 and
+3.13. The companion's Linux, macOS and Windows CI gates also pass.
+
+The Django-ty 0.7 wheel additionally passes all 21 supported Django/Python pairs,
+including Django 6.1.3. Python 3.15 has a separate qualification against Django's
+166 assertions, 83 runtime contracts, nine QueryDict cases and installed editor
+behavior. Its pinned MyPy baseline runs on a separately supported interpreter;
+this is not a version-matched Python 3.15 comparator pair.
+
+These results identify the CI wheel and executable by SHA-256. Release acceptance
+separately checks public package integrity, signed native-artifact provenance and
+the published executable's identity. Measurements against MyPy and bare official
+ty are recorded in [the performance report](performance.md).
+
+### Previous release
+
 The [published 0.87.0 receipt](qualification/ty-extended-0.87.0.json) verifies
 all eight PyPI wheel/native archive pairs against release checksums and signed
 provenance. Installed package checks pass on Python 3.8, 3.9 and 3.13; the native

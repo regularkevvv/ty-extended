@@ -259,6 +259,40 @@ def prepare(args):
     }
 
 
+def verify_negative_controls(args, backend, row):
+    text = (args.output / "runs" / row["label"] / "stdout.json").read_text()
+    diagnostics = (
+        [json.loads(line) for line in text.splitlines() if line.strip()]
+        if backend == "mypy"
+        else json.loads(text)
+    )
+    locations = []
+    for item in diagnostics:
+        if backend == "mypy":
+            path, line = item["file"], item["line"]
+        else:
+            path = item["location"]["path"]
+            line = item["location"]["positions"]["begin"]["line"]
+        locations.append((str((args.project / path).resolve()), line))
+    expected = sorted(
+        [
+            (str((args.project / "checks.py").resolve()), args.queries + 3),
+            (str((args.project / "filler00000.py").resolve()), 1),
+        ]
+    )
+    code = "assignment" if backend == "mypy" else "invalid-assignment"
+    if (
+        row["exit"] != 1
+        or row["diagnostic_codes"] != {code: 2}
+        or sorted(locations) != expected
+    ):
+        raise RuntimeError(f"Lost an ORM or ordinary Python error: {row}: {locations}")
+    row["verified_negative_locations"] = [
+        {"path": str(Path(path).relative_to(args.project.resolve())), "line": line}
+        for path, line in expected
+    ]
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     for name in ("companion", "official", "mypy", "python", "plugin", "output"):
@@ -379,9 +413,7 @@ def main():
             for backend in ("companion", "mypy"):
                 row = invoke(args, backend, commands[backend], f"negative/{backend}")
                 report["negative_controls"].append(row)
-                code = "assignment" if backend == "mypy" else "invalid-assignment"
-                if row["exit"] != 1 or row["diagnostic_codes"] != {code: 2}:
-                    raise RuntimeError(f"Lost an ORM or ordinary Python error: {row}")
+                verify_negative_controls(args, backend, row)
         finally:
             checks.write_text(original[0])
             filler.write_text(original[1])
