@@ -1,0 +1,238 @@
+{
+  "scope": "Deterministic filesystem revision regression and local validation before final cross-platform and public artifact acceptance.",
+  "base_commit": "fcf5ec8483e14bf030239f46db1d1c1fe9e963ce",
+  "checker_source_sha256": "088bd532bdd361d1192e230500127f5d4a57e86b03498cb4db90cff0a7f4ffb7",
+  "original_ci_failure": "https://github.com/regularkevvv/ty-extended/actions/runs/42411111929/job/128519253043",
+  "red": [
+    {
+      "case": "closed import restored with the missing-state directory timestamp",
+      "result": "unresolved-import remains after restoration",
+      "log_sha256": "1f0408fb8e5b19ea0d3f2d64291d440bbfd77c0a6c64f4626aa6792e0d7bd143"
+    },
+    {
+      "case": "closed import changes from int to str with unchanged file timestamp",
+      "result": "old invalid-assignment remains",
+      "log_sha256": "24d0a54e02a7e35753ce4cb18aa334d86b6bb669be12eb3a842494b4f1b9974a"
+    }
+  ],
+  "green": {
+    "forced_collision_test": "checker::tests::disk_projection_invalidates_closed_imports_and_inventory",
+    "external_source_test": "checker::tests::disk_revisions_preserve_external_sources",
+    "repeated": {
+      "passed": true,
+      "cases_per_run": 2,
+      "runs": [
+        {
+          "version": "0.0.84",
+          "iteration": 0,
+          "passed": true
+        },
+        {
+          "version": "0.0.84",
+          "iteration": 1,
+          "passed": true
+        },
+        {
+          "version": "0.0.84",
+          "iteration": 2,
+          "passed": true
+        },
+        {
+          "version": "0.0.84",
+          "iteration": 3,
+          "passed": true
+        },
+        {
+          "version": "0.0.84",
+          "iteration": 4,
+          "passed": true
+        },
+        {
+          "version": "0.0.84",
+          "iteration": 5,
+          "passed": true
+        },
+        {
+          "version": "0.0.84",
+          "iteration": 6,
+          "passed": true
+        },
+        {
+          "version": "0.0.84",
+          "iteration": 7,
+          "passed": true
+        },
+        {
+          "version": "0.0.84",
+          "iteration": 8,
+          "passed": true
+        },
+        {
+          "version": "0.0.84",
+          "iteration": 9,
+          "passed": true
+        },
+        {
+          "version": "0.0.84",
+          "iteration": 10,
+          "passed": true
+        },
+        {
+          "version": "0.0.84",
+          "iteration": 11,
+          "passed": true
+        },
+        {
+          "version": "0.0.84",
+          "iteration": 12,
+          "passed": true
+        },
+        {
+          "version": "0.0.84",
+          "iteration": 13,
+          "passed": true
+        },
+        {
+          "version": "0.0.84",
+          "iteration": 14,
+          "passed": true
+        },
+        {
+          "version": "0.0.84",
+          "iteration": 15,
+          "passed": true
+        },
+        {
+          "version": "0.0.84",
+          "iteration": 16,
+          "passed": true
+        },
+        {
+          "version": "0.0.84",
+          "iteration": 17,
+          "passed": true
+        },
+        {
+          "version": "0.0.84",
+          "iteration": 18,
+          "passed": true
+        },
+        {
+          "version": "0.0.84",
+          "iteration": 19,
+          "passed": true
+        },
+        {
+          "version": "0.0.99",
+          "iteration": 0,
+          "passed": true
+        },
+        {
+          "version": "0.0.99",
+          "iteration": 1,
+          "passed": true
+        },
+        {
+          "version": "0.0.99",
+          "iteration": 2,
+          "passed": true
+        },
+        {
+          "version": "0.0.99",
+          "iteration": 3,
+          "passed": true
+        },
+        {
+          "version": "0.0.99",
+          "iteration": 4,
+          "passed": true
+        },
+        {
+          "version": "0.0.99",
+          "iteration": 5,
+          "passed": true
+        },
+        {
+          "version": "0.0.99",
+          "iteration": 6,
+          "passed": true
+        },
+        {
+          "version": "0.0.99",
+          "iteration": 7,
+          "passed": true
+        },
+        {
+          "version": "0.0.99",
+          "iteration": 8,
+          "passed": true
+        },
+        {
+          "version": "0.0.99",
+          "iteration": 9,
+          "passed": true
+        },
+        {
+          "version": "0.0.99",
+          "iteration": 10,
+          "passed": true
+        },
+        {
+          "version": "0.0.99",
+          "iteration": 11,
+          "passed": true
+        },
+        {
+          "version": "0.0.99",
+          "iteration": 12,
+          "passed": true
+        },
+        {
+          "version": "0.0.99",
+          "iteration": 13,
+          "passed": true
+        },
+        {
+          "version": "0.0.99",
+          "iteration": 14,
+          "passed": true
+        },
+        {
+          "version": "0.0.99",
+          "iteration": 15,
+          "passed": true
+        },
+        {
+          "version": "0.0.99",
+          "iteration": 16,
+          "passed": true
+        },
+        {
+          "version": "0.0.99",
+          "iteration": 17,
+          "passed": true
+        },
+        {
+          "version": "0.0.99",
+          "iteration": 18,
+          "passed": true
+        },
+        {
+          "version": "0.0.99",
+          "iteration": 19,
+          "passed": true
+        }
+      ],
+      "test_binary_sha256": "45d630616a4f726b02548a3f26f10046221c318cd0bac011fe9566ffa0dd20fe"
+    },
+    "regular_units": 204,
+    "live_units": 3,
+    "integration_units": 7,
+    "strict_clippy": true,
+    "logs": {
+      "projection-revision-units.log": "d1c9c6229d5788570065609459dd0423825b3a13728fde0802fa53bad3d8ffe4",
+      "projection-revision-live-units.log": "b05ca81ad57275529f7da357d93956aeb44ef1aaafb9392b2fe3d05d431aed7a",
+      "projection-revision-clippy.log": "c17c52e5f102bf64f8b175b32205a82a054efcb7d20c72bbeafb22bb512b0be9"
+    }
+  }
+}

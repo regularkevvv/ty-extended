@@ -8,13 +8,20 @@ CI wheel separately checks the largest project in 6.282 seconds versus MyPy's
 preservation. The largest case remains close to parity. The failed public 0.88
 follow-up is retained in the same receipt.
 
-The final-version suite passes **206 Rust unit tests**, **50 Python harness tests**,
+The final-version suite passes **207 Rust unit tests**, **50 Python harness tests**,
 and **83 original SDK/host tests** with embedded Monty 1.5.0. The SDK suite retains
 one explicitly excluded WASM doctest. Django's independent native baseline
 matches 152 responses in CPython and standalone Monty; embedded replay also checks
 the unchanged production response limit and the exact packaged manifest.
 Across 27 project indexes, **2,582 scoped class results and 3,012 batches** match
 individual full-index results, including varied batch boundaries and order.
+
+Generated disk projections receive distinct filesystem revisions when timestamps
+collide. The [regression receipt](evidence/projection-revisions-2026-11-07.json)
+forces equal file timestamps and equal directory timestamps during import
+deletion and restoration, including nested packages. These checks retain the
+checker process and preserve original external source bytes and timestamps.
+The final published binary receives separate compatibility and performance checks.
 
 Django-ty 0.7 passes its 166-assertion and 83-runtime-contract CLI corpus across
 all 16 official ty releases from 0.0.84 through 0.0.99 with the installed 0.89 CI
