@@ -1,6 +1,6 @@
 [project]
 name = "ty-extended"
-version = "0.88.0"
+version = "0.89.0"
 requires-python = ">=3.8"
 dependencies = ["ty>=0.0.84,<0.1"]
 description = "A Monty plugin companion for unchanged official ty."

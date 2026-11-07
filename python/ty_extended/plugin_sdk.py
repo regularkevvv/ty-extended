@@ -26,7 +26,7 @@ else:
     Response = dict
 
 # The wire protocol this SDK was built against. Bumped with the host's protocol version.
-PROTOCOL_VERSION: dict[str, int] = {"major": 0, "minor": 8}
+PROTOCOL_VERSION: dict[str, int] = {"major": 0, "minor": 9}
 
 
 def project_index_value(request: Request, path: list[str], default: Any = None) -> Any:
@@ -121,6 +121,7 @@ def _filtered_class(names: tuple[str, ...]) -> Decorator:
 
 
 on_class_transform: Decorator = _register("analyze-class")
+on_class_batch: Decorator = _register("analyze-classes")
 on_class_member: Decorator = _register("resolve-class-member")
 on_instance_member: Decorator = _register("resolve-instance-member")
 on_call_signature: Decorator = _register("adjust-call-signature")
@@ -1018,6 +1019,16 @@ def call_state_patch(
         "fresh-result": fresh_result,
         "preserves-other-objects": preserves_other_objects,
     }
+
+
+def class_batch(responses: list[Response]) -> JsonObject:
+    """Return one class patch, abstention, or error per batch item (protocol 0.9).
+
+    The class-batch capability explicitly opts into shared interpreter setup.
+    Each result must be independent of other items and of the batch boundaries.
+    Each request carries its own context and complete class-scoped index.
+    """
+    return {"kind": "class-batch", "responses": [response if response is not None else no_change() for response in responses]}
 
 
 def project_index(

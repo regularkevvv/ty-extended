@@ -272,7 +272,7 @@ def scoped_django_gate(
             "--depth",
             "1",
             "https://github.com/regularkevvv/django-ty.git",
-            "3685727a6f7c534f2d1e04e9d4b51fcd916f2f04",
+            "5476b2be828f92d556440ce4165880648a20cf84",
         ],
         env=env,
     )

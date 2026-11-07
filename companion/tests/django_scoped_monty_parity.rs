@@ -16,11 +16,13 @@ fn scoped_class_responses_match_full_index_cpython() -> Result<()> {
     let manifest: PluginManifest =
         serde_json::from_slice(&fs::read(package.join("ty-plugin.json"))?)?;
     let id = manifest.id.clone();
+    let batching = manifest.capabilities.class_batch;
     let environment = PluginEnvironment::from_manifests(vec![manifest])?;
     let mut runner = MontyRunner::new(MontyLimits::default())?;
     runner.add_plugin(&id, fs::read(package.join("monty.py"))?)?;
     let host = PluginHost::new(environment, runner);
     let mut count = 0;
+    let mut batches = 0;
     for line in std::io::BufReader::new(fs::File::open(oracle)?).lines() {
         let record: Value = serde_json::from_str(&line?)?;
         let request: PluginRequest = serde_json::from_value(record["request"].clone())?;
@@ -30,9 +32,19 @@ fn scoped_class_responses_match_full_index_cpython() -> Result<()> {
             "scoped class record {count} differs: {}",
             record["request"]["class"]["qualified-name"]
         );
-        count += 1;
+        if matches!(request, PluginRequest::AnalyzeClasses(_)) {
+            batches += 1;
+        } else {
+            count += 1;
+        }
     }
     ensure!(count >= 2579, "regression corpus shrank: {count}");
-    println!("{count} scoped Monty class responses match full-index CPython");
+    ensure!(
+        !batching || batches > 0,
+        "batch-capable Django requires batch parity coverage"
+    );
+    println!(
+        "{count} scoped Monty class responses and {batches} batches match individual full-index CPython"
+    );
     Ok(())
 }

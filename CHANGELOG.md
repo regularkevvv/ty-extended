@@ -7,6 +7,13 @@ modified checker; their published notes remain unchanged.
 Entries below 0.74.0 say "extension" where they now would say "plugin"; the term was settled on
 "plugin" in 0.74.0 and released notes are left as they were published.
 
+## 0.89.0
+
+- Add protocol 0.9 opt-in class batches. Each class retains its own context and complete scoped index; existing plugins continue using individual hooks.
+- Bound each batch to 128 classes and 1 MiB of requests. Validate every response before caching individual results, and fall back to individual hooks when a batch cannot be used.
+- Avoid duplicate batch caching and repeated diagnostic scans across project files.
+- Publish protocol and Rust SDK crates 0.0.11. Keep the separately installed official ty and embedded Monty runtime unchanged.
+
 ## 0.88.0
 
 - Reduce companion overhead on large Django projects by sharing generated declarations, querying project indexes on demand and reusing valid checker projections.

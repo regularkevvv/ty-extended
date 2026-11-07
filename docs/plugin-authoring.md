@@ -58,7 +58,7 @@ def adjust_issue_token(request: Request) -> Response:
 
 The ambient API mirrors the Rust SDK surface:
 
-- hook decorators: `on_class_transform`, `on_class_member`, `on_instance_member`,
+- hook decorators: `on_class_transform`, `on_class_batch`, `on_class_member`, `on_instance_member`,
     `on_call_signature`, `on_call_return`, `on_call_state`, `on_project_index`, `on_dependencies`, `on_mutation`,
     `on_manifest`. Each kind accepts several handlers — they run in registration order and the
     first non-`None` result wins;
@@ -81,7 +81,7 @@ The ambient API mirrors the Rust SDK surface:
     `dependency`, `text_position`, `location`, `symbol_source`;
 - member and class builders: `member`, `callable_member`, `descriptor_member`, `member_value`,
     `member_descriptor`, `member_callable`, `member_patch`, `member_response`, `field`,
-    `init_field`, `field_patch`, `class_patch`;
+    `init_field`, `field_patch`, `class_patch`, `class_batch`;
 - project-index builders: `contribution` with `class_target`/`instance_target`/
     `constructor_target` and `member_contribution`/`field_contribution`/
     `constructor_contribution`/`diagnostic_contribution`, plus `virtual_type` with
@@ -197,6 +197,35 @@ JSON; replies use the configured response-size
 limit. The interpreter and callback loop remain subject to the invocation's time
 limit. Other external operations are rejected. Every invocation still starts
 with fresh plugin module state.
+
+### Batch independent class hooks
+
+Protocol 0.9 adds the optional `"class-batch": true` capability and
+`@on_class_batch` hook. Keep the individual class hook for fallback:
+
+```python
+@on_class_batch
+def analyze_classes(request: Request) -> Response:
+    return class_batch([analyze_class(item) for item in request["requests"]])
+```
+
+Each item has the same tagged request, semantic context and class-specific index
+as an individual `analyze-class` invocation. Return one class patch, abstention
+or error per item, in request order. Results must be independent of item order
+and batch boundaries. Module state is shared within a batch and starts fresh
+for the next invocation; do not let one item's mutations affect another result.
+
+The companion batches only claimed classes with explicit class-specific indexes.
+It limits a batch to 128 classes and 1 MiB of serialized requests; the ordinary
+execution and response-size limits still apply. Oversized or unlisted classes use
+individual hooks. An unavailable, invalid or wrong-length batch response also
+falls back to individual calls. Validated results enter the ordinary per-request
+cache, so editor invalidation follows the same index and source revisions.
+
+Plugins that opt in require protocol minor version 9 or newer and must also
+enable class transforms. The Python SDK provides `on_class_batch` and
+`class_batch`; the Rust SDK provides `Plugin::analyze_classes` and
+`ManifestBuilder::class_batches`.
 
 ## Test and publish
 

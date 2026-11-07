@@ -2273,7 +2273,7 @@ dependencies = [
 
 [[package]]
 name = "ty-extended"
-version = "0.88.0"
+version = "0.89.0"
 dependencies = [
  "anyhow",
  "ctrlc",
@@ -2311,7 +2311,7 @@ dependencies = [
 
 [[package]]
 name = "ty_plugin_protocol"
-version = "0.0.10"
+version = "0.0.11"
 dependencies = [
  "serde",
  "serde_json",
