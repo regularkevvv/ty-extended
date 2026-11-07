@@ -202,6 +202,47 @@ fn set_disk_modified(path: &Path, modified: SystemTime) -> Result<()> {
 }
 
 impl ProjectChecker {
+    /// Start a checker after every ordinary projection source has been written.
+    /// Its initial database already sees those bytes, so no watched-file events
+    /// or timestamp changes are needed. Record revisions for subsequent edits.
+    /// Notebook and external overlays use the general constructors instead.
+    pub fn new_with_disk_projection(
+        binary: &Path,
+        root: &Path,
+        config: &Path,
+        sources: &BTreeMap<PathBuf, String>,
+    ) -> Result<Self> {
+        use sha2::{Digest, Sha256};
+        let mut checker = Self::new(binary, root, config)?;
+        let mut directories = BTreeSet::new();
+        for (path, source) in sources {
+            ensure!(
+                path.starts_with(root),
+                "disk projection outside generated workspace: {}",
+                path.display()
+            );
+            checker.disk_sources.insert(
+                path.clone(),
+                (
+                    Sha256::digest(source.as_bytes()).into(),
+                    path.metadata()?.modified()?,
+                ),
+            );
+            directories.extend(
+                path.ancestors()
+                    .skip(1)
+                    .take_while(|parent| parent.starts_with(root))
+                    .map(Path::to_owned),
+            );
+        }
+        for path in directories {
+            checker
+                .disk_directories
+                .insert(path.clone(), path.metadata()?.modified()?);
+        }
+        Ok(checker)
+    }
+
     pub fn new(binary: &Path, root: &Path, config: &Path) -> Result<Self> {
         let mut server = Server::configured(binary, root, config, true)?;
         server.project = true;
@@ -1380,20 +1421,43 @@ mod tests {
     #[test]
     fn disk_projection_invalidates_closed_imports_and_inventory() -> Result<()> {
         let binary = std::env::var("TY_COMPANION_TEST_OFFICIAL")?;
-        let root = std::env::temp_dir().join(format!("ty-disk-projection-{}", std::process::id()));
+        for initialized in [false, true] {
+            disk_projection_case(&binary, initialized)?;
+        }
+        Ok(())
+    }
+
+    fn disk_projection_case(binary: &str, initialized: bool) -> Result<()> {
+        let root = std::env::temp_dir().join(format!(
+            "ty-disk-projection-{}-{initialized}",
+            std::process::id()
+        ));
         fs::create_dir_all(&root)?;
         let config = root.join("ty.toml");
         fs::write(&config, "[environment]\npython-version = '3.13'\n")?;
         let peer = root.join("peer.py");
         let consumer = root.join("consumer.py");
-        let mut server = ProjectChecker::new(Path::new(&binary), &root, &config)?;
         let mut sources = BTreeMap::from([
             (
                 consumer.clone(),
                 "from peer import value\nanswer: str = value\n".to_owned(),
             ),
-            (peer.clone(), String::new()),
+            (peer.clone(), "value: int\n".to_owned()),
         ]);
+        for (path, source) in &sources {
+            fs::write(path, source)?;
+        }
+        let initial_revision = peer.metadata()?.modified()?;
+        let mut server = if initialized {
+            ProjectChecker::new_with_disk_projection(Path::new(binary), &root, &config, &sources)?
+        } else {
+            ProjectChecker::new(Path::new(binary), &root, &config)?
+        };
+        let initial = server.check_files(&sources, std::slice::from_ref(&consumer))?;
+        assert_eq!(initial.len(), 1, "{initial:#?}");
+        if initialized {
+            assert_eq!(peer.metadata()?.modified()?, initial_revision);
+        }
         for (annotation, errors) in [("int", 1), ("str", 0), ("int", 1), ("str", 0)] {
             sources.insert(peer.clone(), format!("value: {annotation}\n"));
             for (path, source) in &sources {
