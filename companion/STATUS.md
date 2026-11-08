@@ -2,6 +2,17 @@
 
 ## Unreleased development candidate
 
+The [factory follow-up](../docs/qualification/factory-specialization.json), source
+`86c3a21`, passes 222 unit tests, the 166-assertion Django corpus with six error
+controls, and 31 field assertions with five controls on all 16 official ty
+versions from 0.0.84 through 0.0.99. It also passes the 19 broader suites, nine
+integration binaries, Rust lint and formatting checks. The latest paired
+fresh-process median is 5.124 seconds, versus 5.181 for the preceding
+field-corrected candidate and 6.715 for MyPy. The one-second target remains
+unmet. Hosted CI and publication are separate gates.
+
+### Field-access qualification
+
 The [field-access follow-up](../docs/qualification/field-access-projection.json),
 source `f7db633`, passes all 221 unit tests, the 166-assertion Django corpus
 with six negative controls, and 31 field assertions with five diagnostic controls

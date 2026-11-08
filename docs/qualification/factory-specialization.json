@@ -1,0 +1,2861 @@
+{
+  "status": "Unreleased; locally qualified; the one-second fresh-process target remains unmet.",
+  "source_commit": "86c3a2109d42fcaf2d619e392b5c6c9eda6c01a0",
+  "build": {
+    "passed": true,
+    "steps": [
+      {
+        "label": "format",
+        "exit": 0,
+        "seconds": 0.6359555829549208
+      },
+      {
+        "label": "compile-tests",
+        "exit": 0,
+        "seconds": 251.795256165904
+      },
+      {
+        "label": "iteration-binary",
+        "exit": 0,
+        "seconds": 45.036277333972976
+      },
+      {
+        "label": "field-regression",
+        "exit": 0,
+        "seconds": 1.5234223750885576
+      },
+      {
+        "label": "django-regression",
+        "exit": 0,
+        "seconds": 6.861975457984954
+      },
+      {
+        "label": "latest-unit",
+        "exit": 0,
+        "seconds": 5.109132083016448
+      },
+      {
+        "label": "latest-ignored",
+        "exit": 0,
+        "seconds": 0.3879837499698624
+      },
+      {
+        "label": "oldest-unit",
+        "exit": 0,
+        "seconds": 5.3737785840639845
+      },
+      {
+        "label": "oldest-ignored",
+        "exit": 0,
+        "seconds": 0.188730416004546
+      },
+      {
+        "label": "integrations",
+        "exit": 0,
+        "seconds": 20.06103654205799
+      },
+      {
+        "label": "cli-default",
+        "exit": 0,
+        "seconds": 1.155565791996196
+      },
+      {
+        "label": "clippy",
+        "exit": 0,
+        "seconds": 37.62635654199403
+      },
+      {
+        "label": "iteration-clean",
+        "exit": 0,
+        "seconds": 0.4179320000112057
+      },
+      {
+        "label": "release",
+        "exit": 0,
+        "seconds": 303.15197308408096
+      },
+      {
+        "label": "clean",
+        "exit": 0,
+        "seconds": 0.2803235419560224
+      }
+    ],
+    "source_sha256": {
+      "companion/src/project_config.rs": "24f468df508a496b12be2a2907a92f2f7b54f8d6d5f4047553483f8207fa5b34",
+      "companion/src/flow.rs": "d7277d23dfd42fc98270501feac9561131b871452930fd6cc6912739bf44cba2",
+      "companion/src/runtime.rs": "d3cabcc89d57c2cd40f01ad6974724360dea4a9369e481c43ae2b4c9e1bcd7f8",
+      "companion/src/static_project.rs": "2cf4c4a73ddc32996ed016abeb33132522b707ffb234831d5efba8b45a09ca35",
+      "companion/src/editor_options.rs": "6c3d5540fdea2956a9ed179fb2291f087456a48cf744647063bdd11a3f775d46",
+      "companion/src/cli_edits.rs": "01543f2a5d63f7a66545923b6ccd25e06161b6e3fd9b2936d09073768902c444",
+      "companion/src/project_check.rs": "07db3b830862a93df3af2ac1f422c890a57d2e74e06e7ddcf27917099d8b7e53",
+      "companion/src/project.rs": "a657ab1db588cdc032cf7a2a78a0ada255f70f7cbb0797b84cf131dd79e6354c",
+      "companion/src/checker.rs": "e976c9080e0d16e8a8a072c6a16c90c860e5c6efda4ce1e0ca7675f6e80df91d",
+      "companion/src/verify.rs": "e7708860ec0bd32cdfb8d6a171a53b2c12d5a67703f5a5b4322fa72d1592603d",
+      "companion/src/type_snapshot.rs": "0c018b699a8d140782e3813a5606d188c27b392400d1796ab839d73002eba813",
+      "companion/src/mapping.rs": "eb6f154ffc98dea9ac9469e8fbf5fc34fb3e26422004e53c9716e0867de153a1",
+      "companion/src/main.rs": "99872fc0672e54164f6b0863a8c040e31531f1e3d9cd7477e492834c4ecdcf3a",
+      "companion/src/notebook.rs": "0bbd10d569d77019c19b7b76e7d2259c93afaaccc7f18c089e6478f3491cd24f",
+      "companion/src/lsp_mapping.rs": "2a3d7cc63f066bc25db11d680819124e3ff609448d2f27ab93b15d877bfc48fb",
+      "companion/src/lsp_server.rs": "f6a49b11f82ef55a8028d78253fb210844135b9c93e7777074dab3c6f846676a",
+      "companion/src/lower.rs": "a05d99d0bca6c9d1b49c152b7d1f91ef43fea8d993a3fc8f4232d777c1764fc2",
+      "companion/src/type_render.rs": "d4f62ea50e5fa320e862ae635e8bf90329211324963a8d92bea21cf6b9533111",
+      "companion/src/model.rs": "910d42537fa63b97809bb99dba3a504202f2ddb692ccf07c5ecedfc9fd3273f0",
+      "companion/src/cli.rs": "1cf30fe5cae409179d860ff2e5611d58e42c83f68599cc354ece0ec9c92a086c"
+    },
+    "binary_sha256": "769e4dd1f836298e4bdc6306a540c466ba9b9a7a8741425aaa2e6ab4a4dad5f6"
+  },
+  "checker_range": {
+    "passed": true,
+    "unit_binary_sha256": "2ff2d305d2ca94163be44afe787082e21461e2d816422845ef69ecf7181c60db",
+    "companion_sha256": "769e4dd1f836298e4bdc6306a540c466ba9b9a7a8741425aaa2e6ab4a4dad5f6",
+    "versions": [
+      {
+        "version": "0.0.84",
+        "passed": true,
+        "native_version": "ty 0.0.84 (8dd9a7f7f 2026-09-24)",
+        "native_sha256": "d1243725b609983ce07e2ec407f12a4d3234a215bc302fad54febd1129a7b62e",
+        "unit_exit": 0,
+        "unit_passes": 222,
+        "django_exit": 0,
+        "django_contract_assertions": 166,
+        "django_negative_controls": 6,
+        "field_access_exit": 0,
+        "field_assertions": 31,
+        "field_controls": 5,
+        "seconds": 12.513652333058417,
+        "owned_environment_cleaned": true
+      },
+      {
+        "version": "0.0.85",
+        "passed": true,
+        "native_version": "ty 0.0.85 (d7fc5ef88 2026-10-06)",
+        "native_sha256": "0f26313e84003213a1dccfbee2acd7adb32a36b40aa67fb5f93cd8f155b61789",
+        "unit_exit": 0,
+        "unit_passes": 222,
+        "django_exit": 0,
+        "django_contract_assertions": 166,
+        "django_negative_controls": 6,
+        "field_access_exit": 0,
+        "field_assertions": 31,
+        "field_controls": 5,
+        "seconds": 12.315471624955535,
+        "owned_environment_cleaned": true
+      },
+      {
+        "version": "0.0.86",
+        "passed": true,
+        "native_version": "ty 0.0.86 (d5da069f4 2026-10-09)",
+        "native_sha256": "d6cd23ef6b3bdcb91dc2c67da0bc120c25668102c231ac7a9c405342a06558ef",
+        "unit_exit": 0,
+        "unit_passes": 222,
+        "django_exit": 0,
+        "django_contract_assertions": 166,
+        "django_negative_controls": 6,
+        "field_access_exit": 0,
+        "field_assertions": 31,
+        "field_controls": 5,
+        "seconds": 13.28576483298093,
+        "owned_environment_cleaned": true
+      },
+      {
+        "version": "0.0.87",
+        "passed": true,
+        "native_version": "ty 0.0.87 (ea4c3d273 2026-10-13)",
+        "native_sha256": "753712234c90c6f5617c67802bb9703908ba791975acf8c4e5ab42cf58b2471b",
+        "unit_exit": 0,
+        "unit_passes": 222,
+        "django_exit": 0,
+        "django_contract_assertions": 166,
+        "django_negative_controls": 6,
+        "field_access_exit": 0,
+        "field_assertions": 31,
+        "field_controls": 5,
+        "seconds": 12.151028500054963,
+        "owned_environment_cleaned": true
+      },
+      {
+        "version": "0.0.88",
+        "passed": true,
+        "native_version": "ty 0.0.88 (64e7f1860 2026-10-15)",
+        "native_sha256": "25f30e5a627915a42cb7d6794bdc373de48988e8b7665f9c0b4270f388c33aff",
+        "unit_exit": 0,
+        "unit_passes": 222,
+        "django_exit": 0,
+        "django_contract_assertions": 166,
+        "django_negative_controls": 6,
+        "field_access_exit": 0,
+        "field_assertions": 31,
+        "field_controls": 5,
+        "seconds": 12.1846617909614,
+        "owned_environment_cleaned": true
+      },
+      {
+        "version": "0.0.89",
+        "passed": true,
+        "native_version": "ty 0.0.89 (82b0fd431 2026-10-16)",
+        "native_sha256": "b0e68d52e71079c94ba118248d16ee681606e4338a2b5543a12b3b730c16071b",
+        "unit_exit": 0,
+        "unit_passes": 222,
+        "django_exit": 0,
+        "django_contract_assertions": 166,
+        "django_negative_controls": 6,
+        "field_access_exit": 0,
+        "field_assertions": 31,
+        "field_controls": 5,
+        "seconds": 12.102929125074297,
+        "owned_environment_cleaned": true
+      },
+      {
+        "version": "0.0.90",
+        "passed": true,
+        "native_version": "ty 0.0.90 (ebc8bbb31 2026-10-20)",
+        "native_sha256": "961e4405e9ae96dad6222cae8968a315080841f317e8b193f276da9066ac88ae",
+        "unit_exit": 0,
+        "unit_passes": 222,
+        "django_exit": 0,
+        "django_contract_assertions": 166,
+        "django_negative_controls": 6,
+        "field_access_exit": 0,
+        "field_assertions": 31,
+        "field_controls": 5,
+        "seconds": 12.147506874985993,
+        "owned_environment_cleaned": true
+      },
+      {
+        "version": "0.0.91",
+        "passed": true,
+        "native_version": "ty 0.0.91 (67fbd2874 2026-10-22)",
+        "native_sha256": "39ab93d3aefb55f00338770e33509291569040c20111f52a2bc43abb77850459",
+        "unit_exit": 0,
+        "unit_passes": 222,
+        "django_exit": 0,
+        "django_contract_assertions": 166,
+        "django_negative_controls": 6,
+        "field_access_exit": 0,
+        "field_assertions": 31,
+        "field_controls": 5,
+        "seconds": 12.168489792034961,
+        "owned_environment_cleaned": true
+      },
+      {
+        "version": "0.0.92",
+        "passed": true,
+        "native_version": "ty 0.0.92 (3933e6918 2026-10-26)",
+        "native_sha256": "0e51cb95b17b52821e786c3407ab4b474077391d5f7e91942d3635f8346debd5",
+        "unit_exit": 0,
+        "unit_passes": 222,
+        "django_exit": 0,
+        "django_contract_assertions": 166,
+        "django_negative_controls": 6,
+        "field_access_exit": 0,
+        "field_assertions": 31,
+        "field_controls": 5,
+        "seconds": 11.766402082983404,
+        "owned_environment_cleaned": true
+      },
+      {
+        "version": "0.0.93",
+        "passed": true,
+        "native_version": "ty 0.0.93 (3db5e4df7 2026-10-28)",
+        "native_sha256": "7843c73943d521e66a537f55d51fc9f350dc142e88038acd516878c08857bd03",
+        "unit_exit": 0,
+        "unit_passes": 222,
+        "django_exit": 0,
+        "django_contract_assertions": 166,
+        "django_negative_controls": 6,
+        "field_access_exit": 0,
+        "field_assertions": 31,
+        "field_controls": 5,
+        "seconds": 12.119976625079289,
+        "owned_environment_cleaned": true
+      },
+      {
+        "version": "0.0.94",
+        "passed": true,
+        "native_version": "ty 0.0.94 (f8ea270e0 2026-10-28)",
+        "native_sha256": "d331912b50c453620364533b9e74bfed71fd521aeafd0fa9e75d80bae69fc877",
+        "unit_exit": 0,
+        "unit_passes": 222,
+        "django_exit": 0,
+        "django_contract_assertions": 166,
+        "django_negative_controls": 6,
+        "field_access_exit": 0,
+        "field_assertions": 31,
+        "field_controls": 5,
+        "seconds": 11.710314417025074,
+        "owned_environment_cleaned": true
+      },
+      {
+        "version": "0.0.95",
+        "passed": true,
+        "native_version": "ty 0.0.95 (48c5ea1ba 2026-10-29)",
+        "native_sha256": "f24d522636715a348c67ac8c571cce58185ac453c9a3773529918473f4bb347c",
+        "unit_exit": 0,
+        "unit_passes": 222,
+        "django_exit": 0,
+        "django_contract_assertions": 166,
+        "django_negative_controls": 6,
+        "field_access_exit": 0,
+        "field_assertions": 31,
+        "field_controls": 5,
+        "seconds": 11.603580042021349,
+        "owned_environment_cleaned": true
+      },
+      {
+        "version": "0.0.96",
+        "passed": true,
+        "native_version": "ty 0.0.96 (53a7844b8 2026-11-02)",
+        "native_sha256": "8095e81a2528ff007b6ae2eeb1376fb5524142bfa06eb588936643b4c7295822",
+        "unit_exit": 0,
+        "unit_passes": 222,
+        "django_exit": 0,
+        "django_contract_assertions": 166,
+        "django_negative_controls": 6,
+        "field_access_exit": 0,
+        "field_assertions": 31,
+        "field_controls": 5,
+        "seconds": 11.616630082949996,
+        "owned_environment_cleaned": true
+      },
+      {
+        "version": "0.0.97",
+        "passed": true,
+        "native_version": "ty 0.0.97 (58e168c67 2026-11-04)",
+        "native_sha256": "87c4d1a2e504774f823af983a1ff5a57b8288fae9e7f7dc50b2ef99dc76e8029",
+        "unit_exit": 0,
+        "unit_passes": 222,
+        "django_exit": 0,
+        "django_contract_assertions": 166,
+        "django_negative_controls": 6,
+        "field_access_exit": 0,
+        "field_assertions": 31,
+        "field_controls": 5,
+        "seconds": 11.81784399994649,
+        "owned_environment_cleaned": true
+      },
+      {
+        "version": "0.0.98",
+        "passed": true,
+        "native_version": "ty 0.0.98 (e8a6c9331 2026-11-05)",
+        "native_sha256": "9ccabed16da4fca4ebb0284ca07af41131a9007563080c7537f15ebf66c18cb8",
+        "unit_exit": 0,
+        "unit_passes": 222,
+        "django_exit": 0,
+        "django_contract_assertions": 166,
+        "django_negative_controls": 6,
+        "field_access_exit": 0,
+        "field_assertions": 31,
+        "field_controls": 5,
+        "seconds": 11.537498709047213,
+        "owned_environment_cleaned": true
+      },
+      {
+        "version": "0.0.99",
+        "passed": true,
+        "native_version": "ty 0.0.99 (9b48f40c9 2026-11-06)",
+        "native_sha256": "34688103a83c3123d9eb0f4d85cdaa15f06ff16ce422d8a42616e6b1c885200e",
+        "unit_exit": 0,
+        "unit_passes": 222,
+        "django_exit": 0,
+        "django_contract_assertions": 166,
+        "django_negative_controls": 6,
+        "field_access_exit": 0,
+        "field_assertions": 31,
+        "field_controls": 5,
+        "seconds": 11.1920444999123,
+        "owned_environment_cleaned": true
+      }
+    ]
+  },
+  "broader_suites": {
+    "passed": true,
+    "binary_sha256": "769e4dd1f836298e4bdc6306a540c466ba9b9a7a8741425aaa2e6ab4a4dad5f6",
+    "official_version": "ty 0.0.99 (9b48f40c9 2026-11-06)",
+    "reference_version": "ty 0.86.0 (4429f1e88 2026-10-10)",
+    "gates": [
+      {
+        "name": "generic-cli",
+        "exit": 0,
+        "seconds": 16.37948112504091
+      },
+      {
+        "name": "generic-lsp",
+        "exit": 0,
+        "seconds": 13.615574707975611
+      },
+      {
+        "name": "generic-push",
+        "exit": 0,
+        "seconds": 13.593938166974112
+      },
+      {
+        "name": "lsp_acceptance",
+        "exit": 0,
+        "seconds": 0.5990756249520928
+      },
+      {
+        "name": "lsp_configuration",
+        "exit": 0,
+        "seconds": 1.6121785419527441
+      },
+      {
+        "name": "lsp_differential",
+        "exit": 0,
+        "seconds": 1.650063290959224
+      },
+      {
+        "name": "lsp_lifecycle",
+        "exit": 0,
+        "seconds": 0.2971594170667231
+      },
+      {
+        "name": "lsp_notebook_differential",
+        "exit": 0,
+        "seconds": 0.4804709170712158
+      },
+      {
+        "name": "plugin_error_differential",
+        "exit": 0,
+        "seconds": 1.971237999969162
+      },
+      {
+        "name": "plugin_configuration_differential",
+        "exit": 0,
+        "seconds": 4.11966654099524
+      },
+      {
+        "name": "sdk_state_inventory",
+        "exit": 0,
+        "seconds": 1.8217690830351785
+      },
+      {
+        "name": "sdk_function_inventory",
+        "exit": 0,
+        "seconds": 0.934623415931128
+      },
+      {
+        "name": "sdk_overlay_inventory",
+        "exit": 0,
+        "seconds": 1.2695172909880057
+      },
+      {
+        "name": "overlay_reload_probe",
+        "exit": 0,
+        "seconds": 5.40025904099457
+      },
+      {
+        "name": "sdk_cli_inventory",
+        "exit": 0,
+        "seconds": 1.0550288750091568
+      },
+      {
+        "name": "sdk_class_inventory",
+        "exit": 0,
+        "seconds": 1.2843895410187542
+      },
+      {
+        "name": "sdk_method_inventory",
+        "exit": 0,
+        "seconds": 2.3390269580995664
+      },
+      {
+        "name": "sdk_class_summary_inventory",
+        "exit": 0,
+        "seconds": 0.7595419170102105
+      },
+      {
+        "name": "sdk_minidjango_inventory",
+        "exit": 0,
+        "seconds": 6.559730750042945
+      }
+    ]
+  },
+  "original_field_audit": {
+    "cases": 12,
+    "exact_historical_diagnostics": true,
+    "comparison": {
+      "passed": true,
+      "diagnostics": 13,
+      "normalization": "Canonical source origins; exact codes, messages, severity and source spans. Backend-specific fingerprints are excluded.",
+      "prior_harness_failure": "Compared raw relative/absolute path formatting and dictionary representation rather than source identity."
+    },
+    "diagnostics": {
+      "historical": {
+        "exit": 1,
+        "diagnostics": [
+          {
+            "check_name": "revealed-type",
+            "description": "revealed-type: Revealed type: `int`",
+            "severity": "info",
+            "fingerprint": "6cfe23c151a288cb",
+            "location": {
+              "path": "demo.py",
+              "positions": {
+                "begin": {
+                  "line": 19,
+                  "column": 13
+                },
+                "end": {
+                  "line": 19,
+                  "column": 16
+                }
+              }
+            }
+          },
+          {
+            "check_name": "revealed-type",
+            "description": "revealed-type: Revealed type: `str`",
+            "severity": "info",
+            "fingerprint": "d1ac69a4dae99953",
+            "location": {
+              "path": "demo.py",
+              "positions": {
+                "begin": {
+                  "line": 20,
+                  "column": 13
+                },
+                "end": {
+                  "line": 20,
+                  "column": 18
+                }
+              }
+            }
+          },
+          {
+            "check_name": "revealed-type",
+            "description": "revealed-type: Revealed type: `int`",
+            "severity": "info",
+            "fingerprint": "6c986730b2701523",
+            "location": {
+              "path": "demo.py",
+              "positions": {
+                "begin": {
+                  "line": 21,
+                  "column": 13
+                },
+                "end": {
+                  "line": 21,
+                  "column": 16
+                }
+              }
+            }
+          },
+          {
+            "check_name": "revealed-type",
+            "description": "revealed-type: Revealed type: `str`",
+            "severity": "info",
+            "fingerprint": "67cd36bc657467db",
+            "location": {
+              "path": "demo.py",
+              "positions": {
+                "begin": {
+                  "line": 22,
+                  "column": 13
+                },
+                "end": {
+                  "line": 22,
+                  "column": 18
+                }
+              }
+            }
+          },
+          {
+            "check_name": "unresolved-attribute",
+            "description": "unresolved-attribute: Attribute `x` can only be accessed on instances, not on the class object `<class 'Absent'>` itself.",
+            "severity": "major",
+            "fingerprint": "565aeaa2fb31171d",
+            "location": {
+              "path": "demo.py",
+              "positions": {
+                "begin": {
+                  "line": 23,
+                  "column": 13
+                },
+                "end": {
+                  "line": 23,
+                  "column": 21
+                }
+              }
+            }
+          },
+          {
+            "check_name": "revealed-type",
+            "description": "revealed-type: Revealed type: `Unknown`",
+            "severity": "info",
+            "fingerprint": "23379659f277910b",
+            "location": {
+              "path": "demo.py",
+              "positions": {
+                "begin": {
+                  "line": 23,
+                  "column": 13
+                },
+                "end": {
+                  "line": 23,
+                  "column": 21
+                }
+              }
+            }
+          },
+          {
+            "check_name": "revealed-type",
+            "description": "revealed-type: Revealed type: `str`",
+            "severity": "info",
+            "fingerprint": "766a3055f0696eb3",
+            "location": {
+              "path": "demo.py",
+              "positions": {
+                "begin": {
+                  "line": 24,
+                  "column": 13
+                },
+                "end": {
+                  "line": 24,
+                  "column": 23
+                }
+              }
+            }
+          },
+          {
+            "check_name": "revealed-type",
+            "description": "revealed-type: Revealed type: `int`",
+            "severity": "info",
+            "fingerprint": "bd264124018a3630",
+            "location": {
+              "path": "demo.py",
+              "positions": {
+                "begin": {
+                  "line": 25,
+                  "column": 13
+                },
+                "end": {
+                  "line": 25,
+                  "column": 23
+                }
+              }
+            }
+          },
+          {
+            "check_name": "revealed-type",
+            "description": "revealed-type: Revealed type: `str`",
+            "severity": "info",
+            "fingerprint": "9b37722665171811",
+            "location": {
+              "path": "demo.py",
+              "positions": {
+                "begin": {
+                  "line": 26,
+                  "column": 13
+                },
+                "end": {
+                  "line": 26,
+                  "column": 25
+                }
+              }
+            }
+          },
+          {
+            "check_name": "revealed-type",
+            "description": "revealed-type: Revealed type: `property`",
+            "severity": "info",
+            "fingerprint": "b07abfcb97181a36",
+            "location": {
+              "path": "demo.py",
+              "positions": {
+                "begin": {
+                  "line": 27,
+                  "column": 13
+                },
+                "end": {
+                  "line": 27,
+                  "column": 23
+                }
+              }
+            }
+          },
+          {
+            "check_name": "revealed-type",
+            "description": "revealed-type: Revealed type: `str`",
+            "severity": "info",
+            "fingerprint": "1c477c35ae781370",
+            "location": {
+              "path": "demo.py",
+              "positions": {
+                "begin": {
+                  "line": 28,
+                  "column": 13
+                },
+                "end": {
+                  "line": 28,
+                  "column": 25
+                }
+              }
+            }
+          },
+          {
+            "check_name": "revealed-type",
+            "description": "revealed-type: Revealed type: `int`",
+            "severity": "info",
+            "fingerprint": "6c39d64f1a8adc2",
+            "location": {
+              "path": "demo.py",
+              "positions": {
+                "begin": {
+                  "line": 29,
+                  "column": 13
+                },
+                "end": {
+                  "line": 29,
+                  "column": 29
+                }
+              }
+            }
+          },
+          {
+            "check_name": "revealed-type",
+            "description": "revealed-type: Revealed type: `str`",
+            "severity": "info",
+            "fingerprint": "4024ac84fe8e3201",
+            "location": {
+              "path": "demo.py",
+              "positions": {
+                "begin": {
+                  "line": 30,
+                  "column": 13
+                },
+                "end": {
+                  "line": 30,
+                  "column": 31
+                }
+              }
+            }
+          }
+        ]
+      },
+      "published": {
+        "exit": 0,
+        "diagnostics": [
+          {
+            "check_name": "revealed-type",
+            "description": "revealed-type: Revealed type: `_ty_ext_field_285_0`",
+            "fingerprint": "f0e8e7e69111b6b0c4a376e2047248341eb5e8b79d1d81892e813b3e6354beed",
+            "location": {
+              "path": "/private/tmp/ty-companion-subsecond-work/field-class-access-factory-v13b/project/demo.py",
+              "positions": {
+                "begin": {
+                  "column": 13,
+                  "line": 29
+                },
+                "end": {
+                  "column": 29,
+                  "line": 29
+                }
+              }
+            },
+            "severity": "info"
+          },
+          {
+            "check_name": "revealed-type",
+            "description": "revealed-type: Revealed type: `_ty_ext_field_32_0`",
+            "fingerprint": "49ed67b0d67e9646629ac57e2ca56ca272cb5bb6361255a4a2ba2540237190f5",
+            "location": {
+              "path": "/private/tmp/ty-companion-subsecond-work/field-class-access-factory-v13b/project/demo.py",
+              "positions": {
+                "begin": {
+                  "column": 13,
+                  "line": 19
+                },
+                "end": {
+                  "column": 16,
+                  "line": 19
+                }
+              }
+            },
+            "severity": "info"
+          },
+          {
+            "check_name": "revealed-type",
+            "description": "revealed-type: Revealed type: `_ty_ext_field_51_0`",
+            "fingerprint": "4899d9c9e496d7bb330793eab6e187146bf70cc55503587d12c1b77abfacf0a5",
+            "location": {
+              "path": "/private/tmp/ty-companion-subsecond-work/field-class-access-factory-v13b/project/demo.py",
+              "positions": {
+                "begin": {
+                  "column": 13,
+                  "line": 21
+                },
+                "end": {
+                  "column": 16,
+                  "line": 21
+                }
+              }
+            },
+            "severity": "info"
+          },
+          {
+            "check_name": "revealed-type",
+            "description": "revealed-type: Revealed type: `_ty_ext_field_70_0`",
+            "fingerprint": "905b50fffde36de96f1ae2f9be56d6205de0de31be76b8fcd32740823743680c",
+            "location": {
+              "path": "/private/tmp/ty-companion-subsecond-work/field-class-access-factory-v13b/project/demo.py",
+              "positions": {
+                "begin": {
+                  "column": 13,
+                  "line": 23
+                },
+                "end": {
+                  "column": 21,
+                  "line": 23
+                }
+              }
+            },
+            "severity": "info"
+          },
+          {
+            "check_name": "revealed-type",
+            "description": "revealed-type: Revealed type: `_ty_ext_field_93_0`",
+            "fingerprint": "85d789862b2dceadf9ac89cdb6faf53082075cbeae8f7a00b70a93bc6b6004af",
+            "location": {
+              "path": "/private/tmp/ty-companion-subsecond-work/field-class-access-factory-v13b/project/demo.py",
+              "positions": {
+                "begin": {
+                  "column": 13,
+                  "line": 25
+                },
+                "end": {
+                  "column": 23,
+                  "line": 25
+                }
+              }
+            },
+            "severity": "info"
+          },
+          {
+            "check_name": "revealed-type",
+            "description": "revealed-type: Revealed type: `int`",
+            "fingerprint": "198722a3edb296c4d37d340b0ced99a0fb381a8247e418663da1ca3d7acc60f7",
+            "location": {
+              "path": "/private/tmp/ty-companion-subsecond-work/field-class-access-factory-v13b/project/demo.py",
+              "positions": {
+                "begin": {
+                  "column": 13,
+                  "line": 28
+                },
+                "end": {
+                  "column": 25,
+                  "line": 28
+                }
+              }
+            },
+            "severity": "info"
+          },
+          {
+            "check_name": "revealed-type",
+            "description": "revealed-type: Revealed type: `property`",
+            "fingerprint": "4090765947497a53bf39e156322d727934baacab682d865cceb901a698aebe13",
+            "location": {
+              "path": "/private/tmp/ty-companion-subsecond-work/field-class-access-factory-v13b/project/demo.py",
+              "positions": {
+                "begin": {
+                  "column": 13,
+                  "line": 27
+                },
+                "end": {
+                  "column": 23,
+                  "line": 27
+                }
+              }
+            },
+            "severity": "info"
+          },
+          {
+            "check_name": "revealed-type",
+            "description": "revealed-type: Revealed type: `str`",
+            "fingerprint": "d48d774d397cfda0ca30775a9130a45ddde3f0f129fad4c839dc46bed48500c9",
+            "location": {
+              "path": "/private/tmp/ty-companion-subsecond-work/field-class-access-factory-v13b/project/demo.py",
+              "positions": {
+                "begin": {
+                  "column": 13,
+                  "line": 20
+                },
+                "end": {
+                  "column": 18,
+                  "line": 20
+                }
+              }
+            },
+            "severity": "info"
+          },
+          {
+            "check_name": "revealed-type",
+            "description": "revealed-type: Revealed type: `str`",
+            "fingerprint": "07b00bbdd2aef2e98be9a1e4b4cae8e62f01286374c98f366c6d60df19e340f7",
+            "location": {
+              "path": "/private/tmp/ty-companion-subsecond-work/field-class-access-factory-v13b/project/demo.py",
+              "positions": {
+                "begin": {
+                  "column": 13,
+                  "line": 22
+                },
+                "end": {
+                  "column": 18,
+                  "line": 22
+                }
+              }
+            },
+            "severity": "info"
+          },
+          {
+            "check_name": "revealed-type",
+            "description": "revealed-type: Revealed type: `str`",
+            "fingerprint": "7a231b98d3d062cf6817f68d8cce4d30f8a2571d1b05baef974d9a89e281dc9a",
+            "location": {
+              "path": "/private/tmp/ty-companion-subsecond-work/field-class-access-factory-v13b/project/demo.py",
+              "positions": {
+                "begin": {
+                  "column": 13,
+                  "line": 24
+                },
+                "end": {
+                  "column": 23,
+                  "line": 24
+                }
+              }
+            },
+            "severity": "info"
+          },
+          {
+            "check_name": "revealed-type",
+            "description": "revealed-type: Revealed type: `str`",
+            "fingerprint": "b8d76edde17d55a5f7261e8a14b739c03f19312b2b8f3e62b5ba65af850a3ef0",
+            "location": {
+              "path": "/private/tmp/ty-companion-subsecond-work/field-class-access-factory-v13b/project/demo.py",
+              "positions": {
+                "begin": {
+                  "column": 13,
+                  "line": 26
+                },
+                "end": {
+                  "column": 25,
+                  "line": 26
+                }
+              }
+            },
+            "severity": "info"
+          },
+          {
+            "check_name": "revealed-type",
+            "description": "revealed-type: Revealed type: `str`",
+            "fingerprint": "8317451efdff8c5ec79a461a31b4c1985747fb832f09cdf8f18ac0bb41c94968",
+            "location": {
+              "path": "/private/tmp/ty-companion-subsecond-work/field-class-access-factory-v13b/project/demo.py",
+              "positions": {
+                "begin": {
+                  "column": 13,
+                  "line": 30
+                },
+                "end": {
+                  "column": 31,
+                  "line": 30
+                }
+              }
+            },
+            "severity": "info"
+          }
+        ]
+      },
+      "candidate": {
+        "exit": 1,
+        "diagnostics": [
+          {
+            "check_name": "revealed-type",
+            "description": "revealed-type: Revealed type: `Unknown`",
+            "fingerprint": "71ae69ba7e9161e45768a702b18f4bb6003a4ed3f514f24f01423d24f981b0e0",
+            "location": {
+              "path": "/private/tmp/ty-companion-subsecond-work/field-class-access-factory-v13b/project/demo.py",
+              "positions": {
+                "begin": {
+                  "column": 13,
+                  "line": 23
+                },
+                "end": {
+                  "column": 21,
+                  "line": 23
+                }
+              }
+            },
+            "severity": "info"
+          },
+          {
+            "check_name": "revealed-type",
+            "description": "revealed-type: Revealed type: `int`",
+            "fingerprint": "a2dbbeafda64d12effe00de8e3b5b531df1ce80ef542768f236f56a0257e13ef",
+            "location": {
+              "path": "/private/tmp/ty-companion-subsecond-work/field-class-access-factory-v13b/project/demo.py",
+              "positions": {
+                "begin": {
+                  "column": 13,
+                  "line": 19
+                },
+                "end": {
+                  "column": 16,
+                  "line": 19
+                }
+              }
+            },
+            "severity": "info"
+          },
+          {
+            "check_name": "revealed-type",
+            "description": "revealed-type: Revealed type: `int`",
+            "fingerprint": "bfc43ed0970e92754fe7524d65ae78eb9c7078bb63db03d5bc0b0f7b27e346eb",
+            "location": {
+              "path": "/private/tmp/ty-companion-subsecond-work/field-class-access-factory-v13b/project/demo.py",
+              "positions": {
+                "begin": {
+                  "column": 13,
+                  "line": 21
+                },
+                "end": {
+                  "column": 16,
+                  "line": 21
+                }
+              }
+            },
+            "severity": "info"
+          },
+          {
+            "check_name": "revealed-type",
+            "description": "revealed-type: Revealed type: `int`",
+            "fingerprint": "9d0792e3bf8598e18918f623ac0ca82a1b369bc1efe0ce0dcb991f0a81767e62",
+            "location": {
+              "path": "/private/tmp/ty-companion-subsecond-work/field-class-access-factory-v13b/project/demo.py",
+              "positions": {
+                "begin": {
+                  "column": 13,
+                  "line": 25
+                },
+                "end": {
+                  "column": 23,
+                  "line": 25
+                }
+              }
+            },
+            "severity": "info"
+          },
+          {
+            "check_name": "revealed-type",
+            "description": "revealed-type: Revealed type: `int`",
+            "fingerprint": "3702f42c908fa6a0841bd6332f1681ed222f7f1f7295fc6efa42fe55b7a3b9bf",
+            "location": {
+              "path": "/private/tmp/ty-companion-subsecond-work/field-class-access-factory-v13b/project/demo.py",
+              "positions": {
+                "begin": {
+                  "column": 13,
+                  "line": 29
+                },
+                "end": {
+                  "column": 29,
+                  "line": 29
+                }
+              }
+            },
+            "severity": "info"
+          },
+          {
+            "check_name": "revealed-type",
+            "description": "revealed-type: Revealed type: `property`",
+            "fingerprint": "4090765947497a53bf39e156322d727934baacab682d865cceb901a698aebe13",
+            "location": {
+              "path": "/private/tmp/ty-companion-subsecond-work/field-class-access-factory-v13b/project/demo.py",
+              "positions": {
+                "begin": {
+                  "column": 13,
+                  "line": 27
+                },
+                "end": {
+                  "column": 23,
+                  "line": 27
+                }
+              }
+            },
+            "severity": "info"
+          },
+          {
+            "check_name": "revealed-type",
+            "description": "revealed-type: Revealed type: `str`",
+            "fingerprint": "d48d774d397cfda0ca30775a9130a45ddde3f0f129fad4c839dc46bed48500c9",
+            "location": {
+              "path": "/private/tmp/ty-companion-subsecond-work/field-class-access-factory-v13b/project/demo.py",
+              "positions": {
+                "begin": {
+                  "column": 13,
+                  "line": 20
+                },
+                "end": {
+                  "column": 18,
+                  "line": 20
+                }
+              }
+            },
+            "severity": "info"
+          },
+          {
+            "check_name": "revealed-type",
+            "description": "revealed-type: Revealed type: `str`",
+            "fingerprint": "07b00bbdd2aef2e98be9a1e4b4cae8e62f01286374c98f366c6d60df19e340f7",
+            "location": {
+              "path": "/private/tmp/ty-companion-subsecond-work/field-class-access-factory-v13b/project/demo.py",
+              "positions": {
+                "begin": {
+                  "column": 13,
+                  "line": 22
+                },
+                "end": {
+                  "column": 18,
+                  "line": 22
+                }
+              }
+            },
+            "severity": "info"
+          },
+          {
+            "check_name": "revealed-type",
+            "description": "revealed-type: Revealed type: `str`",
+            "fingerprint": "7a231b98d3d062cf6817f68d8cce4d30f8a2571d1b05baef974d9a89e281dc9a",
+            "location": {
+              "path": "/private/tmp/ty-companion-subsecond-work/field-class-access-factory-v13b/project/demo.py",
+              "positions": {
+                "begin": {
+                  "column": 13,
+                  "line": 24
+                },
+                "end": {
+                  "column": 23,
+                  "line": 24
+                }
+              }
+            },
+            "severity": "info"
+          },
+          {
+            "check_name": "revealed-type",
+            "description": "revealed-type: Revealed type: `str`",
+            "fingerprint": "b8d76edde17d55a5f7261e8a14b739c03f19312b2b8f3e62b5ba65af850a3ef0",
+            "location": {
+              "path": "/private/tmp/ty-companion-subsecond-work/field-class-access-factory-v13b/project/demo.py",
+              "positions": {
+                "begin": {
+                  "column": 13,
+                  "line": 26
+                },
+                "end": {
+                  "column": 25,
+                  "line": 26
+                }
+              }
+            },
+            "severity": "info"
+          },
+          {
+            "check_name": "revealed-type",
+            "description": "revealed-type: Revealed type: `str`",
+            "fingerprint": "26d9b5199430bdedb623fc7b6858ed7ee2588005db5c7b2ae40f345f9d1e177f",
+            "location": {
+              "path": "/private/tmp/ty-companion-subsecond-work/field-class-access-factory-v13b/project/demo.py",
+              "positions": {
+                "begin": {
+                  "column": 13,
+                  "line": 28
+                },
+                "end": {
+                  "column": 25,
+                  "line": 28
+                }
+              }
+            },
+            "severity": "info"
+          },
+          {
+            "check_name": "revealed-type",
+            "description": "revealed-type: Revealed type: `str`",
+            "fingerprint": "8317451efdff8c5ec79a461a31b4c1985747fb832f09cdf8f18ac0bb41c94968",
+            "location": {
+              "path": "/private/tmp/ty-companion-subsecond-work/field-class-access-factory-v13b/project/demo.py",
+              "positions": {
+                "begin": {
+                  "column": 13,
+                  "line": 30
+                },
+                "end": {
+                  "column": 31,
+                  "line": 30
+                }
+              }
+            },
+            "severity": "info"
+          },
+          {
+            "check_name": "unresolved-attribute",
+            "description": "unresolved-attribute: Attribute `x` can only be accessed on instances, not on the class object `<class 'Absent'>` itself.",
+            "fingerprint": "c83cb2e30a31d39e5581050e71f8c00b1ef33c83cd3c1bba13381069e627adf1",
+            "location": {
+              "path": "/private/tmp/ty-companion-subsecond-work/field-class-access-factory-v13b/project/demo.py",
+              "positions": {
+                "begin": {
+                  "column": 13,
+                  "line": 23
+                },
+                "end": {
+                  "column": 21,
+                  "line": 23
+                }
+              }
+            },
+            "severity": "major"
+          }
+        ]
+      }
+    }
+  },
+  "performance": {
+    "passed": true,
+    "timing_load_limit": 16,
+    "logical_cpus": 10,
+    "source_sha256": "51c1a88b05a169f1222685fe6105e4be5f43d4213aaaf57c60bf99dbe0d82df9",
+    "candidate_sha256": "769e4dd1f836298e4bdc6306a540c466ba9b9a7a8741425aaa2e6ab4a4dad5f6",
+    "records": [
+      {
+        "backend": "companion",
+        "label": "0/released",
+        "command": [
+          "/private/tmp/ty-companion-subsecond-work/environment/bin/ty-extended",
+          "check",
+          "--python",
+          "/private/tmp/ty-companion-subsecond-work/environment/bin/python",
+          "--output-format",
+          "gitlab",
+          "--no-progress",
+          "--color",
+          "never",
+          "/private/tmp/ty-companion-subsecond-work/stress/project",
+          "--ty",
+          "/private/tmp/ty-companion-subsecond-work/environment/bin/ty",
+          "--config-file",
+          "/private/tmp/ty-companion-subsecond-work/stress/companion.toml"
+        ],
+        "seconds": 6.32087733305525,
+        "exit": 0,
+        "diagnostic_codes": {},
+        "user_cpu_seconds": 4.552019,
+        "system_cpu_seconds": 3.094606,
+        "sampled_process_tree_peak_rss_kib": 1370544,
+        "stopped": null,
+        "monitor_error": null,
+        "parse_error": null,
+        "load_before": [
+          4.38037109375,
+          5.927734375,
+          6.392578125
+        ],
+        "load_after": [
+          4.4296875,
+          5.912109375,
+          6.38427734375
+        ],
+        "source_sha256": "51c1a88b05a169f1222685fe6105e4be5f43d4213aaaf57c60bf99dbe0d82df9",
+        "source_preserved": true,
+        "phases": {
+          "startup_source_copy": 0.485,
+          "startup_configuration": 0.002,
+          "startup_runtime": 0.006,
+          "startup_overlays": 0.083,
+          "startup_selection": 0.082,
+          "startup_project": 0.486,
+          "source_scan": 0.177,
+          "external_resolution": 0.007,
+          "function_summaries": 0.0,
+          "project_index": 0.831,
+          "class_projection": 0.706,
+          "initial_lowering": 0.345,
+          "flow_and_render": 0.34199999999999997,
+          "import_preflight": 0.533,
+          "oracle_check": 0.264,
+          "hook_responses": 0.092,
+          "final_render": 0.013,
+          "final_check": 1.187,
+          "diagnostic_mapping": 0.014,
+          "source_maps": 0.018
+        },
+        "workspace_transport": false,
+        "variant": "released"
+      },
+      {
+        "backend": "companion",
+        "label": "0/candidate",
+        "command": [
+          "/private/tmp/ty-companion-subsecond-work/factory-release-v13b",
+          "check",
+          "--python",
+          "/private/tmp/ty-companion-subsecond-work/environment/bin/python",
+          "--output-format",
+          "gitlab",
+          "--no-progress",
+          "--color",
+          "never",
+          "/private/tmp/ty-companion-subsecond-work/stress/project",
+          "--ty",
+          "/private/tmp/ty-companion-subsecond-work/environment/bin/ty",
+          "--config-file",
+          "/private/tmp/ty-companion-subsecond-work/stress/companion.toml"
+        ],
+        "seconds": 5.405231459066272,
+        "exit": 0,
+        "diagnostic_codes": {},
+        "user_cpu_seconds": 4.294424,
+        "system_cpu_seconds": 1.8826829999999999,
+        "sampled_process_tree_peak_rss_kib": 1249184,
+        "stopped": null,
+        "monitor_error": null,
+        "parse_error": null,
+        "load_before": [
+          4.31494140625,
+          5.86328125,
+          6.3642578125
+        ],
+        "load_after": [
+          4.52978515625,
+          5.8818359375,
+          6.36767578125
+        ],
+        "source_sha256": "51c1a88b05a169f1222685fe6105e4be5f43d4213aaaf57c60bf99dbe0d82df9",
+        "source_preserved": true,
+        "phases": {
+          "startup_source_copy": 0.006,
+          "startup_configuration": 0.002,
+          "startup_runtime": 0.006,
+          "startup_overlays": 0.09,
+          "startup_selection": 0.085,
+          "startup_source_and_stub_index": 0.413,
+          "startup_project": 0.0,
+          "source_scan": 0.177,
+          "external_resolution": 0.007,
+          "function_summaries": 0.0,
+          "project_index": 0.769,
+          "virtual_declarations": 0.193,
+          "class_projection": 0.511,
+          "initial_lowering": 0.407,
+          "flow_and_render": 0.156,
+          "import_preflight": 0.069,
+          "oracle_check": 0.711,
+          "hook_responses": 0.10999999999999999,
+          "final_render": 0.012,
+          "final_check": 1.367,
+          "diagnostic_mapping": 0.013,
+          "source_maps": 0.014
+        },
+        "workspace_transport": true,
+        "variant": "candidate"
+      },
+      {
+        "backend": "bare-ty",
+        "label": "0/bare",
+        "command": [
+          "/private/tmp/ty-companion-subsecond-work/environment/bin/ty",
+          "check",
+          "--python",
+          "/private/tmp/ty-companion-subsecond-work/environment/bin/python",
+          "--output-format",
+          "gitlab",
+          "--no-progress",
+          "--color",
+          "never",
+          "/private/tmp/ty-companion-subsecond-work/stress/project",
+          "--config-file",
+          "/private/tmp/ty-companion-subsecond-work/stress/bare.toml"
+        ],
+        "seconds": 0.26501274993643165,
+        "exit": 1,
+        "diagnostic_codes": {
+          "type-assertion-failure": 100,
+          "unresolved-attribute": 100
+        },
+        "user_cpu_seconds": 0.390665,
+        "system_cpu_seconds": 0.48532899999999995,
+        "sampled_process_tree_peak_rss_kib": 84944,
+        "stopped": null,
+        "monitor_error": null,
+        "parse_error": null,
+        "load_before": [
+          4.52978515625,
+          5.8818359375,
+          6.36767578125
+        ],
+        "load_after": [
+          4.52978515625,
+          5.8818359375,
+          6.36767578125
+        ],
+        "source_sha256": "51c1a88b05a169f1222685fe6105e4be5f43d4213aaaf57c60bf99dbe0d82df9",
+        "source_preserved": true,
+        "phases": {},
+        "workspace_transport": false,
+        "variant": "bare"
+      },
+      {
+        "backend": "mypy",
+        "label": "0/mypy",
+        "command": [
+          "/private/tmp/ty-companion-subsecond-work/mypy-reference/bin/mypy",
+          "--config-file",
+          "/private/tmp/ty-companion-subsecond-work/stress/mypy.ini",
+          "--output",
+          "json",
+          "--no-incremental",
+          "/private/tmp/ty-companion-subsecond-work/stress/project",
+          "--cache-dir",
+          "/private/tmp/ty-companion-subsecond-work/factory-v13b-measurements/runs/0/mypy/scratch/mypy-cache"
+        ],
+        "seconds": 6.715445916051976,
+        "exit": 0,
+        "diagnostic_codes": {},
+        "user_cpu_seconds": 5.685032,
+        "system_cpu_seconds": 1.218112,
+        "sampled_process_tree_peak_rss_kib": 505552,
+        "stopped": null,
+        "monitor_error": null,
+        "parse_error": null,
+        "load_before": [
+          4.52978515625,
+          5.8818359375,
+          6.36767578125
+        ],
+        "load_after": [
+          4.8076171875,
+          5.9169921875,
+          6.376953125
+        ],
+        "source_sha256": "51c1a88b05a169f1222685fe6105e4be5f43d4213aaaf57c60bf99dbe0d82df9",
+        "source_preserved": true,
+        "phases": {},
+        "workspace_transport": false,
+        "variant": "mypy"
+      },
+      {
+        "backend": "companion",
+        "label": "0/candidate-manager",
+        "command": [
+          "/private/tmp/ty-companion-subsecond-work/factory-release-v13b",
+          "check",
+          "--python",
+          "/private/tmp/ty-companion-subsecond-work/environment/bin/python",
+          "--output-format",
+          "gitlab",
+          "--no-progress",
+          "--color",
+          "never",
+          "/private/tmp/ty-companion-subsecond-work/stress/project",
+          "--ty",
+          "/private/tmp/ty-companion-subsecond-work/environment/bin/ty",
+          "--config-file",
+          "/private/tmp/ty-companion-subsecond-work/stress/local-django.toml"
+        ],
+        "seconds": 5.113611959037371,
+        "exit": 0,
+        "diagnostic_codes": {},
+        "user_cpu_seconds": 4.093598,
+        "system_cpu_seconds": 1.663814,
+        "sampled_process_tree_peak_rss_kib": 1197648,
+        "stopped": null,
+        "monitor_error": null,
+        "parse_error": null,
+        "load_before": [
+          4.98291015625,
+          5.9345703125,
+          6.38037109375
+        ],
+        "load_after": [
+          4.90380859375,
+          5.90234375,
+          6.3662109375
+        ],
+        "source_sha256": "51c1a88b05a169f1222685fe6105e4be5f43d4213aaaf57c60bf99dbe0d82df9",
+        "source_preserved": true,
+        "phases": {
+          "startup_source_copy": 0.006,
+          "startup_configuration": 0.002,
+          "startup_runtime": 0.006,
+          "startup_overlays": 0.093,
+          "startup_selection": 0.081,
+          "startup_source_and_stub_index": 0.409,
+          "startup_project": 0.0,
+          "source_scan": 0.177,
+          "external_resolution": 0.008,
+          "function_summaries": 0.0,
+          "project_index": 0.732,
+          "virtual_declarations": 0.12,
+          "class_projection": 0.496,
+          "initial_lowering": 0.409,
+          "flow_and_render": 0.142,
+          "import_preflight": 0.069,
+          "oracle_check": 0.655,
+          "hook_responses": 0.08099999999999999,
+          "final_render": 0.013,
+          "final_check": 1.323,
+          "diagnostic_mapping": 0.012,
+          "source_maps": 0.012
+        },
+        "workspace_transport": true,
+        "variant": "candidate-manager"
+      },
+      {
+        "backend": "companion",
+        "label": "0/previous-candidate",
+        "command": [
+          "/private/tmp/ty-companion-subsecond-work/fields-release-v12i",
+          "check",
+          "--python",
+          "/private/tmp/ty-companion-subsecond-work/environment/bin/python",
+          "--output-format",
+          "gitlab",
+          "--no-progress",
+          "--color",
+          "never",
+          "/private/tmp/ty-companion-subsecond-work/stress/project",
+          "--ty",
+          "/private/tmp/ty-companion-subsecond-work/environment/bin/ty",
+          "--config-file",
+          "/private/tmp/ty-companion-subsecond-work/stress/local-django.toml"
+        ],
+        "seconds": 5.267848500050604,
+        "exit": 0,
+        "diagnostic_codes": {},
+        "user_cpu_seconds": 4.15161,
+        "system_cpu_seconds": 1.982011,
+        "sampled_process_tree_peak_rss_kib": 1196464,
+        "stopped": null,
+        "monitor_error": null,
+        "parse_error": null,
+        "load_before": [
+          4.90380859375,
+          5.90234375,
+          6.3662109375
+        ],
+        "load_after": [
+          4.8310546875,
+          5.87060546875,
+          6.35205078125
+        ],
+        "source_sha256": "51c1a88b05a169f1222685fe6105e4be5f43d4213aaaf57c60bf99dbe0d82df9",
+        "source_preserved": true,
+        "phases": {
+          "startup_source_copy": 0.006,
+          "startup_configuration": 0.003,
+          "startup_runtime": 0.007,
+          "startup_overlays": 0.083,
+          "startup_selection": 0.082,
+          "startup_source_and_stub_index": 0.41,
+          "startup_project": 0.0,
+          "source_scan": 0.178,
+          "external_resolution": 0.007,
+          "function_summaries": 0.0,
+          "project_index": 0.738,
+          "virtual_declarations": 0.12,
+          "class_projection": 0.496,
+          "initial_lowering": 0.409,
+          "flow_and_render": 0.147,
+          "import_preflight": 0.075,
+          "oracle_check": 0.739,
+          "hook_responses": 0.08099999999999999,
+          "final_render": 0.013,
+          "final_check": 1.379,
+          "diagnostic_mapping": 0.013,
+          "source_maps": 0.012
+        },
+        "workspace_transport": true,
+        "variant": "previous-candidate"
+      },
+      {
+        "backend": "bare-ty",
+        "label": "1/bare",
+        "command": [
+          "/private/tmp/ty-companion-subsecond-work/environment/bin/ty",
+          "check",
+          "--python",
+          "/private/tmp/ty-companion-subsecond-work/environment/bin/python",
+          "--output-format",
+          "gitlab",
+          "--no-progress",
+          "--color",
+          "never",
+          "/private/tmp/ty-companion-subsecond-work/stress/project",
+          "--config-file",
+          "/private/tmp/ty-companion-subsecond-work/stress/bare.toml"
+        ],
+        "seconds": 0.26408041710965335,
+        "exit": 1,
+        "diagnostic_codes": {
+          "type-assertion-failure": 100,
+          "unresolved-attribute": 100
+        },
+        "user_cpu_seconds": 0.39938799999999997,
+        "system_cpu_seconds": 0.47806699999999996,
+        "sampled_process_tree_peak_rss_kib": 83232,
+        "stopped": null,
+        "monitor_error": null,
+        "parse_error": null,
+        "load_before": [
+          4.8310546875,
+          5.87060546875,
+          6.35205078125
+        ],
+        "load_after": [
+          4.8310546875,
+          5.87060546875,
+          6.35205078125
+        ],
+        "source_sha256": "51c1a88b05a169f1222685fe6105e4be5f43d4213aaaf57c60bf99dbe0d82df9",
+        "source_preserved": true,
+        "phases": {},
+        "workspace_transport": false,
+        "variant": "bare"
+      },
+      {
+        "backend": "companion",
+        "label": "1/previous-candidate",
+        "command": [
+          "/private/tmp/ty-companion-subsecond-work/fields-release-v12i",
+          "check",
+          "--python",
+          "/private/tmp/ty-companion-subsecond-work/environment/bin/python",
+          "--output-format",
+          "gitlab",
+          "--no-progress",
+          "--color",
+          "never",
+          "/private/tmp/ty-companion-subsecond-work/stress/project",
+          "--ty",
+          "/private/tmp/ty-companion-subsecond-work/environment/bin/ty",
+          "--config-file",
+          "/private/tmp/ty-companion-subsecond-work/stress/local-django.toml"
+        ],
+        "seconds": 5.177018166985363,
+        "exit": 0,
+        "diagnostic_codes": {},
+        "user_cpu_seconds": 4.118532,
+        "system_cpu_seconds": 1.7062869999999999,
+        "sampled_process_tree_peak_rss_kib": 1195456,
+        "stopped": null,
+        "monitor_error": null,
+        "parse_error": null,
+        "load_before": [
+          4.8310546875,
+          5.87060546875,
+          6.35205078125
+        ],
+        "load_after": [
+          4.76416015625,
+          5.83935546875,
+          6.337890625
+        ],
+        "source_sha256": "51c1a88b05a169f1222685fe6105e4be5f43d4213aaaf57c60bf99dbe0d82df9",
+        "source_preserved": true,
+        "phases": {
+          "startup_source_copy": 0.006,
+          "startup_configuration": 0.002,
+          "startup_runtime": 0.006,
+          "startup_overlays": 0.089,
+          "startup_selection": 0.082,
+          "startup_source_and_stub_index": 0.415,
+          "startup_project": 0.0,
+          "source_scan": 0.178,
+          "external_resolution": 0.007,
+          "function_summaries": 0.0,
+          "project_index": 0.736,
+          "virtual_declarations": 0.119,
+          "class_projection": 0.493,
+          "initial_lowering": 0.409,
+          "flow_and_render": 0.142,
+          "import_preflight": 0.073,
+          "oracle_check": 0.66,
+          "hook_responses": 0.079,
+          "final_render": 0.013,
+          "final_check": 1.373,
+          "diagnostic_mapping": 0.012,
+          "source_maps": 0.012
+        },
+        "workspace_transport": true,
+        "variant": "previous-candidate"
+      },
+      {
+        "backend": "companion",
+        "label": "1/candidate-manager",
+        "command": [
+          "/private/tmp/ty-companion-subsecond-work/factory-release-v13b",
+          "check",
+          "--python",
+          "/private/tmp/ty-companion-subsecond-work/environment/bin/python",
+          "--output-format",
+          "gitlab",
+          "--no-progress",
+          "--color",
+          "never",
+          "/private/tmp/ty-companion-subsecond-work/stress/project",
+          "--ty",
+          "/private/tmp/ty-companion-subsecond-work/environment/bin/ty",
+          "--config-file",
+          "/private/tmp/ty-companion-subsecond-work/stress/local-django.toml"
+        ],
+        "seconds": 5.2157035829732195,
+        "exit": 0,
+        "diagnostic_codes": {},
+        "user_cpu_seconds": 4.093655,
+        "system_cpu_seconds": 1.828603,
+        "sampled_process_tree_peak_rss_kib": 1185280,
+        "stopped": null,
+        "monitor_error": null,
+        "parse_error": null,
+        "load_before": [
+          4.76416015625,
+          5.83935546875,
+          6.337890625
+        ],
+        "load_after": [
+          4.94287109375,
+          5.8583984375,
+          6.34130859375
+        ],
+        "source_sha256": "51c1a88b05a169f1222685fe6105e4be5f43d4213aaaf57c60bf99dbe0d82df9",
+        "source_preserved": true,
+        "phases": {
+          "startup_source_copy": 0.006,
+          "startup_configuration": 0.001,
+          "startup_runtime": 0.006,
+          "startup_overlays": 0.084,
+          "startup_selection": 0.084,
+          "startup_source_and_stub_index": 0.48,
+          "startup_project": 0.0,
+          "source_scan": 0.178,
+          "external_resolution": 0.007,
+          "function_summaries": 0.0,
+          "project_index": 0.733,
+          "virtual_declarations": 0.119,
+          "class_projection": 0.49,
+          "initial_lowering": 0.409,
+          "flow_and_render": 0.145,
+          "import_preflight": 0.07100000000000001,
+          "oracle_check": 0.7000000000000001,
+          "hook_responses": 0.08099999999999999,
+          "final_render": 0.012,
+          "final_check": 1.321,
+          "diagnostic_mapping": 0.012,
+          "source_maps": 0.011
+        },
+        "workspace_transport": true,
+        "variant": "candidate-manager"
+      },
+      {
+        "backend": "mypy",
+        "label": "1/mypy",
+        "command": [
+          "/private/tmp/ty-companion-subsecond-work/mypy-reference/bin/mypy",
+          "--config-file",
+          "/private/tmp/ty-companion-subsecond-work/stress/mypy.ini",
+          "--output",
+          "json",
+          "--no-incremental",
+          "/private/tmp/ty-companion-subsecond-work/stress/project",
+          "--cache-dir",
+          "/private/tmp/ty-companion-subsecond-work/factory-v13b-measurements/runs/1/mypy/scratch/mypy-cache"
+        ],
+        "seconds": 6.594758624909446,
+        "exit": 0,
+        "diagnostic_codes": {},
+        "user_cpu_seconds": 5.748555,
+        "system_cpu_seconds": 1.226648,
+        "sampled_process_tree_peak_rss_kib": 504720,
+        "stopped": null,
+        "monitor_error": null,
+        "parse_error": null,
+        "load_before": [
+          4.787109375,
+          5.810546875,
+          6.3212890625
+        ],
+        "load_after": [
+          5.4443359375,
+          5.9296875,
+          6.3603515625
+        ],
+        "source_sha256": "51c1a88b05a169f1222685fe6105e4be5f43d4213aaaf57c60bf99dbe0d82df9",
+        "source_preserved": true,
+        "phases": {},
+        "workspace_transport": false,
+        "variant": "mypy"
+      },
+      {
+        "backend": "companion",
+        "label": "1/candidate",
+        "command": [
+          "/private/tmp/ty-companion-subsecond-work/factory-release-v13b",
+          "check",
+          "--python",
+          "/private/tmp/ty-companion-subsecond-work/environment/bin/python",
+          "--output-format",
+          "gitlab",
+          "--no-progress",
+          "--color",
+          "never",
+          "/private/tmp/ty-companion-subsecond-work/stress/project",
+          "--ty",
+          "/private/tmp/ty-companion-subsecond-work/environment/bin/ty",
+          "--config-file",
+          "/private/tmp/ty-companion-subsecond-work/stress/companion.toml"
+        ],
+        "seconds": 5.389431084040552,
+        "exit": 0,
+        "diagnostic_codes": {},
+        "user_cpu_seconds": 4.253875,
+        "system_cpu_seconds": 1.773933,
+        "sampled_process_tree_peak_rss_kib": 1254304,
+        "stopped": null,
+        "monitor_error": null,
+        "parse_error": null,
+        "load_before": [
+          5.4443359375,
+          5.9296875,
+          6.3603515625
+        ],
+        "load_after": [
+          5.24853515625,
+          5.880859375,
+          6.34033203125
+        ],
+        "source_sha256": "51c1a88b05a169f1222685fe6105e4be5f43d4213aaaf57c60bf99dbe0d82df9",
+        "source_preserved": true,
+        "phases": {
+          "startup_source_copy": 0.006,
+          "startup_configuration": 0.002,
+          "startup_runtime": 0.006,
+          "startup_overlays": 0.085,
+          "startup_selection": 0.082,
+          "startup_source_and_stub_index": 0.412,
+          "startup_project": 0.0,
+          "source_scan": 0.176,
+          "external_resolution": 0.008,
+          "function_summaries": 0.0,
+          "project_index": 0.763,
+          "virtual_declarations": 0.191,
+          "class_projection": 0.512,
+          "initial_lowering": 0.407,
+          "flow_and_render": 0.156,
+          "import_preflight": 0.068,
+          "oracle_check": 0.732,
+          "hook_responses": 0.079,
+          "final_render": 0.013,
+          "final_check": 1.381,
+          "diagnostic_mapping": 0.013,
+          "source_maps": 0.013
+        },
+        "workspace_transport": true,
+        "variant": "candidate"
+      },
+      {
+        "backend": "companion",
+        "label": "1/released",
+        "command": [
+          "/private/tmp/ty-companion-subsecond-work/environment/bin/ty-extended",
+          "check",
+          "--python",
+          "/private/tmp/ty-companion-subsecond-work/environment/bin/python",
+          "--output-format",
+          "gitlab",
+          "--no-progress",
+          "--color",
+          "never",
+          "/private/tmp/ty-companion-subsecond-work/stress/project",
+          "--ty",
+          "/private/tmp/ty-companion-subsecond-work/environment/bin/ty",
+          "--config-file",
+          "/private/tmp/ty-companion-subsecond-work/stress/companion.toml"
+        ],
+        "seconds": 6.424269416020252,
+        "exit": 0,
+        "diagnostic_codes": {},
+        "user_cpu_seconds": 4.513609,
+        "system_cpu_seconds": 3.013591,
+        "sampled_process_tree_peak_rss_kib": 1390816,
+        "stopped": null,
+        "monitor_error": null,
+        "parse_error": null,
+        "load_before": [
+          5.24853515625,
+          5.880859375,
+          6.34033203125
+        ],
+        "load_after": [
+          6.41748046875,
+          6.10107421875,
+          6.412109375
+        ],
+        "source_sha256": "51c1a88b05a169f1222685fe6105e4be5f43d4213aaaf57c60bf99dbe0d82df9",
+        "source_preserved": true,
+        "phases": {
+          "startup_source_copy": 0.472,
+          "startup_configuration": 0.002,
+          "startup_runtime": 0.006,
+          "startup_overlays": 0.089,
+          "startup_selection": 0.081,
+          "startup_project": 0.495,
+          "source_scan": 0.241,
+          "external_resolution": 0.007,
+          "function_summaries": 0.0,
+          "project_index": 0.83,
+          "class_projection": 0.701,
+          "initial_lowering": 0.345,
+          "flow_and_render": 0.403,
+          "import_preflight": 0.533,
+          "oracle_check": 0.264,
+          "hook_responses": 0.095,
+          "final_render": 0.013,
+          "final_check": 1.175,
+          "diagnostic_mapping": 0.014,
+          "source_maps": 0.018
+        },
+        "workspace_transport": false,
+        "variant": "released"
+      },
+      {
+        "backend": "mypy",
+        "label": "2/mypy",
+        "command": [
+          "/private/tmp/ty-companion-subsecond-work/mypy-reference/bin/mypy",
+          "--config-file",
+          "/private/tmp/ty-companion-subsecond-work/stress/mypy.ini",
+          "--output",
+          "json",
+          "--no-incremental",
+          "/private/tmp/ty-companion-subsecond-work/stress/project",
+          "--cache-dir",
+          "/private/tmp/ty-companion-subsecond-work/factory-v13b-measurements/runs/2/mypy/scratch/mypy-cache"
+        ],
+        "seconds": 6.718266750103794,
+        "exit": 0,
+        "diagnostic_codes": {},
+        "user_cpu_seconds": 5.827435,
+        "system_cpu_seconds": 1.22977,
+        "sampled_process_tree_peak_rss_kib": 509600,
+        "stopped": null,
+        "monitor_error": null,
+        "parse_error": null,
+        "load_before": [
+          6.41748046875,
+          6.10107421875,
+          6.412109375
+        ],
+        "load_after": [
+          6.5439453125,
+          6.13232421875,
+          6.42138671875
+        ],
+        "source_sha256": "51c1a88b05a169f1222685fe6105e4be5f43d4213aaaf57c60bf99dbe0d82df9",
+        "source_preserved": true,
+        "phases": {},
+        "workspace_transport": false,
+        "variant": "mypy"
+      },
+      {
+        "backend": "companion",
+        "label": "2/candidate",
+        "command": [
+          "/private/tmp/ty-companion-subsecond-work/factory-release-v13b",
+          "check",
+          "--python",
+          "/private/tmp/ty-companion-subsecond-work/environment/bin/python",
+          "--output-format",
+          "gitlab",
+          "--no-progress",
+          "--color",
+          "never",
+          "/private/tmp/ty-companion-subsecond-work/stress/project",
+          "--ty",
+          "/private/tmp/ty-companion-subsecond-work/environment/bin/ty",
+          "--config-file",
+          "/private/tmp/ty-companion-subsecond-work/stress/companion.toml"
+        ],
+        "seconds": 5.31733874999918,
+        "exit": 0,
+        "diagnostic_codes": {},
+        "user_cpu_seconds": 4.247301,
+        "system_cpu_seconds": 1.735312,
+        "sampled_process_tree_peak_rss_kib": 1268096,
+        "stopped": null,
+        "monitor_error": null,
+        "parse_error": null,
+        "load_before": [
+          6.5439453125,
+          6.13232421875,
+          6.42138671875
+        ],
+        "load_after": [
+          6.419921875,
+          6.11328125,
+          6.41259765625
+        ],
+        "source_sha256": "51c1a88b05a169f1222685fe6105e4be5f43d4213aaaf57c60bf99dbe0d82df9",
+        "source_preserved": true,
+        "phases": {
+          "startup_source_copy": 0.006,
+          "startup_configuration": 0.002,
+          "startup_runtime": 0.006,
+          "startup_overlays": 0.086,
+          "startup_selection": 0.082,
+          "startup_source_and_stub_index": 0.417,
+          "startup_project": 0.0,
+          "source_scan": 0.175,
+          "external_resolution": 0.007,
+          "function_summaries": 0.0,
+          "project_index": 0.764,
+          "virtual_declarations": 0.191,
+          "class_projection": 0.511,
+          "initial_lowering": 0.403,
+          "flow_and_render": 0.155,
+          "import_preflight": 0.069,
+          "oracle_check": 0.665,
+          "hook_responses": 0.08299999999999999,
+          "final_render": 0.013,
+          "final_check": 1.369,
+          "diagnostic_mapping": 0.014,
+          "source_maps": 0.014
+        },
+        "workspace_transport": true,
+        "variant": "candidate"
+      },
+      {
+        "backend": "companion",
+        "label": "2/released",
+        "command": [
+          "/private/tmp/ty-companion-subsecond-work/environment/bin/ty-extended",
+          "check",
+          "--python",
+          "/private/tmp/ty-companion-subsecond-work/environment/bin/python",
+          "--output-format",
+          "gitlab",
+          "--no-progress",
+          "--color",
+          "never",
+          "/private/tmp/ty-companion-subsecond-work/stress/project",
+          "--ty",
+          "/private/tmp/ty-companion-subsecond-work/environment/bin/ty",
+          "--config-file",
+          "/private/tmp/ty-companion-subsecond-work/stress/companion.toml"
+        ],
+        "seconds": 6.402934166952036,
+        "exit": 0,
+        "diagnostic_codes": {},
+        "user_cpu_seconds": 4.525198,
+        "system_cpu_seconds": 3.100263,
+        "sampled_process_tree_peak_rss_kib": 1391296,
+        "stopped": null,
+        "monitor_error": null,
+        "parse_error": null,
+        "load_before": [
+          6.419921875,
+          6.11328125,
+          6.41259765625
+        ],
+        "load_after": [
+          7.0244140625,
+          6.25634765625,
+          6.4599609375
+        ],
+        "source_sha256": "51c1a88b05a169f1222685fe6105e4be5f43d4213aaaf57c60bf99dbe0d82df9",
+        "source_preserved": true,
+        "phases": {
+          "startup_source_copy": 0.481,
+          "startup_configuration": 0.001,
+          "startup_runtime": 0.006,
+          "startup_overlays": 0.097,
+          "startup_selection": 0.093,
+          "startup_project": 0.549,
+          "source_scan": 0.18,
+          "external_resolution": 0.008,
+          "function_summaries": 0.0,
+          "project_index": 0.83,
+          "class_projection": 0.697,
+          "initial_lowering": 0.344,
+          "flow_and_render": 0.387,
+          "import_preflight": 0.533,
+          "oracle_check": 0.266,
+          "hook_responses": 0.093,
+          "final_render": 0.013,
+          "final_check": 1.149,
+          "diagnostic_mapping": 0.014,
+          "source_maps": 0.018
+        },
+        "workspace_transport": false,
+        "variant": "released"
+      },
+      {
+        "backend": "companion",
+        "label": "2/previous-candidate",
+        "command": [
+          "/private/tmp/ty-companion-subsecond-work/fields-release-v12i",
+          "check",
+          "--python",
+          "/private/tmp/ty-companion-subsecond-work/environment/bin/python",
+          "--output-format",
+          "gitlab",
+          "--no-progress",
+          "--color",
+          "never",
+          "/private/tmp/ty-companion-subsecond-work/stress/project",
+          "--ty",
+          "/private/tmp/ty-companion-subsecond-work/environment/bin/ty",
+          "--config-file",
+          "/private/tmp/ty-companion-subsecond-work/stress/local-django.toml"
+        ],
+        "seconds": 5.180966041982174,
+        "exit": 0,
+        "diagnostic_codes": {},
+        "user_cpu_seconds": 4.140207,
+        "system_cpu_seconds": 1.708867,
+        "sampled_process_tree_peak_rss_kib": 1193984,
+        "stopped": null,
+        "monitor_error": null,
+        "parse_error": null,
+        "load_before": [
+          7.0244140625,
+          6.25634765625,
+          6.4599609375
+        ],
+        "load_after": [
+          6.94189453125,
+          6.251953125,
+          6.45703125
+        ],
+        "source_sha256": "51c1a88b05a169f1222685fe6105e4be5f43d4213aaaf57c60bf99dbe0d82df9",
+        "source_preserved": true,
+        "phases": {
+          "startup_source_copy": 0.006,
+          "startup_configuration": 0.001,
+          "startup_runtime": 0.006,
+          "startup_overlays": 0.087,
+          "startup_selection": 0.082,
+          "startup_source_and_stub_index": 0.415,
+          "startup_project": 0.0,
+          "source_scan": 0.183,
+          "external_resolution": 0.008,
+          "function_summaries": 0.0,
+          "project_index": 0.74,
+          "virtual_declarations": 0.119,
+          "class_projection": 0.493,
+          "initial_lowering": 0.409,
+          "flow_and_render": 0.146,
+          "import_preflight": 0.076,
+          "oracle_check": 0.64,
+          "hook_responses": 0.08299999999999999,
+          "final_render": 0.013,
+          "final_check": 1.383,
+          "diagnostic_mapping": 0.012,
+          "source_maps": 0.012
+        },
+        "workspace_transport": true,
+        "variant": "previous-candidate"
+      },
+      {
+        "backend": "companion",
+        "label": "2/candidate-manager",
+        "command": [
+          "/private/tmp/ty-companion-subsecond-work/factory-release-v13b",
+          "check",
+          "--python",
+          "/private/tmp/ty-companion-subsecond-work/environment/bin/python",
+          "--output-format",
+          "gitlab",
+          "--no-progress",
+          "--color",
+          "never",
+          "/private/tmp/ty-companion-subsecond-work/stress/project",
+          "--ty",
+          "/private/tmp/ty-companion-subsecond-work/environment/bin/ty",
+          "--config-file",
+          "/private/tmp/ty-companion-subsecond-work/stress/local-django.toml"
+        ],
+        "seconds": 5.124226958025247,
+        "exit": 0,
+        "diagnostic_codes": {},
+        "user_cpu_seconds": 4.10186,
+        "system_cpu_seconds": 1.71626,
+        "sampled_process_tree_peak_rss_kib": 1185568,
+        "stopped": null,
+        "monitor_error": null,
+        "parse_error": null,
+        "load_before": [
+          6.94189453125,
+          6.251953125,
+          6.45703125
+        ],
+        "load_after": [
+          6.9462890625,
+          6.26416015625,
+          6.4599609375
+        ],
+        "source_sha256": "51c1a88b05a169f1222685fe6105e4be5f43d4213aaaf57c60bf99dbe0d82df9",
+        "source_preserved": true,
+        "phases": {
+          "startup_source_copy": 0.006,
+          "startup_configuration": 0.001,
+          "startup_runtime": 0.006,
+          "startup_overlays": 0.09,
+          "startup_selection": 0.083,
+          "startup_source_and_stub_index": 0.41,
+          "startup_project": 0.0,
+          "source_scan": 0.183,
+          "external_resolution": 0.007,
+          "function_summaries": 0.0,
+          "project_index": 0.742,
+          "virtual_declarations": 0.12,
+          "class_projection": 0.494,
+          "initial_lowering": 0.413,
+          "flow_and_render": 0.145,
+          "import_preflight": 0.07,
+          "oracle_check": 0.638,
+          "hook_responses": 0.08099999999999999,
+          "final_render": 0.013,
+          "final_check": 1.325,
+          "diagnostic_mapping": 0.012,
+          "source_maps": 0.012
+        },
+        "workspace_transport": true,
+        "variant": "candidate-manager"
+      },
+      {
+        "backend": "bare-ty",
+        "label": "2/bare",
+        "command": [
+          "/private/tmp/ty-companion-subsecond-work/environment/bin/ty",
+          "check",
+          "--python",
+          "/private/tmp/ty-companion-subsecond-work/environment/bin/python",
+          "--output-format",
+          "gitlab",
+          "--no-progress",
+          "--color",
+          "never",
+          "/private/tmp/ty-companion-subsecond-work/stress/project",
+          "--config-file",
+          "/private/tmp/ty-companion-subsecond-work/stress/bare.toml"
+        ],
+        "seconds": 0.26768729207105935,
+        "exit": 1,
+        "diagnostic_codes": {
+          "type-assertion-failure": 100,
+          "unresolved-attribute": 100
+        },
+        "user_cpu_seconds": 0.374847,
+        "system_cpu_seconds": 0.459958,
+        "sampled_process_tree_peak_rss_kib": 81920,
+        "stopped": null,
+        "monitor_error": null,
+        "parse_error": null,
+        "load_before": [
+          6.9462890625,
+          6.26416015625,
+          6.4599609375
+        ],
+        "load_after": [
+          6.9462890625,
+          6.26416015625,
+          6.4599609375
+        ],
+        "source_sha256": "51c1a88b05a169f1222685fe6105e4be5f43d4213aaaf57c60bf99dbe0d82df9",
+        "source_preserved": true,
+        "phases": {},
+        "workspace_transport": false,
+        "variant": "bare"
+      },
+      {
+        "backend": "companion",
+        "label": "negative/candidate",
+        "command": [
+          "/private/tmp/ty-companion-subsecond-work/factory-release-v13b",
+          "check",
+          "--python",
+          "/private/tmp/ty-companion-subsecond-work/environment/bin/python",
+          "--output-format",
+          "gitlab",
+          "--no-progress",
+          "--color",
+          "never",
+          "/private/tmp/ty-companion-subsecond-work/stress/project",
+          "--ty",
+          "/private/tmp/ty-companion-subsecond-work/environment/bin/ty",
+          "--config-file",
+          "/private/tmp/ty-companion-subsecond-work/stress/companion.toml"
+        ],
+        "seconds": 5.688306082971394,
+        "exit": 1,
+        "diagnostic_codes": {
+          "invalid-assignment": 2
+        },
+        "user_cpu_seconds": 4.406326,
+        "system_cpu_seconds": 1.979939,
+        "sampled_process_tree_peak_rss_kib": 1257456,
+        "stopped": null,
+        "monitor_error": null,
+        "parse_error": null,
+        "load_before": [
+          6.9462890625,
+          6.26416015625,
+          6.4599609375
+        ],
+        "load_after": [
+          6.8740234375,
+          6.271484375,
+          6.4599609375
+        ],
+        "source_sha256": "1d6a6430d5c3eaec3a1d648f4c95b35912d6efc7d7c15370efadb0d6f41164ef",
+        "source_preserved": true,
+        "phases": {
+          "startup_source_copy": 0.005,
+          "startup_configuration": 0.002,
+          "startup_runtime": 0.006,
+          "startup_overlays": 0.084,
+          "startup_selection": 0.083,
+          "startup_source_and_stub_index": 0.412,
+          "startup_project": 0.0,
+          "source_scan": 0.177,
+          "external_resolution": 0.007,
+          "function_summaries": 0.0,
+          "project_index": 0.761,
+          "virtual_declarations": 0.194,
+          "class_projection": 0.511,
+          "initial_lowering": 0.403,
+          "flow_and_render": 0.193,
+          "import_preflight": 0.10200000000000001,
+          "oracle_check": 0.9159999999999999,
+          "hook_responses": 0.101,
+          "final_render": 0.013,
+          "final_check": 1.399,
+          "diagnostic_mapping": 0.015,
+          "source_maps": 0.013
+        },
+        "workspace_transport": true,
+        "variant": "candidate",
+        "verified_negative_locations": [
+          {
+            "path": "checks.py",
+            "line": 103
+          },
+          {
+            "path": "filler00000.py",
+            "line": 1
+          }
+        ]
+      },
+      {
+        "backend": "companion",
+        "label": "negative/candidate-manager",
+        "command": [
+          "/private/tmp/ty-companion-subsecond-work/factory-release-v13b",
+          "check",
+          "--python",
+          "/private/tmp/ty-companion-subsecond-work/environment/bin/python",
+          "--output-format",
+          "gitlab",
+          "--no-progress",
+          "--color",
+          "never",
+          "/private/tmp/ty-companion-subsecond-work/stress/project",
+          "--ty",
+          "/private/tmp/ty-companion-subsecond-work/environment/bin/ty",
+          "--config-file",
+          "/private/tmp/ty-companion-subsecond-work/stress/local-django.toml"
+        ],
+        "seconds": 5.359004916972481,
+        "exit": 1,
+        "diagnostic_codes": {
+          "invalid-assignment": 2
+        },
+        "user_cpu_seconds": 4.226514,
+        "system_cpu_seconds": 1.851286,
+        "sampled_process_tree_peak_rss_kib": 1186272,
+        "stopped": null,
+        "monitor_error": null,
+        "parse_error": null,
+        "load_before": [
+          6.8740234375,
+          6.271484375,
+          6.4599609375
+        ],
+        "load_after": [
+          6.8037109375,
+          6.2666015625,
+          6.45703125
+        ],
+        "source_sha256": "1d6a6430d5c3eaec3a1d648f4c95b35912d6efc7d7c15370efadb0d6f41164ef",
+        "source_preserved": true,
+        "phases": {
+          "startup_source_copy": 0.006,
+          "startup_configuration": 0.002,
+          "startup_runtime": 0.006,
+          "startup_overlays": 0.088,
+          "startup_selection": 0.082,
+          "startup_source_and_stub_index": 0.413,
+          "startup_project": 0.0,
+          "source_scan": 0.178,
+          "external_resolution": 0.007,
+          "function_summaries": 0.0,
+          "project_index": 0.729,
+          "virtual_declarations": 0.126,
+          "class_projection": 0.498,
+          "initial_lowering": 0.411,
+          "flow_and_render": 0.181,
+          "import_preflight": 0.10200000000000001,
+          "oracle_check": 0.782,
+          "hook_responses": 0.101,
+          "final_render": 0.013,
+          "final_check": 1.33,
+          "diagnostic_mapping": 0.013,
+          "source_maps": 0.012
+        },
+        "workspace_transport": true,
+        "variant": "candidate-manager",
+        "verified_negative_locations": [
+          {
+            "path": "checks.py",
+            "line": 103
+          },
+          {
+            "path": "filler00000.py",
+            "line": 1
+          }
+        ]
+      },
+      {
+        "backend": "mypy",
+        "label": "negative/mypy",
+        "command": [
+          "/private/tmp/ty-companion-subsecond-work/mypy-reference/bin/mypy",
+          "--config-file",
+          "/private/tmp/ty-companion-subsecond-work/stress/mypy.ini",
+          "--output",
+          "json",
+          "--no-incremental",
+          "/private/tmp/ty-companion-subsecond-work/stress/project",
+          "--cache-dir",
+          "/private/tmp/ty-companion-subsecond-work/factory-v13b-measurements/runs/negative/mypy/scratch/mypy-cache"
+        ],
+        "seconds": 6.539940332993865,
+        "exit": 1,
+        "diagnostic_codes": {
+          "assignment": 2
+        },
+        "user_cpu_seconds": 5.668787,
+        "system_cpu_seconds": 1.171179,
+        "sampled_process_tree_peak_rss_kib": 508512,
+        "stopped": null,
+        "monitor_error": null,
+        "parse_error": null,
+        "load_before": [
+          6.8037109375,
+          6.2666015625,
+          6.45703125
+        ],
+        "load_after": [
+          7.0595703125,
+          6.328125,
+          6.4775390625
+        ],
+        "source_sha256": "1d6a6430d5c3eaec3a1d648f4c95b35912d6efc7d7c15370efadb0d6f41164ef",
+        "source_preserved": true,
+        "phases": {},
+        "workspace_transport": false,
+        "variant": "mypy",
+        "verified_negative_locations": [
+          {
+            "path": "checks.py",
+            "line": 103
+          },
+          {
+            "path": "filler00000.py",
+            "line": 1
+          }
+        ]
+      }
+    ],
+    "previous_candidate_sha256": "5d8e8c84a0cc790963b5fe9bf0be4b79b8ea1f089f8177c67192449cc692495d",
+    "medians": {
+      "previous-candidate": 5.180966041982174,
+      "candidate": 5.389431084040552,
+      "candidate-manager": 5.124226958025247,
+      "released": 6.402934166952036,
+      "mypy": 6.715445916051976,
+      "bare": 0.26501274993643165
+    },
+    "relative_median_change_percent": 1.0951448725423296,
+    "final_check_phase_medians": {
+      "candidate-manager": 1.323,
+      "previous-candidate": 1.379
+    }
+  },
+  "implementation": {
+    "specialized_getters": [
+      "str",
+      "int",
+      "float",
+      "bool",
+      "bytes",
+      "complex",
+      "object"
+    ],
+    "class_access": "The original class value remains the independently inferred generic parameter.",
+    "instance_access": "The already rendered built-in getter fixes the same getter/setter types that the general factory inferred from its two casts.",
+    "other_types": "Retain the general factory and its arguments at the use site.",
+    "call_forms": [
+      "assignment",
+      "decorator"
+    ],
+    "official_checker": "Unchanged; no private type constructor or upstream fork edits."
+  },
+  "limits": [
+    "A finite conformance suite does not establish universal SDK equivalence.",
+    "Three rotated samples per stack on a shared machine are not a worst-case timing bound.",
+    "Bare Ty fails the ORM assertions and supplies different semantic coverage.",
+    "Hosted CI and published artifacts must be qualified separately."
+  ],
+  "native_prototypes": {
+    "factory": {
+      "passed": true,
+      "scope": "Native-only generated-program experiment; no companion or plugin implementation changed.",
+      "records": [
+        {
+          "variant": "baseline",
+          "seconds": 1.4214854579186067,
+          "exit": 1,
+          "codes": {
+            "redundant-cast": 100
+          },
+          "exact_diagnostic_parity": true,
+          "load_before": [
+            5.13232421875,
+            5.97607421875,
+            6.41796875
+          ],
+          "load_after": [
+            5.13232421875,
+            5.97607421875,
+            6.41796875
+          ]
+        },
+        {
+          "variant": "specialized",
+          "seconds": 1.210118249990046,
+          "exit": 1,
+          "codes": {
+            "redundant-cast": 100
+          },
+          "exact_diagnostic_parity": true,
+          "load_before": [
+            5.13232421875,
+            5.97607421875,
+            6.41796875
+          ],
+          "load_after": [
+            5.13232421875,
+            5.97607421875,
+            6.41796875
+          ]
+        },
+        {
+          "variant": "specialized",
+          "seconds": 1.3440705840475857,
+          "exit": 1,
+          "codes": {
+            "redundant-cast": 100
+          },
+          "exact_diagnostic_parity": true,
+          "load_before": [
+            5.13232421875,
+            5.97607421875,
+            6.41796875
+          ],
+          "load_after": [
+            5.13232421875,
+            5.97607421875,
+            6.41796875
+          ]
+        },
+        {
+          "variant": "baseline",
+          "seconds": 1.3399652920197695,
+          "exit": 1,
+          "codes": {
+            "redundant-cast": 100
+          },
+          "exact_diagnostic_parity": true,
+          "load_before": [
+            5.13232421875,
+            5.97607421875,
+            6.41796875
+          ],
+          "load_after": [
+            4.80126953125,
+            5.89306640625,
+            6.3857421875
+          ]
+        },
+        {
+          "variant": "baseline",
+          "seconds": 1.239250332931988,
+          "exit": 1,
+          "codes": {
+            "redundant-cast": 100
+          },
+          "exact_diagnostic_parity": true,
+          "load_before": [
+            4.80126953125,
+            5.89306640625,
+            6.3857421875
+          ],
+          "load_after": [
+            4.80126953125,
+            5.89306640625,
+            6.3857421875
+          ]
+        },
+        {
+          "variant": "specialized",
+          "seconds": 1.1894086670363322,
+          "exit": 1,
+          "codes": {
+            "redundant-cast": 100
+          },
+          "exact_diagnostic_parity": true,
+          "load_before": [
+            4.80126953125,
+            5.89306640625,
+            6.3857421875
+          ],
+          "load_after": [
+            4.80126953125,
+            5.89306640625,
+            6.3857421875
+          ]
+        }
+      ],
+      "specializations": {
+        "_ty_ext_static_module_0.str": "_probe_specialized_field_0"
+      },
+      "replaced_calls": 2501,
+      "original_bytes": 5586146,
+      "candidate_bytes": 5358780,
+      "medians": {
+        "baseline": 1.3399652920197695,
+        "specialized": 1.210118249990046
+      },
+      "removed_generated_bytes": 7837221
+    },
+    "module_imports": {
+      "passed": true,
+      "scope": "Native-only generated-program prototype; no production implementation changed.",
+      "records": [
+        {
+          "variant": "baseline",
+          "seconds": 1.407635833020322,
+          "exit": 1,
+          "codes": {
+            "redundant-cast": 100
+          },
+          "exact_diagnostic_parity": true,
+          "load_before": [
+            5.85595703125,
+            5.79833984375,
+            6.2841796875
+          ],
+          "load_after": [
+            5.85595703125,
+            5.79833984375,
+            6.2841796875
+          ]
+        },
+        {
+          "variant": "qualified",
+          "seconds": 1.2331619589822367,
+          "exit": 1,
+          "codes": {
+            "redundant-cast": 100
+          },
+          "exact_diagnostic_parity": true,
+          "load_before": [
+            5.85595703125,
+            5.79833984375,
+            6.2841796875
+          ],
+          "load_after": [
+            5.85595703125,
+            5.79833984375,
+            6.2841796875
+          ]
+        },
+        {
+          "variant": "combined",
+          "seconds": 1.196202666964382,
+          "exit": 1,
+          "codes": {
+            "redundant-cast": 100
+          },
+          "exact_diagnostic_parity": true,
+          "load_before": [
+            5.85595703125,
+            5.79833984375,
+            6.2841796875
+          ],
+          "load_after": [
+            5.85595703125,
+            5.79833984375,
+            6.2841796875
+          ]
+        },
+        {
+          "variant": "combined",
+          "seconds": 1.1938952080672607,
+          "exit": 1,
+          "codes": {
+            "redundant-cast": 100
+          },
+          "exact_diagnostic_parity": true,
+          "load_before": [
+            5.85595703125,
+            5.79833984375,
+            6.2841796875
+          ],
+          "load_after": [
+            5.70703125,
+            5.76806640625,
+            6.2705078125
+          ]
+        },
+        {
+          "variant": "baseline",
+          "seconds": 1.2162261250196025,
+          "exit": 1,
+          "codes": {
+            "redundant-cast": 100
+          },
+          "exact_diagnostic_parity": true,
+          "load_before": [
+            5.70703125,
+            5.76806640625,
+            6.2705078125
+          ],
+          "load_after": [
+            5.70703125,
+            5.76806640625,
+            6.2705078125
+          ]
+        },
+        {
+          "variant": "qualified",
+          "seconds": 1.3970743339741603,
+          "exit": 1,
+          "codes": {
+            "redundant-cast": 100
+          },
+          "exact_diagnostic_parity": true,
+          "load_before": [
+            5.70703125,
+            5.76806640625,
+            6.2705078125
+          ],
+          "load_after": [
+            5.70703125,
+            5.76806640625,
+            6.2705078125
+          ]
+        },
+        {
+          "variant": "qualified",
+          "seconds": 1.3706994591047987,
+          "exit": 1,
+          "codes": {
+            "redundant-cast": 100
+          },
+          "exact_diagnostic_parity": true,
+          "load_before": [
+            5.70703125,
+            5.76806640625,
+            6.2705078125
+          ],
+          "load_after": [
+            5.70703125,
+            5.76806640625,
+            6.2705078125
+          ]
+        },
+        {
+          "variant": "combined",
+          "seconds": 1.1905184589559212,
+          "exit": 1,
+          "codes": {
+            "redundant-cast": 100
+          },
+          "exact_diagnostic_parity": true,
+          "load_before": [
+            5.70703125,
+            5.76806640625,
+            6.2705078125
+          ],
+          "load_after": [
+            6.2109375,
+            5.87109375,
+            6.3037109375
+          ]
+        },
+        {
+          "variant": "baseline",
+          "seconds": 1.387397416983731,
+          "exit": 1,
+          "codes": {
+            "redundant-cast": 100
+          },
+          "exact_diagnostic_parity": true,
+          "load_before": [
+            6.2109375,
+            5.87109375,
+            6.3037109375
+          ],
+          "load_after": [
+            6.2109375,
+            5.87109375,
+            6.3037109375
+          ]
+        }
+      ],
+      "explicit_imports_removed": 7512,
+      "qualified_references": 37508,
+      "bytes": {
+        "baseline": 5586146,
+        "qualified": 5965225,
+        "combined": 5737831
+      },
+      "medians": {
+        "baseline": 1.387397416983731,
+        "qualified": 1.3706994591047987,
+        "combined": 1.1938952080672607
+      },
+      "removed_generated_bytes": 8064578
+    },
+    "decision": "Module-qualified imports showed no clear independent gain and were not adopted. The repeated built-in factory is qualified here as a complete companion change."
+  },
+  "cleanup": {
+    "iteration": "Removed 3234 files, 781.5MiB total",
+    "release": "Removed 2078 files, 699.7MiB total"
+  },
+  "hosted_ci": {
+    "status": "Tracked separately for the exact PR revision.",
+    "url": "https://github.com/regularkevvv/ty-extended/pull/49/checks"
+  }
+}

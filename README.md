@@ -40,11 +40,11 @@ MyPy median ceiling. See
 [the reproducible benchmarks](docs/performance.md) for all samples, bare official
 ty timings, correctness controls and the limits of each comparison.
 
-The [unreleased candidate](docs/performance.md#field-access-follow-up) also corrects
-audited class-field access differences. Its latest paired comparison measures
-**5.19 seconds**, versus **6.56 seconds** for MyPy on the same workload. The
-one-second target remains unmet; the published results above remain the release
-baseline.
+The [unreleased candidate](docs/performance.md#factory-specialization-follow-up)
+also corrects audited class-field access differences and reduces repeated type
+inference. Its latest paired comparison measures **5.12 seconds**, versus
+**6.72 seconds** for MyPy on the same workload. The one-second target
+remains unmet; the published results above remain the release baseline.
 
 ## Monty plugins
 

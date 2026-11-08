@@ -145,6 +145,37 @@ benefit in its paired series. Moving every Django class patch into the project
 index was rejected because its response exceeded the existing 8 MiB bound and
 changed precedence with other plugins. Neither experiment was adopted.
 
+### Factory specialization follow-up
+
+The [factory receipt](qualification/factory-specialization.json) qualifies source
+`86c3a21` after sharing declarations for built-in field getter types. The
+original class-access type stays generic. For these closed getters, the factory
+no longer needs two casts and two additional type variables inferred at every
+field. Other types retain the general factory. A separate module-import prototype
+showed no clear independent benefit and was not adopted.
+
+All 222 unit tests, 166 Django assertions with six error controls, and 31 field
+assertions with five controls pass on every official ty version from 0.0.84
+through 0.0.99. The candidate also passes all 19 broader CLI/editor/SDK suites,
+nine integration binaries, formatting and Rust lint checks. The original field
+audit still matches the historical diagnostics exactly.
+
+| Stack                                                                 |  Median |
+| --------------------------------------------------------------------- | ------: |
+| Specialized factories plus candidate Django declarations              | 5.124 s |
+| Preceding field-corrected companion plus the same Django declarations | 5.181 s |
+| Published companion and Django-ty                                     | 6.403 s |
+| MyPy plus django-stubs                                                | 6.715 s |
+| Bare official ty                                                      | 0.265 s |
+
+These are three rotated fresh-process samples per stack on the unchanged
+7,082-file, 2,501-model, 100-assertion project, with the same error controls and
+source preservation checks. The receipt retains all samples and the corrected
+companion with the published Django plugin. Bare ty fails the ORM assertions.
+The end-to-end median improves by about 1.1%; this is a small gain,
+not a solution to the overall latency target. The one-second target remains unmet;
+these shared-host timings are not worst-case bounds or published-release acceptance.
+
 ## Version 0.89.0
 
 The [0.89.0 local receipts](qualification/performance-0.89.0.json) record five
