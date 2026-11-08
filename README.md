@@ -40,6 +40,10 @@ MyPy median ceiling. See
 [the reproducible benchmarks](docs/performance.md) for all samples, bare official
 ty timings, correctness controls and the limits of each comparison.
 
+An [unreleased sparse projection candidate](docs/performance.md#unreleased-sparse-projection-candidate)
+measures 5.03 seconds on that workload. The one-second target remains unmet;
+the published results above remain the release baseline.
+
 ## Monty plugins
 
 Python plugins use the bundled `ty_extended.plugin_sdk` and execute inside Monty.

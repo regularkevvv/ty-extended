@@ -4,6 +4,62 @@ The companion checks generated analysis copies with unchanged official ty and
 runs Django hooks in embedded Monty. Its total time includes discovery, plugin
 execution, projection, type queries and the final checker run.
 
+## Unreleased sparse projection candidate
+
+The [local candidate receipt](qualification/performance-sparse-projection.json)
+records three rotated fresh-process runs on the same 7,082-file, 2,501-model,
+100-assertion project. All positive companion and MyPy runs pass every assertion.
+Both candidate variants and MyPy also detect the two intentionally introduced
+errors. All runs preserve source bytes and modification times. Filesystem caches
+may be warm; MyPy receives an empty cache for every run.
+
+| Stack                                                         |  Median |
+| ------------------------------------------------------------- | ------: |
+| Candidate companion and candidate Django manager declarations | 5.029 s |
+| Candidate companion and published Django-ty 0.7.0             | 5.298 s |
+| Published companion 0.89.0 and Django-ty 0.7.0                | 6.375 s |
+| MyPy 2.4.1 and django-stubs 6.1.2                             | 6.794 s |
+| Bare official ty 0.0.99                                       | 0.257 s |
+
+Bare ty reports all 100 Django assertions as failures and 100 unresolved
+attributes, so it measures the native startup/checking baseline with different
+semantic coverage. The candidate is about 21% faster than the published stack
+and 26% faster than MyPy in this comparison. **The one-second fresh-process
+target is not met.** These are local development results, not hosted CI or
+published-artifact acceptance.
+
+The receipt also retains a separate run of all five existing workload shapes
+in both projection modes. All ten combinations pass the positive assertions
+and negative controls. On the 100-file shape, sparse projection measures
+0.509 seconds versus MyPy's 1.640 seconds; on the 7,082-file, 250-model shape,
+it measures 2.474 seconds versus 4.147 seconds. Host load rose from about 9 to
+nearly 90 during the last shapes, so those affected timings need a quieter
+rerun before supporting comparative conclusions. No samples are discarded.
+
+The candidate keeps original files in place and opens only changed analysis
+buffers through official ty's public LSP. It reuses that process for the final
+workspace diagnostic request, combines import/schema/type-query preflights,
+and shares repeated descriptor specializations
+while preserving each field's nominal identity. The Django candidate uses
+`Manager[Model]` for ordinary managers and retains generated manager classes for
+custom QuerySet methods. Imported model identities stay fully qualified instead
+of being recovered from abbreviated native display strings.
+
+Sparse projection currently requires `TY_COMPANION_MEMORY_PROJECTION=1` for a
+fresh CLI check. Watch, source edits, editor sessions and Windows retain the
+existing transport. Projects with per-file rule overrides and notebook projects
+use disk projection; explicit notebooks outside the project are unsupported in
+this experimental mode. This flag is a development experiment, not a released
+performance guarantee.
+
+The remaining time spans discovery/indexing, Monty index and class hooks,
+projection, native type queries, and final checking. The final native check
+alone takes about 1.1 seconds on this expanded program. The earlier 60–80 second
+behavior came from repeatedly copying and serializing the whole project index
+for each model; scoped indexes and class batches removed that repeated work in
+0.88 and 0.89. Further progress requires reducing the remaining work across
+several stages, not merely changing implementation language.
+
 ## Version 0.89.0
 
 The [0.89.0 local receipts](qualification/performance-0.89.0.json) record five

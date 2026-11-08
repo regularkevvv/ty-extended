@@ -1129,14 +1129,37 @@ impl Project<'_> {
             return Some(identity);
         }
         let known = if let Expr::Attribute(attribute) = expr {
-            self.identity(scope, &attribute.value).and_then(|identity| {
-                let owner = &scope.types[&identity];
-                let (nominal, _) = crate::runtime::generic_parts(owner);
-                self.member_type(
-                    owner,
-                    attribute.attr.as_str(),
-                    matches!(nominal, "type" | "builtins.type"),
-                )
+            // An imported class is an attribute of a module, whose identity is
+            // deliberately not tracked as an object. Resolve that class before
+            // consulting native display strings such as `type[Record]`: those
+            // lose the module needed by a subsequent generic member patch.
+            let mut root = expr;
+            while let Expr::Attribute(attribute) = root {
+                root = &attribute.value;
+            }
+            let class = if matches!(root, Expr::Name(name) if !scope.shadowed.contains(name.id.as_str()))
+                && scope.identity(root).is_none()
+            {
+                self.runtime.project.as_ref().and_then(|project| {
+                    let symbol =
+                        project.canonical_name(&self.source.module, self.source.slice(span(expr)));
+                    project
+                        .class_summary(&symbol)
+                        .map(|_| typ(format!("type[{symbol}]")))
+                })
+            } else {
+                None
+            };
+            class.or_else(|| {
+                self.identity(scope, &attribute.value).and_then(|identity| {
+                    let owner = &scope.types[&identity];
+                    let (nominal, _) = crate::runtime::generic_parts(owner);
+                    self.member_type(
+                        owner,
+                        attribute.attr.as_str(),
+                        matches!(nominal, "type" | "builtins.type"),
+                    )
+                })
             })
         } else if matches!(expr, Expr::Name(name) if scope.shadowed.contains(name.id.as_str()))
             || matches!(expr, Expr::Call(_) if !self.analysis.calls.contains_key(&span(expr)))
@@ -2166,6 +2189,96 @@ mod tests {
         )
         .unwrap();
         assert!(!fixture.analysis.needs_probes());
+    }
+
+    #[test]
+    fn imported_class_members_keep_generic_provenance_and_respect_shadowing() {
+        let manifest = json!({
+            "id":"native.imported-manager","name":"Imported manager","version":"0.0.0",
+            "protocol-version":{"major":0,"minor":7},
+            "ty-compatibility":{"requirement":">=0.86.0"},
+            "runtime":{"kind":"monty","artifact":"plugin.py"},
+            "capabilities":{"call-return":true},
+            "claims":{"methods":[{"kind":"exact","class-qualified-name":"library.Manager","method-name":"get"}]}
+        });
+        let text = "import left as one\nimport right as two\none.Record.objects.get()\ntwo.Record.objects.get()\ndef aliased():\n    record = one.Record\n    record.objects.get()\ndef shadowed(one: object):\n    one.Record.objects.get()\ndef assigned():\n    one = object()\n    one.Record.objects.get()\n";
+        let mut fixture = Fixture::from_parts(text.into(), manifest.clone(), "");
+        for (module, code) in [
+            (
+                "library",
+                "class Manager[T]:\n    def get(self) -> T: ...\n",
+            ),
+            ("left", "class Record: pass\n"),
+            ("right", "class Record: pass\n"),
+        ] {
+            std::fs::write(fixture.directory.join(format!("{module}.py")), code).unwrap();
+        }
+        let indexed =
+            crate::project::Project::load(&fixture.directory, &[], &manifest, json!({})).unwrap();
+        fixture.runtime.attach_project(Arc::new(indexed), json!({}));
+        for module in ["left", "right"] {
+            fixture.runtime.project_patches.insert(
+                format!("{module}.Record"),
+                json!({"kind":"class-patch","class-members":[{
+                    "name":"objects","mode":"replace-existing",
+                    "access":{"kind":"value","type-expr":typ(format!("library.Manager[{module}.Record]"))}
+                }]}),
+            );
+        }
+        fixture.analysis =
+            crate::lower::analyze(&fixture.source, &fixture.suite, &mut fixture.runtime).unwrap();
+        let mut oracle = Oracle::new();
+        for expression in [
+            "one.Record",
+            "two.Record",
+            "one.Record.objects",
+            "two.Record.objects",
+        ] {
+            let start = text.find(expression).unwrap();
+            let range = Span {
+                start,
+                end: start + expression.len(),
+            };
+            oracle.insert(
+                expression_key(range),
+                if expression.ends_with("objects") {
+                    "library.Manager[Record]".into()
+                } else {
+                    "type[Record]".into()
+                },
+            );
+        }
+        project_with_oracle(
+            &fixture.source,
+            &fixture.suite,
+            &mut fixture.analysis,
+            &mut fixture.runtime,
+            Some(&oracle),
+            &ReturnPatches::new(),
+        )
+        .unwrap();
+        let receivers: Vec<_> = fixture
+            .analysis
+            .calls
+            .values()
+            .filter(|call| {
+                fixture
+                    .source
+                    .slice(call.function)
+                    .ends_with(".objects.get")
+            })
+            .map(|call| call.flow_receiver_type.as_deref())
+            .collect();
+        assert_eq!(
+            receivers,
+            [
+                Some("library.Manager[left.Record]"),
+                Some("library.Manager[right.Record]"),
+                Some("library.Manager[left.Record]"),
+                None,
+                None,
+            ]
+        );
     }
 
     #[test]

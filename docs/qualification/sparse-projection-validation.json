@@ -1,0 +1,507 @@
+{
+  "qualification": "Unreleased local macOS validation; no new hosted CI, published wheel or one-second performance acceptance",
+  "base_commit": "cb82e846c752ebb93181d3109379ab9961a4b7cd",
+  "ruff_revision": "7014a751a69f00d359f21fb9be6df67fb4dde4dc",
+  "source_sha256_by_file": {
+    "companion/src/project_config.rs": "24f468df508a496b12be2a2907a92f2f7b54f8d6d5f4047553483f8207fa5b34",
+    "companion/src/flow.rs": "d7277d23dfd42fc98270501feac9561131b871452930fd6cc6912739bf44cba2",
+    "companion/src/runtime.rs": "dec6f56c142e402aef4ff1ce640f27093dcb30479c961c6a4e3ce0ffd6861822",
+    "companion/src/static_project.rs": "2cf4c4a73ddc32996ed016abeb33132522b707ffb234831d5efba8b45a09ca35",
+    "companion/src/editor_options.rs": "6c3d5540fdea2956a9ed179fb2291f087456a48cf744647063bdd11a3f775d46",
+    "companion/src/cli_edits.rs": "01543f2a5d63f7a66545923b6ccd25e06161b6e3fd9b2936d09073768902c444",
+    "companion/src/project_check.rs": "d9525f93e2ca283c501916eca5be6e6265e254eebea45abdc68519a447ec03d2",
+    "companion/src/project.rs": "dfad7e288ab8440c765b23498f299de93723abe84980e96205ccc84807c458fa",
+    "companion/src/checker.rs": "e976c9080e0d16e8a8a072c6a16c90c860e5c6efda4ce1e0ca7675f6e80df91d",
+    "companion/src/verify.rs": "e7708860ec0bd32cdfb8d6a171a53b2c12d5a67703f5a5b4322fa72d1592603d",
+    "companion/src/type_snapshot.rs": "0c018b699a8d140782e3813a5606d188c27b392400d1796ab839d73002eba813",
+    "companion/src/mapping.rs": "29d760b590b818264ac2d7c7585da95396dacb357d19da640031237dbdb04f3a",
+    "companion/src/main.rs": "99872fc0672e54164f6b0863a8c040e31531f1e3d9cd7477e492834c4ecdcf3a",
+    "companion/src/notebook.rs": "0bbd10d569d77019c19b7b76e7d2259c93afaaccc7f18c089e6478f3491cd24f",
+    "companion/src/lsp_mapping.rs": "2a3d7cc63f066bc25db11d680819124e3ff609448d2f27ab93b15d877bfc48fb",
+    "companion/src/lsp_server.rs": "f6a49b11f82ef55a8028d78253fb210844135b9c93e7777074dab3c6f846676a",
+    "companion/src/lower.rs": "7df6c752bf2534473020239667d736ad407921e24ad32090b45e25a26d29b955",
+    "companion/src/type_render.rs": "59702c812f4c23effb37d14ba350fa0ce3449410eaa802a65e954fd303dce937",
+    "companion/src/model.rs": "910d42537fa63b97809bb99dba3a504202f2ddb692ccf07c5ecedfc9fd3273f0",
+    "companion/src/cli.rs": "1cf30fe5cae409179d860ff2e5611d58e42c83f68599cc354ece0ec9c92a086c"
+  },
+  "build": {
+    "passed": true,
+    "source_sha256": {
+      "companion/src/project_config.rs": "24f468df508a496b12be2a2907a92f2f7b54f8d6d5f4047553483f8207fa5b34",
+      "companion/src/flow.rs": "d7277d23dfd42fc98270501feac9561131b871452930fd6cc6912739bf44cba2",
+      "companion/src/runtime.rs": "dec6f56c142e402aef4ff1ce640f27093dcb30479c961c6a4e3ce0ffd6861822",
+      "companion/src/static_project.rs": "2cf4c4a73ddc32996ed016abeb33132522b707ffb234831d5efba8b45a09ca35",
+      "companion/src/editor_options.rs": "6c3d5540fdea2956a9ed179fb2291f087456a48cf744647063bdd11a3f775d46",
+      "companion/src/cli_edits.rs": "01543f2a5d63f7a66545923b6ccd25e06161b6e3fd9b2936d09073768902c444",
+      "companion/src/project_check.rs": "d9525f93e2ca283c501916eca5be6e6265e254eebea45abdc68519a447ec03d2",
+      "companion/src/project.rs": "dfad7e288ab8440c765b23498f299de93723abe84980e96205ccc84807c458fa",
+      "companion/src/checker.rs": "e976c9080e0d16e8a8a072c6a16c90c860e5c6efda4ce1e0ca7675f6e80df91d",
+      "companion/src/verify.rs": "e7708860ec0bd32cdfb8d6a171a53b2c12d5a67703f5a5b4322fa72d1592603d",
+      "companion/src/type_snapshot.rs": "0c018b699a8d140782e3813a5606d188c27b392400d1796ab839d73002eba813",
+      "companion/src/mapping.rs": "29d760b590b818264ac2d7c7585da95396dacb357d19da640031237dbdb04f3a",
+      "companion/src/main.rs": "99872fc0672e54164f6b0863a8c040e31531f1e3d9cd7477e492834c4ecdcf3a",
+      "companion/src/notebook.rs": "0bbd10d569d77019c19b7b76e7d2259c93afaaccc7f18c089e6478f3491cd24f",
+      "companion/src/lsp_mapping.rs": "2a3d7cc63f066bc25db11d680819124e3ff609448d2f27ab93b15d877bfc48fb",
+      "companion/src/lsp_server.rs": "f6a49b11f82ef55a8028d78253fb210844135b9c93e7777074dab3c6f846676a",
+      "companion/src/lower.rs": "7df6c752bf2534473020239667d736ad407921e24ad32090b45e25a26d29b955",
+      "companion/src/type_render.rs": "59702c812f4c23effb37d14ba350fa0ce3449410eaa802a65e954fd303dce937",
+      "companion/src/model.rs": "910d42537fa63b97809bb99dba3a504202f2ddb692ccf07c5ecedfc9fd3273f0",
+      "companion/src/cli.rs": "1cf30fe5cae409179d860ff2e5611d58e42c83f68599cc354ece0ec9c92a086c"
+    },
+    "steps": [
+      {
+        "label": "format",
+        "exit": 0,
+        "seconds": 1.2958319579483941
+      },
+      {
+        "label": "integrations",
+        "exit": 0,
+        "seconds": 353.9763972500805
+      },
+      {
+        "label": "cli-default",
+        "exit": 0,
+        "seconds": 1.4819389579351991
+      },
+      {
+        "label": "clippy",
+        "exit": 0,
+        "seconds": 42.43436304188799
+      },
+      {
+        "label": "iteration-clean",
+        "exit": 0,
+        "seconds": 0.54434704198502
+      },
+      {
+        "label": "release",
+        "exit": 0,
+        "seconds": 303.6105805829866
+      },
+      {
+        "label": "clean",
+        "exit": 0,
+        "seconds": 0.4648221250390634
+      }
+    ],
+    "unit_evidence": "../synchronized-v9b-build/results.json",
+    "unit_binary_sha256": "d90e7ae3a79472380f5e8ab2ce443fbfc447f162f35202775907605af2df4f1e",
+    "watch_environment_control": [
+      "../watch-events-sandbox.json",
+      "../watch-events-native-events.json"
+    ],
+    "binary_sha256": "da46b5b827ea3badf60043eb982336a9e590de19dbf5f4b845797380f20e2680"
+  },
+  "checker_range": {
+    "passed": true,
+    "unit_binary_sha256": "d90e7ae3a79472380f5e8ab2ce443fbfc447f162f35202775907605af2df4f1e",
+    "companion_sha256": "da46b5b827ea3badf60043eb982336a9e590de19dbf5f4b845797380f20e2680",
+    "versions": [
+      {
+        "version": "0.0.84",
+        "passed": true,
+        "native_version": "ty 0.0.84 (8dd9a7f7f 2026-09-24)",
+        "native_sha256": "d1243725b609983ce07e2ec407f12a4d3234a215bc302fad54febd1129a7b62e",
+        "unit_exit": 0,
+        "unit_passes": 217,
+        "django_exit": 0,
+        "django_contract_assertions": 166,
+        "django_negative_controls": 6,
+        "seconds": 12.645902959047817,
+        "owned_environment_cleaned": true
+      },
+      {
+        "version": "0.0.85",
+        "passed": true,
+        "native_version": "ty 0.0.85 (d7fc5ef88 2026-10-06)",
+        "native_sha256": "0f26313e84003213a1dccfbee2acd7adb32a36b40aa67fb5f93cd8f155b61789",
+        "unit_exit": 0,
+        "unit_passes": 217,
+        "django_exit": 0,
+        "django_contract_assertions": 166,
+        "django_negative_controls": 6,
+        "seconds": 12.665886124945246,
+        "owned_environment_cleaned": true
+      },
+      {
+        "version": "0.0.86",
+        "passed": true,
+        "native_version": "ty 0.0.86 (d5da069f4 2026-10-09)",
+        "native_sha256": "d6cd23ef6b3bdcb91dc2c67da0bc120c25668102c231ac7a9c405342a06558ef",
+        "unit_exit": 0,
+        "unit_passes": 217,
+        "django_exit": 0,
+        "django_contract_assertions": 166,
+        "django_negative_controls": 6,
+        "seconds": 12.085474167019129,
+        "owned_environment_cleaned": true
+      },
+      {
+        "version": "0.0.87",
+        "passed": true,
+        "native_version": "ty 0.0.87 (ea4c3d273 2026-10-13)",
+        "native_sha256": "753712234c90c6f5617c67802bb9703908ba791975acf8c4e5ab42cf58b2471b",
+        "unit_exit": 0,
+        "unit_passes": 217,
+        "django_exit": 0,
+        "django_contract_assertions": 166,
+        "django_negative_controls": 6,
+        "seconds": 12.003704832983203,
+        "owned_environment_cleaned": true
+      },
+      {
+        "version": "0.0.88",
+        "passed": true,
+        "native_version": "ty 0.0.88 (64e7f1860 2026-10-15)",
+        "native_sha256": "25f30e5a627915a42cb7d6794bdc373de48988e8b7665f9c0b4270f388c33aff",
+        "unit_exit": 0,
+        "unit_passes": 217,
+        "django_exit": 0,
+        "django_contract_assertions": 166,
+        "django_negative_controls": 6,
+        "seconds": 12.324574916972779,
+        "owned_environment_cleaned": true
+      },
+      {
+        "version": "0.0.89",
+        "passed": true,
+        "native_version": "ty 0.0.89 (82b0fd431 2026-10-16)",
+        "native_sha256": "b0e68d52e71079c94ba118248d16ee681606e4338a2b5543a12b3b730c16071b",
+        "unit_exit": 0,
+        "unit_passes": 217,
+        "django_exit": 0,
+        "django_contract_assertions": 166,
+        "django_negative_controls": 6,
+        "seconds": 12.836649834061973,
+        "owned_environment_cleaned": true
+      },
+      {
+        "version": "0.0.90",
+        "passed": true,
+        "native_version": "ty 0.0.90 (ebc8bbb31 2026-10-20)",
+        "native_sha256": "961e4405e9ae96dad6222cae8968a315080841f317e8b193f276da9066ac88ae",
+        "unit_exit": 0,
+        "unit_passes": 217,
+        "django_exit": 0,
+        "django_contract_assertions": 166,
+        "django_negative_controls": 6,
+        "seconds": 13.131721332902089,
+        "owned_environment_cleaned": true
+      },
+      {
+        "version": "0.0.91",
+        "passed": true,
+        "native_version": "ty 0.0.91 (67fbd2874 2026-10-22)",
+        "native_sha256": "39ab93d3aefb55f00338770e33509291569040c20111f52a2bc43abb77850459",
+        "unit_exit": 0,
+        "unit_passes": 217,
+        "django_exit": 0,
+        "django_contract_assertions": 166,
+        "django_negative_controls": 6,
+        "seconds": 12.866749249980785,
+        "owned_environment_cleaned": true
+      },
+      {
+        "version": "0.0.92",
+        "passed": true,
+        "native_version": "ty 0.0.92 (3933e6918 2026-10-26)",
+        "native_sha256": "0e51cb95b17b52821e786c3407ab4b474077391d5f7e91942d3635f8346debd5",
+        "unit_exit": 0,
+        "unit_passes": 217,
+        "django_exit": 0,
+        "django_contract_assertions": 166,
+        "django_negative_controls": 6,
+        "seconds": 12.65949333307799,
+        "owned_environment_cleaned": true
+      },
+      {
+        "version": "0.0.93",
+        "passed": true,
+        "native_version": "ty 0.0.93 (3db5e4df7 2026-10-28)",
+        "native_sha256": "7843c73943d521e66a537f55d51fc9f350dc142e88038acd516878c08857bd03",
+        "unit_exit": 0,
+        "unit_passes": 217,
+        "django_exit": 0,
+        "django_contract_assertions": 166,
+        "django_negative_controls": 6,
+        "seconds": 30.525173083064146,
+        "owned_environment_cleaned": true
+      },
+      {
+        "version": "0.0.94",
+        "passed": true,
+        "native_version": "ty 0.0.94 (f8ea270e0 2026-10-28)",
+        "native_sha256": "d331912b50c453620364533b9e74bfed71fd521aeafd0fa9e75d80bae69fc877",
+        "unit_exit": 0,
+        "unit_passes": 217,
+        "django_exit": 0,
+        "django_contract_assertions": 166,
+        "django_negative_controls": 6,
+        "seconds": 14.076183874974959,
+        "owned_environment_cleaned": true
+      },
+      {
+        "version": "0.0.95",
+        "passed": true,
+        "native_version": "ty 0.0.95 (48c5ea1ba 2026-10-29)",
+        "native_sha256": "f24d522636715a348c67ac8c571cce58185ac453c9a3773529918473f4bb347c",
+        "unit_exit": 0,
+        "unit_passes": 217,
+        "django_exit": 0,
+        "django_contract_assertions": 166,
+        "django_negative_controls": 6,
+        "seconds": 12.471141125075519,
+        "owned_environment_cleaned": true
+      },
+      {
+        "version": "0.0.96",
+        "passed": true,
+        "native_version": "ty 0.0.96 (53a7844b8 2026-11-02)",
+        "native_sha256": "8095e81a2528ff007b6ae2eeb1376fb5524142bfa06eb588936643b4c7295822",
+        "unit_exit": 0,
+        "unit_passes": 217,
+        "django_exit": 0,
+        "django_contract_assertions": 166,
+        "django_negative_controls": 6,
+        "seconds": 16.263613000046462,
+        "owned_environment_cleaned": true
+      },
+      {
+        "version": "0.0.97",
+        "passed": true,
+        "native_version": "ty 0.0.97 (58e168c67 2026-11-04)",
+        "native_sha256": "87c4d1a2e504774f823af983a1ff5a57b8288fae9e7f7dc50b2ef99dc76e8029",
+        "unit_exit": 0,
+        "unit_passes": 217,
+        "django_exit": 0,
+        "django_contract_assertions": 166,
+        "django_negative_controls": 6,
+        "seconds": 28.103408916969784,
+        "owned_environment_cleaned": true
+      },
+      {
+        "version": "0.0.98",
+        "passed": true,
+        "native_version": "ty 0.0.98 (e8a6c9331 2026-11-05)",
+        "native_sha256": "9ccabed16da4fca4ebb0284ca07af41131a9007563080c7537f15ebf66c18cb8",
+        "unit_exit": 0,
+        "unit_passes": 217,
+        "django_exit": 0,
+        "django_contract_assertions": 166,
+        "django_negative_controls": 6,
+        "seconds": 25.138385999947786,
+        "owned_environment_cleaned": true
+      },
+      {
+        "version": "0.0.99",
+        "passed": true,
+        "native_version": "ty 0.0.99 (9b48f40c9 2026-11-06)",
+        "native_sha256": "34688103a83c3123d9eb0f4d85cdaa15f06ff16ce422d8a42616e6b1c885200e",
+        "unit_exit": 0,
+        "unit_passes": 217,
+        "django_exit": 0,
+        "django_contract_assertions": 166,
+        "django_negative_controls": 6,
+        "seconds": 23.262964874971658,
+        "owned_environment_cleaned": true
+      }
+    ],
+    "earlier_failed_attempts": [
+      {
+        "version": "0.0.96",
+        "passed": false,
+        "owned_environment_cleaned": true,
+        "reason": "Temporary installation was filtered by inherited exclude-newer cutoff; retry explicitly allows the already-published pinned checker."
+      }
+    ]
+  },
+  "broad_suites": {
+    "passed": true,
+    "binary_sha256": "786bd1cfb4f98d20be66d8961dbef0b882641230e82643b48ca032861d95f082",
+    "official_version": "ty 0.0.99 (9b48f40c9 2026-11-06)",
+    "reference_version": "ty 0.86.0 (4429f1e88 2026-10-10)",
+    "gates": [
+      {
+        "name": "generic-cli",
+        "exit": 0,
+        "seconds": 17.81307824992109
+      },
+      {
+        "name": "generic-lsp",
+        "exit": 0,
+        "seconds": 15.305780334048904
+      },
+      {
+        "name": "generic-push",
+        "exit": 0,
+        "seconds": 15.128799416939728
+      },
+      {
+        "name": "lsp_acceptance",
+        "exit": 0,
+        "seconds": 0.8830799999414012
+      },
+      {
+        "name": "lsp_configuration",
+        "exit": 0,
+        "seconds": 1.7484586669597775
+      },
+      {
+        "name": "lsp_differential",
+        "exit": 0,
+        "seconds": 1.9096761250402778
+      },
+      {
+        "name": "lsp_lifecycle",
+        "exit": 0,
+        "seconds": 0.40002420800738037
+      },
+      {
+        "name": "lsp_notebook_differential",
+        "exit": 0,
+        "seconds": 0.5609323750250041
+      },
+      {
+        "name": "plugin_error_differential",
+        "exit": 0,
+        "seconds": 2.2848059590905905
+      },
+      {
+        "name": "plugin_configuration_differential",
+        "exit": 0,
+        "seconds": 4.500762874959037
+      },
+      {
+        "name": "sdk_state_inventory",
+        "exit": 0,
+        "seconds": 2.055966957937926
+      },
+      {
+        "name": "sdk_function_inventory",
+        "exit": 0,
+        "seconds": 1.0473594580544159
+      },
+      {
+        "name": "sdk_overlay_inventory",
+        "exit": 0,
+        "seconds": 1.4215431249467656
+      },
+      {
+        "name": "overlay_reload_probe",
+        "exit": 0,
+        "seconds": 5.697224542032927
+      },
+      {
+        "name": "sdk_cli_inventory",
+        "exit": 0,
+        "seconds": 1.107163916924037
+      },
+      {
+        "name": "sdk_class_inventory",
+        "exit": 0,
+        "seconds": 1.4198088329285383
+      },
+      {
+        "name": "sdk_method_inventory",
+        "exit": 0,
+        "seconds": 2.668370125000365
+      },
+      {
+        "name": "sdk_class_summary_inventory",
+        "exit": 0,
+        "seconds": 0.8780944169266149
+      },
+      {
+        "name": "sdk_minidjango_inventory",
+        "exit": 0,
+        "seconds": 7.549680582946166
+      }
+    ]
+  },
+  "django_current_contracts": {
+    "passed": true,
+    "runs": [
+      {
+        "workload": "conformance",
+        "variant": "released",
+        "seconds": 1.2977100419811904,
+        "exit": 1,
+        "diagnostics": 28,
+        "source_files": 15
+      },
+      {
+        "workload": "conformance",
+        "variant": "candidate",
+        "seconds": 1.1179004169534892,
+        "exit": 1,
+        "diagnostics": 28,
+        "source_files": 15
+      },
+      {
+        "workload": "positive",
+        "variant": "released",
+        "seconds": 0.9040483330609277,
+        "exit": 0,
+        "diagnostics": 0,
+        "source_files": 41
+      },
+      {
+        "workload": "positive",
+        "variant": "candidate",
+        "seconds": 1.2164109580917284,
+        "exit": 0,
+        "diagnostics": 0,
+        "source_files": 41
+      },
+      {
+        "workload": "negative",
+        "variant": "released",
+        "seconds": 0.8942109580384567,
+        "exit": 1,
+        "diagnostics": 9,
+        "source_files": 41
+      },
+      {
+        "workload": "negative",
+        "variant": "candidate",
+        "seconds": 1.2189077920047566,
+        "exit": 1,
+        "diagnostics": 9,
+        "source_files": 41
+      }
+    ],
+    "contract_assertions": 166,
+    "contract_features": 38,
+    "negative_controls": 6
+  },
+  "python_harness": {
+    "passed": true,
+    "tests": 50,
+    "log_sha256": "2900526e676dec4c5eabe8ed3213c72dc85ac506ea683d20ecbdeb8970cd7632"
+  },
+  "watch_sandbox_control": [
+    {
+      "label": "sandbox",
+      "change_observed": false,
+      "exit": 130,
+      "lines": [
+        "All checks passed!",
+        "Checked in 0.022s (0 Monty executions, 0 cache hits)",
+        "Watching for file changes. Press Ctrl+C to stop."
+      ]
+    },
+    {
+      "label": "native-events",
+      "change_observed": true,
+      "exit": 130,
+      "lines": [
+        "All checks passed!",
+        "Checked in 0.020s (0 Monty executions, 0 cache hits)",
+        "Watching for file changes. Press Ctrl+C to stop.",
+        "Filesystem event: Event { kind: Create(File), paths: [\"/private/tmp/ty-companion-subsecond-work/watch-events-native-events/demo.py\"], attr:tracker: None, attr:flag: None, attr:info: None, attr:source: None }",
+        "demo.py:1:14: error[invalid-assignment] Object of type `Literal[\"changed\"]` is not assignable to `int`"
+      ]
+    }
+  ]
+}

@@ -1357,7 +1357,13 @@ impl Runtime {
             } else {
                 self.host.execute(id, request)
             };
-        self.execution_time += start.elapsed();
+        let elapsed = start.elapsed();
+        self.execution_time += elapsed;
+        if matches!(kind, "build-project-index" | "analyze-classes")
+            && std::env::var_os("TY_COMPANION_TRACE_PHASES").is_some()
+        {
+            eprintln!("companion runtime {kind}: {:.6}s", elapsed.as_secs_f64());
+        }
         self.executions += 1;
         let response = match result {
             // The fork consumes only the response variant for the requested

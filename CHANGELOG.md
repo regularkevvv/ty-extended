@@ -7,6 +7,15 @@ modified checker; their published notes remain unchanged.
 Entries below 0.74.0 say "extension" where they now would say "plugin"; the term was settled on
 "plugin" in 0.74.0 and released notes are left as they were published.
 
+## Unreleased
+
+- Preserve fully qualified imported class identities in generic member hooks, including same-named models in different modules and local shadowing.
+- Share repeated concrete descriptor bases while retaining each field's distinct class identity.
+- Reuse native workspace diagnostics for eligible projections and add an experimental sparse memory projection for fresh CLI checks. Preserve original bytes, timestamps and file selection.
+- Synchronize every projected buffer before pull diagnostics, including imported peers. Preserve explicit-file rich diagnostics in paths containing spaces, brackets or Unicode, and retain disk projection for per-file rule overrides.
+- Combine import, nominal schema and type-query preflights into one native synchronization, retaining validation and restart behavior when a declaration cannot be used.
+- Record fresh-process comparisons with the published companion, MyPy and bare official ty; the one-second target remains unmet.
+
 ## 0.89.0
 
 - Add protocol 0.9 opt-in class batches. Each class retains its own context and complete scoped index; existing plugins continue using individual hooks.

@@ -464,8 +464,18 @@ fn check(binary: &Path, root: &Path, config: &Path, paths: &[PathBuf]) -> Result
 /// Compress an already selected set of generated files without broadening it.
 /// A directory replaces its descendants only when every file in it is selected.
 /// Symlinks and non-Python files prevent compression; they are never followed.
-fn compact_check_paths(root: &Path, selected: &BTreeSet<PathBuf>) -> Result<Vec<PathBuf>> {
+pub(crate) fn compact_check_paths(
+    root: &Path,
+    selected: &BTreeSet<PathBuf>,
+) -> Result<Vec<PathBuf>> {
     fn visit(path: &Path, remaining: &mut BTreeSet<PathBuf>) -> Result<(bool, Vec<PathBuf>)> {
+        if !remaining
+            .range(path.to_owned()..)
+            .next()
+            .is_some_and(|candidate| candidate.starts_with(path))
+        {
+            return Ok((false, Vec::new()));
+        }
         let metadata = std::fs::symlink_metadata(path)?;
         if !metadata.is_dir() {
             let included = remaining.remove(path);
@@ -634,18 +644,25 @@ fn check_units(
     root: &Path,
     config: &Path,
     units: &BTreeMap<PathBuf, File>,
+    extra_sources: &BTreeMap<PathBuf, String>,
     paths: &[PathBuf],
     persistent: bool,
     server: &mut Option<crate::checker::ProjectChecker>,
     capabilities: Option<&Value>,
+    memory_projection: bool,
 ) -> Result<Vec<Value>> {
     if !persistent {
         return check(binary, root, config, paths);
     }
-    let sources = units
+    let mut sources: BTreeMap<_, _> = units
         .iter()
         .map(|(path, unit)| (path.clone(), unit.rendered.as_ref().unwrap().text.clone()))
         .collect();
+    sources.extend(
+        extra_sources
+            .iter()
+            .map(|(path, text)| (path.clone(), text.clone())),
+    );
     if server.is_none() {
         // Both generated source and overlaid stubs participate in inference.
         // ty publishes no diagnostics for files outside its workspace, even
@@ -659,12 +676,27 @@ fn check_units(
                 capabilities.clone(),
             )?
         } else {
-            crate::checker::ProjectChecker::new_with_disk_projection(
-                binary, workspace, config, &sources,
-            )?
+            projection_checker(binary, root, config, &sources, memory_projection)?
         });
     }
     server.as_mut().unwrap().check_files(&sources, paths)
+}
+
+fn projection_checker(
+    binary: &Path,
+    view: &Path,
+    config: &Path,
+    sources: &BTreeMap<PathBuf, String>,
+    memory_projection: bool,
+) -> Result<crate::checker::ProjectChecker> {
+    let out = config.parent().context("generated checker workspace")?;
+    if memory_projection {
+        crate::checker::ProjectChecker::new_with_memory_projection(
+            binary, view, out, config, sources,
+        )
+    } else {
+        crate::checker::ProjectChecker::new_with_disk_projection(binary, out, config, sources)
+    }
 }
 
 fn diagnostic_origins(
@@ -934,6 +966,7 @@ pub struct Session {
     plugin_files: Vec<PathBuf>,
     dependency_roots: Vec<PathBuf>,
     index_files: Option<BTreeSet<PathBuf>>,
+    memory_projection: bool,
 }
 
 #[derive(Clone)]
@@ -973,15 +1006,40 @@ impl Session {
             !out.starts_with(&root),
             "generated output must be outside original project"
         );
-        let view = out.join("project");
+        let mut source_paths = Vec::new();
+        let memory_requested = !cfg!(windows)
+            && options
+                .get("memory-projection")
+                .is_some_and(|v| v == "true")
+            && !options.contains_key("lsp-capabilities")
+            && checker.is_none()
+            && project_config::supports_memory_projection(&root, options)?;
+        if memory_requested {
+            files(&root, &mut source_paths)?;
+        }
+        let memory_projection = memory_requested
+            && !root.to_string_lossy().contains('\\')
+            && source_paths.iter().all(|path| {
+                !path.to_string_lossy().contains('\\')
+                    && path.extension().is_none_or(|ext| ext != "ipynb")
+            });
+        let view = if memory_projection {
+            root.clone()
+        } else {
+            out.join("project")
+        };
         let stubs = out.join("stubs");
         ensure!(
-            !view.exists() && !stubs.exists(),
+            (memory_projection || !view.exists()) && !stubs.exists(),
             "generated project or stubs already exist; use a fresh --out directory"
         );
-        std::fs::create_dir_all(&view)?;
+        if !memory_projection {
+            std::fs::create_dir_all(&view)?;
+        }
         std::fs::create_dir_all(&stubs)?;
-        let mut source_paths = copy_python(&root, &view)?;
+        if !memory_projection {
+            source_paths = copy_python(&root, &view)?;
+        }
         phase(
             &mut startup_phases,
             "startup_source_copy",
@@ -1039,6 +1097,13 @@ impl Session {
         }
         source_paths.sort();
         source_paths.dedup();
+        ensure!(
+            !memory_projection
+                || source_paths
+                    .iter()
+                    .all(|path| path.extension().is_none_or(|ext| ext != "ipynb")),
+            "experimental memory projection does not support explicit notebooks"
+        );
         let source_paths = source_paths
             .into_iter()
             .filter_map(
@@ -1074,10 +1139,16 @@ impl Session {
         )?;
         base_project.set_source_roots(checker_config.source_roots)?;
         base_project.add_source_paths(explicit_paths.clone());
+        phase(
+            &mut startup_phases,
+            "startup_source_index",
+            &mut startup_tick,
+        );
         for root in checker_config.stub_roots.iter().rev() {
             base_project
                 .add_source_tree_filtered(root, |relative| include_overlay(relative, &stdlib))?;
         }
+        phase(&mut startup_phases, "startup_stub_index", &mut startup_tick);
         let server = if let Some(mut checker) = checker {
             checker.set_workspace_configuration(editor_backend_configuration(
                 options,
@@ -1111,6 +1182,7 @@ impl Session {
             root,
             out,
             view,
+            memory_projection,
             stubs,
             stub_roots: checker_config.stub_roots,
             overlay_files,
@@ -1767,7 +1839,19 @@ impl Session {
         let persistent = self.mode == "push"
             || !self.notebook_sources.is_empty()
             || sources.keys().any(|p| !p.starts_with(&self.out));
-        let mut raw = if persistent {
+        let mut raw = if self.memory_projection {
+            self.server = Some(crate::checker::ProjectChecker::new_with_memory_projection(
+                &binary,
+                &self.root,
+                &self.out,
+                &self.checker_config_path,
+                &sources,
+            )?);
+            self.server
+                .as_mut()
+                .unwrap()
+                .check_workspace(&sources, &paths)?
+        } else if persistent {
             if self.server.is_none() {
                 self.server = Some(crate::checker::ProjectChecker::new(
                     &binary,
@@ -1919,6 +2003,10 @@ impl Session {
     }
 
     pub fn check(&mut self, overlays: &BTreeMap<PathBuf, String>) -> Result<Value> {
+        ensure!(
+            !self.memory_projection || (self.revisions == 0 && overlays.is_empty()),
+            "experimental memory projection supports one fresh check without editor overlays"
+        );
         self.runtime.context_free_arguments.clear();
         let started = Instant::now();
         let mut phases = BTreeMap::new();
@@ -2134,6 +2222,7 @@ impl Session {
                 .is_some_and(|class| class["virtual"] == true)
         });
         runtime.attach_project(Arc::new(project.clone()), config);
+        phase(&mut phases, "virtual_declarations", &mut phase_started);
         // Every model patch is available before flow analysis of importing modules.
         runtime.prepare_class_transforms(&project)?;
         for (name, summary) in project.classes.iter() {
@@ -2308,7 +2397,22 @@ impl Session {
         }
         // An installed package retains its original resolution location. Only
         // the checker's in-memory document is changed, never dependency files.
-        if !self.notebook_sources.is_empty() || units.keys().any(|path| !path.starts_with(&out)) {
+        if self.memory_projection {
+            mode = "push";
+            let sources = units
+                .iter()
+                .map(|(path, unit)| (path.clone(), unit.source.text.clone()))
+                .collect();
+            *server = Some(crate::checker::ProjectChecker::new_with_memory_projection(
+                Path::new(required("ty")?),
+                &root,
+                &out,
+                &checker_config_path,
+                &sources,
+            )?);
+        } else if !self.notebook_sources.is_empty()
+            || units.keys().any(|path| !path.starts_with(&out))
+        {
             mode = "push";
             if server.is_none() {
                 *server = Some(crate::checker::ProjectChecker::new(
@@ -2458,98 +2562,15 @@ impl Session {
                 }
             }
             let candidates: Vec<_> = candidates.difference(&checked_imports).cloned().collect();
+            let mut native_extras = BTreeMap::new();
+            let import_preflight = out.join("type-imports.py");
             if !candidates.is_empty() {
-                let preflight = out.join("type-imports.py");
-                write(
-                    &preflight,
-                    &candidates
-                        .iter()
-                        .map(|module| format!("import {module}\n"))
-                        .collect::<String>(),
-                )?;
-                let unavailable = if mode == "push" {
-                    let mut sources: BTreeMap<_, _> = units
-                        .iter()
-                        .map(|(p, u)| (p.clone(), u.rendered.as_ref().unwrap().text.clone()))
-                        .collect();
-                    sources.insert(preflight.clone(), std::fs::read_to_string(&preflight)?);
-                    if server.is_none() {
-                        *server = Some(crate::checker::ProjectChecker::new_with_disk_projection(
-                            &binary,
-                            &out,
-                            &checker_config_path,
-                            &sources,
-                        )?);
-                    }
-                    server
-                        .as_mut()
-                        .unwrap()
-                        .check_files(&sources, std::slice::from_ref(&preflight))?
-                } else {
-                    check(
-                        &binary,
-                        &view,
-                        &checker_config_path,
-                        std::slice::from_ref(&preflight),
-                    )?
-                };
-                write(
-                    &out.join(format!("type-imports-{iteration}.json")),
-                    &serde_json::to_string_pretty(&unavailable)?,
-                )?;
-                let mut changed = false;
-                for diagnostic in unavailable {
-                    ensure!(
-                        matches!(
-                            diagnostic["check_name"].as_str(),
-                            Some("unresolved-import" | "import-not-found")
-                        ) && path_of(&diagnostic, &view) == preflight,
-                        "unexpected type-import preflight diagnostic: {diagnostic}"
-                    );
-                    let line = diagnostic["location"]["positions"]["begin"]["line"]
-                        .as_u64()
-                        .context("import diagnostic line")? as usize;
-                    let module = candidates
-                        .get(line.checked_sub(1).context("import line zero")?)
-                        .context("import diagnostic outside preflight")?;
-                    changed |=
-                        Arc::make_mut(&mut project.unavailable_modules).insert(module.clone());
-                }
-                checked_imports.extend(candidates);
-                if changed {
-                    if capabilities.is_none() {
-                        *server = None;
-                    }
-                    virtual_projection.modules = project.prepare_virtual_types(&definitions)?;
-                    virtual_projection.materialized = None;
-                    runtime.attach_project(Arc::new(project.clone()), runtime.config.clone());
-                    for unit in units.values_mut() {
-                        if !unit.dirty {
-                            unit.dirty = true;
-                            unit.oracle.clear();
-                            unit.patches.clear();
-                            unit.return_types.clear();
-                            unit.names.clear();
-                        }
-                        unit.analysis =
-                            if !unit.valid && (capabilities.is_none() || unit.suite.is_empty()) {
-                                Analysis::default()
-                            } else {
-                                crate::static_project::analyze(&unit.source, &unit.suite, runtime)?
-                            };
-                        unit.types = Types::with_project(
-                            &format!("{}result_", unit.source.prefix),
-                            &unit.source.module,
-                            &project,
-                        );
-                        unit.patches = unit
-                            .return_types
-                            .iter()
-                            .map(|(span, value)| Ok((*span, unit.types.render(value)?)))
-                            .collect::<Result<_>>()?;
-                    }
-                    continue;
-                }
+                let code = candidates
+                    .iter()
+                    .map(|module| format!("import {module}\n"))
+                    .collect::<String>();
+                write(&import_preflight, &code)?;
+                native_extras.insert(import_preflight.clone(), code);
             }
             // A TypeSnapshot nominal must resolve to a class literal and use
             // its exact generic context arity. Ask the native checker once per
@@ -2603,13 +2624,14 @@ impl Session {
                 nominal_candidates.sort();
                 nominal_candidates.dedup();
             }
+            let nominal_preflight = out.join("nominal-snapshots.py");
+            let needs_schema = |name: &str| {
+                runtime.nominal_candidates.contains_key(name)
+                    || name.starts_with("builtins.")
+                    || name == "types.NoneType"
+            };
+            let mut lines = BTreeMap::new();
             if !nominal_candidates.is_empty() {
-                let preflight = out.join("nominal-snapshots.py");
-                let needs_schema = |name: &str| {
-                    runtime.nominal_candidates.contains_key(name)
-                        || name.starts_with("builtins.")
-                        || name == "types.NoneType"
-                };
                 let mut probe_types =
                     Types::with_project("_ty_nominal_", "__snapshot_probe__", &project);
                 let expressions = nominal_candidates
@@ -2620,7 +2642,6 @@ impl Session {
                     "from typing_extensions import reveal_type as _ty_snapshot_reveal\n{}",
                     probe_types.prelude()
                 );
-                let mut lines = BTreeMap::new();
                 let mut line = code.lines().count() + 1;
                 for (index, expression) in expressions.iter().enumerate() {
                     lines.insert(line, (index, true));
@@ -2636,7 +2657,7 @@ impl Session {
                         line += 1;
                     }
                 }
-                write(&preflight, &code)?;
+                write(&nominal_preflight, &code)?;
                 runtime
                     .requested_virtual_types
                     .extend(probe_types.virtual_references.iter().cloned());
@@ -2646,34 +2667,114 @@ impl Session {
                     &mut self.virtual_files,
                     server.as_mut(),
                 )?;
-                let diagnostics = if mode == "push" {
-                    let mut sources: BTreeMap<_, _> = units
-                        .iter()
-                        .map(|(path, unit)| {
-                            (path.clone(), unit.rendered.as_ref().unwrap().text.clone())
-                        })
-                        .collect();
-                    sources.insert(preflight.clone(), code);
-                    if server.is_none() {
-                        *server = Some(crate::checker::ProjectChecker::new_with_disk_projection(
-                            &binary,
-                            &out,
-                            &checker_config_path,
-                            &sources,
-                        )?);
+                native_extras.insert(nominal_preflight.clone(), code);
+            }
+            let query_paths: Vec<_> = units
+                .values()
+                .filter(|u| u.dirty && u.valid && u.analysis.needs_probes())
+                .map(|u| u.path.clone())
+                .collect();
+            let mut native_paths = Vec::new();
+            for path in [&import_preflight, &nominal_preflight] {
+                if native_extras.contains_key(path) {
+                    native_paths.push(path.clone());
+                }
+            }
+            native_paths.extend(query_paths.iter().cloned());
+            phase(&mut phases, "import_preflight", &mut phase_started);
+            // These probes use the same provisional projection. Synchronize it
+            // once, then validate imports and class schemas before consuming
+            // any inferred user types. A failed preflight discards this batch
+            // and takes the existing reprojection path.
+            let all_raw = check_units(
+                &binary,
+                &view,
+                &checker_config_path,
+                &units,
+                &native_extras,
+                &native_paths,
+                mode == "push",
+                server,
+                capabilities,
+                self.memory_projection,
+            )?;
+            phase(&mut phases, "oracle_check", &mut phase_started);
+            oracle_queries += 1;
+            let raw: Vec<_> = all_raw
+                .iter()
+                .filter(|diagnostic| !native_extras.contains_key(&path_of(diagnostic, &view)))
+                .cloned()
+                .collect();
+            if !candidates.is_empty() {
+                let unavailable: Vec<_> = all_raw
+                    .iter()
+                    .filter(|diagnostic| path_of(diagnostic, &view) == import_preflight)
+                    .cloned()
+                    .collect();
+                write(
+                    &out.join(format!("type-imports-{iteration}.json")),
+                    &serde_json::to_string_pretty(&unavailable)?,
+                )?;
+                let mut changed = false;
+                for diagnostic in unavailable {
+                    ensure!(
+                        matches!(
+                            diagnostic["check_name"].as_str(),
+                            Some("unresolved-import" | "import-not-found")
+                        ) && path_of(&diagnostic, &view) == import_preflight,
+                        "unexpected type-import preflight diagnostic: {diagnostic}"
+                    );
+                    let line = diagnostic["location"]["positions"]["begin"]["line"]
+                        .as_u64()
+                        .context("import diagnostic line")? as usize;
+                    let module = candidates
+                        .get(line.checked_sub(1).context("import line zero")?)
+                        .context("import diagnostic outside import_preflight")?;
+                    changed |=
+                        Arc::make_mut(&mut project.unavailable_modules).insert(module.clone());
+                }
+                checked_imports.extend(candidates);
+                if changed {
+                    if capabilities.is_none() {
+                        *server = None;
                     }
-                    server
-                        .as_mut()
-                        .unwrap()
-                        .check_files(&sources, std::slice::from_ref(&preflight))?
-                } else {
-                    check(
-                        &binary,
-                        &view,
-                        &checker_config_path,
-                        std::slice::from_ref(&preflight),
-                    )?
-                };
+                    virtual_projection.modules = project.prepare_virtual_types(&definitions)?;
+                    virtual_projection.materialized = None;
+                    runtime.attach_project(Arc::new(project.clone()), runtime.config.clone());
+                    for unit in units.values_mut() {
+                        if !unit.dirty {
+                            unit.dirty = true;
+                            unit.oracle.clear();
+                            unit.patches.clear();
+                            unit.return_types.clear();
+                            unit.names.clear();
+                        }
+                        unit.analysis =
+                            if !unit.valid && (capabilities.is_none() || unit.suite.is_empty()) {
+                                Analysis::default()
+                            } else {
+                                crate::static_project::analyze(&unit.source, &unit.suite, runtime)?
+                            };
+                        unit.types = Types::with_project(
+                            &format!("{}result_", unit.source.prefix),
+                            &unit.source.module,
+                            &project,
+                        );
+                        unit.patches = unit
+                            .return_types
+                            .iter()
+                            .map(|(span, value)| Ok((*span, unit.types.render(value)?)))
+                            .collect::<Result<_>>()?;
+                    }
+                    continue;
+                }
+            }
+            if !nominal_candidates.is_empty() {
+                let diagnostics: Vec<_> = all_raw
+                    .iter()
+                    .filter(|diagnostic| path_of(diagnostic, &view) == nominal_preflight)
+                    .cloned()
+                    .collect();
                 write(
                     &out.join(format!("nominal-snapshots-{iteration}.json")),
                     &serde_json::to_string_pretty(&diagnostics)?,
@@ -2682,7 +2783,7 @@ impl Session {
                 let mut arities = BTreeMap::new();
                 let mut missing_symbols = BTreeSet::new();
                 for diagnostic in &diagnostics {
-                    if path_of(diagnostic, &view) != preflight {
+                    if path_of(diagnostic, &view) != nominal_preflight {
                         continue;
                     }
                     let line = diagnostic
@@ -2774,24 +2875,6 @@ impl Session {
                     unit.types.confirm_native_evidence(&project);
                 }
             }
-            phase(&mut phases, "import_preflight", &mut phase_started);
-            let query_paths: Vec<_> = units
-                .values()
-                .filter(|u| u.dirty && u.valid && u.analysis.needs_probes())
-                .map(|u| u.path.clone())
-                .collect();
-            let raw = check_units(
-                &binary,
-                &view,
-                &checker_config_path,
-                &units,
-                &query_paths,
-                mode == "push",
-                server,
-                capabilities,
-            )?;
-            phase(&mut phases, "oracle_check", &mut phase_started);
-            oracle_queries += 1;
             write(
                 &out.join(format!("oracle-{iteration}.json")),
                 &serde_json::to_string_pretty(&raw)?,
@@ -2985,7 +3068,30 @@ impl Session {
             && self.notebook_sources.is_empty()
             && units.keys().all(|path| path.starts_with(&out))
             && paths.iter().all(|path| path.starts_with(&view));
-        let mut raw = if disk_batch {
+        let mut raw = if (disk_batch || self.memory_projection)
+            && server
+                .as_ref()
+                .is_some_and(|s| s.supports_workspace_diagnostics())
+        {
+            if std::env::var_os("TY_COMPANION_TRACE_PHASES").is_some() {
+                eprintln!(
+                    "companion transport: {}workspace diagnostics",
+                    if self.memory_projection {
+                        "memory projection "
+                    } else {
+                        "reused "
+                    }
+                );
+            }
+            let sources = units
+                .iter()
+                .map(|(path, unit)| (path.clone(), unit.rendered.as_ref().unwrap().text.clone()))
+                .collect();
+            server
+                .as_mut()
+                .context("workspace checker")?
+                .check_workspace(&sources, &paths)?
+        } else if disk_batch {
             check_selected_files(&binary, &view, &checker_config_path, &paths)?
         } else {
             check_units(
@@ -2993,10 +3099,12 @@ impl Session {
                 &view,
                 &checker_config_path,
                 &units,
+                &BTreeMap::new(),
                 &paths,
                 mode == "push",
                 server,
                 capabilities,
+                self.memory_projection,
             )?
         };
         if capabilities.is_none() {
@@ -3432,6 +3540,34 @@ mod tests {
         let root = directory.join("project");
         let source = "class Parent:\n    field: int = 1\n    class Meta: pass\nclass Valid(Parent):\n    class Meta(Parent.Meta): pass\nclass Wrong(Parent):\n    field: str = ''\n    class Meta: pass\n";
         write(&root.join("demo.py"), source)?;
+        let modified = root.join("demo.py").metadata()?.modified()?;
+        // Older supported ty releases do not implement these override rules.
+        // Preserve every authored error the selected official checker reports;
+        // only its false positive for the explicit nested subclass may vanish.
+        let native_config = directory.join("native.toml");
+        write(&native_config, "[environment]\npython-version='3.13'\n")?;
+        let native = check(
+            Path::new(&binary),
+            &root,
+            &native_config,
+            &[root.join("demo.py")],
+        )?;
+        let signature = |item: &Value| {
+            json!({"code":item["check_name"],"description":item["description"],"positions":item["location"]["positions"]})
+                .to_string()
+        };
+        let mut expected = Vec::new();
+        for diagnostic in native {
+            assert_eq!(diagnostic["check_name"], "invalid-attribute-override");
+            let line = diagnostic["location"]["positions"]["begin"]["line"]
+                .as_u64()
+                .unwrap();
+            assert!([5, 7, 8].contains(&line), "{diagnostic}");
+            if line != 5 {
+                expected.push(signature(&diagnostic));
+            }
+        }
+        expected.sort();
         let plugin = directory.join("plugin.py");
         write(
             &plugin,
@@ -3439,7 +3575,7 @@ mod tests {
         )?;
         let manifest = directory.join("plugin.json");
         write(&manifest, &json!({"id":"nested","name":"Nested override regression","version":"0.0.0","protocol-version":{"major":0,"minor":7},"ty-compatibility":{"requirement":">=0.86.0"},"runtime":{"kind":"monty","artifact":"plugin.py"},"capabilities":{"class-transform":true},"claims":{"classes":[{"kind":"exact","qualified-name":"demo.Parent"}]}}).to_string())?;
-        for mode in ["cli", "push"] {
+        for mode in ["cli", "push", "memory"] {
             let options = BTreeMap::from([
                 ("ty".into(), binary.clone()),
                 (
@@ -3448,27 +3584,146 @@ mod tests {
                 ),
                 ("plugin".into(), plugin.to_string_lossy().into_owned()),
                 ("manifest".into(), manifest.to_string_lossy().into_owned()),
-                ("checker-mode".into(), mode.into()),
+                (
+                    "checker-mode".into(),
+                    if mode == "memory" { "push" } else { mode }.into(),
+                ),
+                ("memory-projection".into(), (mode == "memory").to_string()),
                 ("python-version".into(), "3.13".into()),
             ]);
             let result = Session::new(&root, &options)?.check(&BTreeMap::new())?;
             let diagnostics = result["diagnostics"]
                 .as_array()
                 .context("nested override diagnostics")?;
-            assert_eq!(diagnostics.len(), 2, "{mode}: {result:#}");
-            let mut lines = diagnostics
+            let mut actual = diagnostics.iter().map(signature).collect::<Vec<_>>();
+            actual.sort();
+            assert_eq!(actual, expected, "{mode}: {result:#}");
+        }
+        assert_eq!(std::fs::read_to_string(root.join("demo.py"))?, source);
+        assert_eq!(root.join("demo.py").metadata()?.modified()?, modified);
+        std::fs::remove_dir_all(directory)?;
+        Ok(())
+    }
+
+    #[test]
+    fn memory_projection_survives_unavailable_import_restarts() -> Result<()> {
+        let binary = std::env::var("TY_COMPANION_TEST_OFFICIAL")?;
+        let directory =
+            std::env::temp_dir().join(format!("ty-memory-restart-{}", std::process::id()));
+        let root = directory.join("project");
+        let source = "from typing import assert_type\nclass Model: pass\nassert_type(Model().number, int)\noptional = Model().optional\nwrong: int = 'wrong'\n";
+        write(&root.join("demo.py"), source)?;
+        write(&root.join("schema.py"), "class Schema[T, U]: pass\n")?;
+        let modified = root.join("demo.py").metadata()?.modified()?;
+        let plugin = directory.join("plugin.py");
+        write(
+            &plugin,
+            "@on_class_transform\ndef transform(request):\n    number = {'expression':'int', 'mode':'annotation', 'snapshot':{'kind':'nominal', 'qualified-name':'schema.Schema', 'arguments':[{'kind':'nominal', 'qualified-name':'builtins.str'}]}}\n    return class_patch(fields=[field_patch('number', number, has_default=True), field_patch('optional', type_annotation('missing_companion_dependency.Value'), has_default=True)])\n",
+        )?;
+        let manifest = directory.join("plugin.json");
+        write(&manifest, &json!({"id":"restart","name":"Restart regression","version":"0.0.0","protocol-version":{"major":0,"minor":7},"ty-compatibility":{"requirement":">=0.86.0"},"runtime":{"kind":"monty","artifact":"plugin.py"},"capabilities":{"class-transform":true},"claims":{"classes":[{"kind":"exact","qualified-name":"demo.Model"}]}}).to_string())?;
+        for memory in [false, true] {
+            let options = BTreeMap::from([
+                ("ty".into(), binary.clone()),
+                (
+                    "out".into(),
+                    directory
+                        .join(format!("output-{memory}"))
+                        .to_string_lossy()
+                        .into_owned(),
+                ),
+                ("plugin".into(), plugin.to_string_lossy().into_owned()),
+                ("manifest".into(), manifest.to_string_lossy().into_owned()),
+                ("checker-mode".into(), "push".into()),
+                ("memory-projection".into(), memory.to_string()),
+                ("python-version".into(), "3.13".into()),
+            ]);
+            let mut session = Session::new(&root, &options)?;
+            let result = session.check(&BTreeMap::new())?;
+            assert_eq!(
+                session.base_project.snapshot_nominals.get("schema.Schema"),
+                Some(&Some(2)),
+                "a missing import must not allow an invalid class specialization to bypass native validation"
+            );
+            assert!(
+                session
+                    .base_project
+                    .unavailable_modules
+                    .contains("missing_companion_dependency"),
+                "{result:#}"
+            );
+            let diagnostics = result["diagnostics"]
+                .as_array()
+                .context("restart diagnostics")?;
+            assert_eq!(diagnostics.len(), 1, "{result:#}");
+            assert_eq!(diagnostics[0]["check_name"], "invalid-assignment");
+            assert_eq!(diagnostics[0]["location"]["positions"]["begin"]["line"], 5);
+        }
+        assert_eq!(std::fs::read_to_string(root.join("demo.py"))?, source);
+        assert_eq!(root.join("demo.py").metadata()?.modified()?, modified);
+        std::fs::remove_dir_all(directory)?;
+        Ok(())
+    }
+
+    #[test]
+    fn imported_generic_members_preserve_same_named_classes_end_to_end() -> Result<()> {
+        let binary = std::env::var("TY_COMPANION_TEST_OFFICIAL")?;
+        let directory =
+            std::env::temp_dir().join(format!("ty-imported-generics-{}", std::process::id()));
+        let root = directory.join("project");
+        for (module, code) in [
+            (
+                "library",
+                "class Manager[T]:\n    def get(self) -> object: ...\n",
+            ),
+            ("left", "class Record:\n    value: str = ''\n"),
+            ("right", "class Record:\n    value: int = 0\n"),
+        ] {
+            write(&root.join(format!("{module}.py")), code)?;
+        }
+        let source = "from typing import Any, assert_type\nimport left as one\nimport right as two\nassert_type(one.Record.objects.get().value, str)\nassert_type(two.Record.objects.get().value, int)\ndef aliased():\n    record = one.Record\n    assert_type(record.objects.get().value, str)\ndef shadowed(one: Any):\n    assert_type(one.Record.objects.get(), Any)\nwrong: int = one.Record.objects.get().value\nwrong_other: str = two.Record.objects.get().value\n";
+        write(&root.join("demo.py"), source)?;
+        let modified = root.join("demo.py").metadata()?.modified()?;
+        let plugin = directory.join("plugin.py");
+        write(
+            &plugin,
+            "@on_class_transform\ndef transform(request):\n    model = request['class']['qualified-name']\n    return class_patch(class_members=[member('objects', type_annotation('library.Manager[' + model + ']'), mode='replace-existing')])\n@on_call_return\ndef returns(request):\n    return call_return_patch(request['receiver']['generic-arguments'][0])\n",
+        )?;
+        let manifest = directory.join("plugin.json");
+        write(&manifest, &json!({"id":"qualified-members","name":"Qualified members","version":"0.0.0","protocol-version":{"major":0,"minor":7},"ty-compatibility":{"requirement":">=0.86.0"},"runtime":{"kind":"monty","artifact":"plugin.py"},"capabilities":{"class-transform":true,"call-return":true},"claims":{"classes":[{"kind":"exact","qualified-name":"left.Record"},{"kind":"exact","qualified-name":"right.Record"}],"methods":[{"kind":"exact","class-qualified-name":"library.Manager","method-name":"get"}]}}).to_string())?;
+        for memory in [false, true] {
+            let options = BTreeMap::from([
+                ("ty".into(), binary.clone()),
+                (
+                    "out".into(),
+                    directory
+                        .join(format!("output-{memory}"))
+                        .to_string_lossy()
+                        .into_owned(),
+                ),
+                ("plugin".into(), plugin.to_string_lossy().into_owned()),
+                ("manifest".into(), manifest.to_string_lossy().into_owned()),
+                ("checker-mode".into(), "push".into()),
+                ("memory-projection".into(), memory.to_string()),
+                ("python-version".into(), "3.13".into()),
+            ]);
+            let result = Session::new(&root, &options)?.check(&BTreeMap::new())?;
+            let mut positions = result["diagnostics"]
+                .as_array()
+                .context("imported member diagnostics")?
                 .iter()
-                .map(|item| {
-                    assert_eq!(item["check_name"], "invalid-attribute-override", "{item}");
-                    item["location"]["positions"]["begin"]["line"]
+                .map(|diagnostic| {
+                    assert_eq!(diagnostic["check_name"], "invalid-assignment", "{result:#}");
+                    diagnostic["location"]["positions"]["begin"]["line"]
                         .as_u64()
                         .unwrap()
                 })
                 .collect::<Vec<_>>();
-            lines.sort();
-            assert_eq!(lines, [7, 8], "{mode}");
+            positions.sort();
+            assert_eq!(positions, [11, 12], "{result:#}");
         }
         assert_eq!(std::fs::read_to_string(root.join("demo.py"))?, source);
+        assert_eq!(root.join("demo.py").metadata()?.modified()?, modified);
         std::fs::remove_dir_all(directory)?;
         Ok(())
     }
@@ -4050,6 +4305,112 @@ mod tests {
         assert_eq!(map("untitled:demo.py")?, None);
         std::fs::remove_dir_all(directory)?;
         Ok(())
+    }
+
+    #[test]
+    #[cfg(not(windows))]
+    fn memory_projection_preserves_rich_diagnostics_for_explicit_paths() -> Result<()> {
+        let binary = std::env::var("TY_COMPANION_TEST_OFFICIAL")?;
+        let directory =
+            std::env::temp_dir().join(format!("ty-memory-rich-diagnostics-{}", std::process::id()));
+        let root = directory.join("input [source] café");
+        let output = directory.join("output");
+        let source = root.join("missing.py");
+        let text = "import missing_companion_rich_diagnostics\n";
+        write(&source, text)?;
+        write(&root.join("ty.toml"), "[src]\ninclude=['missing.py']\n")?;
+        write(&root.join("excluded.py"), "this is !!! invalid python\n")?;
+        let modified = source.metadata()?.modified()?;
+        let options = BTreeMap::from([
+            ("out".into(), output.to_string_lossy().into_owned()),
+            ("ty".into(), binary),
+            ("checker-mode".into(), "push".into()),
+            ("memory-projection".into(), "true".into()),
+            ("public-cli".into(), "true".into()),
+            (
+                "explicit-files".into(),
+                serde_json::to_string(&vec![source.canonicalize()?])?,
+            ),
+        ]);
+        let result = (|| -> Result<()> {
+            let mut session = Session::new(&root, &options)?;
+            assert!(session.memory_projection);
+            assert!(output.join("environment-probe/probe.py").is_file());
+            assert!(!directory.join("environment-probe").exists());
+            let result = session.check(&BTreeMap::new())?;
+            let diagnostics = result["diagnostics"].as_array().unwrap();
+            assert_eq!(diagnostics.len(), 1, "{result:#}");
+            assert!(matches!(
+                diagnostics[0]["check_name"].as_str(),
+                Some("import-not-found" | "unresolved-import")
+            ));
+            let rich = session.rich_diagnostics()?;
+            assert_eq!(rich.len(), 1, "{rich:#?}");
+            assert_eq!(rich[0]["check_name"], diagnostics[0]["check_name"]);
+            assert_eq!(rich[0]["location"], diagnostics[0]["location"]);
+            assert_eq!(session.rich_diagnostics()?, rich);
+            assert_eq!(std::fs::read_to_string(&source)?, text);
+            assert_eq!(source.metadata()?.modified()?, modified);
+            Ok(())
+        })();
+        std::fs::remove_dir_all(directory)?;
+        result
+    }
+
+    #[test]
+    #[cfg(not(windows))]
+    fn memory_projection_falls_back_for_per_file_overrides() -> Result<()> {
+        let binary = std::env::var("TY_COMPANION_TEST_OFFICIAL")?;
+        let directory =
+            std::env::temp_dir().join(format!("ty-memory-override-{}", std::process::id()));
+        let root = directory.join("input source");
+        let source = root.join("demo.py");
+        let text = "wrong: int = 'bad'\n";
+        write(&source, text)?;
+        let modified = source.metadata()?.modified()?;
+        let result = (|| -> Result<()> {
+            for from_cli in [false, true] {
+                let config = if from_cli {
+                    "[environment]\npython-version='3.13'\n"
+                } else {
+                    "[environment]\npython-version='3.13'\n[[overrides]]\ninclude=['demo.py']\n[overrides.rules]\ninvalid-assignment='warn'\n"
+                };
+                write(&root.join("ty.toml"), config)?;
+                let mut options = BTreeMap::from([
+                    (
+                        "out".into(),
+                        directory
+                            .join(from_cli.to_string())
+                            .to_string_lossy()
+                            .into_owned(),
+                    ),
+                    ("ty".into(), binary.clone()),
+                    ("checker-mode".into(), "push".into()),
+                    ("memory-projection".into(), "true".into()),
+                    ("public-cli".into(), "true".into()),
+                ]);
+                if from_cli {
+                    options.insert(
+                        "cli-config".into(),
+                        serde_json::to_string(&vec![
+                            "overrides=[{include=['demo.py'],rules.invalid-assignment='warn'}]",
+                        ])?,
+                    );
+                }
+                let mut session = Session::new(&root, &options)?;
+                assert!(!session.memory_projection);
+                let result = session.check(&BTreeMap::new())?;
+                let diagnostics = result["diagnostics"].as_array().unwrap();
+                assert_eq!(diagnostics.len(), 1, "{result:#}");
+                assert_eq!(diagnostics[0]["check_name"], "invalid-assignment");
+                assert_eq!(diagnostics[0]["severity"], "minor");
+            }
+            assert_eq!(std::fs::read_to_string(&source)?, text);
+            assert_eq!(source.metadata()?.modified()?, modified);
+            Ok(())
+        })();
+        std::fs::remove_dir_all(directory)?;
+        result
     }
 
     #[test]

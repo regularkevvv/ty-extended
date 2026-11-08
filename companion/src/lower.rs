@@ -223,7 +223,31 @@ fn descriptor(types: &mut Types, helper: &str, access: &Value) -> Result<String>
         .chain(set)
         .collect::<Vec<_>>()
         .join(", ");
-    Ok(format!("class {helper}({base}[{arguments}]):\n    pass\n"))
+    let specialization = format!("{base}[{arguments}]");
+    let base = match types
+        .descriptor_specializations
+        .entry(specialization.clone())
+    {
+        std::collections::btree_map::Entry::Vacant(entry) => {
+            // A single use needs no extra declaration. The next use creates
+            // the shared alias without changing the first field's identity.
+            entry.insert(None);
+            specialization
+        }
+        std::collections::btree_map::Entry::Occupied(mut entry) => {
+            if let Some(alias) = entry.get() {
+                alias.clone()
+            } else {
+                let alias = format!("{helper}_specialization");
+                types
+                    .definitions
+                    .push_str(&format!("{alias} = {specialization}\n"));
+                entry.insert(Some(alias.clone()));
+                alias
+            }
+        }
+    };
+    Ok(format!("class {helper}({base}):\n    pass\n"))
 }
 fn member(
     types: &mut Types,

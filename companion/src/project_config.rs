@@ -62,7 +62,20 @@ impl Pattern {
             .map_or((false, pattern), |p| (true, p));
         let directory_only = pattern.ends_with('/');
         let pattern = pattern.trim_end_matches('/');
-        let pattern = relocated(pattern, base, base, base);
+        let absolute = relocated(pattern, base, base, base);
+        // The configuration directory is a literal path, even when its name
+        // contains brackets or other glob punctuation. Only the user-supplied
+        // suffix carries pattern syntax.
+        let pattern = if Path::new(pattern).is_relative()
+            && let Some(anchor) = base
+                .ancestors()
+                .find(|anchor| Path::new(&absolute).starts_with(anchor))
+        {
+            let prefix = anchor.to_string_lossy();
+            format!("{}{}", globset::escape(&prefix), &absolute[prefix.len()..])
+        } else {
+            absolute
+        };
         let matcher = GlobBuilder::new(&pattern)
             .literal_separator(true)
             .backslash_escape(false)
@@ -1379,15 +1392,12 @@ fn plugin_registrations(
 /// preserves requires-python/interpreter/default behavior across checker releases
 /// without duplicating PEP 440 or hard-coding the checker's latest stable version.
 fn resolve_python_version(
-    view: &Path,
+    generated: &Path,
     table: &Table,
     options: &BTreeMap<String, String>,
     project_metadata: &Table,
 ) -> Result<String> {
-    let directory = view
-        .parent()
-        .context("generated view parent")?
-        .join("environment-probe");
+    let directory = generated.join("environment-probe");
     std::fs::create_dir_all(&directory)?;
     let mut metadata = project_metadata.clone();
     let mut tool = Table::new();
@@ -1436,6 +1446,24 @@ fn resolve_python_version(
         "unexpected resolved Python version {version}"
     );
     Ok(version.to_owned())
+}
+
+/// Per-file override patterns retain the disk projection until their native
+/// configuration can be anchored independently of the original workspace.
+pub fn supports_memory_projection(root: &Path, options: &BTreeMap<String, String>) -> Result<bool> {
+    let (table, _, _) = discovered(root, options.get("ty-config"))?;
+    if table.contains_key("overrides") {
+        return Ok(false);
+    }
+    if let Some(overrides) = options.get("cli-config") {
+        for text in serde_json::from_str::<Vec<String>>(overrides)? {
+            let table: Table = toml::from_str(&text).context("invalid --config override")?;
+            if table.contains_key("overrides") {
+                return Ok(false);
+            }
+        }
+    }
+    Ok(true)
 }
 
 pub fn load(
@@ -1577,6 +1605,18 @@ pub fn load(
     }
     let terminal = serde_json::to_value(table.get("terminal"))?;
     let selection = Selection::new(&table, &base, root)?;
+    let memory_projection = view == root
+        && options
+            .get("memory-projection")
+            .is_some_and(|value| value == "true");
+    if memory_projection {
+        // Selection above applies the original include/exclude rules before
+        // analysis. Native discovery and rich-diagnostic queries receive only
+        // those selected documents; final workspace checks install their exact
+        // source list separately. Disk-view exclusions cannot be re-anchored to
+        // the generated directory when sources remain in the original project.
+        table.remove("src");
+    }
     let registration = plugin_registrations(&table, &base, root, options, source.as_deref())?;
     let plugins = registration.plugins;
     let stub_roots = registration.roots;
@@ -1742,9 +1782,10 @@ pub fn load(
     // The upstream server does not know which files were explicit CLI paths.
     // Preserve that selection in the generated configuration as exact file
     // exceptions; directory descendants continue to obey ordinary exclusions.
-    if options
-        .get("force-exclude")
-        .is_none_or(|value| value != "true")
+    if !memory_projection
+        && options
+            .get("force-exclude")
+            .is_none_or(|value| value != "true")
         && let Some(paths) = options.get("explicit-files")
     {
         let paths: Vec<PathBuf> = serde_json::from_str(paths)?;
@@ -1794,9 +1835,14 @@ pub fn load(
     }
     let python_version = match configured_python_version {
         Some(version) => version,
-        None if is_editor => resolve_python_version(view, &table, options, &metadata)?,
+        None if is_editor => resolve_python_version(
+            stubs.parent().context("generated stub parent")?,
+            &table,
+            options,
+            &metadata,
+        )?,
         None => resolve_python_version(
-            view,
+            stubs.parent().context("generated stub parent")?,
             &table,
             options,
             &project_metadata(root, root, None, false)?,
@@ -1891,7 +1937,12 @@ pub fn load(
                 .and_then(|project| project.get("requires-python"))
                 .is_some()
         {
-            let version = resolve_python_version(view, &native_base, options, &metadata)?;
+            let version = resolve_python_version(
+                stubs.parent().context("generated stub parent")?,
+                &native_base,
+                options,
+                &metadata,
+            )?;
             native_base
                 .get_mut("environment")
                 .and_then(Value::as_table_mut)
@@ -2450,6 +2501,20 @@ mod tests {
             "# /// script\n# dependencies=[]\n# ///\n"
         ));
         assert!(!selection.includes(&root.join("src/.venv/a.py"), "x=1"));
+        Ok(())
+    }
+
+    #[test]
+    fn source_pattern_anchors_are_literal() -> Result<()> {
+        let root = Path::new("/workspace [literal] café");
+        let table: Table =
+            toml::from_str("[src]\ninclude=['src/[ab]*.py']\nexclude=['src/absent.py']\n")?;
+        let selection = Selection::new(&table, root, root)?;
+        assert!(selection.includes(&root.join("src/apple.py"), ""));
+        assert!(selection.includes(&root.join("src/banana.py"), ""));
+        assert!(!selection.includes(&root.join("src/cherry.py"), ""));
+        assert!(!selection.includes(&root.join("src/absent.py"), ""));
+        assert!(!selection.includes(Path::new("/workspace l café/src/apple.py"), ""));
         Ok(())
     }
 

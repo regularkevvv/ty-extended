@@ -163,6 +163,9 @@ pub struct ProjectChecker {
     disk_directories: BTreeMap<PathBuf, SystemTime>,
     projection_root: PathBuf,
     document_version: i32,
+    workspace_fallback: Option<(PathBuf, PathBuf, BTreeSet<PathBuf>)>,
+    memory_projection: bool,
+    memory_probe_prefix: Option<PathBuf>,
 }
 
 /// A watched-file event makes ty reread metadata, but equal modification times
@@ -241,6 +244,45 @@ fn projection_contains(root: &Path, path: &Path) -> bool {
 }
 
 impl ProjectChecker {
+    /// Single-check projection: original files stay on disk and only changed
+    /// text is opened in the native server. All generated files remain in out.
+    pub fn new_with_memory_projection(
+        binary: &Path,
+        original: &Path,
+        out: &Path,
+        config: &Path,
+        sources: &BTreeMap<PathBuf, String>,
+    ) -> Result<Self> {
+        use sha2::{Digest, Sha256};
+        let identity = format!("{:x}", Sha256::digest(out.to_string_lossy().as_bytes()));
+        let probe_prefix = original.join(format!("_ty_companion_probe_{}_", &identity[..24]));
+        let config = write_workspace_config(original, out, config, sources, Some(&probe_prefix))?;
+        let mut roots = vec![original.to_owned(), out.to_owned()];
+        for path in sources.keys() {
+            if !roots.iter().any(|root| projection_contains(root, path)) {
+                roots.push(path.parent().context("source parent")?.to_owned());
+            }
+        }
+        let server = Server::configured_editor_roots(
+            binary,
+            out,
+            &config,
+            false,
+            None,
+            json!({"diagnosticMode":"workspace"}),
+            None,
+            &roots,
+        )?;
+        let mut checker = Self::from_server(server, out);
+        ensure!(
+            checker.supports_workspace_diagnostics(),
+            "memory projection requires native workspace diagnostics"
+        );
+        checker.memory_projection = true;
+        checker.memory_probe_prefix = Some(probe_prefix);
+        Ok(checker)
+    }
+
     /// Start a checker after every ordinary projection source has been written.
     /// Its initial database already sees those bytes, so no watched-file events
     /// or timestamp changes are needed. Record revisions for subsequent edits.
@@ -252,7 +294,36 @@ impl ProjectChecker {
         sources: &BTreeMap<PathBuf, String>,
     ) -> Result<Self> {
         use sha2::{Digest, Sha256};
-        let mut checker = Self::new(binary, root, config)?;
+        let workspace_config = workspace_config(root, config, sources)?;
+        let mut checker = if let Some(workspace_config) = workspace_config {
+            let server = Server::configured_editor(
+                binary,
+                root,
+                &workspace_config,
+                false,
+                None,
+                json!({"diagnosticMode":"workspace"}),
+                None,
+            )?;
+            if server
+                .initialized
+                .pointer("/capabilities/diagnosticProvider/workspaceDiagnostics")
+                == Some(&Value::Bool(true))
+            {
+                let mut checker = Self::from_server(server, root);
+                checker.workspace_fallback = Some((
+                    binary.to_owned(),
+                    config.to_owned(),
+                    sources.keys().cloned().collect(),
+                ));
+                checker
+            } else {
+                drop(server);
+                Self::new(binary, root, config)?
+            }
+        } else {
+            Self::new(binary, root, config)?
+        };
         let mut directories = BTreeSet::new();
         for (path, source) in sources {
             ensure!(
@@ -283,9 +354,15 @@ impl ProjectChecker {
     }
 
     pub fn new(binary: &Path, root: &Path, config: &Path) -> Result<Self> {
-        let mut server = Server::configured(binary, root, config, true)?;
+        Ok(Self::from_server(
+            Server::configured(binary, root, config, true)?,
+            root,
+        ))
+    }
+
+    fn from_server(mut server: Server, root: &Path) -> Self {
         server.project = true;
-        Ok(Self {
+        Self {
             server,
             documents: BTreeMap::new(),
             notebooks: BTreeMap::new(),
@@ -295,7 +372,10 @@ impl ProjectChecker {
             disk_directories: BTreeMap::new(),
             projection_root: root.to_owned(),
             document_version: 0,
-        })
+            workspace_fallback: None,
+            memory_projection: false,
+            memory_probe_prefix: None,
+        }
     }
     pub fn new_editor(
         binary: &Path,
@@ -352,6 +432,9 @@ impl ProjectChecker {
             disk_directories: BTreeMap::new(),
             projection_root: root.to_owned(),
             document_version: 0,
+            workspace_fallback: None,
+            memory_projection: false,
+            memory_probe_prefix: None,
         })
     }
     pub fn set_workspace_configuration(&mut self, settings: Value) {
@@ -385,12 +468,14 @@ impl ProjectChecker {
         );
         self.notebooks
             .insert(path.into(), file_uri(&path.with_extension("oracle.ipynb"))?);
+        self.leave_workspace_mode()?;
         Ok(())
     }
     pub fn register_external_source(&mut self, path: &Path) -> Result<()> {
         if self.external_sources.contains(path) {
             return Ok(());
         }
+        self.leave_workspace_mode()?;
         let parent = path.parent().context("external source has no parent")?;
         if !self
             .external_sources
@@ -496,7 +581,28 @@ impl ProjectChecker {
                 self.server.notify("textDocument/didChange",json!({"textDocument":{"uri":uri,"version":version},"contentChanges":[{"text":source}]}))?;
             }
         } else {
-            let uri = file_uri(path)?;
+            let uri = if let Some(prefix) = self.memory_probe_prefix.as_ref()
+                && workspace_probe(&self.projection_root, path)
+            {
+                // Probes must use the project's database, just like imports
+                // from its ordinary source files. This URI is memory-only:
+                // the actual debug source stays in the owned output directory.
+                let virtual_path = prefix.with_file_name(format!(
+                    "{}{}",
+                    prefix
+                        .file_name()
+                        .context("probe prefix")?
+                        .to_string_lossy(),
+                    path.file_name().context("probe name")?.to_string_lossy()
+                ));
+                ensure!(
+                    !virtual_path.exists(),
+                    "oracle probe would shadow an original file"
+                );
+                file_uri(&virtual_path)?
+            } else {
+                file_uri(path)?
+            };
             let version = self.document_version;
             if let Some(notebook) = self.notebooks.get(path) {
                 self.server.notify("notebookDocument/didOpen",json!({"notebookDocument":{"uri":notebook,"notebookType":"jupyter-notebook","version":version,"cells":[{"kind":2,"document":uri}]},"cellTextDocuments":[{"uri":uri,"languageId":"python","version":version,"text":source}]}))?;
@@ -525,6 +631,30 @@ impl ProjectChecker {
         sources: &BTreeMap<PathBuf, String>,
         paths: &[PathBuf],
     ) -> Result<Vec<Value>> {
+        if !self.server.push {
+            let mut output = Vec::new();
+            for path in paths {
+                let source = sources
+                    .get(path)
+                    .context("queried document absent from project view")?;
+                self.update(path, source, false)?;
+                let uri = &self
+                    .documents
+                    .get(path)
+                    .context("queried document not open")?
+                    .0;
+                let report = self.server.request(
+                    "textDocument/diagnostic",
+                    json!({"textDocument":{"uri":uri}}),
+                )?;
+                for item in report["items"].as_array().context("document diagnostics")? {
+                    if let Some(item) = normalize_diagnostic(path, source, item)? {
+                        output.push(item);
+                    }
+                }
+            }
+            return Ok(output);
+        }
         let mut pending = BTreeMap::new();
         for path in paths {
             let source = sources
@@ -629,12 +759,34 @@ impl ProjectChecker {
         paths: &[PathBuf],
     ) -> Result<Vec<Value>> {
         use sha2::{Digest, Sha256};
+        if self
+            .workspace_fallback
+            .as_ref()
+            .is_some_and(|(_, _, included)| {
+                sources.keys().any(|path| {
+                    !workspace_probe(&self.projection_root, path) && !included.contains(path)
+                })
+            })
+        {
+            self.leave_workspace_mode()?;
+        }
         let queried: BTreeSet<_> = paths.iter().collect();
         let mut open = BTreeMap::new();
         let mut current = BTreeMap::new();
         let mut changes = Vec::new();
         let mut structural_changes = BTreeSet::new();
         for (path, source) in sources {
+            if self.memory_projection && !projection_contains(&self.projection_root, path) {
+                // Never mutate original contents, timestamps, or directories.
+                // A changed projection is visible to imports through didOpen;
+                // an unchanged file is read directly by the native checker.
+                let original = fs::read_to_string(path)
+                    .with_context(|| format!("read original source {}", path.display()))?;
+                if original != *source || queried.contains(path) {
+                    open.insert(path.clone(), source.clone());
+                }
+                continue;
+            }
             let overlay = self.notebooks.contains_key(path) || self.external_sources.contains(path);
             if queried.contains(path) || overlay {
                 open.insert(path.clone(), source.clone());
@@ -730,15 +882,16 @@ impl ProjectChecker {
                 self.disk_directories.remove(&path);
             }
         }
-        // All ordinary sources already contain their final bytes on disk.
-        // Close changed query buffers before invalidating imports, then open
-        // each exactly once when requesting its diagnostics. Otherwise didOpen
-        // immediately checks it and the forced didChange repeats that work.
-        // Memory-only overlays still synchronize before any query is sent.
+        // Push diagnostics start checking on didOpen. Defer ordinary disk
+        // queries so the forced didChange does not duplicate that work. Pull
+        // sessions must open the whole batch first: a queried module can import
+        // another queried module whose current projection exists only in memory.
         let deferred = paths
             .iter()
             .filter(|path| {
-                !self.notebooks.contains_key(*path) && !self.external_sources.contains(*path)
+                self.server.push
+                    && !self.notebooks.contains_key(*path)
+                    && !self.external_sources.contains(*path)
             })
             .cloned()
             .collect();
@@ -752,6 +905,183 @@ impl ProjectChecker {
         self.disk_sources = current;
         self.check_synced(&open, paths)
     }
+
+    pub fn supports_workspace_diagnostics(&self) -> bool {
+        !self.server.push
+            && self
+                .server
+                .initialized
+                .pointer("/capabilities/diagnosticProvider/workspaceDiagnostics")
+                == Some(&Value::Bool(true))
+    }
+
+    /// A later edit may introduce a notebook or an externally located patch.
+    /// Restore the general transport before changing workspace membership;
+    /// its queries must not inherit the internal source-selection restriction.
+    fn leave_workspace_mode(&mut self) -> Result<()> {
+        let Some((binary, config, _)) = self.workspace_fallback.take() else {
+            return Ok(());
+        };
+        let sources = self
+            .documents
+            .iter()
+            .map(|(path, (_, _, text))| (path.clone(), text.clone()))
+            .collect();
+        let mut server = Server::configured(&binary, &self.projection_root, &config, true)?;
+        server.project = true;
+        self.server = server;
+        self.documents.clear();
+        self.sync_documents(&sources)
+    }
+
+    /// Reuse the oracle's database for the final check, without opening every
+    /// project file or launching a second checker. Keep only the caller's file
+    /// selection; preflight files participate in queries but are not user files.
+    pub fn check_workspace(
+        &mut self,
+        sources: &BTreeMap<PathBuf, String>,
+        paths: &[PathBuf],
+    ) -> Result<Vec<Value>> {
+        ensure!(
+            self.supports_workspace_diagnostics(),
+            "workspace diagnostics unavailable"
+        );
+        let Some(first) = paths.first() else {
+            return Ok(Vec::new());
+        };
+        self.check_files(sources, &[])?;
+        if !self.supports_workspace_diagnostics() {
+            return self.check_files(sources, paths);
+        }
+        // ty long-polls when an entirely clean workspace has no reports. An
+        // unknown prior result asks for a full clearing report for this file,
+        // so both clean and unchanged checks finish without a timeout.
+        let reports = self.server.request(
+            "workspace/diagnostic",
+            json!({
+                "previousResultIds":[{"uri":file_uri(first)?,"value":"companion-full-check"}]
+            }),
+        )?;
+        let selected: BTreeMap<_, _> = paths
+            .iter()
+            .map(|path| (native_cli_path(path).to_owned(), path))
+            .collect();
+        let mut output = Vec::new();
+        for report in reports["items"]
+            .as_array()
+            .context("workspace diagnostic reports")?
+        {
+            let path = crate::lsp_mapping::decode_file_uri(
+                report["uri"].as_str().context("workspace diagnostic URI")?,
+            )?
+            .context("workspace diagnostic is not a file URI")?;
+            let Some(path) = selected.get(native_cli_path(&path)) else {
+                continue;
+            };
+            ensure!(
+                report["kind"] == "full",
+                "expected full workspace diagnostics: {report}"
+            );
+            let source = sources.get(*path).context("workspace source missing")?;
+            for item in report["items"]
+                .as_array()
+                .context("workspace diagnostics")?
+            {
+                if let Some(item) = normalize_diagnostic(path, source, item)? {
+                    output.push(item);
+                }
+            }
+        }
+        Ok(output)
+    }
+}
+
+/// Limit internal workspace checks to source files and oracle probes. Checking
+/// every imported overlay stub as a root would change diagnostics and do extra
+/// work. More general editor, notebook, and external-source sessions retain the
+/// existing document transport.
+fn workspace_config(
+    root: &Path,
+    config: &Path,
+    sources: &BTreeMap<PathBuf, String>,
+) -> Result<Option<PathBuf>> {
+    let project = root.join("project");
+    if cfg!(windows)
+        || sources.len() < 128
+        || !project.is_dir()
+        || sources
+            .keys()
+            .any(|path| path.to_string_lossy().contains('\\'))
+        || sources.keys().any(|path| !projection_contains(root, path))
+    {
+        return Ok(None);
+    }
+    Ok(Some(write_workspace_config(
+        &project, root, config, sources, None,
+    )?))
+}
+
+fn write_workspace_config(
+    project: &Path,
+    out: &Path,
+    config: &Path,
+    sources: &BTreeMap<PathBuf, String>,
+    probe_prefix: Option<&Path>,
+) -> Result<PathBuf> {
+    // Ty validates portable globs before matching. Globset's bracket-based
+    // escaping is not valid in that syntax; quote punctuation with backslashes.
+    let literal = |path: &Path| {
+        let path = native_cli_path(path).to_string_lossy();
+        let mut pattern = String::new();
+        for character in path.chars() {
+            if !character.is_alphanumeric() && !matches!(character, '/' | '_' | '-' | '.') {
+                pattern.push('\\');
+            }
+            pattern.push(character);
+        }
+        pattern
+    };
+    let selected = sources
+        .keys()
+        .filter(|path| probe_prefix.is_none() || !workspace_probe(out, path))
+        .cloned()
+        .collect();
+    let mut include = crate::project_check::compact_check_paths(project, &selected)?
+        .iter()
+        .map(|path| {
+            if path.is_dir() {
+                format!("{}/**", literal(path))
+            } else {
+                literal(path)
+            }
+        })
+        .collect::<Vec<_>>();
+    include.push(if let Some(prefix) = probe_prefix {
+        format!("{}*.py", literal(prefix))
+    } else {
+        format!("{}/*.py", literal(out))
+    });
+    let mut document: toml::Value = toml::from_str(&fs::read_to_string(config)?)?;
+    document
+        .as_table_mut()
+        .context("checker configuration must be a table")?
+        .insert(
+            "src".into(),
+            toml::Value::try_from(json!({
+                "include":include,
+                "exclude":[],"respect-ignore-files":false,"exclude-scripts":false
+            }))?,
+        );
+    let path = out.join("checker-workspace.toml");
+    fs::write(&path, toml::to_string(&document)?)?;
+    Ok(path)
+}
+
+fn workspace_probe(root: &Path, path: &Path) -> bool {
+    path.extension().is_some_and(|ext| ext == "py")
+        && path
+            .parent()
+            .is_some_and(|parent| native_cli_path(parent) == native_cli_path(root))
 }
 
 impl Server {
@@ -774,6 +1104,31 @@ impl Server {
         initialization_options: Value,
         workspace_configuration: Option<Value>,
     ) -> Result<Self> {
+        Self::configured_editor_roots(
+            binary,
+            out,
+            config,
+            push,
+            capabilities,
+            initialization_options,
+            workspace_configuration,
+            &[out.to_owned()],
+        )
+    }
+
+    #[allow(clippy::too_many_arguments)]
+    fn configured_editor_roots(
+        binary: &Path,
+        out: &Path,
+        config: &Path,
+        push: bool,
+        capabilities: Option<Value>,
+        initialization_options: Value,
+        workspace_configuration: Option<Value>,
+        roots: &[PathBuf],
+    ) -> Result<Self> {
+        let workspace =
+            capabilities.is_none() && initialization_options["diagnosticMode"] == "workspace";
         let initialization_options =
             crate::editor_options::initialization(&initialization_options)?;
         let stderr = out.join("checker-server.stderr.log");
@@ -813,11 +1168,15 @@ impl Server {
             workspace_configuration: workspace_configuration.clone(),
             notifications: vec![],
         };
-        let root_uri = file_uri(out)?;
+        let root_uri = file_uri(roots.first().context("native workspace root")?)?;
+        let folders = roots
+            .iter()
+            .map(|root| Ok(json!({"uri":file_uri(root)?,"name":"companion-analysis"})))
+            .collect::<Result<Vec<_>>>()?;
         let mut initialization = json!({
             "processId":std::process::id(),
             "rootUri":root_uri,
-            "workspaceFolders":[{"uri":root_uri,"name":"companion-analysis"}],
+            "workspaceFolders":folders,
             "capabilities":{
                 "general":{"positionEncodings":["utf-32"]},
                 "workspace":{"configuration":false},
@@ -828,10 +1187,14 @@ impl Server {
             },
             "initializationOptions":{
                 "configurationFile":config,
-                "diagnosticMode":"openFilesOnly",
+                "diagnosticMode":if workspace {"workspace"} else {"openFilesOnly"},
                 "showSyntaxErrors":true
             }
         });
+        if workspace {
+            initialization["capabilities"]["workspace"]["diagnostics"] =
+                json!({"refreshSupport":false});
+        }
         if let Some(mut capabilities) = capabilities {
             // The projection protocol has one fixed coordinate encoding. The
             // editor-facing side negotiates its own encoding and translates it.
@@ -854,7 +1217,14 @@ impl Server {
             merged.remove("pythonExtension");
             // Always analyze the generated workspace with the relocated config.
             merged.insert("configurationFile".into(), json!(config));
-            merged.insert("diagnosticMode".into(), json!("openFilesOnly"));
+            merged.insert(
+                "diagnosticMode".into(),
+                json!(if workspace {
+                    "workspace"
+                } else {
+                    "openFilesOnly"
+                }),
+            );
             merged.insert("showSyntaxErrors".into(), json!(true));
             merged.insert("disableLanguageServices".into(), json!(false));
         }
@@ -989,7 +1359,12 @@ impl Server {
             let id = self.next_id;
             self.next_id += 1;
             self.send(&json!({"jsonrpc":"2.0","id":id,"method":method,"params":params}))?;
-            let deadline = Instant::now() + RESPONSE_TIMEOUT;
+            let timeout = if method == "workspace/diagnostic" {
+                Duration::from_secs(60)
+            } else {
+                RESPONSE_TIMEOUT
+            };
+            let deadline = Instant::now() + timeout;
             loop {
                 let remaining = deadline.saturating_duration_since(Instant::now());
                 ensure!(
@@ -1527,6 +1902,315 @@ mod tests {
             disk_projection_case(&binary, initialized)?;
         }
         Ok(())
+    }
+
+    #[test]
+    #[cfg(not(windows))]
+    fn workspace_checks_finish_clean_and_preserve_selection_and_invalidation() -> Result<()> {
+        let binary = std::env::var("TY_COMPANION_TEST_OFFICIAL")?;
+        let root = std::env::temp_dir().join(format!("ty-workspace-check-{}", std::process::id()));
+        fs::create_dir_all(root.join("project"))?;
+        let root = root.canonicalize()?;
+        let result = (|| -> Result<()> {
+            let project = root.join("project");
+            let config = root.join("checker.toml");
+            fs::write(
+                &config,
+                format!(
+                    "[environment]\npython-version = '3.13'\nextra-paths = [{}]\n",
+                    serde_json::to_string(&project)?
+                ),
+            )?;
+            let peer = project.join("peer.py");
+            let consumer = project.join("consumer.py");
+            let excluded = project.join("excluded.py");
+            let probe = root.join("nominal-snapshots.py");
+            let patched = root.join("stubs/patched.pyi");
+            fs::create_dir_all(patched.parent().unwrap())?;
+            let mut sources: BTreeMap<_, _> = (0..128)
+                .map(|i| {
+                    (
+                        project.join(format!("filler{i}.py")),
+                        "value: int = 1\n".to_owned(),
+                    )
+                })
+                .collect();
+            sources.insert(peer.clone(), "value: int = 1\n".into());
+            sources.insert(
+                consumer.clone(),
+                "from peer import value\nanswer: int = value\n".into(),
+            );
+            sources.insert(excluded.clone(), "value: int = 1\n".into());
+            sources.insert(
+                probe.clone(),
+                "from typing import reveal_type\nreveal_type(None)\n".into(),
+            );
+            sources.insert(patched.clone(), sources[&probe].clone());
+            for (path, source) in &sources {
+                fs::write(path, source)?;
+            }
+            // Dependency-only stubs must not become checked workspace roots.
+            fs::create_dir_all(root.join("stubs"))?;
+            fs::write(root.join("stubs/dependency.pyi"), "invalid syntax !\n")?;
+            let mut server = ProjectChecker::new_with_disk_projection(
+                Path::new(&binary),
+                &root,
+                &config,
+                &sources,
+            )?;
+            assert!(server.supports_workspace_diagnostics());
+            let diagnostics = server.check_files(&sources, &[probe.clone(), patched.clone()])?;
+            assert_eq!(diagnostics.len(), 2, "{diagnostics:?}");
+            assert!(
+                diagnostics
+                    .iter()
+                    .all(|d| d["check_name"] == "revealed-type")
+            );
+            // Remove the probe so the entire workspace really is clean. The
+            // first and repeated clean requests must both return promptly.
+            sources.remove(&probe);
+            fs::remove_file(&probe)?;
+            sources.remove(&patched);
+            fs::remove_file(&patched)?;
+            let paths = vec![consumer.clone(), peer.clone()];
+            for _ in 0..2 {
+                assert!(server.check_workspace(&sources, &paths)?.is_empty());
+            }
+            sources.insert(excluded.clone(), "wrong: int = 'excluded error'\n".into());
+            fs::write(&excluded, &sources[&excluded])?;
+            assert!(server.check_workspace(&sources, &paths)?.is_empty());
+            let diagnostics = server.check_workspace(&sources, std::slice::from_ref(&excluded))?;
+            assert_eq!(diagnostics.len(), 1, "{diagnostics:?}");
+            assert_eq!(diagnostics[0]["check_name"], "invalid-assignment");
+            // A same-mtime dependency edit must invalidate a previously clean
+            // consumer without reopening every project document.
+            let revision = peer.metadata()?.modified()?;
+            sources.insert(peer.clone(), "value: str = 'changed'\n".into());
+            fs::write(&peer, &sources[&peer])?;
+            set_disk_modified(&peer, revision)?;
+            let diagnostics = server.check_workspace(&sources, &paths)?;
+            assert_eq!(diagnostics.len(), 1, "{diagnostics:?}");
+            assert_eq!(diagnostics[0]["check_name"], "invalid-assignment");
+            sources.remove(&peer);
+            fs::remove_file(&peer)?;
+            let diagnostics = server.check_workspace(&sources, std::slice::from_ref(&consumer))?;
+            assert!(
+                diagnostics.iter().any(|d| matches!(
+                    d["check_name"].as_str(),
+                    Some("unresolved-import" | "import-not-found")
+                )),
+                "{diagnostics:?}"
+            );
+            sources.insert(peer.clone(), "value: int = 1\n".into());
+            fs::write(&peer, &sources[&peer])?;
+            set_disk_modified(&peer, revision)?;
+            assert!(server.check_workspace(&sources, &paths)?.is_empty());
+            // Later contribution targets may live outside the original file
+            // selection. They must regain the general transport, not silently
+            // return empty diagnostics under the workspace include pattern.
+            let late = root.join("stubs/late.py");
+            sources.insert(late.clone(), "wrong: int = 'late contribution'\n".into());
+            fs::write(&late, &sources[&late])?;
+            let diagnostics = server.check_workspace(&sources, std::slice::from_ref(&late))?;
+            assert!(!server.supports_workspace_diagnostics());
+            assert_eq!(diagnostics.len(), 1, "{diagnostics:?}");
+            assert_eq!(diagnostics[0]["check_name"], "invalid-assignment");
+            drop(server);
+            sources.remove(&late);
+            fs::remove_file(&late)?;
+            let mut server = ProjectChecker::new_with_disk_projection(
+                Path::new(&binary),
+                &root,
+                &config,
+                &sources,
+            )?;
+            assert!(server.supports_workspace_diagnostics());
+            let external = root.join("dependency/original.py");
+            fs::create_dir_all(external.parent().unwrap())?;
+            let original = "wrong: int = 'external original'\n";
+            fs::write(&external, original)?;
+            let modified = external.metadata()?.modified()?;
+            server.register_external_source(&external)?;
+            assert!(!server.supports_workspace_diagnostics());
+            sources.insert(external.clone(), original.into());
+            let diagnostics = server.check_files(&sources, std::slice::from_ref(&external))?;
+            assert_eq!(diagnostics.len(), 1, "{diagnostics:?}");
+            assert_eq!(diagnostics[0]["check_name"], "invalid-assignment");
+            assert_eq!(fs::read_to_string(&external)?, original);
+            assert_eq!(external.metadata()?.modified()?, modified);
+            Ok(())
+        })();
+        fs::remove_dir_all(&root)?;
+        result
+    }
+
+    #[test]
+    #[cfg(not(windows))]
+    fn memory_projection_keeps_original_files_and_only_opens_changed_text() -> Result<()> {
+        let binary = std::env::var("TY_COMPANION_TEST_OFFICIAL")?;
+        let directory =
+            std::env::temp_dir().join(format!("ty-memory-[source]-{}", std::process::id()));
+        let project = directory.join("original");
+        let out = directory.join("generated");
+        fs::create_dir_all(&project)?;
+        fs::create_dir_all(&out)?;
+        let project = project.canonicalize()?;
+        let out = out.canonicalize()?;
+        let result = (|| -> Result<()> {
+            let peer = project.join("peer.py");
+            let consumer = project.join("consumer.py");
+            let ordinary = project.join("ordinary.py");
+            let probe = out.join("probe.py");
+            let mut sources: BTreeMap<PathBuf, String> = BTreeMap::from([
+                (peer.clone(), "value: int = 1\n".into()),
+                (
+                    consumer.clone(),
+                    "from peer import value\nanswer: str = value\n".into(),
+                ),
+                (ordinary.clone(), "wrong: int = 'ordinary error'\n".into()),
+            ]);
+            let mut originals = BTreeMap::new();
+            for (path, source) in &sources {
+                fs::write(path, source)?;
+                originals.insert(path.clone(), (source.clone(), path.metadata()?.modified()?));
+            }
+            // This file is neither a selected source nor an import dependency.
+            fs::write(project.join("unselected.py"), "broken syntax !\n")?;
+            let config = out.join("checker.toml");
+            fs::write(
+                &config,
+                format!(
+                    "[environment]\npython-version = '3.13'\nextra-paths = [{}]\nroot = [{}]\n",
+                    serde_json::to_string(&project)?,
+                    serde_json::to_string(&project)?
+                ),
+            )?;
+            let mut checker = ProjectChecker::new_with_memory_projection(
+                Path::new(&binary),
+                &project,
+                &out,
+                &config,
+                &sources,
+            )?;
+            sources.insert(peer.clone(), "value: str = 'projected'\n".into());
+            fs::write(&probe, "from peer import value\nanswer: str = value\n")?;
+            sources.insert(probe.clone(), fs::read_to_string(&probe)?);
+            assert!(
+                checker
+                    .check_files(&sources, std::slice::from_ref(&probe))?
+                    .is_empty()
+            );
+            assert!(
+                checker
+                    .check_workspace(&sources, std::slice::from_ref(&consumer))?
+                    .is_empty()
+            );
+            assert_eq!(
+                checker.documents.keys().cloned().collect::<Vec<_>>(),
+                vec![peer.clone()]
+            );
+            let diagnostics =
+                checker.check_workspace(&sources, &[consumer.clone(), ordinary.clone()])?;
+            assert_eq!(diagnostics.len(), 1, "{diagnostics:?}");
+            assert_eq!(diagnostics[0]["check_name"], "invalid-assignment");
+            assert_eq!(
+                diagnostics[0]["location"]["path"],
+                ordinary.to_string_lossy().as_ref()
+            );
+            sources.insert(peer.clone(), originals[&peer].0.clone());
+            let diagnostics = checker.check_workspace(&sources, std::slice::from_ref(&consumer))?;
+            assert_eq!(diagnostics.len(), 1, "{diagnostics:?}");
+            assert_eq!(diagnostics[0]["check_name"], "invalid-assignment");
+            assert!(checker.documents.is_empty());
+            for (path, (text, modified)) in originals {
+                assert_eq!(fs::read_to_string(&path)?, text);
+                assert_eq!(path.metadata()?.modified()?, modified);
+            }
+            Ok(())
+        })();
+        fs::remove_dir_all(directory)?;
+        result
+    }
+
+    #[test]
+    #[cfg(not(windows))]
+    fn memory_query_batches_observe_all_projected_sources() -> Result<()> {
+        let binary = std::env::var("TY_COMPANION_TEST_OFFICIAL")?;
+        let directory =
+            std::env::temp_dir().join(format!("ty-memory-query-batch-{}", std::process::id()));
+        let project = directory.join("original");
+        let out = directory.join("generated");
+        fs::create_dir_all(&project)?;
+        fs::create_dir_all(&out)?;
+        let project = project.canonicalize()?;
+        let out = out.canonicalize()?;
+        let result = (|| -> Result<()> {
+            let peer = project.join("peer.py");
+            let consumer = project.join("consumer.py");
+            let mut sources: BTreeMap<PathBuf, String> = BTreeMap::from([
+                (peer.clone(), "value: int = 1\n".into()),
+                (
+                    consumer.clone(),
+                    "from peer import value\nanswer: str = value\n".into(),
+                ),
+            ]);
+            let mut originals = BTreeMap::new();
+            for (path, source) in &sources {
+                fs::write(path, source)?;
+                originals.insert(path.clone(), (source.clone(), path.metadata()?.modified()?));
+            }
+            let config = out.join("checker.toml");
+            fs::write(
+                &config,
+                format!(
+                    "[environment]\npython-version = '3.13'\nextra-paths = [{}]\nroot = [{}]\n",
+                    serde_json::to_string(&project)?,
+                    serde_json::to_string(&project)?
+                ),
+            )?;
+            // Both files are queried, so the first query must already see the
+            // second file's current projection, regardless of request order.
+            for paths in [
+                [consumer.clone(), peer.clone()],
+                [peer.clone(), consumer.clone()],
+            ] {
+                let mut checker = ProjectChecker::new_with_memory_projection(
+                    Path::new(&binary),
+                    &project,
+                    &out,
+                    &config,
+                    &sources,
+                )?;
+                for (value, expected, errors) in [
+                    ("value: str = 'projected'\n", "str", 0),
+                    ("value: bytes = b'changed'\n", "bytes", 0),
+                    ("value: int = 1\n", "bytes", 1),
+                    ("value: str = 'restored'\n", "str", 0),
+                ] {
+                    sources.insert(peer.clone(), value.into());
+                    sources.insert(
+                        consumer.clone(),
+                        format!("from peer import value\nanswer: {expected} = value\n"),
+                    );
+                    let diagnostics = checker.check_files(&sources, &paths)?;
+                    assert_eq!(diagnostics.len(), errors, "{paths:?}: {diagnostics:#?}");
+                    if errors != 0 {
+                        assert_eq!(diagnostics[0]["check_name"], "invalid-assignment");
+                        assert_eq!(
+                            diagnostics[0]["location"]["path"],
+                            consumer.to_string_lossy().as_ref()
+                        );
+                    }
+                }
+            }
+            for (path, (text, modified)) in originals {
+                assert_eq!(fs::read_to_string(&path)?, text);
+                assert_eq!(path.metadata()?.modified()?, modified);
+            }
+            Ok(())
+        })();
+        fs::remove_dir_all(directory)?;
+        result
     }
 
     fn disk_projection_case(binary: &str, initialized: bool) -> Result<()> {

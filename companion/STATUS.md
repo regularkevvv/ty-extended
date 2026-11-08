@@ -1,5 +1,32 @@
 # Current compatibility qualification
 
+## Unreleased development candidate
+
+The [sparse projection candidate](../docs/qualification/sparse-projection-validation.json)
+passes all 217 companion unit tests on macOS with each of the 16 official ty
+releases from 0.0.84 through 0.0.99. On every version, its Django run matches the published
+companion's complete diagnostic output for 166 contract assertions over 38
+features, positive end-to-end fixtures and six negative controls. The latest
+checker also passes all 19 broader CLI/editor/SDK suites, eight Rust integration
+binaries, 50 Python harness tests and Rust/Python lint checks. These local checks
+do not replace hosted CI, cross-platform qualification or installed-artifact acceptance.
+
+The installed candidate Django wheel also passes all
+[21 Django/Python pairs](../docs/qualification/django-sparse-projection.json):
+166 contract assertions in both projection modes, exact published-companion
+diagnostics, 83 framework runtime contracts and nine QueryDict cases per pair.
+That matrix used an earlier companion candidate, identified in its receipt;
+the Django source is unchanged. It does not repeat the historical MyPy matrix
+or qualify a published artifact.
+
+The [local performance receipt](../docs/qualification/performance-sparse-projection.json)
+records 5.029 seconds versus the published stack's 6.375 seconds and MyPy's
+6.794 seconds on the 7,082-file case. All 100 ORM assertions and both error
+controls pass. The one-second target remains unmet; sparse memory projection
+is an explicit development opt-in. Hosted CI and release acceptance are pending.
+
+## Version 0.89.0
+
 Companion 0.89.0 adds opt-in bounded class batching and avoids rescanning all
 diagnostics for every file. Its [performance receipt](../docs/qualification/performance-0.89.0.json)
 records five local workloads below the MyPy median ceiling. The corrected local
