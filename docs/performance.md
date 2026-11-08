@@ -39,6 +39,13 @@ versus MyPy's 6.487 seconds. Correctness passed, but that run **failed** the str
 performance ceiling. That failure prompted the class batching in 0.89; it is not
 replaced by an earlier passing CI-wheel measurement.
 
+The [published 0.89.0 acceptance](qualification/ty-extended-0.89.0.json)
+repeats all five workloads with the downloaded PyPI executable and the same Django
+0.7 candidate wheel. Every workload passes correctness and the MyPy median ceiling.
+The largest case takes **6.594 seconds** versus **6.806 seconds**
+for MyPy and **0.271 seconds** for bare ty. The receipt preserves all five
+rotated samples per workload, source hashes, error controls and memory measurements.
+
 ## Previous 0.88.0 measurements
 
 The [2026-11-07 receipts](https://github.com/regularkevvv/ty-extended/blob/main/companion/evidence/performance-2026-11-07.json)

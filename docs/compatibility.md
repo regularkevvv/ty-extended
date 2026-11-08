@@ -58,6 +58,15 @@ Measurements against MyPy and bare
 official ty are recorded in [the performance report](performance.md), including
 the failed 0.88.0 follow-up that motivated this release.
 
+The [published 0.89.0 receipt](qualification/ty-extended-0.89.0.json) verifies
+all eight wheel/native archive pairs, source payloads and signed provenance, plus
+SDK/protocol crates 0.0.11. The public macOS runtime matches the CI wheel used for
+the full 16-version sweep after normalizing identified build metadata. Fresh
+installed SDK, CLI and editor checks pass on Python 3.8, 3.9 and 3.13; the native
+installer and an independent published-SDK consumer pass as well. All five public
+performance workloads meet the MyPy median ceiling. Django's complete 21-pair
+matrix and separate Python 3.15 controls pass against the published companion.
+
 ### Previous releases
 
 The [0.88.0 CI-wheel ledger](https://github.com/regularkevvv/ty-extended/blob/main/companion/evidence/compatibility-2026-11-07.json)
