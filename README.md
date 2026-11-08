@@ -41,7 +41,7 @@ MyPy median ceiling. See
 ty timings, correctness controls and the limits of each comparison.
 
 An [unreleased sparse projection candidate](docs/performance.md#unreleased-sparse-projection-candidate)
-measures 5.03 seconds on that workload. The one-second target remains unmet;
+measures 5.03–5.49 seconds across repeated series on that workload. The one-second target remains unmet;
 the published results above remain the release baseline.
 
 ## Monty plugins

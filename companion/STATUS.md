@@ -2,6 +2,24 @@
 
 ## Unreleased development candidate
 
+The [index/cache follow-up](../docs/qualification/performance-cache-admission.json)
+passes all 220 unit tests and the 166-assertion Django corpus with six negative
+controls on every official ty release from 0.0.84 through 0.0.99. It also passes
+all 19 broader CLI/editor/SDK suites, eight integration binaries and Rust
+lint/formatting checks. Hosted CI for this source revision remains pending. Fresh-process checking of the large fixture
+takes 5.081 seconds, versus 5.227 seconds for its preceding candidate in the same
+series. The one-second target remains unmet.
+
+A [new field-access audit](../docs/qualification/field-class-access-audit.json)
+also finds six differences from the historical implementation when a class field
+has no explicit class-access type. The differences occur in both the published
+0.89 companion and the performance candidate. Existing passing suites did not
+cover these cases. This compatibility gap remains unresolved and prevents release
+acceptance; the experimental descriptor prototypes have not changed production
+lowering.
+
+### Earlier sparse-projection candidate
+
 The [sparse projection candidate](../docs/qualification/sparse-projection-validation.json)
 passes all 217 companion unit tests on macOS with each of the 16 official ty
 releases from 0.0.84 through 0.0.99. On every version, its Django run matches the published
@@ -23,7 +41,11 @@ The [local performance receipt](../docs/qualification/performance-sparse-project
 records 5.029 seconds versus the published stack's 6.375 seconds and MyPy's
 6.794 seconds on the 7,082-file case. All 100 ORM assertions and both error
 controls pass. The one-second target remains unmet; sparse memory projection
-is an explicit development opt-in. Hosted CI and release acceptance are pending.
+is an explicit development opt-in. Commit `cb6d4c5` passes all hosted checks:
+52 Linux compatibility gates, 34 macOS gates, 34 Windows gates and all ten Linux
+benchmark combinations. Publishing jobs are skipped for the draft PR. Those
+results do not qualify the newer index/cache source revision or resolve the
+field-access gap above. Release acceptance remains pending.
 
 ## Version 0.89.0
 

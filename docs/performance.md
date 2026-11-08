@@ -33,8 +33,23 @@ in both projection modes. All ten combinations pass the positive assertions
 and negative controls. On the 100-file shape, sparse projection measures
 0.509 seconds versus MyPy's 1.640 seconds; on the 7,082-file, 250-model shape,
 it measures 2.474 seconds versus 4.147 seconds. Host load rose from about 9 to
-nearly 90 during the last shapes, so those affected timings need a quieter
-rerun before supporting comparative conclusions. No samples are discarded.
+nearly 90 during the last shapes. Five-sample follow-ups for the affected cases
+are recorded separately below. Their one-minute host load ranges from 7.5 to
+19.2; these runs are less contended, but the machine still has other work. No
+samples are discarded.
+
+| Models / model modules | Projection | Companion | MyPy + django-stubs | Bare ty |
+| ---------------------- | ---------- | --------: | ------------------: | ------: |
+| 2,501 / 1              | Memory     |   5.488 s |             6.826 s | 0.269 s |
+| 2,501 / 250            | Disk       |   5.823 s |             6.425 s | 0.205 s |
+| 2,501 / 250            | Memory     |   4.835 s |             6.664 s | 0.202 s |
+
+Each follow-up checks 7,082 files, preserves the positive assertions and catches
+both intentional errors. The single-module candidate's median varies from
+5.03 to 5.49 seconds across the recorded series; the faster number is not a
+worst-case guarantee. A native-only experiment splitting descriptor declarations
+across 8, 32 or 128 modules preserved diagnostics but showed no speed improvement,
+so that change was rejected.
 
 The candidate keeps original files in place and opens only changed analysis
 buffers through official ty's public LSP. It reuses that process for the final
@@ -59,6 +74,41 @@ behavior came from repeatedly copying and serializing the whole project index
 for each model; scoped indexes and class batches removed that repeated work in
 0.88 and 0.89. Further progress requires reducing the remaining work across
 several stages, not merely changing implementation language.
+
+### Index and cache follow-up
+
+The [follow-up receipt](qualification/performance-cache-admission.json) records
+the same 7,082-file, 2,501-model workload after combining initial summary builds,
+buffering request hashing, and limiting individual cache entries. Three rotated
+fresh-process runs measure 5.081 seconds for the candidate, 5.227 seconds for the
+preceding candidate, 6.635 seconds for the published stack, 7.795 seconds for MyPy
+and 0.282 seconds for bare ty. All 100 ORM assertions, both error controls and
+source byte/mtime checks pass. These measurements remain well above one second.
+
+The cache change addresses a separate editor bottleneck. A project-index response
+occupies approximately 35 MB under the cache's accounting, while reusable class
+and call responses occupy another 34 MB. Repeated insertion into a 64 MiB shared
+cache evicted class results during sequential scans. Individual cached responses
+are now limited to 16 MiB; larger responses are still consumed normally. Ordinary
+edits consequently execute one Monty request instead of 521.
+
+| Full-workspace edit |  Before |   After |
+| ------------------- | ------: | ------: |
+| Trailing comment    | 0.519 s | 0.559 s |
+| Ordinary assignment | 2.746 s | 2.263 s |
+| ORM assignment      | 2.910 s | 2.319 s |
+| Model field schema  | 6.889 s | 6.647 s |
+
+These are separate retained-process editor series, not fresh CLI timings or
+worst-case guarantees. Both series preserve the checker process, detect ordinary
+and ORM errors, propagate unsaved model-field changes to a closed file, and
+preserve original bytes and modification times. Schema edits still invalidate
+the project-wide model index.
+
+A separate [class-field audit](qualification/field-class-access-audit.json)
+found six compatibility differences already present in the published companion.
+They remain open. Passing the existing benchmark and Django corpus does not
+qualify those additional cases, and no new release acceptance is claimed.
 
 ## Version 0.89.0
 
