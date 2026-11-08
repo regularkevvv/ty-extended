@@ -32,10 +32,10 @@ versions, dependency range and checks for future releases.
 
 ## Performance
 
-With Django-ty 0.7, the installed 0.89 CI wheel reduces the recorded
-7,082-file/2,501-model workload from **80.8 to 6.4 seconds**, versus **6.7 seconds**
+With Django-ty 0.7, the published 0.89 companion reduces the recorded
+7,082-file/2,501-model workload from **80.8 to 6.6 seconds**, versus **6.8 seconds**
 for MyPy on the same Mac. The largest case is close to MyPy parity; smaller
-projects show larger advantages. All five recorded local workloads meet the
+projects show larger advantages. All five public-companion workloads meet the
 MyPy median ceiling. See
 [the reproducible benchmarks](docs/performance.md) for all samples, bare official
 ty timings, correctness controls and the limits of each comparison.
