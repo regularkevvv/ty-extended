@@ -74,6 +74,7 @@ pub struct Types {
     /// still declare distinct subclasses, including their `Self` class access.
     pub(crate) descriptor_specializations: BTreeMap<String, Option<String>>,
     pub(crate) field_value_factory: Option<String>,
+    pub(crate) field_value_specializations: BTreeSet<String>,
     prefix: String,
     module: String,
     unimportable_module: bool,
@@ -107,6 +108,7 @@ impl Types {
             descriptor_bases: BTreeMap::new(),
             descriptor_specializations: BTreeMap::new(),
             field_value_factory: None,
+            field_value_specializations: BTreeSet::new(),
             prefix: prefix.into(),
             module: module.into(),
             unimportable_module: false,

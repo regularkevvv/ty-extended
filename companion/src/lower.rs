@@ -38,6 +38,62 @@ mod descriptor_tests {
     }
 
     #[test]
+    fn specialized_field_factories_preserve_class_getter_and_write_types() -> Result<()> {
+        let binary = std::env::var("TY_COMPANION_TEST_OFFICIAL")?;
+        let root = std::env::temp_dir().join(format!(
+            "ty-specialized-field-factories-{}",
+            std::process::id()
+        ));
+        let source = Source::new(
+            String::new(),
+            root.join("demo.py").display().to_string(),
+            "demo".into(),
+        );
+        let mut types = Types::new(&source.prefix, "demo");
+        let mut declarations = String::new();
+        let mut assertions = String::new();
+        for (index, expression) in ["str", "int", "bytes", "object", "list[int]"]
+            .into_iter()
+            .enumerate()
+        {
+            let getter = types.render(&typ(expression))?;
+            for decorator in [false, true] {
+                let name = format!("Field_{index}_{decorator}");
+                let call =
+                    field_value_call(&mut types, &source, "cast(int, 1)", &getter, decorator);
+                if decorator {
+                    declarations.push_str(&format!(
+                        "class {name}:\n    @{call}\n    def value(self) -> None: ...\n"
+                    ));
+                } else {
+                    declarations.push_str(&format!("class {name}:\n    value = {call}\n"));
+                }
+                assertions.push_str(&format!(
+                    "assert_type({name}.value, int)\nassert_type({name}().value, {expression})\n"
+                ));
+            }
+        }
+        let program = format!(
+            "{}\nfrom typing import assert_type, cast\nfrom typing import cast as {}\n{declarations}\n{assertions}\nField_0_false().value = 1\nField_2_true().value = 1\n",
+            types.prelude(),
+            source.cast_name()
+        );
+        for persistent in [false, true] {
+            let mut checker = crate::checker::Checker::new(Path::new(&binary), &root, persistent)?;
+            let diagnostics = checker.check(&root.join("demo.py"), &program)?;
+            assert_eq!(diagnostics.len(), 2, "{diagnostics:#?}");
+            assert!(
+                diagnostics
+                    .iter()
+                    .all(|diagnostic| diagnostic["check_name"] == "invalid-assignment"),
+                "{diagnostics:#?}"
+            );
+        }
+        std::fs::remove_dir_all(root)?;
+        Ok(())
+    }
+
+    #[test]
     fn outlined_descriptors_preserve_nominal_identity_and_errors() -> Result<()> {
         let binary = std::env::var("TY_COMPANION_TEST_OFFICIAL")?;
         let root =
@@ -267,6 +323,46 @@ fn field_value_factory(types: &mut Types, prefix: &str) -> String {
     ));
     types.field_value_factory = Some(factory.clone());
     factory
+}
+
+/// Keep the original class value generic, while sharing closed built-in getter
+/// types. These calls need no redundant casts or inference for getter/setter
+/// type variables. Other annotations retain the general factory at the use site.
+fn field_value_call(
+    types: &mut Types,
+    source: &Source,
+    original: &str,
+    getter_type: &str,
+    decorator: bool,
+) -> String {
+    let factory = field_value_factory(types, &source.prefix);
+    let builtins = types.builtins_alias();
+    let suffix = if decorator { "_decorator" } else { "" };
+    if let Some(scalar) = getter_type.strip_prefix(&format!("{builtins}."))
+        && matches!(
+            scalar,
+            "str" | "int" | "float" | "bool" | "bytes" | "complex" | "object"
+        )
+    {
+        let helper = format!("{factory}_{scalar}{suffix}");
+        if types.field_value_specializations.insert(helper.clone()) {
+            let base = descriptor_base(types, &factory, true, true);
+            let result = format!("{base}[{getter_type}, {base}_Class, {getter_type}]");
+            let result = if decorator {
+                let typing = types.typing_alias();
+                format!("{typing}.Callable[[{builtins}.object], {result}]")
+            } else {
+                result
+            };
+            types.definitions.push_str(&format!(
+                "def {helper}(original: {base}_Class) -> {result}: raise {builtins}.NotImplementedError\n"
+            ));
+        }
+        format!("{helper}({original})")
+    } else {
+        let getter = format!("{}({getter_type}, None)", source.cast_name());
+        format!("{factory}{suffix}({original}, {getter}, {getter})")
+    }
 }
 
 #[derive(Default)]
@@ -718,23 +814,21 @@ fn class_patch(
                 } else {
                     format!("{builtins}.super({owner}, {owner}).{name}")
                 };
-                let factory = field_value_factory(types, &source.prefix);
-                let getter = format!("{}({ty}, None)", source.cast_name());
-                if !native_bindings.complete || native_bindings.inherited_annotations.contains(name)
-                {
+                let decorator = !native_bindings.complete
+                    || native_bindings.inherited_annotations.contains(name);
+                let value = field_value_call(types, source, &original, &ty, decorator);
+                if decorator {
                     // A function binding uses its decorator's result type even
                     // when an ancestor declares this name. An assignment would
                     // retain that annotation and lose the plugin's getter.
                     // Decorators can preserve or replace an ancestor, so an
                     // incomplete static MRO also needs this declaration form.
                     class_code.push_str(&format!(
-                        "@{factory}_decorator({original}, {getter}, {getter})\ndef {name}(self) -> None: raise {builtins}.NotImplementedError\n"
+                        "@{value}\ndef {name}(self) -> None: raise {builtins}.NotImplementedError\n"
                     ));
                 } else {
                     let start = class_code.len();
-                    class_code.push_str(&format!(
-                        "{name} = {factory}({original}, {getter}, {getter})\n"
-                    ));
+                    class_code.push_str(&format!("{name} = {value}\n"));
                     // A plugin can intentionally replace an inherited ordinary
                     // attribute with a descriptor. Only this generated
                     // assignment is exempt, never its argument/type errors.
