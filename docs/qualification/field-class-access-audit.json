@@ -1,5 +1,5 @@
 {
-  "status": "unresolved; blocks compatibility acceptance",
+  "status": "Historical audit retained; all six original differences are corrected in the linked follow-up.",
   "source": "companion class fields without explicit descriptor class-type",
   "cases": [
     {
@@ -173,5 +173,14 @@
       "project/demo.py": "from typing import reveal_type\n\nclass A:\n    x = 1\nclass B:\n    x = 2\nclass Absent:\n    pass\nclass Declared:\n    x: int\nclass Property:\n    @property\n    def x(self) -> int: return 1\nclass Descriptor:\n    def __get__(self, instance: object, owner: type | None = None) -> int: return 1\nclass DataDescriptor:\n    x = Descriptor()\n\nreveal_type(A.x)\nreveal_type(A().x)\nreveal_type(B.x)\nreveal_type(B().x)\nreveal_type(Absent.x)\nreveal_type(Absent().x)\nreveal_type(Declared.x)\nreveal_type(Declared().x)\nreveal_type(Property.x)\nreveal_type(Property().x)\nreveal_type(DataDescriptor.x)\nreveal_type(DataDescriptor().x)\n",
       "project/ty.toml": "[environment]\npython-version=\"3.13\"\n[plugins]\nenabled=true\nauto-discover=false\n[[plugins.plugin]]\nid=\"research.fields\"\nruntime=\"monty\"\ntrusted=true\npath=\"../plugin.py\"\nmanifest-path=\"../plugin.plugin.json\"\n"
     }
+  },
+  "follow_up": {
+    "source_commit": "f7db633b0b95e3b52dd633476a65c9c11e4c3e23",
+    "receipt": "field-access-projection.json",
+    "original_cases": 12,
+    "original_mismatches_remaining": 0,
+    "expanded_assertions": 31,
+    "diagnostic_controls": 5,
+    "checker_versions": "0.0.84 through 0.0.99"
   }
 }

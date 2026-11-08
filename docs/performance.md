@@ -105,10 +105,45 @@ and ORM errors, propagate unsaved model-field changes to a closed file, and
 preserve original bytes and modification times. Schema edits still invalidate
 the project-wide model index.
 
-A separate [class-field audit](qualification/field-class-access-audit.json)
-found six compatibility differences already present in the published companion.
-They remain open. Passing the existing benchmark and Django corpus does not
-qualify those additional cases, and no new release acceptance is claimed.
+### Field access follow-up
+
+The [field projection receipt](qualification/field-access-projection.json) records
+corrections for all six differences found by the original twelve-case
+[class-field audit](qualification/field-class-access-audit.json). A larger regression
+covers 31 type assertions and five diagnostic controls in both projection modes,
+including properties, owner-dependent descriptors, class rebinding, inherited
+annotations, containers and decorated ancestors. It preserves original class
+access where supported while applying the plugin's instance getter and setter.
+The receipt identifies conservative fallback cases and the audited function-type
+display difference; it does not claim universal SDK equivalence.
+
+All 221 unit tests, the 166-assertion Django corpus with six error controls, and
+the expanded field regression pass on each of the 16 official ty versions from
+0.0.84 through 0.0.99. The same source passes all 19 broader CLI/editor/SDK suites,
+nine integration binaries, formatting and Rust lint checks. Hosted CI and
+published-artifact acceptance are separate from these local results.
+
+| Stack                                                             |  Median |
+| ----------------------------------------------------------------- | ------: |
+| Field corrections plus candidate Django manager declarations      | 5.187 s |
+| Preceding index/cache candidate plus the same Django declarations | 4.806 s |
+| Published companion and Django-ty                                 | 6.197 s |
+| MyPy plus django-stubs                                            | 6.560 s |
+| Bare official ty                                                  | 0.256 s |
+
+These are three rotated fresh-process runs per stack on the unchanged 7,082-file,
+2,501-model, 100-assertion fixture. The receipt also includes the corrected
+companion with the published Django plugin. All companion/MyPy assertions and
+intentional error controls pass, and source bytes and modification times are
+preserved. Bare ty fails the Django assertions. Host load stays below the recorded
+comparison limit, but the machine is shared and these are not worst-case bounds.
+
+The field corrections cost time compared with the preceding performance-only
+candidate. They are a compatibility improvement, not another speedup. The
+one-second target remains unmet. A Django annotation shortcut showed no end-to-end
+benefit in its paired series. Moving every Django class patch into the project
+index was rejected because its response exceeded the existing 8 MiB bound and
+changed precedence with other plugins. Neither experiment was adopted.
 
 ## Version 0.89.0
 

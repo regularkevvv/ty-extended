@@ -40,9 +40,11 @@ MyPy median ceiling. See
 [the reproducible benchmarks](docs/performance.md) for all samples, bare official
 ty timings, correctness controls and the limits of each comparison.
 
-An [unreleased sparse projection candidate](docs/performance.md#unreleased-sparse-projection-candidate)
-measures 5.03–5.49 seconds across repeated series on that workload. The one-second target remains unmet;
-the published results above remain the release baseline.
+The [unreleased candidate](docs/performance.md#field-access-follow-up) also corrects
+audited class-field access differences. Its latest paired comparison measures
+**5.19 seconds**, versus **6.56 seconds** for MyPy on the same workload. The
+one-second target remains unmet; the published results above remain the release
+baseline.
 
 ## Monty plugins
 

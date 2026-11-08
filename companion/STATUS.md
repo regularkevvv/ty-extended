@@ -2,21 +2,32 @@
 
 ## Unreleased development candidate
 
-The [index/cache follow-up](../docs/qualification/performance-cache-admission.json)
-passes all 220 unit tests and the 166-assertion Django corpus with six negative
-controls on every official ty release from 0.0.84 through 0.0.99. It also passes
-all 19 broader CLI/editor/SDK suites, eight integration binaries and Rust
-lint/formatting checks. Hosted CI for this source revision remains pending. Fresh-process checking of the large fixture
-takes 5.081 seconds, versus 5.227 seconds for its preceding candidate in the same
-series. The one-second target remains unmet.
+The [field-access follow-up](../docs/qualification/field-access-projection.json),
+source `f7db633`, passes all 221 unit tests, the 166-assertion Django corpus
+with six negative controls, and 31 field assertions with five diagnostic controls
+on every official ty release from 0.0.84 through 0.0.99. Both field projection
+transports preserve exact historical diagnostics and original source bytes and
+modification times. All 19 broader CLI/editor/SDK suites, nine integration
+binaries, Rust formatting and lint checks pass. The unchanged Python harness
+passes all 50 tests with native process-monitoring access.
 
-A [new field-access audit](../docs/qualification/field-class-access-audit.json)
-also finds six differences from the historical implementation when a class field
-has no explicit class-access type. The differences occur in both the published
-0.89 companion and the performance candidate. Existing passing suites did not
-cover these cases. This compatibility gap remains unresolved and prevents release
-acceptance; the experimental descriptor prototypes have not changed production
-lowering.
+The six original [field-audit differences](../docs/qualification/field-class-access-audit.json)
+are corrected. The receipt retains the regressions found during implementation,
+including inherited descriptor and decorated-base cases, and describes remaining
+conservative projection limits. These finite tests do not establish universal
+SDK equivalence. Hosted CI is tracked on [the draft PR](https://github.com/regularkevvv/ty-extended/pull/49/checks)
+for the exact source revision; this local receipt does not qualify a publication.
+
+The latest fresh-process comparison measures 5.187 seconds with the candidate
+Django declarations, versus 4.806 seconds for the preceding index/cache candidate,
+6.197 seconds for the published stack, 6.560 seconds for MyPy and 0.256 seconds
+for bare ty. Bare ty fails the Django assertions. The one-second target remains
+unmet, and no new merge or release acceptance is claimed.
+
+The preceding [index/cache follow-up](../docs/qualification/performance-cache-admission.json)
+passed all 220 unit tests and the Django corpus on all 16 checker versions. Hosted
+CI at `ccb5dfb` passed all 20 checks, including 52 Linux, 34 macOS and 34 Windows
+compatibility gates. Those hosted results describe that earlier source revision.
 
 ### Earlier sparse-projection candidate
 

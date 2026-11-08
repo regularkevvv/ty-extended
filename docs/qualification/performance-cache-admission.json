@@ -5864,7 +5864,31 @@
     ]
   },
   "hosted_ci": {
-    "state": "pending for this source revision"
+    "head": "ccb5dfbaf5b125fac5b786c6e85c119baed5593e",
+    "run": "https://github.com/regularkevvv/ty-extended/actions/runs/42461346931",
+    "passed": true,
+    "checks": {
+      "success": 20,
+      "skipped": 11
+    },
+    "platforms": {
+      "ubuntu": {
+        "passed": true,
+        "gates": 52,
+        "binary_sha256": "d115aadcd55de71a8631af11f2733348fd60e3ed937448f624b840c41032483d"
+      },
+      "macos": {
+        "passed": true,
+        "gates": 34,
+        "binary_sha256": "c6c379eafd2a2d06d3bb0259c51e00a9cc0e261f899cfad0b08b47fbc4cf5feb"
+      },
+      "windows": {
+        "passed": true,
+        "gates": 34,
+        "binary_sha256": "32c72db295b641907532a6abbcce0e28c8c90a2c90e2c1c148413c93212ad129"
+      }
+    },
+    "scope": "The pushed index/cache source only. Does not qualify the local field-lowering experiment."
   },
   "source_commit": "736f6a5"
 }
