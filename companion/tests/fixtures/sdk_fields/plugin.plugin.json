@@ -77,6 +77,14 @@
       {
         "kind": "exact",
         "qualified-name": "demo.TypedDescriptorInherited"
+      },
+      {
+        "kind": "exact",
+        "qualified-name": "demo.ContainerInherited"
+      },
+      {
+        "kind": "exact",
+        "qualified-name": "demo.IdentityDecoratedInherited"
       }
     ]
   }

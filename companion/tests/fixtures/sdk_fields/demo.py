@@ -167,3 +167,33 @@ class TypedDescriptorInherited(TypedDescriptorParent):
 
 
 assert_type(TypedDescriptorInherited().x, str)
+assert_type(TypedDescriptorInherited.x, int)
+
+
+class ContainerParent:
+    x: list[int] = []
+
+
+class ContainerInherited(ContainerParent):
+    pass
+
+
+assert_type(ContainerInherited().x, str)
+assert_type(ContainerInherited.x, list[int])
+
+
+def identity(cls: type[T]) -> type[T]:
+    return cls
+
+
+@identity
+class IdentityDecoratedParent:
+    x: Descriptor = Descriptor()
+
+
+class IdentityDecoratedInherited(IdentityDecoratedParent):
+    pass
+
+
+assert_type(IdentityDecoratedInherited.x, int)
+assert_type(IdentityDecoratedInherited().x, str)

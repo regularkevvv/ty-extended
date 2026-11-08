@@ -261,8 +261,9 @@ fn field_value_factory(types: &mut Types, prefix: &str) -> String {
     let factory = format!("{prefix}field_value");
     let base = descriptor_base(types, &factory, true, true);
     let builtins = types.builtins_alias();
+    let typing = types.typing_alias();
     types.definitions.push_str(&format!(
-        "def {factory}(original: {base}_Class, getter: {base}_Get, setter: {base}_Set) -> {base}[{base}_Get, {base}_Class, {base}_Set]: raise {builtins}.NotImplementedError\n"
+        "def {factory}(original: {base}_Class, getter: {base}_Get, setter: {base}_Set) -> {base}[{base}_Get, {base}_Class, {base}_Set]: raise {builtins}.NotImplementedError\ndef {factory}_decorator(original: {base}_Class, getter: {base}_Get, setter: {base}_Set) -> {typing}.Callable[[{builtins}.object], {base}[{base}_Get, {base}_Class, {base}_Set]]: raise {builtins}.NotImplementedError\n"
     ));
     types.field_value_factory = Some(factory.clone());
     factory
@@ -667,13 +668,6 @@ fn class_patch(
                 && !ambiguous_fields.contains(name)
                 && !native_bindings.instance_names.contains(name)
                 && !name.starts_with("__")
-                // An inherited annotation can contextualize this assignment,
-                // even when its RHS is a descriptor with a different getter.
-                // Only the explicitly annotated projection below can replace
-                // that contract without losing the plugin's instance type.
-                && (!native_bindings.inherited_annotations.contains(name)
-                    || (native_bindings.complete
-                        && native_bindings.plain_class_types.contains_key(name)))
                 // Metaclasses and native framework support can synthesize
                 // members absent from the AST. Keep the established descriptor
                 // projection when no original class binding is available.
@@ -726,18 +720,29 @@ fn class_patch(
                 };
                 let factory = field_value_factory(types, &source.prefix);
                 let getter = format!("{}({ty}, None)", source.cast_name());
-                let start = class_code.len();
-                class_code.push_str(&format!(
-                    "{name} = {factory}({original}, {getter}, {getter})\n"
-                ));
-                // A plugin can intentionally replace an inherited ordinary
-                // attribute with a descriptor. Ty checks an unannotated class
-                // assignment against that inherited type; only this generated
-                // assignment is exempt, never its argument/type errors.
-                field_exceptions.push(Span {
-                    start,
-                    end: class_code.len() - 1,
-                });
+                if !native_bindings.complete || native_bindings.inherited_annotations.contains(name)
+                {
+                    // A function binding uses its decorator's result type even
+                    // when an ancestor declares this name. An assignment would
+                    // retain that annotation and lose the plugin's getter.
+                    // Decorators can preserve or replace an ancestor, so an
+                    // incomplete static MRO also needs this declaration form.
+                    class_code.push_str(&format!(
+                        "@{factory}_decorator({original}, {getter}, {getter})\ndef {name}(self) -> None: raise {builtins}.NotImplementedError\n"
+                    ));
+                } else {
+                    let start = class_code.len();
+                    class_code.push_str(&format!(
+                        "{name} = {factory}({original}, {getter}, {getter})\n"
+                    ));
+                    // A plugin can intentionally replace an inherited ordinary
+                    // attribute with a descriptor. Only this generated
+                    // assignment is exempt, never its argument/type errors.
+                    field_exceptions.push(Span {
+                        start,
+                        end: class_code.len() - 1,
+                    });
+                }
                 if method_targets.contains_key(name) {
                     patched_methods.insert(name.clone());
                 }
