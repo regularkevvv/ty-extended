@@ -93,7 +93,14 @@ fn request_key(value: &impl serde::Serialize) -> Result<RequestKey> {
         }
     }
     let mut writer = HashWriter(Sha256::new());
-    serde_json::to_writer(&mut writer, value)?;
+    // JSON emits many tiny fragments. Hash the same byte stream in blocks,
+    // without allocating another complete serialized project summary.
+    {
+        use std::io::Write as _;
+        let mut buffered = std::io::BufWriter::new(&mut writer);
+        serde_json::to_writer(&mut buffered, value)?;
+        buffered.flush()?;
+    }
     Ok(writer.0.finalize().into())
 }
 
@@ -190,6 +197,7 @@ struct RequestCache {
     oldest: BTreeSet<(u64, RequestKey)>,
     clock: u64,
     bytes: usize,
+    oversized_skips: u64,
 }
 
 struct CachedResponse {
@@ -201,6 +209,10 @@ struct CachedResponse {
 impl RequestCache {
     const MAX_ENTRIES: usize = 8192;
     const MAX_BYTES: usize = 64 * 1024 * 1024;
+    // A project index can outweigh thousands of class results. Admitting it
+    // between sequential class scans can evict every reusable class response.
+    // The response is still consumed normally; only memoization is declined.
+    const MAX_ENTRY_BYTES: usize = Self::MAX_BYTES / 4;
 
     fn clear(&mut self) {
         *self = Self::default();
@@ -231,7 +243,8 @@ impl RequestCache {
                 }
         }
         let bytes = weight(value) + std::mem::size_of::<CachedResponse>() + 128;
-        if bytes > Self::MAX_BYTES {
+        if bytes > Self::MAX_ENTRY_BYTES {
+            self.oversized_skips += 1;
             return;
         }
         if let Some(previous) = self.entries.remove(&key) {
@@ -446,6 +459,14 @@ impl Runtime {
             .iter()
             .map(|plugin| (plugin.id.clone(), plugin.index_generation))
             .collect()
+    }
+
+    pub fn cache_statistics(&self) -> Value {
+        json!({
+            "entries": self.cache.entries.len(),
+            "bytes": self.cache.bytes,
+            "oversized_skips": self.cache.oversized_skips,
+        })
     }
 
     /// Changes observable by another file during one fixed-point loop. The
@@ -1558,13 +1579,22 @@ impl Runtime {
             "additional-dependencies" => "additional-dependencies",
             _ => bail!("not a project hook: {kind}"),
         };
+        let last = self
+            .plugins
+            .iter()
+            .rposition(|plugin| plugin.manifest["capabilities"][capability] == true);
+        let mut payload = Some(payload);
         let mut responses = Vec::new();
         for index in 0..self.plugins.len() {
             let plugin = &self.plugins[index];
             if plugin.manifest["capabilities"][capability] != true {
                 continue;
             }
-            let mut request = payload.clone();
+            let mut request = if Some(index) == last {
+                payload.take().expect("last project hook owns the payload")
+            } else {
+                payload.as_ref().expect("remaining project hooks").clone()
+            };
             request["kind"] = json!(kind);
             if kind == "build-project-index" {
                 request["context"]["config"] = plugin.config.clone();
@@ -2549,6 +2579,19 @@ def member_hook(request):
     }
 
     #[test]
+    fn buffered_request_keys_preserve_exact_json_bytes() -> Result<()> {
+        for size in [0, 1, 8191, 8192, 8193, 32768] {
+            let payload = json!({"unicode":"é文\n\"\\", "values":[true, null, -1, 1.5], "large":"x".repeat(size)});
+            let expected: RequestKey = Sha256::digest(serde_json::to_vec(&payload)?).into();
+            assert_eq!(request_key(&payload)?, expected);
+            let mut changed = payload.clone();
+            changed["values"][0] = json!(false);
+            assert_ne!(request_key(&changed)?, expected);
+        }
+        Ok(())
+    }
+
+    #[test]
     fn concrete_request_decoding_preserves_protocol_values_and_errors() {
         fn same_decode(payload: &Value) {
             let original = serde_json::from_value::<PluginRequest>(payload.clone())
@@ -3356,6 +3399,38 @@ def member_hook(request):
         assert!(cache.get(&second).is_none());
         assert!(cache.get(&first).is_some());
         assert_eq!(cache.entries.len(), RequestCache::MAX_ENTRIES);
+        assert_eq!(cache.entries.len(), cache.oldest.len());
+        assert!(cache.bytes <= RequestCache::MAX_BYTES);
+    }
+
+    #[test]
+    fn large_index_responses_do_not_evict_reusable_semantic_results() {
+        let mut cache = RequestCache::default();
+        // A sequential class scan nearly fills the shared budget. A new large
+        // index used to evict the first classes, whose recomputation would then
+        // evict the next classes, defeating reuse throughout the scan.
+        let semantic = json!({"payload": "x".repeat(2 * 1024 * 1024)});
+        let keys = (0..24)
+            .map(|index| request_key(&("class", index)).unwrap())
+            .collect::<Vec<_>>();
+        for key in &keys {
+            cache.insert(*key, &semantic);
+        }
+        let before = (cache.entries.len(), cache.bytes, cache.clock);
+        let index_key = request_key(&"project-index").unwrap();
+        let index_response = json!({"payload": "y".repeat(RequestCache::MAX_ENTRY_BYTES)});
+        cache.insert(index_key, &index_response);
+        assert_eq!((cache.entries.len(), cache.bytes, cache.clock), before);
+        assert_eq!(cache.oversized_skips, 1);
+        assert!(cache.get(&index_key).is_none());
+        for key in keys {
+            assert!(cache.get(&key).is_some(), "class result was evicted");
+        }
+        // Admission limits do not modify the response consumed by the caller.
+        assert_eq!(
+            index_response["payload"].as_str().unwrap().len(),
+            RequestCache::MAX_ENTRY_BYTES
+        );
         assert_eq!(cache.entries.len(), cache.oldest.len());
         assert!(cache.bytes <= RequestCache::MAX_BYTES);
     }

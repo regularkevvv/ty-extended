@@ -164,6 +164,13 @@ fn collect_module_functions<'a>(suite: &'a [Stmt], functions: &mut Vec<&'a ast::
     }
 }
 
+/// Source roots and overlays applied before constructing semantic summaries.
+pub struct SourceLayout<'a> {
+    pub roots: Vec<PathBuf>,
+    pub overlays: &'a [PathBuf],
+    pub include: &'a dyn Fn(&Path) -> bool,
+}
+
 impl Project {
     #[cfg(test)]
     pub fn load(
@@ -172,12 +179,12 @@ impl Project {
         manifest: &Value,
         config: Value,
     ) -> Result<Self> {
-        Self::load_inner(root, source_paths, manifest, config, false, false)
+        Self::load_inner(root, source_paths, manifest, config, false, false, None)
     }
 
     #[cfg(test)]
     pub fn load_editor(root: &Path, manifest: &Value, config: Value) -> Result<Self> {
-        Self::load_inner(root, &[], manifest, config, true, false)
+        Self::load_inner(root, &[], manifest, config, true, false, None)
     }
 
     pub fn load_selected(
@@ -186,8 +193,9 @@ impl Project {
         manifest: &Value,
         config: Value,
         editor: bool,
+        layout: SourceLayout<'_>,
     ) -> Result<Self> {
-        Self::load_inner(root, paths, manifest, config, editor, true)
+        Self::load_inner(root, paths, manifest, config, editor, true, Some(layout))
     }
 
     fn load_inner(
@@ -197,6 +205,7 @@ impl Project {
         config: Value,
         allow_invalid: bool,
         exact_paths: bool,
+        layout: Option<SourceLayout<'_>>,
     ) -> Result<Self> {
         let root = root
             .canonicalize()
@@ -252,14 +261,27 @@ impl Project {
             }
         }
         project.load_imports()?;
+        if let Some(layout) = layout {
+            project.reindex_source_roots(layout.roots)?;
+            for root in layout.overlays.iter().rev() {
+                project.load_source_tree_filtered(root, layout.include)?;
+            }
+        }
         project.rebuild()?;
         Ok(project)
     }
 
-    /// Match ty's configured source roots when resolving module identities.
     pub fn set_source_roots(&mut self, roots: Vec<PathBuf>) -> Result<()> {
+        if self.reindex_source_roots(roots)? {
+            self.rebuild()?;
+        }
+        Ok(())
+    }
+
+    /// Match ty's configured source roots before deriving class summaries.
+    fn reindex_source_roots(&mut self, roots: Vec<PathBuf>) -> Result<bool> {
         if self.source_roots == roots {
-            return Ok(());
+            return Ok(false);
         }
         self.source_roots = roots;
         let locals: Vec<_> = self
@@ -276,7 +298,7 @@ impl Project {
             self.add_module_text(&name, path, false, module.source.text.clone())?;
         }
         self.load_imports()?;
-        self.rebuild()
+        Ok(true)
     }
 
     pub fn register_notebook_source(&mut self, path: &Path) -> Result<()> {
@@ -484,6 +506,15 @@ impl Project {
         root: &Path,
         include: impl Fn(&Path) -> bool,
     ) -> Result<()> {
+        self.load_source_tree_filtered(root, include)?;
+        self.rebuild()
+    }
+
+    fn load_source_tree_filtered(
+        &mut self,
+        root: &Path,
+        include: impl Fn(&Path) -> bool,
+    ) -> Result<()> {
         let mut paths = vec![];
         collect_python(root, &mut paths)?;
         paths.retain(|path| include(path.strip_prefix(root).unwrap()));
@@ -501,7 +532,7 @@ impl Project {
             }
             self.add_module(&module, &path, true)?;
         }
-        self.rebuild()
+        Ok(())
     }
 
     fn add_module(&mut self, name: &str, path: &Path, external: bool) -> Result<()> {
@@ -1350,7 +1381,6 @@ impl Project {
                         && in_checked_file(&m.source.path)
                 })
             })
-            .cloned()
             .collect();
         let notebook_paths: BTreeSet<_> = self
             .modules
@@ -2712,6 +2742,91 @@ mod tests {
         fn drop(&mut self) {
             let _ = std::fs::remove_dir_all(&self.0);
         }
+    }
+
+    #[test]
+    fn combined_initial_index_preserves_roots_overlays_and_import_precedence() -> Result<()> {
+        let source = Fixture::new(&[
+            ("src/app/__init__.py", ""),
+            (
+                "src/app/base.py",
+                "from external import Root\nclass Parent(Root): pass\n",
+            ),
+            (
+                "src/app/models.py",
+                "from .base import Parent\nclass Child(Parent):\n    value = Field(Parent)\n    class Nested:\n        key = 'x'\n    def method(self, value: 'Child') -> 'Parent': ...\n",
+            ),
+            ("settings.py", "FEATURE = 'enabled'\n"),
+        ]);
+        let stubs = Fixture::new(&[
+            ("high/external.py", "class WrongSource: pass\n"),
+            ("high/external.pyi", "class Root: ...\n"),
+            ("high/ignored.pyi", "invalid !!! syntax\n"),
+            ("low/external.pyi", "class WrongOverlay: ...\n"),
+            ("low/app/base.pyi", "class WrongLocal: ...\n"),
+        ]);
+        let outside = Fixture::new(&[("outside.py", "class Outside: pass\n")]);
+        let paths = vec![
+            source.0.join("src/app/models.py"),
+            outside.0.join("outside.py"),
+        ];
+        let overlays = vec![stubs.0.join("high"), stubs.0.join("low")];
+        let manifest = json!({"claims":{"settings":[{"module":"settings"}]}});
+        let include = |path: &Path| path.file_name().is_none_or(|name| name != "ignored.pyi");
+        for roots in [vec![source.0.clone()], vec![source.0.join("src")]] {
+            // The previous loading sequence is an independent oracle for the
+            // observable summaries, including imports not explicitly selected.
+            let mut sequential =
+                Project::load_inner(&source.0, &paths, &manifest, json!({}), true, true, None)?;
+            sequential.set_source_roots(roots.clone())?;
+            for root in overlays.iter().rev() {
+                sequential.add_source_tree_filtered(root, include)?;
+            }
+            let combined = Project::load_selected(
+                &source.0,
+                &paths,
+                &manifest,
+                json!({}),
+                true,
+                SourceLayout {
+                    roots,
+                    overlays: &overlays,
+                    include: &include,
+                },
+            )?;
+            assert_eq!(combined.build_request(), sequential.build_request());
+            assert_eq!(combined.classes, sequential.classes);
+            assert_eq!(
+                combined.renderer_module_names(),
+                sequential.renderer_module_names()
+            );
+            assert_eq!(combined.syntax_errors, sequential.syntax_errors);
+            let modules = |project: &Project| {
+                project
+                    .modules
+                    .iter()
+                    .map(|(name, module)| {
+                        (
+                            name.clone(),
+                            (
+                                module.source.path.clone(),
+                                module.source.text.clone(),
+                                module.external,
+                            ),
+                        )
+                    })
+                    .collect::<BTreeMap<_, _>>()
+            };
+            assert_eq!(modules(&combined), modules(&sequential));
+            assert!(combined.classes.contains_key("external.Root"));
+            assert!(!combined.classes.contains_key("external.WrongOverlay"));
+            assert!(!combined.classes.contains_key("external.WrongSource"));
+            if combined.classes.contains_key("app.models.Child") {
+                assert!(combined.is_subclass("app.models.Child", "external.Root"));
+                assert!(!combined.classes.contains_key("app.base.WrongLocal"));
+            }
+        }
+        Ok(())
     }
 
     #[test]

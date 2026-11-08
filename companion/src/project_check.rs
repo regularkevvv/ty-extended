@@ -1136,19 +1136,18 @@ impl Session {
                 || options
                     .get("public-cli")
                     .is_some_and(|value| value == "true"),
+            crate::project::SourceLayout {
+                roots: checker_config.source_roots,
+                overlays: &checker_config.stub_roots,
+                include: &|relative| include_overlay(relative, &stdlib),
+            },
         )?;
-        base_project.set_source_roots(checker_config.source_roots)?;
         base_project.add_source_paths(explicit_paths.clone());
         phase(
             &mut startup_phases,
-            "startup_source_index",
+            "startup_source_and_stub_index",
             &mut startup_tick,
         );
-        for root in checker_config.stub_roots.iter().rev() {
-            base_project
-                .add_source_tree_filtered(root, |relative| include_overlay(relative, &stdlib))?;
-        }
-        phase(&mut startup_phases, "startup_stub_index", &mut startup_tick);
         let server = if let Some(mut checker) = checker {
             checker.set_workspace_configuration(editor_backend_configuration(
                 options,
@@ -3344,6 +3343,7 @@ impl Session {
         result["reused_analysis_passes"] = json!(reused_analysis_passes);
         result["reused_final_flows"] = json!(reused_final_flows);
         result["reused_units"] = json!(units.values().filter(|unit| !unit.dirty).count());
+        result["monty_cache"] = runtime.cache_statistics();
         self.cached_sources = project
             .modules
             .iter()
