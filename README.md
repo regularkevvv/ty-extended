@@ -42,9 +42,12 @@ ty timings, correctness controls and the limits of each comparison.
 
 The [unreleased candidate](docs/performance.md#factory-specialization-follow-up)
 also corrects audited class-field access differences and reduces repeated type
-inference. Its latest paired comparison measures **5.12 seconds**, versus
-**6.72 seconds** for MyPy on the same workload. The one-second target
-remains unmet; the published results above remain the release baseline.
+inference. A [five-sample native Django comparison](docs/performance.md#official-ty-with-native-django-support)
+measures **5.16 seconds** for the candidate, **6.79 seconds** for MyPy and
+**0.30 seconds** for official Ty with `django-types`. All three pass the timed
+fixture's 100 ORM assertions and both error controls. Broader Django contract
+coverage differs; the report records those results separately. The candidate's
+one-second target remains unmet; the published results above remain the release baseline.
 
 ## Monty plugins
 

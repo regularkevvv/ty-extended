@@ -4,6 +4,68 @@ The companion checks generated analysis copies with unchanged official ty and
 runs Django hooks in embedded Monty. Its total time includes discovery, plugin
 execution, projection, type queries and the final checker run.
 
+## Official Ty with native Django support
+
+The [2026-11-08 comparison receipt](qualification/official-django-comparison.json)
+compares official Ty 0.0.99 with `django-types` 0.24.0, the unreleased companion
+and Django candidates, and MyPy 2.4.1 with django-stubs 6.1.2. Every stack uses
+Python 3.13.0 and Django 6.1.3. The native environment follows
+[Ty's documented Django setup](https://docs.astral.sh/ty/features/third-party/django/)
+and contains neither django-stubs nor Django-ty. A separate field-inference and
+invalid-assignment smoke test verifies that native Django support is active.
+
+The original 7,082-file, 2,501-model, single-module fixture is unchanged:
+
+| Stack                                        | Median | ORM assertions | Error controls |
+| -------------------------------------------- | -----: | -------------: | -------------: |
+| Official Ty with django-types                 | 0.297 s |        100/100 |            2/2 |
+| Candidate companion and candidate Django-ty   | 5.163 s |        100/100 |            2/2 |
+| MyPy with django-stubs and its Django plugin  | 6.793 s |        100/100 |            2/2 |
+
+These are five rotated serial fresh-process samples per stack, with an empty
+MyPy cache each time. Filesystem caches may be warm. Every run preserves source
+bytes and modification times and remains below the recorded host-load limit.
+The receipt retains every sample, executable identity, environment, command,
+resource measurement and diagnostic. The sampled process-tree RSS medians are
+approximately 93 MiB for native Ty, 1,158 MiB for the companion and 495 MiB for
+MyPy. These samples are local measurements, not worst-case bounds.
+
+Native Ty is about 17.4 times faster than the companion on this fixture while
+passing the same basic assertions and intentional errors. The earlier bare-Ty
+comparisons omitted `django-types`; their failed assertions do not describe the
+documented native Django setup measured here. The extra companion coverage
+below does not establish that five seconds is necessary for this basic fixture.
+
+### Correctness beyond the timed assertions
+
+A separate correctness extension replaces one filler file with 20 probes using
+public Django APIs and standard-library typing. It retains exactly 7,082 files,
+2,501 models and the original 100 assertions. Each stack checks identical source.
+Its one-shot timings are recorded separately from the medians above.
+
+| Stack                | Valid cases accepted | Invalid cases rejected | Total matched |
+| -------------------- | -------------------: | ---------------------: | ------------: |
+| Official Ty          |                 6/10 |                   2/10 |          8/20 |
+| Candidate companion  |                10/10 |                  10/10 |         20/20 |
+| MyPy + django-stubs  |                10/10 |                   9/10 |         19/20 |
+
+Native Ty misses string-target relationship types, reverse relationships, precise
+`values()` / `values_list()` results, and constructor/query validation in these
+probes. MyPy misses the invalid lookup `name__missing`; the companion rejects it.
+The receipt preserves one original test correction: an unsaved foreign-key ID
+was incorrectly expected to be exactly `int`. Django's runtime returns `None`
+when it is omitted. The final probe tests rejection of a `str` assignment without
+requiring that state-dependent exact type. Original source, scores and diagnostics
+are retained; no implementation changed to improve these results.
+
+The unchanged 166-case project corpus separately matches 86 expectations for
+native Ty, 166 for the companion and 124 for MyPy. Native Ty also emits nine
+diagnostics outside marked cases; the other stacks emit none. This corpus includes
+state-aware primary-key expectations and django-stubs annotation conventions,
+including some that differ from django-types. These are counts against this
+project's contract expectations, not general Django accuracy percentages. The
+receipt includes all cases, diagnostics and feature totals for inspection.
+
 ## Unreleased sparse projection candidate
 
 The [local candidate receipt](qualification/performance-sparse-projection.json)
@@ -248,7 +310,8 @@ combinations. The largest Mac workload is effectively at parity with MyPy;
 its approximately one-percent margin is too small to claim a meaningful speed
 advantage. The other Mac workloads are 1.2–3.1× faster, and Linux CI workloads
 are 1.4–3.9× faster. These are workload-specific observations, not a universal
-speed guarantee. Bare ty does not provide the Django checking used here.
+speed guarantee. The bare-Ty environment in that series omitted `django-types`
+and did not provide the Django checking used there.
 
 The additional 250-module project checks the same large model population spread
 across files. It preserves all 100 ORM type assertions and both negative controls.
@@ -256,12 +319,12 @@ CI enforces the MyPy median ceiling on all five project shapes.
 
 ## What is compared
 
-`companion/scripts/compare_checkers.py` creates a registered Django application
-and runs three public commands over identical Python files:
+The historical `companion/scripts/compare_checkers.py` series creates a registered
+Django application and runs three public commands over identical Python files:
 
 - `ty-extended check`, with Django-ty's Monty plugin and packaged stubs;
 - MyPy with django-stubs and its Django plugin;
-- bare official `ty check`, with no companion or Django plugin.
+- bare official `ty check`, without `django-types`, a companion or Django plugin.
 
 Every sample starts fresh processes. MyPy uses `--no-incremental` and an empty,
 disposable cache; operating-system filesystem caches may be warm. Serial rounds rotate command order (five for the 0.89 local suite; three for
@@ -278,9 +341,10 @@ process, malformed output, timeout or memory-limit violation invalidates the
 run. The performance gate separately requires the companion's median to be no
 slower than MyPy's median on that workload.
 
-Bare ty reports unresolved Django model managers and failed type assertions.
-Its timings show the cost of the underlying checker, but do not establish
-equivalent Django checking. These fresh-process measurements also do not compare
+In that setup, bare Ty reports unresolved Django model managers and failed type
+assertions. Its timings show the underlying checker baseline; the native Django
+comparison above supplies the required `django-types` package and measures its
+coverage separately. These fresh-process measurements also do not compare
 MyPy's persistent daemon or either checker's incremental editor performance.
 
 ## Reproduce
