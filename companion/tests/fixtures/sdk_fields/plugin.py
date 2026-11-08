@@ -1,0 +1,8 @@
+set_manifest({'id': 'research.fields', 'name': 'Class field access parity', 'version': '0.0.1', 'protocol-version': {'major': 0, 'minor': 7}, 'ty-compatibility': {'requirement': '>=0.86.0'}, 'runtime': {'kind': 'monty', 'artifact': 'plugin.py'}, 'capabilities': {'class-transform': True}, 'claims': {'classes': [{'kind': 'exact', 'qualified-name': 'demo.A'}, {'kind': 'exact', 'qualified-name': 'demo.B'}, {'kind': 'exact', 'qualified-name': 'demo.Absent'}, {'kind': 'exact', 'qualified-name': 'demo.Declared'}, {'kind': 'exact', 'qualified-name': 'demo.Property'}, {'kind': 'exact', 'qualified-name': 'demo.DataDescriptor'}, {'kind': 'exact', 'qualified-name': 'demo.Inherited'}, {'kind': 'exact', 'qualified-name': 'demo.OwnerInherited'}, {'kind': 'exact', 'qualified-name': 'demo.Method'}, {'kind': 'exact', 'qualified-name': 'demo.Constructed'}, {'kind': 'exact', 'qualified-name': 'demo.Rebound'}, {'kind': 'exact', 'qualified-name': 'demo.DecoratedChild'}, {'kind': 'exact', 'qualified-name': 'demo.AnyInherited'}, {'kind': 'exact', 'qualified-name': 'demo.DynamicAbsent'}, {'kind': 'exact', 'qualified-name': 'demo.TypedDescriptorInherited'}]}})
+
+@on_class_transform
+def transform(request):
+    result = field("x", type_annotation("str"), instance_set_type=type_annotation("bytes"), mode="replace-existing", descriptor=member_descriptor(type_annotation("str"), instance_set_type=type_annotation("bytes")))
+    if request["class"]["qualified-name"] == "demo.Constructed":
+        result["constructor-parameter"] = parameter("x", type=type_annotation("bytes"), required=True)
+    return class_patch(fields=[result])

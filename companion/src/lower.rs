@@ -160,19 +160,9 @@ mod descriptor_tests {
     }
 }
 
-fn descriptor(types: &mut Types, helper: &str, access: &Value) -> Result<String> {
-    let get = types.render(&access["instance-get-type"])?;
-    let class = if access.get("class-type").is_some() {
-        Some(types.render(&access["class-type"])?)
-    } else {
-        None
-    };
-    let set = access
-        .get("instance-set-type")
-        .map(|value| types.render(value))
-        .transpose()?;
-    let key = (class.is_some(), set.is_some());
-    let base = if let Some(base) = types.descriptor_bases.get(&key) {
+fn descriptor_base(types: &mut Types, helper: &str, class: bool, set: bool) -> String {
+    let key = (class, set);
+    if let Some(base) = types.descriptor_bases.get(&key) {
         base.clone()
     } else {
         let base = format!("{helper}_base");
@@ -186,13 +176,13 @@ fn descriptor(types: &mut Types, helper: &str, access: &Value) -> Result<String>
         let mut code = format!(
             "{get_parameter} = {extensions}.TypeVar(\"{get_parameter}\", covariant=True)\n"
         );
-        if class.is_some() {
+        if class {
             code.push_str(&format!(
                 "{class_parameter} = {extensions}.TypeVar(\"{class_parameter}\", covariant=True)\n"
             ));
             parameters.push(class_parameter.clone());
         }
-        if set.is_some() {
+        if set {
             code.push_str(&format!(
                 "{set_parameter} = {extensions}.TypeVar(\"{set_parameter}\", contravariant=True)\n"
             ));
@@ -200,7 +190,7 @@ fn descriptor(types: &mut Types, helper: &str, access: &Value) -> Result<String>
         }
         // Self binds to the individual field subclass, preserving the nominal
         // identity exposed by descriptors without an explicit class type.
-        let class_parameter = if class.is_some() {
+        let class_parameter = if class {
             class_parameter
         } else {
             format!("{extensions}.Self")
@@ -209,7 +199,7 @@ fn descriptor(types: &mut Types, helper: &str, access: &Value) -> Result<String>
         code.push_str(&format!(
             "class {base}({typing}.Generic[{parameters}]):\n    @{typing}.overload\n    def __get__(self, obj: None, owner: {builtins}.type[{builtins}.object]) -> {class_parameter}: ...\n    @{typing}.overload\n    def __get__(self, obj: {builtins}.object, owner: {builtins}.type[{builtins}.object]) -> {get_parameter}: ...\n    def __get__(self, obj: {builtins}.object, owner: {builtins}.type[{builtins}.object]) -> {builtins}.object: raise {builtins}.NotImplementedError\n"
         ));
-        if set.is_some() {
+        if set {
             code.push_str(&format!(
                 "    def __set__(self, obj: {builtins}.object, value: {set_parameter}) -> None: raise {builtins}.NotImplementedError\n"
             ));
@@ -217,7 +207,21 @@ fn descriptor(types: &mut Types, helper: &str, access: &Value) -> Result<String>
         types.definitions.push_str(&code);
         types.descriptor_bases.insert(key, base.clone());
         base
+    }
+}
+
+fn descriptor(types: &mut Types, helper: &str, access: &Value) -> Result<String> {
+    let get = types.render(&access["instance-get-type"])?;
+    let class = if access.get("class-type").is_some() {
+        Some(types.render(&access["class-type"])?)
+    } else {
+        None
     };
+    let set = access
+        .get("instance-set-type")
+        .map(|value| types.render(value))
+        .transpose()?;
+    let base = descriptor_base(types, helper, class.is_some(), set.is_some());
     let arguments = std::iter::once(get)
         .chain(class)
         .chain(set)
@@ -248,6 +252,200 @@ fn descriptor(types: &mut Types, helper: &str, access: &Value) -> Result<String>
         }
     };
     Ok(format!("class {helper}({base}):\n    pass\n"))
+}
+
+fn field_value_factory(types: &mut Types, prefix: &str) -> String {
+    if let Some(factory) = &types.field_value_factory {
+        return factory.clone();
+    }
+    let factory = format!("{prefix}field_value");
+    let base = descriptor_base(types, &factory, true, true);
+    let builtins = types.builtins_alias();
+    types.definitions.push_str(&format!(
+        "def {factory}(original: {base}_Class, getter: {base}_Get, setter: {base}_Set) -> {base}[{base}_Get, {base}_Class, {base}_Set]: raise {builtins}.NotImplementedError\n"
+    ));
+    types.field_value_factory = Some(factory.clone());
+    factory
+}
+
+#[derive(Default)]
+struct FieldBindings {
+    class_names: BTreeSet<String>,
+    instance_names: BTreeSet<String>,
+    inherited_annotations: BTreeSet<String>,
+    plain_class_types: BTreeMap<String, Value>,
+    complete: bool,
+    current_ancestry: bool,
+    dynamic_class_members: bool,
+}
+
+fn field_bindings(
+    runtime: &Runtime,
+    qualified: &str,
+    source: &Source,
+    current: &ruff_python_ast::StmtClassDef,
+) -> FieldBindings {
+    let project = runtime.project.as_ref().unwrap();
+    let Some(mro) = project.mro(qualified) else {
+        return FieldBindings::default();
+    };
+    struct StoredAttributes(BTreeSet<String>);
+    impl<'a> Visitor<'a> for StoredAttributes {
+        fn visit_stmt(&mut self, statement: &'a Stmt) {
+            if !matches!(statement, Stmt::ClassDef(_)) {
+                visitor::walk_stmt(self, statement);
+            }
+        }
+        fn visit_expr(&mut self, expression: &'a Expr) {
+            if let Expr::Attribute(attribute) = expression
+                && attribute.ctx == ExprContext::Store
+            {
+                self.0.insert(attribute.attr.to_string());
+            }
+            visitor::walk_expr(self, expression);
+        }
+    }
+    let mut result = FieldBindings {
+        complete: true,
+        current_ancestry: true,
+        ..FieldBindings::default()
+    };
+    let mut annotation_ancestry = true;
+    for owner in mro {
+        if matches!(owner.as_str(), "object" | "builtins.object") {
+            continue;
+        }
+        let Some((_, module, indexed)) = project.original_class(&owner) else {
+            result.complete = false;
+            annotation_ancestry = false;
+            continue;
+        };
+        let class = if owner == qualified {
+            result.current_ancestry =
+                span(indexed) == span(current) && module.source.path == source.path;
+            result.complete &= result.current_ancestry;
+            current
+        } else {
+            indexed
+        };
+        result.complete &= class.decorator_list.is_empty();
+        // A decorated or rebound base can replace the rest of the static MRO.
+        // Its original ancestors' annotations do not establish native context.
+        annotation_ancestry &= class.decorator_list.is_empty() && result.current_ancestry;
+        result.dynamic_class_members |= class.arguments.as_ref().is_some_and(|arguments| {
+            arguments.keywords.iter().any(|keyword| {
+                keyword
+                    .arg
+                    .as_ref()
+                    .is_none_or(|name| name.as_str() == "metaclass")
+            })
+        });
+        let mut bindings = Bindings::default();
+        let mut attributes = StoredAttributes(BTreeSet::new());
+        for statement in &class.body {
+            bindings.visit_stmt(statement);
+            attributes.visit_stmt(statement);
+        }
+        for statement in &class.body {
+            if let Stmt::AnnAssign(assignment) = statement
+                && let Expr::Name(member) = assignment.target.as_ref()
+                && let Expr::Name(annotation) = assignment.annotation.as_ref()
+                && !result.class_names.contains(member.id.as_str())
+                && !module.bindings.contains(annotation.id.as_str())
+                && !bindings.names.contains(annotation.id.as_str())
+            {
+                let annotation = if module
+                    .imports
+                    .get(annotation.id.as_str())
+                    .is_some_and(|name| {
+                        matches!(name.as_str(), "typing.Any" | "typing_extensions.Any")
+                    }) {
+                    "typing.Any"
+                } else if !module.imports.contains_key(annotation.id.as_str())
+                    && matches!(
+                        annotation.id.as_str(),
+                        "int" | "str" | "bool" | "float" | "complex" | "bytes" | "object"
+                    )
+                {
+                    annotation.id.as_str()
+                } else {
+                    continue;
+                };
+                // These unshadowed builtin annotations have no descriptor
+                // binding behavior. Their class access is exactly the declared
+                // type, including on newer Ty versions that contextualize an
+                // unannotated overriding assignment with this inherited type.
+                result
+                    .plain_class_types
+                    .insert(member.id.to_string(), crate::model::typ(annotation));
+            }
+        }
+        result.complete &= !bindings.names.contains("__slots__");
+        result.class_names.extend(bindings.names);
+        result.instance_names.extend(attributes.0);
+        if owner != qualified {
+            if annotation_ancestry {
+                result.inherited_annotations.extend(bindings.annotated);
+            }
+            // Another plugin may have introduced a member on an ancestor.
+            // Retain its existing projection until its full access contract is
+            // known, instead of treating it as an absent native declaration.
+            for key in ["fields", "class-members", "instance-members"] {
+                for member in runtime
+                    .project_patches
+                    .get(&owner)
+                    .and_then(|patch| patch[key].as_array())
+                    .into_iter()
+                    .flatten()
+                {
+                    if let Some(name) = member["name"].as_str() {
+                        result.instance_names.insert(name.to_owned());
+                    }
+                }
+            }
+            for contribution in runtime.contributions_for(&owner) {
+                if let Some(name) = contribution["patch"]["name"].as_str() {
+                    result.instance_names.insert(name.to_owned());
+                }
+            }
+        }
+    }
+    result
+}
+
+#[derive(Default)]
+struct ClassScopeLoads(BTreeSet<String>);
+impl<'a> Visitor<'a> for ClassScopeLoads {
+    fn visit_stmt(&mut self, statement: &'a Stmt) {
+        match statement {
+            Stmt::FunctionDef(function) => {
+                for decorator in &function.decorator_list {
+                    self.visit_expr(&decorator.expression);
+                }
+                self.visit_parameters(&function.parameters);
+                if let Some(returns) = &function.returns {
+                    self.visit_expr(returns);
+                }
+            }
+            Stmt::ClassDef(class) => {
+                for decorator in &class.decorator_list {
+                    self.visit_expr(&decorator.expression);
+                }
+                if let Some(arguments) = &class.arguments {
+                    self.visit_arguments(arguments);
+                }
+            }
+            _ => visitor::walk_stmt(self, statement),
+        }
+    }
+    fn visit_expr(&mut self, expression: &'a Expr) {
+        if let Expr::Name(name) = expression
+            && name.ctx == ExprContext::Load
+        {
+            self.0.insert(name.id.to_string());
+        }
+        visitor::walk_expr(self, expression);
+    }
 }
 fn member(
     types: &mut Types,
@@ -374,31 +572,72 @@ fn class_patch(
     let previous_self = types.set_self_context(Some(crate::model::typ(qualified)));
     let mut declared = BTreeMap::new();
     let mut methods = BTreeSet::new();
+    let mut method_targets = BTreeMap::new();
+    let mut ambiguous_fields = BTreeSet::new();
+    let mut own_bindings = Bindings::default();
+    let mut scope_loads = ClassScopeLoads::default();
     for stmt in &class.body {
+        own_bindings.visit_stmt(stmt);
+        scope_loads.visit_stmt(stmt);
         match stmt {
             Stmt::Assign(a) => {
                 for target in &a.targets {
                     if let Expr::Name(n) = target {
-                        declared.insert(n.id.to_string(), span(n));
+                        if declared.insert(n.id.to_string(), span(n)).is_some() {
+                            ambiguous_fields.insert(n.id.to_string());
+                        }
+                        if method_targets.contains_key(n.id.as_str()) {
+                            ambiguous_fields.insert(n.id.to_string());
+                        }
                     }
                 }
             }
             Stmt::AnnAssign(a) => {
                 if let Expr::Name(n) = a.target.as_ref() {
-                    declared.insert(n.id.to_string(), span(n));
+                    if declared.insert(n.id.to_string(), span(n)).is_some() {
+                        ambiguous_fields.insert(n.id.to_string());
+                    }
+                    if method_targets.contains_key(n.id.as_str()) {
+                        ambiguous_fields.insert(n.id.to_string());
+                    }
                 }
             }
             Stmt::FunctionDef(f) => {
                 methods.insert(f.name.to_string());
+                if method_targets
+                    .insert(f.name.to_string(), span(&f.name))
+                    .is_some()
+                    || declared.contains_key(f.name.as_str())
+                {
+                    ambiguous_fields.insert(f.name.to_string());
+                }
             }
             _ => {}
         }
     }
+    ambiguous_fields.extend(scope_loads.0);
+    let factory_context = class.decorator_list.is_empty()
+        && class.type_params.is_none()
+        && qualified == format!("{}.{}", source.module, class.name)
+        && class.arguments.as_ref().is_none_or(|arguments| {
+            arguments
+                .args
+                .iter()
+                .all(|base| !matches!(base, Expr::Subscript(_)))
+        });
+    let native_bindings = if factory_context && !fields.is_empty() {
+        field_bindings(runtime, qualified, source, class)
+    } else {
+        FieldBindings::default()
+    };
     let mut class_code = String::new();
+    let mut field_exceptions = Vec::new();
+    let mut instance_code = String::new();
     let mut helper_code = String::new();
     let mut field_types = BTreeMap::new();
     let mut params = Vec::new();
     let mut patched_names = BTreeSet::new();
+    let mut patched_methods = BTreeSet::new();
     for (index, (name, field)) in fields.iter().enumerate() {
         let class_type =
             field
@@ -423,21 +662,103 @@ fn class_patch(
             ));
             patched_names.insert(name.clone());
         } else if field["mode"] == "replace-existing" || !declared.contains_key(name) {
-            // Returning the member through __get__ prevents a plugin value
-            // which itself implements __get__ (for example a manager) from
-            // accidentally binding as a class-body descriptor. The ordinary
-            // write domain is the read type; exact class-transform setters are
-            // projected separately at their receiver's assignment sites.
-            let helper = format!("{}field_{}_{}", source.prefix, span(class).start, index);
-            let access = json!({"kind":"descriptor","instance-get-type":field["instance-get-type"],"instance-set-type":field["instance-get-type"]});
-            helper_code.push_str(&descriptor(types, &helper, &access)?);
-            class_code.push_str(&format!("{name}: {helper} = {}\n", types.placeholder()));
+            let can_infer_class_access = factory_context
+                && class_type.is_none()
+                && !ambiguous_fields.contains(name)
+                && !native_bindings.instance_names.contains(name)
+                && !name.starts_with("__")
+                // An inherited annotation can contextualize this assignment,
+                // even when its RHS is a descriptor with a different getter.
+                // Only the explicitly annotated projection below can replace
+                // that contract without losing the plugin's instance type.
+                && (!native_bindings.inherited_annotations.contains(name)
+                    || (native_bindings.complete
+                        && native_bindings.plain_class_types.contains_key(name)))
+                // Metaclasses and native framework support can synthesize
+                // members absent from the AST. Keep the established descriptor
+                // projection when no original class binding is available.
+                && (!native_bindings.dynamic_class_members || native_bindings.class_names.contains(name))
+                && (native_bindings.current_ancestry
+                    || declared.contains_key(name)
+                    || method_targets.contains_key(name))
+                && (declared.contains_key(name)
+                    || method_targets.contains_key(name)
+                    || !own_bindings.names.contains(name));
+            if can_infer_class_access
+                && native_bindings.complete
+                && !native_bindings.class_names.contains(name)
+            {
+                // Native fields with no class binding are instance-only. An
+                // ordinary instance annotation preserves the native error on
+                // class access instead of exposing a synthetic descriptor.
+                instance_code.push_str(&format!("    self.{name}: {ty}\n"));
+            } else if can_infer_class_access
+                && field["mode"] == "replace-existing"
+                && native_bindings.complete
+                && let Some(class_type) = native_bindings.plain_class_types.get(name)
+            {
+                let class_type = types.render(class_type)?;
+                let base =
+                    descriptor_base(types, &format!("{}field_value", source.prefix), true, true);
+                class_code.push_str(&format!(
+                    "{name}: {base}[{ty}, {class_type}, {ty}] = {}\n",
+                    types.placeholder()
+                ));
+                patched_names.insert(name.clone());
+            } else if can_infer_class_access && field["mode"] == "replace-existing" {
+                let builtins = types.builtins_alias();
+                let extensions = types.typing_extensions_alias();
+                let owner = format!(
+                    "{}({}, None)",
+                    source.cast_name(),
+                    // Self refers to this lexical class even if the module
+                    // later rebinds its public name to another class.
+                    serde_json::to_string(&format!("{builtins}.type[{extensions}.Self]"))?
+                );
+                let original = if declared.contains_key(name) || method_targets.contains_key(name) {
+                    format!(
+                        "{owner}.{}original_{}_{name}",
+                        source.prefix,
+                        span(class).start
+                    )
+                } else {
+                    format!("{builtins}.super({owner}, {owner}).{name}")
+                };
+                let factory = field_value_factory(types, &source.prefix);
+                let getter = format!("{}({ty}, None)", source.cast_name());
+                let start = class_code.len();
+                class_code.push_str(&format!(
+                    "{name} = {factory}({original}, {getter}, {getter})\n"
+                ));
+                // A plugin can intentionally replace an inherited ordinary
+                // attribute with a descriptor. Ty checks an unannotated class
+                // assignment against that inherited type; only this generated
+                // assignment is exempt, never its argument/type errors.
+                field_exceptions.push(Span {
+                    start,
+                    end: class_code.len() - 1,
+                });
+                if method_targets.contains_key(name) {
+                    patched_methods.insert(name.clone());
+                }
+                patched_names.insert(name.clone());
+            } else {
+                // Returning the member through __get__ prevents a plugin value
+                // which itself implements __get__ (for example a manager) from
+                // accidentally binding as a class-body descriptor. The ordinary
+                // write domain is the read type; exact class-transform setters are
+                // projected separately at their receiver's assignment sites.
+                let helper = format!("{}field_{}_{}", source.prefix, span(class).start, index);
+                let access = json!({"kind":"descriptor","instance-get-type":field["instance-get-type"],"instance-set-type":field["instance-get-type"]});
+                helper_code.push_str(&descriptor(types, &helper, &access)?);
+                class_code.push_str(&format!("{name}: {helper} = {}\n", types.placeholder()));
+                patched_names.insert(name.clone());
+            }
             generated
                 .descriptors
                 .entry(qualified.to_owned())
                 .or_default()
                 .insert(name.clone());
-            patched_names.insert(name.clone());
         }
         if let Some(param) = field.get("constructor-parameter") {
             let mut param = param.clone();
@@ -452,6 +773,13 @@ fn class_patch(
             }
             params.push(param);
         }
+    }
+    if !instance_code.is_empty() {
+        class_code.push_str(&format!(
+            "def {}instance_fields_{}(self) -> None:\n{instance_code}",
+            source.prefix,
+            span(class).start
+        ));
     }
     for (index, (name, (patch, class_scope))) in members.iter().enumerate() {
         if !*class_scope
@@ -493,7 +821,12 @@ fn class_patch(
     // Preserve original RHS evaluation and argument checking under a hygienic
     // binding; the declared plugin descriptor supplies accesses to this name.
     for name in patched_names {
-        if let Some(target) = declared.get(&name) {
+        if let Some(target) = declared.get(&name).or_else(|| {
+            patched_methods
+                .contains(&name)
+                .then(|| method_targets.get(&name))
+                .flatten()
+        }) {
             edits.replace(
                 *target,
                 format!("{}original_{}_{}", source.prefix, span(class).start, name),
@@ -505,7 +838,30 @@ fn class_patch(
             .lines()
             .collect::<Vec<_>>()
             .join(&format!("\n{indent}"));
-        edits.insert(insertion, format!("{indented}\n{indent}"));
+        let shift = |offset: usize| {
+            offset
+                + class_code[..offset]
+                    .bytes()
+                    .filter(|byte| *byte == b'\n')
+                    .count()
+                    * indent.len()
+        };
+        edits.insert_with_diagnostic_exceptions(
+            insertion,
+            format!("{indented}\n{indent}"),
+            field_exceptions
+                .into_iter()
+                .map(|span| {
+                    (
+                        Span {
+                            start: shift(span.start),
+                            end: shift(span.end),
+                        },
+                        "invalid-assignment".into(),
+                    )
+                })
+                .collect(),
+        );
     }
     types.definitions.push_str(&helper_code);
     for diagnostic in response["diagnostics"].as_array().into_iter().flatten() {
@@ -526,6 +882,7 @@ fn class_patch(
 #[derive(Default)]
 struct Bindings {
     names: BTreeSet<String>,
+    annotated: BTreeSet<String>,
 }
 impl<'a> Visitor<'a> for Bindings {
     fn visit_pattern(&mut self, pattern: &'a ruff_python_ast::Pattern) {
@@ -533,6 +890,12 @@ impl<'a> Visitor<'a> for Bindings {
     }
     fn visit_stmt(&mut self, node: &'a Stmt) {
         match node {
+            Stmt::AnnAssign(assignment) => {
+                if let Expr::Name(name) = assignment.target.as_ref() {
+                    self.annotated.insert(name.id.to_string());
+                }
+                visitor::walk_stmt(self, node);
+            }
             Stmt::FunctionDef(f) => {
                 self.names.insert(f.name.to_string());
             }

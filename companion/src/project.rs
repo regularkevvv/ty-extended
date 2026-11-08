@@ -977,10 +977,10 @@ impl Project {
         self.classes.get(qualified)
     }
 
-    /// Original declaration provenance, independent of plugin field summaries.
-    /// In particular, SDK ClassSummary intentionally omits ClassVar members,
-    /// while receiver recovery still needs their declared generic types.
-    pub fn declared_member_type(&self, class: &str, member: &str) -> Option<Value> {
+    pub(crate) fn original_class(
+        &self,
+        class: &str,
+    ) -> Option<(&str, &Module, &ast::StmtClassDef)> {
         let class = class.split('[').next()?.trim();
         let summary = self.classes.get(class)?;
         let module_name = summary["source"]["module"].as_str()?;
@@ -993,20 +993,27 @@ impl Project {
             suite: &'a [Stmt],
             path: &[&str],
             imports: &BTreeMap<String, String>,
+            source: &Source,
+            expected_start: &Value,
         ) -> Option<&'a ast::StmtClassDef> {
             for statement in suite {
                 match statement {
                     Stmt::ClassDef(class) if Some(class.name.as_str()) == path.first().copied() => {
-                        if path.len() == 1 {
+                        if path.len() == 1 && source.position(span(class).start) == *expected_start
+                        {
                             return Some(class);
                         }
-                        if let Some(found) = find(&class.body, &path[1..], imports) {
+                        if path.len() > 1
+                            && let Some(found) =
+                                find(&class.body, &path[1..], imports, source, expected_start)
+                        {
                             return Some(found);
                         }
                     }
                     Stmt::If(branch) => {
                         for suite in branch_suites(branch, imports) {
-                            if let Some(found) = find(suite, path, imports) {
+                            if let Some(found) = find(suite, path, imports, source, expected_start)
+                            {
                                 return Some(found);
                             }
                         }
@@ -1016,7 +1023,24 @@ impl Project {
             }
             None
         }
-        let class = find(&module.suite, &path, &module.imports)?;
+        Some((
+            module_name,
+            module,
+            find(
+                &module.suite,
+                &path,
+                &module.imports,
+                &module.source,
+                &summary["source"]["start"],
+            )?,
+        ))
+    }
+
+    /// Original declaration provenance, independent of plugin field summaries.
+    /// In particular, SDK ClassSummary intentionally omits ClassVar members,
+    /// while receiver recovery still needs their declared generic types.
+    pub fn declared_member_type(&self, class: &str, member: &str) -> Option<Value> {
+        let (module_name, module, class) = self.original_class(class)?;
         fn annotation<'a>(
             suite: &'a [Stmt],
             member: &str,

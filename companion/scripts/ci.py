@@ -493,6 +493,7 @@ def main() -> int:
         for test in (
             "generic_project_semantics",
             "sdk_extended_semantics",
+            "sdk_field_semantics",
             "sdk_multi_semantics",
             "sdk_snapshots",
             "sdk_virtual_semantics",

@@ -73,6 +73,7 @@ pub struct Types {
     /// Repeated concrete generic bases share one type alias. Individual fields
     /// still declare distinct subclasses, including their `Self` class access.
     pub(crate) descriptor_specializations: BTreeMap<String, Option<String>>,
+    pub(crate) field_value_factory: Option<String>,
     prefix: String,
     module: String,
     unimportable_module: bool,
@@ -105,6 +106,7 @@ impl Types {
             definitions: String::new(),
             descriptor_bases: BTreeMap::new(),
             descriptor_specializations: BTreeMap::new(),
+            field_value_factory: None,
             prefix: prefix.into(),
             module: module.into(),
             unimportable_module: false,
