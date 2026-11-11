@@ -13,7 +13,7 @@ use anyhow::{Context, Result, bail, ensure};
 use ruff_python_ast::{self as ast, Expr, Stmt};
 use serde_json::{Value, json};
 
-use crate::model::{Source, span, typ};
+use crate::model::{FileRevision, Source, file_revision, span, typ};
 
 #[derive(Clone)]
 pub struct Module {
@@ -23,6 +23,8 @@ pub struct Module {
     pub bindings: Arc<BTreeSet<String>>,
     pub assignments: Arc<BTreeMap<String, Expr>>,
     pub external: bool,
+    /// Stable file-handle revision of initial disk bytes, never editor text.
+    pub original_revision: Option<FileRevision>,
 }
 
 #[derive(Clone)]
@@ -109,6 +111,7 @@ pub struct Project {
     additional_sources: BTreeSet<PathBuf>,
     assignments: Arc<Vec<Value>>,
     call_assignments_only: bool,
+    capture_original_revisions: bool,
     functions: Arc<Vec<IndexFunction>>,
     settings: Arc<Vec<Value>>,
     /// All clones describe the same immutable class revision until a rebuild
@@ -176,6 +179,8 @@ pub struct SourceLayout<'a> {
     /// Omit unused module assignment summaries while retaining every AST
     /// binding for imports, constants, settings and field argument resolution.
     pub call_assignments_only: bool,
+    /// Permit a fresh memory CLI check to reuse strongly identified disk bytes.
+    pub capture_original_revisions: bool,
 }
 
 fn import_targets(name: &str, module: &Module) -> BTreeSet<String> {
@@ -296,6 +301,9 @@ impl Project {
             call_assignments_only: layout
                 .as_ref()
                 .is_some_and(|layout| layout.call_assignments_only),
+            capture_original_revisions: layout
+                .as_ref()
+                .is_some_and(|layout| layout.capture_original_revisions),
             functions: Arc::default(),
             settings: Arc::default(),
             hierarchy: Arc::default(),
@@ -344,8 +352,26 @@ impl Project {
                 .canonicalize()
                 .with_context(|| format!("source file {}", path.display()))?;
             let name = self.source_module_name(&path)?;
-            let text = read_source(&path)?;
-            let (module, invalid) = self.parse_module(&name, &path, false, text)?;
+            let (text, revision) = if self.capture_original_revisions
+                && cfg!(unix)
+                && path
+                    .extension()
+                    .is_none_or(|extension| extension != "ipynb")
+            {
+                use std::io::Read as _;
+                let mut file = std::fs::File::open(&path)
+                    .with_context(|| format!("read {}", path.display()))?;
+                let before = file.metadata().ok().as_ref().and_then(file_revision);
+                let mut text = String::new();
+                file.read_to_string(&mut text)
+                    .with_context(|| format!("read {}", path.display()))?;
+                let after = file.metadata().ok().as_ref().and_then(file_revision);
+                (text, before.filter(|revision| Some(*revision) == after))
+            } else {
+                (read_source(&path)?, None)
+            };
+            let (mut module, invalid) = self.parse_module(&name, &path, false, text)?;
+            module.original_revision = revision;
             Ok((path, name, module, invalid))
         };
         let sources = crate::parallel::map_ordered(paths, workers, read)?;
@@ -731,6 +757,7 @@ impl Project {
             bindings: Arc::default(),
             assignments: Arc::default(),
             external,
+            original_revision: None,
         };
         collect_bindings(
             &module.suite.clone(),
@@ -3059,6 +3086,7 @@ mod tests {
                     include: &include,
                     sparse_overlays,
                     call_assignments_only: false,
+                    capture_original_revisions: false,
                 },
             )
         };
@@ -3157,6 +3185,7 @@ mod tests {
                     include: &include,
                     sparse_overlays: false,
                     call_assignments_only: false,
+                    capture_original_revisions: false,
                 },
             )?;
             assert_eq!(combined.build_request(), sequential.build_request());
@@ -3506,6 +3535,7 @@ mod tests {
                     include: &|_| true,
                     sparse_overlays: false,
                     call_assignments_only,
+                    capture_original_revisions: false,
                 },
             )
         };

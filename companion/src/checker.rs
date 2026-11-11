@@ -151,9 +151,6 @@ struct Server {
     notifications: Vec<Value>,
 }
 
-#[cfg(unix)]
-type OriginalRevision = (u64, u64, u64, i64, i64, i64, i64);
-
 /// A persistent official checker with the real generated module paths. All
 /// changed documents are synchronized before requesting a batch's diagnostics.
 pub struct ProjectChecker {
@@ -170,7 +167,8 @@ pub struct ProjectChecker {
     memory_projection: bool,
     memory_probe_prefix: Option<PathBuf>,
     #[cfg(unix)]
-    original_sources: BTreeMap<PathBuf, (OriginalRevision, String)>,
+    original_sources: BTreeMap<PathBuf, (crate::model::FileRevision, String)>,
+    original_source_reads: usize,
 }
 
 /// A watched-file event makes ty reread metadata, but equal modification times
@@ -382,6 +380,7 @@ impl ProjectChecker {
             memory_probe_prefix: None,
             #[cfg(unix)]
             original_sources: BTreeMap::new(),
+            original_source_reads: 0,
         }
     }
     pub fn new_editor(
@@ -444,6 +443,7 @@ impl ProjectChecker {
             memory_probe_prefix: None,
             #[cfg(unix)]
             original_sources: BTreeMap::new(),
+            original_source_reads: 0,
         })
     }
     pub fn set_workspace_configuration(&mut self, settings: Value) {
@@ -762,37 +762,64 @@ impl ProjectChecker {
     /// modules participate through ordinary imports and watcher invalidation;
     /// opening them all would eagerly check the entire project at every oracle
     /// query. Notebook and external buffers must retain their memory overlays.
+    pub fn seed_original_sources<'a>(
+        &mut self,
+        sources: impl IntoIterator<Item = (&'a Path, &'a str, Option<crate::model::FileRevision>)>,
+    ) -> usize {
+        #[cfg(unix)]
+        {
+            let mut seeded = 0;
+            for (path, text, revision) in sources {
+                if self.memory_projection
+                    && !projection_contains(&self.projection_root, path)
+                    && let Some(revision) = revision
+                {
+                    self.original_sources
+                        .insert(path.to_owned(), (revision, text.to_owned()));
+                    seeded += 1;
+                }
+            }
+            seeded
+        }
+        #[cfg(not(unix))]
+        {
+            let _ = sources;
+            0
+        }
+    }
+
+    pub fn original_source_reads(&self) -> usize {
+        self.original_source_reads
+    }
+
     fn original_text(&mut self, path: &Path) -> Result<String> {
         #[cfg(unix)]
         {
-            use std::os::unix::fs::MetadataExt;
             let metadata = fs::metadata(path)
                 .with_context(|| format!("original source metadata {}", path.display()))?;
-            let revision = (
-                metadata.dev(),
-                metadata.ino(),
-                metadata.len(),
-                metadata.mtime(),
-                metadata.mtime_nsec(),
-                metadata.ctime(),
-                metadata.ctime_nsec(),
-            );
+            let revision = crate::model::file_revision(&metadata);
             // ctime detects same-size writes even when mtime is restored.
             // Files with no subsecond change time retain the read-through path.
-            if metadata.ctime_nsec() != 0
+            if let Some(revision) = revision
                 && let Some((previous, text)) = self.original_sources.get(path)
                 && *previous == revision
             {
                 return Ok(text.clone());
             }
+            self.original_source_reads += 1;
             let text = fs::read_to_string(path)
                 .with_context(|| format!("read original source {}", path.display()))?;
-            self.original_sources
-                .insert(path.to_owned(), (revision, text.clone()));
+            if let Some(revision) = revision {
+                self.original_sources
+                    .insert(path.to_owned(), (revision, text.clone()));
+            } else {
+                self.original_sources.remove(path);
+            }
             Ok(text)
         }
         #[cfg(not(unix))]
         {
+            self.original_source_reads += 1;
             fs::read_to_string(path)
                 .with_context(|| format!("read original source {}", path.display()))
         }

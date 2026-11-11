@@ -3,6 +3,9 @@ use anyhow::{Context, Result, ensure};
 use serde_json::{Value, json};
 use std::path::Path;
 
+#[path = "../../src/native_rules.rs"]
+mod native_rules;
+
 pub fn normalize(diagnostics: &Value, root: &Path) -> Result<Vec<Value>> {
     let root = root.canonicalize().context("canonical fixture root")?;
     let mut values = Vec::new();
@@ -34,7 +37,22 @@ pub fn normalize(diagnostics: &Value, root: &Path) -> Result<Vec<Value>> {
             )
         })?;
         location["path"] = json!(relative);
-        values.push(json!({"code":diagnostic["check_name"],"description":diagnostic["description"],"severity":diagnostic["severity"],"location":location}));
+        let original_code = diagnostic["check_name"]
+            .as_str()
+            .context("diagnostic code")?;
+        let code = match native_rules::semantic_id(original_code) {
+            // The historical rule also covered invalid TypedDict subscripts.
+            // Compare the exact message, position and severity below.
+            "invalid-typed-dict-key" => "invalid-key",
+            code => code,
+        };
+        let description = diagnostic["description"]
+            .as_str()
+            .context("diagnostic description")?;
+        let description = description
+            .strip_prefix(&format!("{original_code}: "))
+            .map_or_else(|| description.to_owned(), |text| format!("{code}: {text}"));
+        values.push(json!({"code":code,"description":description,"severity":diagnostic["severity"],"location":location}));
     }
     values.sort_by_key(Value::to_string);
     Ok(values)
@@ -64,6 +82,16 @@ fn diagnostic_paths_compare_canonical_origins_and_reject_external_files() -> Res
     ensure!(
         expected[0]["location"]["positions"] == diagnostic(&relative)[0]["location"]["positions"]
     );
+    let mut before = diagnostic(&relative);
+    before[0]["check_name"] = json!("unresolved-attribute");
+    before[0]["description"] = json!("unresolved-attribute: exact missing member");
+    let mut after = before.clone();
+    after[0]["check_name"] = json!("missing-attribute");
+    after[0]["description"] = json!("missing-attribute: exact missing member");
+    ensure!(normalize(&before, &root)? == normalize(&after, &root)?);
+    ensure!(after[0]["check_name"] == "missing-attribute");
+    after[0]["description"] = json!("missing-attribute: a different member");
+    ensure!(normalize(&before, &root)? != normalize(&after, &root)?);
     for spelling in [&source, &source.canonicalize()?] {
         for root_spelling in [&root, &root.canonicalize()?] {
             ensure!(normalize(&diagnostic(spelling), root_spelling)? == expected);

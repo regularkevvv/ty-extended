@@ -1170,27 +1170,30 @@ impl Session {
                     .all(|path| path.extension().is_none_or(|ext| ext != "ipynb")),
             "experimental memory projection does not support explicit notebooks"
         );
-        let source_paths = source_paths
+        let selected_sources = crate::parallel::map_ordered(
+            &source_paths,
+            crate::parallel::workers(source_paths.len()),
+            |path| match checker_config.selection.selection_text(path) {
+                Ok(text)
+                    if (explicit_files.contains(path)
+                        && checker_config.selection.includes_explicit(
+                            path,
+                            &text,
+                            force_exclude,
+                        )
+                        && (!force_exclude || !ignored.contains(path)))
+                        || (checker_config.selection.includes(path, &text)
+                            && !ignored.contains(path)) =>
+                {
+                    Ok(Some(path.clone()))
+                }
+                Ok(_) => Ok(None),
+                Err(error) => Err(error),
+            },
+        )?;
+        let source_paths = selected_sources
             .into_iter()
-            .filter_map(
-                |path| match checker_config.selection.selection_text(&path) {
-                    Ok(text)
-                        if (explicit_files.contains(&path)
-                            && checker_config.selection.includes_explicit(
-                                &path,
-                                &text,
-                                force_exclude,
-                            )
-                            && (!force_exclude || !ignored.contains(&path)))
-                            || (checker_config.selection.includes(&path, &text)
-                                && !ignored.contains(&path)) =>
-                    {
-                        Some(Ok(path))
-                    }
-                    Ok(_) => None,
-                    Err(error) => Some(Err(error)),
-                },
-            )
+            .filter_map(std::result::Result::transpose)
             .collect::<std::io::Result<Vec<_>>>()?;
         phase(&mut startup_phases, "startup_selection", &mut startup_tick);
         let mut base_project = Project::load_selected(
@@ -1210,6 +1213,10 @@ impl Session {
                 // snapshot. Editors retain the complete index across reloads.
                 sparse_overlays: memory_projection && runtime.sparse_overlay_index()?,
                 call_assignments_only: runtime.project_call_assignments_only()?,
+                capture_original_revisions: memory_projection
+                    && options
+                        .get("public-cli")
+                        .is_some_and(|value| value == "true"),
             },
         )?;
         base_project.add_source_paths(explicit_paths.clone());
@@ -1916,6 +1923,15 @@ impl Session {
                 &self.checker_config_path,
                 &sources,
             )?);
+            self.server.as_mut().unwrap().seed_original_sources(
+                self.base_project.modules.values().map(|module| {
+                    (
+                        Path::new(&module.source.path),
+                        module.source.text.as_str(),
+                        module.original_revision,
+                    )
+                }),
+            );
             self.server
                 .as_mut()
                 .unwrap()
@@ -2346,16 +2362,26 @@ impl Session {
         // Keep an exact canonical byte snapshot for cross-revision equality.
         // A second JSON object tree duplicates every class, patch and virtual
         // shape, including their allocation overhead, solely for this check.
-        let context = serde_json::to_vec(&(
-            runtime.index_generations(),
-            &index,
-            &project.classes,
-            &runtime.project_patches,
-            &project.virtual_identities,
-            &runtime.selected_virtual_scope,
-        ))?;
+        // Memory CLI checks have exactly one revision. Their incremental
+        // comparison snapshot can never be reused; final-check equality below
+        // still uses the complete, separate NativeCheckInputs value.
+        let context = if frozen_cli_snapshot {
+            None
+        } else {
+            Some(serde_json::to_vec(&(
+                runtime.index_generations(),
+                &index,
+                &project.classes,
+                &runtime.project_patches,
+                &project.virtual_identities,
+                &runtime.selected_virtual_scope,
+            ))?)
+        };
+        let context_unchanged = context
+            .as_ref()
+            .is_some_and(|context| self.cached_context.as_ref() == Some(context));
         let module_set_unchanged = self.cached_sources.keys().eq(project.modules.keys());
-        let mut dirty = if module_set_unchanged && self.cached_context.as_ref() == Some(&context) {
+        let mut dirty = if module_set_unchanged && context_unchanged {
             project
                 .modules
                 .iter()
@@ -2384,7 +2410,7 @@ impl Session {
             }
             dirty.extend(next);
         }
-        if !module_set_unchanged || self.cached_context.as_ref() != Some(&context) {
+        if !module_set_unchanged || !context_unchanged {
             Arc::make_mut(&mut project.snapshot_nominals).clear();
             Arc::make_mut(&mut project.snapshot_symbols).clear();
         } else {
@@ -2499,6 +2525,7 @@ impl Session {
         }
         // An installed package retains its original resolution location. Only
         // the checker's in-memory document is changed, never dependency files.
+        let mut source_cache_seeds = 0;
         if self.memory_projection {
             mode = "push";
             let sources = units
@@ -2512,6 +2539,19 @@ impl Session {
                 &checker_config_path,
                 &sources,
             )?);
+            if frozen_cli_snapshot {
+                source_cache_seeds =
+                    server
+                        .as_mut()
+                        .unwrap()
+                        .seed_original_sources(project.modules.values().map(|module| {
+                            (
+                                Path::new(&module.source.path),
+                                module.source.text.as_str(),
+                                module.original_revision,
+                            )
+                        }));
+            }
         } else if !self.notebook_sources.is_empty()
             || units.keys().any(|path| !path.starts_with(&out))
         {
@@ -2943,8 +2983,10 @@ impl Session {
                     };
                     if *class_object
                         && matches!(
-                            diagnostic["check_name"].as_str(),
-                            Some("unresolved-attribute" | "unresolved-reference")
+                            crate::native_rules::semantic_id(
+                                diagnostic["check_name"].as_str().unwrap_or("")
+                            ),
+                            "unresolved-attribute" | "unresolved-reference"
                         )
                     {
                         missing_symbols.insert(*index);
@@ -3530,7 +3572,14 @@ impl Session {
             .iter()
             .map(|(name, module)| (name.clone(), module.source.clone()))
             .collect();
-        self.cached_context = Some(context);
+        result["incremental_context_saved"] = json!(context.is_some());
+        result["native_source_cache_seeds"] = json!(source_cache_seeds);
+        result["original_source_reads"] = json!(
+            server
+                .as_ref()
+                .map_or(0, crate::checker::ProjectChecker::original_source_reads)
+        );
+        self.cached_context = context;
         self.base_project.unavailable_modules = project.unavailable_modules.clone();
         self.base_project.snapshot_nominals = project.snapshot_nominals.clone();
         self.base_project.snapshot_symbols = project.snapshot_symbols.clone();
@@ -3562,6 +3611,10 @@ pub fn run(input: &Path, options: &BTreeMap<String, String>) -> Result<Value> {
 
 #[cfg(test)]
 mod tests {
+    fn native_rule(diagnostic: &serde_json::Value) -> &str {
+        crate::native_rules::semantic_id(diagnostic["check_name"].as_str().unwrap())
+    }
+
     #[test]
     fn native_constructor_views_preserve_positional_diagnostic_contract() -> Result<()> {
         let directory =
@@ -3653,7 +3706,7 @@ mod tests {
                         d["location"]["positions"]["begin"]["line"]
                             .as_u64()
                             .unwrap(),
-                        d["check_name"].as_str().unwrap(),
+                        native_rule(d),
                     ))
                     .collect::<BTreeSet<_>>(),
                 BTreeSet::from([
@@ -4056,6 +4109,19 @@ mod tests {
         let loaded = "value: int = 'loaded snapshot'\n";
         let updated = "value: int = 1\n";
         write(&file, loaded)?;
+        let same_size = root.join("same_size.py");
+        let replaced = root.join("replacement.py");
+        let untouched = root.join("untouched.py");
+        for path in [&same_size, &replaced, &untouched] {
+            write(path, loaded)?;
+        }
+        let original_time = std::fs::metadata(&same_size)?.modified()?;
+        let replacement_time = std::fs::metadata(&replaced)?.modified()?;
+        #[cfg(unix)]
+        let original_inode = {
+            use std::os::unix::fs::MetadataExt as _;
+            std::fs::metadata(&replaced)?.ino()
+        };
         let plugin = directory.join("plugin.py");
         write(
             &plugin,
@@ -4078,16 +4144,61 @@ mod tests {
         let mut session = Session::new(&root, &options)?;
         session.runtime.use_site_fields = true;
         let memory = session.memory_projection;
+        let revision_count = session
+            .base_project
+            .modules
+            .values()
+            .filter(|module| module.original_revision.is_some())
+            .count();
         write(&file, updated)?;
+        let padded = format!(
+            "value: int = 1{}\n",
+            " ".repeat(loaded.len() - updated.len())
+        );
+        assert_eq!(padded.len(), loaded.len());
+        write(&same_size, &padded)?;
+        std::fs::OpenOptions::new()
+            .write(true)
+            .open(&same_size)?
+            .set_modified(original_time)?;
+        let replacement = directory.join("replacement.tmp");
+        write(&replacement, &padded)?;
+        std::fs::OpenOptions::new()
+            .write(true)
+            .open(&replacement)?
+            .set_modified(replacement_time)?;
+        std::fs::rename(replacement, &replaced)?;
+        #[cfg(unix)]
+        {
+            use std::os::unix::fs::MetadataExt as _;
+            assert_ne!(std::fs::metadata(&replaced)?.ino(), original_inode);
+        }
         let result = session.check(&BTreeMap::new())?;
         let diagnostics = result["diagnostics"].as_array().unwrap();
-        assert_eq!(diagnostics.len(), usize::from(memory), "{result:#}");
+        assert_eq!(diagnostics.len(), if memory { 4 } else { 1 }, "{result:#}");
         if memory {
-            assert_eq!(diagnostics[0]["check_name"], "invalid-assignment");
-            assert_eq!(result["passthrough_units"], 1);
+            assert!(
+                diagnostics
+                    .iter()
+                    .all(|diagnostic| diagnostic["check_name"] == "invalid-assignment")
+            );
+            assert_eq!(result["passthrough_units"], 4);
             assert_eq!(session.documents()[0].source.text, loaded);
+            assert!(session.cached_context.is_none());
+            assert_eq!(result["incremental_context_saved"], false);
+            assert_eq!(result["native_source_cache_seeds"], revision_count);
+            if revision_count == 4 {
+                // The unchanged file uses loaded bytes. All three changed
+                // files read through, including equal size/mtime and replacement.
+                assert_eq!(result["original_source_reads"], 3);
+            }
         }
         assert_eq!(std::fs::read_to_string(&file)?, updated);
+        assert_eq!(std::fs::read_to_string(&same_size)?, padded);
+        assert_eq!(std::fs::read_to_string(&replaced)?, padded);
+        assert_eq!(std::fs::read_to_string(&untouched)?, loaded);
+        assert_eq!(std::fs::metadata(&same_size)?.modified()?, original_time);
+        assert_eq!(std::fs::metadata(&replaced)?.modified()?, replacement_time);
         drop(session);
         std::fs::remove_dir_all(directory)?;
         Ok(())
@@ -4408,7 +4519,7 @@ mod tests {
         };
         let mut expected = Vec::new();
         for diagnostic in native {
-            assert_eq!(diagnostic["check_name"], "invalid-attribute-override");
+            assert_eq!(native_rule(&diagnostic), "invalid-attribute-override");
             let line = diagnostic["location"]["positions"]["begin"]["line"]
                 .as_u64()
                 .unwrap();
@@ -5594,7 +5705,7 @@ mod tests {
             "{fallback:#}"
         );
         for diagnostic in fallback["diagnostics"].as_array().unwrap() {
-            assert_eq!(diagnostic["check_name"], "unresolved-attribute");
+            assert_eq!(native_rule(diagnostic), "unresolved-attribute");
         }
         assert_eq!(
             session.check(&failing)?["diagnostics"],
@@ -5980,7 +6091,7 @@ def signature(request):
                 .as_array()
                 .unwrap()
                 .iter()
-                .any(|d| d["check_name"] == "unresolved-attribute"),
+                .any(|d| native_rule(d) == "unresolved-attribute"),
             "{shadowed:#}"
         );
         assert!(!session.base_project.modules["external"].external);
@@ -5995,7 +6106,7 @@ def signature(request):
                 .as_array()
                 .unwrap()
                 .iter()
-                .any(|d| d["check_name"] == "unresolved-attribute"
+                .any(|d| native_rule(d) == "unresolved-attribute"
                     && d["description"]
                         .as_str()
                         .is_some_and(|message| message.contains("flag"))),

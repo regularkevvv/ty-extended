@@ -13,6 +13,7 @@ import collections
 import contextlib
 import hashlib
 import json
+import math
 import os
 import platform
 import shutil
@@ -30,6 +31,34 @@ def source_hash(project):
         digest.update(path.relative_to(project).as_posix().encode() + b"\0")
         digest.update(path.read_bytes())
     return digest.hexdigest()
+
+
+def performance_gate(samples, max_ty_ratio=3.0):
+    """Require the median and every rotated pair to meet the native ceiling."""
+    if not math.isfinite(max_ty_ratio) or max_ty_ratio <= 0:
+        raise ValueError("The Ty ratio limit must be finite and positive")
+    if set(samples) != {"companion", "bare-ty", "mypy"}:
+        raise ValueError("All three checker samples are required")
+    counts = {len(values) for values in samples.values()}
+    if len(counts) != 1 or counts == {0}:
+        raise ValueError("Checker samples must have equal nonzero counts")
+    if any(not math.isfinite(t) or t <= 0 for ts in samples.values() for t in ts):
+        raise ValueError("Timings must be finite and positive")
+    medians = {name: statistics.median(ts) for name, ts in samples.items()}
+    ratios = [a / b for a, b in zip(samples["companion"], samples["bare-ty"])]
+    median_ratio = medians["companion"] / medians["bare-ty"]
+    ty_met = median_ratio <= max_ty_ratio and max(ratios) <= max_ty_ratio
+    mypy_met = medians["companion"] <= medians["mypy"]
+    return {
+        "max_ty_ratio": max_ty_ratio,
+        "median_ty_ratio": median_ratio,
+        "paired_ty_ratios": ratios,
+        "max_paired_ty_ratio": max(ratios),
+        "ty_ceiling_met": ty_met,
+        "mypy_ceiling_met": mypy_met,
+        "one_second_goal_met": max(samples["companion"]) <= 1.0,
+        "passed": ty_met and mypy_met,
+    }
 
 
 def memory(pid):
@@ -237,6 +266,9 @@ def prepare(args):
         "never",
         args.project,
     ]
+    bare_common = list(common)
+    if args.official_python:
+        bare_common[2] = args.official_python
     return {
         "companion": [
             args.companion,
@@ -246,7 +278,12 @@ def prepare(args):
             "--config-file",
             args.output / "companion.toml",
         ],
-        "bare-ty": [args.official, *common, "--config-file", args.output / "bare.toml"],
+        "bare-ty": [
+            args.official,
+            *bare_common,
+            "--config-file",
+            args.output / "bare.toml",
+        ],
         "mypy": [
             args.mypy,
             "--config-file",
@@ -303,6 +340,12 @@ def main():
     parser.add_argument("--files", type=int, default=7082)
     parser.add_argument("--queries", type=int, default=100)
     parser.add_argument("--repeats", type=int, default=3)
+    parser.add_argument("--max-ty-ratio", type=float, default=3.0)
+    parser.add_argument(
+        "--official-python",
+        type=Path,
+        help="Bare Ty's environment containing django-types; enables native Django expectations",
+    )
     parser.add_argument(
         "--threads", type=int, default=0, help="0 uses each checker's default"
     )
@@ -320,11 +363,15 @@ def main():
         and args.threads >= 0
         and args.timeout > 0
         and args.max_memory_mib > 0
+        and math.isfinite(args.max_ty_ratio)
+        and args.max_ty_ratio > 0
     ):
         parser.error("Invalid workload or resource limits")
     for name in ("companion", "official", "mypy", "python", "plugin", "output"):
         # Preserve venv interpreter symlinks: resolving them changes sys.prefix.
         setattr(args, name, getattr(args, name).absolute())
+    if args.official_python:
+        args.official_python = args.official_python.absolute()
     args.output.mkdir(parents=True, exist_ok=False)
     commands = prepare(args)
     report = {
@@ -332,6 +379,7 @@ def main():
         "performance_target_met": False,
         "host": platform.platform(),
         "threads": args.threads or "default",
+        "bare_ty_provider": "django-types" if args.official_python else "none",
         "workload": {
             key: getattr(args, key)
             for key in ("files", "models", "model_modules", "queries")
@@ -358,6 +406,7 @@ def main():
         for name, python in (
             ("companion", args.python),
             ("mypy", args.mypy.parent / "python"),
+            ("bare-ty", args.official_python or args.python),
         )
     }
     manifest = json.loads((args.plugin / "ty-plugin.json").read_text())
@@ -380,15 +429,15 @@ def main():
                 row = invoke(args, backend, commands[backend], f"{repeat}/{backend}")
                 report["records"].append(row)
                 expected = (
-                    {
-                        "type-assertion-failure": args.queries,
-                        "unresolved-attribute": args.queries,
-                    }
-                    if backend == "bare-ty"
-                    else {}
+                    [
+                        {"type-assertion-failure": args.queries, code: args.queries}
+                        for code in ("unresolved-attribute", "missing-attribute")
+                    ]
+                    if backend == "bare-ty" and not args.official_python
+                    else [{}]
                 )
-                if row["diagnostic_codes"] != expected or row["exit"] != int(
-                    bool(expected)
+                if row["diagnostic_codes"] not in expected or row["exit"] != int(
+                    backend == "bare-ty" and not args.official_python
                 ):
                     raise RuntimeError(f"Unexpected diagnostics: {row}")
         report["median_seconds"] = {
@@ -397,9 +446,18 @@ def main():
             )
             for backend in backends
         }
-        report["performance_target_met"] = (
-            report["median_seconds"]["companion"] <= report["median_seconds"]["mypy"]
+        report["performance_gate"] = performance_gate(
+            {
+                backend: [
+                    row["seconds"]
+                    for row in report["records"]
+                    if row["backend"] == backend
+                ]
+                for backend in backends
+            },
+            args.max_ty_ratio,
         )
+        report["performance_target_met"] = report["performance_gate"]["passed"]
         checks = args.project / "checks.py"
         filler = args.project / "filler00000.py"
         original = checks.read_text(), filler.read_text()
@@ -410,7 +468,11 @@ def main():
             )
             filler.write_text("wrong: int = 'ordinary Python error'\n")
             report["negative_controls"] = []
-            for backend in ("companion", "mypy"):
+            for backend in (
+                ("companion", "bare-ty", "mypy")
+                if args.official_python
+                else ("companion", "mypy")
+            ):
                 row = invoke(args, backend, commands[backend], f"negative/{backend}")
                 report["negative_controls"].append(row)
                 verify_negative_controls(args, backend, row)
@@ -424,7 +486,12 @@ def main():
         json.dumps(
             {
                 key: report[key]
-                for key in ("passed", "performance_target_met", "median_seconds")
+                for key in (
+                    "passed",
+                    "performance_target_met",
+                    "median_seconds",
+                    "performance_gate",
+                )
             },
             indent=2,
         )

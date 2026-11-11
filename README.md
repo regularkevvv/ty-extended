@@ -30,6 +30,10 @@ Updating official ty within a compatible group does not require a companion rele
 See [the compatibility policy and evidence](docs/compatibility.md) for the tested
 versions, dependency range and checks for future releases.
 
+The unreleased candidate also passes its expanded source suite against all 18
+releases through **0.0.101**, including compatibility fixes for diagnostic renames
+in 0.0.100. This does not extend the published 0.89.0 artifact's qualification.
+
 ## Performance
 
 With Django-ty 0.7, the published 0.89 companion reduces the recorded
@@ -40,14 +44,14 @@ MyPy median ceiling. See
 [the reproducible benchmarks](docs/performance.md) for all samples, bare official
 ty timings, correctness controls and the limits of each comparison.
 
-The [unreleased candidate](docs/performance.md#factory-specialization-follow-up)
-also corrects audited class-field access differences and reduces repeated type
-inference. A [five-sample native Django comparison](docs/performance.md#official-ty-with-native-django-support)
-measures **5.16 seconds** for the candidate, **6.79 seconds** for MyPy and
-**0.30 seconds** for official Ty with `django-types`. All three pass the timed
-fixture's 100 ORM assertions and both error controls. Broader Django contract
-coverage differs; the report records those results separately. The candidate's
-one-second target remains unmet; the published results above remain the release baseline.
+The [unreleased native Django candidate](docs/performance.md#current-native-comparison)
+measures **1.626 seconds**, versus **6.680 seconds** for MyPy and **0.286 seconds**
+for official Ty 0.0.101 with `django-types`. All pass the same fixture's 100
+assertions and both error controls. The companion passes all 20 additional
+focused ORM cases; native Ty passes eight. At **5.68 times** native Ty, the
+candidate fails the required **3-times ceiling**. Performance, installed-artifact
+and release qualification remain open; the published results above remain the
+release baseline.
 
 ## Monty plugins
 

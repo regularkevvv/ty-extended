@@ -4,6 +4,60 @@ The companion checks generated analysis copies with unchanged official ty and
 runs Django hooks in embedded Monty. Its total time includes discovery, plugin
 execution, projection, type queries and the final checker run.
 
+## Acceptance limits
+
+The companion must take at most **3 times** bare official Ty on identical
+source, using the same official Ty executable. Compare with Ty's documented
+`django-types` setup so native Django support participates. Preserve the
+correctness assertions, ordinary Python and ORM error controls, and focused
+Django contracts. The companion must also remain at least as fast as MyPy with
+its Django plugin. A largest sample below one second remains an additional goal.
+
+`companion/scripts/compare_checkers.py` enforces both the median ratio and every
+rotated companion/native sample pair, with a default `--max-ty-ratio 3`.
+`--official-python` selects the bare Ty environment containing `django-types`;
+without it the script retains the historical no-provider diagnostic expectations.
+The JSON report separates valid correctness evidence from performance acceptance,
+and the command exits unsuccessfully when either performance ceiling fails.
+
+The [v25 receipt](qualification/native-django-parallel-v25.json) records a further
+reduction from 1.786 to **1.619 seconds**, with a largest candidate sample of
+1.674 seconds. Original-source revision checks remove redundant reads and the
+single-revision CLI avoids constructing an unused incremental context. These are
+paired companion measurements on Ty 0.0.99, rather than a new native comparison.
+They do **not** establish the 3-times ceiling. Merge and release remain gated on
+meeting the current performance and correctness requirements together.
+
+## Current native comparison
+
+The [Ty 0.0.101 receipt](qualification/native-django-latest-v28.json) uses the
+same official executable for both Ty stacks. Five rotated fresh processes per
+stack check the unchanged 7,082 files, 2,501 models and 100 assertions:
+
+| Stack                                 |  Median |
+| ------------------------------------- | ------: |
+| Companion with Django hooks in Monty  | 1.626 s |
+| Official Ty with django-types         | 0.286 s |
+| MyPy with django-stubs and its plugin | 6.680 s |
+
+The companion is **5.68 times** native Ty; the largest paired ratio is **5.76**.
+The required 3-times gate **fails**. All stacks pass the 100 assertions and both
+error controls. The additional focused cases match 20/20 for the companion,
+19/20 for MyPy and 8/20 for native Ty, with no unmarked diagnostics. All 21
+observations meet the declared source, host-load and resource limits. Their
+temporary projections are removed after each run, and both Cargo targets were
+cleaned before timing. These are local shared-machine measurements with warm
+filesystem caches permitted.
+
+The candidate handles native diagnostic renames introduced in Ty 0.0.100.
+Internal classification recognizes both spellings while CLI and editor output
+retain the official checker's raw rule IDs. Full Rust tests and SDK/CLI suites
+pass against 0.0.101. The expanded source matrix passes every release from
+0.0.84 through 0.0.101, including all 236 regular Rust tests in each mode,
+172 Django cases, SDK/API controls and eight primary-key cases in each mode.
+These results establish neither installed-artifact acceptance nor release
+readiness.
+
 ## Parallel source loading experiment
 
 The [v24 receipt](qualification/native-django-parallel-v24.json) compares the
@@ -478,8 +532,9 @@ checkers must accept them, then reject an intentionally wrong ORM assignment
 and an ordinary Python assignment at their exact source locations. Source bytes
 must remain unchanged. A failed
 process, malformed output, timeout or memory-limit violation invalidates the
-run. The performance gate separately requires the companion's median to be no
-slower than MyPy's median on that workload.
+run. The historical performance gate required the companion's median to be no
+slower than MyPy's median on that workload. The current harness additionally
+enforces the 3-times native ceiling described above.
 
 In that setup, bare Ty reports unresolved Django model managers and failed type
 assertions. Its timings show the underlying checker baseline; the native Django
@@ -491,16 +546,21 @@ MyPy's persistent daemon or either checker's incremental editor performance.
 
 Use separate environments for the two plugin implementations, with the same
 Python and Django versions. Install `mypy` and `django-stubs` in the reference
-environment, and `ty-extended` and `django-ty` in the companion environment.
+environment, and the candidate `ty-extended` and `django-ty` in the companion
+environment. Install Django and `django-types` in a separate native environment.
+Use the same official Ty executable for both Ty commands. The current native
+delegation prototype additionally requires the experimental environment flags
+recorded in its receipt.
 
 ```shell
 python3 companion/scripts/compare_checkers.py \
   --companion /path/to/candidate/bin/ty-extended \
   --official /path/to/candidate/bin/ty \
+  --official-python /path/to/native/bin/python \
   --python /path/to/candidate/bin/python \
   --mypy /path/to/reference/bin/mypy \
   --plugin /path/to/candidate/lib/python3.13/site-packages/django_ty \
-  --files 7082 --models 2501 --queries 100 --repeats 3 \
+  --files 7082 --models 2501 --queries 100 --repeats 5 --max-ty-ratio 3 \
   --output /tmp/new-comparison
 ```
 

@@ -8,6 +8,7 @@ mod lsp_mapping;
 mod lsp_server;
 mod mapping;
 mod model;
+mod native_rules;
 mod notebook;
 mod parallel;
 mod project;
