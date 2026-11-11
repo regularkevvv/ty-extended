@@ -91,8 +91,21 @@ enabled and disabled. Generated row creation, type changes and deletion produce
 the same diagnostics as a fresh native checker. Django's 172 cases, runtime
 contracts, primary-key cases and larger example pass. The stored full-conformance
 receipt remains stale. The large probe engages concurrency with 7,082 source
-snapshots and zero rereads. Local load prevented timing admission, so these
-results establish no performance acceptance.
+snapshots and zero rereads. All 19 broader SDK/editor suites also pass in each
+native-fields mode against Ty 0.0.101; generated benchmark projections are
+verified, compressed and removed after each suite.
+
+A later quiet window admitted all 28 local observations. Five rotated repeats
+measure **1.197 seconds** for the concurrency candidate, **1.493 seconds** for
+the preceding companion and **0.291 seconds** for native Ty. This is a 19.8%
+companion improvement but still **4.11 times** native Ty, with a largest paired
+ratio of 4.46. All 100 assertions, both error controls and all 20 companion focus
+cases pass. The isolated Linux run independently measures **1.137 seconds**
+versus **0.262 seconds**, or **4.35 times**, and preserves the same correctness
+controls. Isolated macOS measures **1.512 seconds** against **0.452 seconds**,
+or **3.34 times**, with a largest paired ratio of 5.09. All three runs fail the
+strict performance gate. Both CI jobs preserve their correctness evidence and
+confirm cleanup of their temporary Python environments.
 
 The manual `Companion` workflow's `native_performance_only` input runs the
 identical 7,082-file, 2,501-model comparison on isolated Linux and macOS runners.
