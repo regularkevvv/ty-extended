@@ -151,6 +151,9 @@ struct Server {
     notifications: Vec<Value>,
 }
 
+#[cfg(unix)]
+type OriginalRevision = (u64, u64, u64, i64, i64, i64, i64);
+
 /// A persistent official checker with the real generated module paths. All
 /// changed documents are synchronized before requesting a batch's diagnostics.
 pub struct ProjectChecker {
@@ -166,6 +169,8 @@ pub struct ProjectChecker {
     workspace_fallback: Option<(PathBuf, PathBuf, BTreeSet<PathBuf>)>,
     memory_projection: bool,
     memory_probe_prefix: Option<PathBuf>,
+    #[cfg(unix)]
+    original_sources: BTreeMap<PathBuf, (OriginalRevision, String)>,
 }
 
 /// A watched-file event makes ty reread metadata, but equal modification times
@@ -375,6 +380,8 @@ impl ProjectChecker {
             workspace_fallback: None,
             memory_projection: false,
             memory_probe_prefix: None,
+            #[cfg(unix)]
+            original_sources: BTreeMap::new(),
         }
     }
     pub fn new_editor(
@@ -435,6 +442,8 @@ impl ProjectChecker {
             workspace_fallback: None,
             memory_projection: false,
             memory_probe_prefix: None,
+            #[cfg(unix)]
+            original_sources: BTreeMap::new(),
         })
     }
     pub fn set_workspace_configuration(&mut self, settings: Value) {
@@ -753,11 +762,56 @@ impl ProjectChecker {
     /// modules participate through ordinary imports and watcher invalidation;
     /// opening them all would eagerly check the entire project at every oracle
     /// query. Notebook and external buffers must retain their memory overlays.
+    fn original_text(&mut self, path: &Path) -> Result<String> {
+        #[cfg(unix)]
+        {
+            use std::os::unix::fs::MetadataExt;
+            let metadata = fs::metadata(path)
+                .with_context(|| format!("original source metadata {}", path.display()))?;
+            let revision = (
+                metadata.dev(),
+                metadata.ino(),
+                metadata.len(),
+                metadata.mtime(),
+                metadata.mtime_nsec(),
+                metadata.ctime(),
+                metadata.ctime_nsec(),
+            );
+            // ctime detects same-size writes even when mtime is restored.
+            // Files with no subsecond change time retain the read-through path.
+            if metadata.ctime_nsec() != 0
+                && let Some((previous, text)) = self.original_sources.get(path)
+                && *previous == revision
+            {
+                return Ok(text.clone());
+            }
+            let text = fs::read_to_string(path)
+                .with_context(|| format!("read original source {}", path.display()))?;
+            self.original_sources
+                .insert(path.to_owned(), (revision, text.clone()));
+            Ok(text)
+        }
+        #[cfg(not(unix))]
+        {
+            fs::read_to_string(path)
+                .with_context(|| format!("read original source {}", path.display()))
+        }
+    }
+
     pub fn check_files(
         &mut self,
         sources: &BTreeMap<PathBuf, String>,
         paths: &[PathBuf],
     ) -> Result<Vec<Value>> {
+        let open = self.prepare_files(sources, paths)?;
+        self.check_synced(&open, paths)
+    }
+
+    fn prepare_files(
+        &mut self,
+        sources: &BTreeMap<PathBuf, String>,
+        paths: &[PathBuf],
+    ) -> Result<BTreeMap<PathBuf, String>> {
         use sha2::{Digest, Sha256};
         if self
             .workspace_fallback
@@ -780,8 +834,7 @@ impl ProjectChecker {
                 // Never mutate original contents, timestamps, or directories.
                 // A changed projection is visible to imports through didOpen;
                 // an unchanged file is read directly by the native checker.
-                let original = fs::read_to_string(path)
-                    .with_context(|| format!("read original source {}", path.display()))?;
+                let original = self.original_text(path)?;
                 if original != *source || queried.contains(path) {
                     open.insert(path.clone(), source.clone());
                 }
@@ -903,7 +956,7 @@ impl ProjectChecker {
             )?;
         }
         self.disk_sources = current;
-        self.check_synced(&open, paths)
+        Ok(open)
     }
 
     pub fn supports_workspace_diagnostics(&self) -> bool {
@@ -949,23 +1002,41 @@ impl ProjectChecker {
         let Some(first) = paths.first() else {
             return Ok(Vec::new());
         };
-        self.check_files(sources, &[])?;
+        let probes = paths
+            .iter()
+            .filter(|path| self.memory_projection && workspace_probe(&self.projection_root, path))
+            .cloned()
+            .collect::<Vec<_>>();
+        self.prepare_files(sources, &probes)?;
         if !self.supports_workspace_diagnostics() {
             return self.check_files(sources, paths);
         }
         // ty long-polls when an entirely clean workspace has no reports. An
         // unknown prior result asks for a full clearing report for this file,
         // so both clean and unchanged checks finish without a timeout.
+        let first_uri = if let Some((uri, _, _)) = self.documents.get(first) {
+            uri.clone()
+        } else {
+            file_uri(first)?
+        };
         let reports = self.server.request(
             "workspace/diagnostic",
             json!({
-                "previousResultIds":[{"uri":file_uri(first)?,"value":"companion-full-check"}]
+                "previousResultIds":[{"uri":first_uri,"value":"companion-full-check"}]
             }),
         )?;
-        let selected: BTreeMap<_, _> = paths
-            .iter()
-            .map(|path| (native_cli_path(path).to_owned(), path))
-            .collect();
+        let mut selected = BTreeMap::new();
+        for path in paths {
+            let native = if let Some((uri, _, _)) = self.documents.get(path) {
+                crate::lsp_mapping::decode_file_uri(uri)?
+            } else {
+                None
+            };
+            selected.insert(
+                native_cli_path(native.as_deref().unwrap_or(path)).to_owned(),
+                path,
+            );
+        }
         let mut output = Vec::new();
         for report in reports["items"]
             .as_array()
@@ -2100,6 +2171,15 @@ mod tests {
                     .check_files(&sources, std::slice::from_ref(&probe))?
                     .is_empty()
             );
+            let original_probe = sources[&probe].clone();
+            sources.insert(probe.clone(), "wrong: int = 'probe error'\n".into());
+            let probe_errors = checker.check_workspace(&sources, std::slice::from_ref(&probe))?;
+            assert_eq!(probe_errors.len(), 1, "{probe_errors:#?}");
+            assert_eq!(
+                probe_errors[0]["location"]["path"],
+                probe.to_string_lossy().as_ref()
+            );
+            sources.insert(probe.clone(), original_probe);
             assert!(
                 checker
                     .check_workspace(&sources, std::slice::from_ref(&consumer))?
@@ -2121,6 +2201,30 @@ mod tests {
             let diagnostics = checker.check_workspace(&sources, std::slice::from_ref(&consumer))?;
             assert_eq!(diagnostics.len(), 1, "{diagnostics:?}");
             assert_eq!(diagnostics[0]["check_name"], "invalid-assignment");
+            assert!(checker.documents.is_empty());
+            // Same byte length and restored mtime must not hide an original-file
+            // edit from the cache. Its current disk bytes stay untouched while
+            // the frozen projection is made visible through an open document.
+            let (peer_text, peer_modified) = originals[&peer].clone();
+            let changed_peer = "value: str='x'\n";
+            assert_eq!(changed_peer.len(), peer_text.len());
+            fs::write(&peer, changed_peer)?;
+            fs::File::options()
+                .write(true)
+                .open(&peer)?
+                .set_times(fs::FileTimes::new().set_modified(peer_modified))?;
+            assert_eq!(peer.metadata()?.modified()?, peer_modified);
+            let changed = checker.check_workspace(&sources, std::slice::from_ref(&consumer))?;
+            assert_eq!(changed.len(), 1, "{changed:#?}");
+            assert!(checker.documents.contains_key(&peer));
+            assert_eq!(fs::read_to_string(&peer)?, changed_peer);
+            fs::write(&peer, &peer_text)?;
+            fs::File::options()
+                .write(true)
+                .open(&peer)?
+                .set_times(fs::FileTimes::new().set_modified(peer_modified))?;
+            let restored = checker.check_workspace(&sources, std::slice::from_ref(&consumer))?;
+            assert_eq!(restored.len(), 1, "{restored:#?}");
             assert!(checker.documents.is_empty());
             for (path, (text, modified)) in originals {
                 assert_eq!(fs::read_to_string(&path)?, text);

@@ -1,6 +1,6 @@
 use crate::model::{CallSite, Oracle, Source, Span, typ};
 use crate::project::Project;
-use anyhow::{Context, Result, bail};
+use anyhow::{Context, Result, bail, ensure};
 use serde_json::{Value, json};
 use sha2::{Digest, Sha256};
 use std::{
@@ -21,11 +21,16 @@ pub struct Runtime {
     load_failures: BTreeMap<String, (String, String)>,
     plugins: Vec<Registration>,
     pub manifest: Value,
+    method_names: BTreeSet<String>,
+    method_patterns: Vec<String>,
+    function_names: BTreeSet<String>,
     pub project: Option<Arc<Project>>,
     pub config: Value,
     pub python_version: String,
     pub platform: String,
     pub project_patches: BTreeMap<String, Value>,
+    deferred_field_targets: BTreeSet<String>,
+    contribution_field_targets: BTreeSet<String>,
     pub project_contributions: Vec<Value>,
     contribution_targets: BTreeMap<String, Vec<usize>>,
     unique_class_names: BTreeMap<String, Option<String>>,
@@ -37,6 +42,11 @@ pub struct Runtime {
     pub nominal_candidates: BTreeMap<String, BTreeSet<usize>>,
     pub annotation_candidates: BTreeSet<String>,
     pub context_free_arguments: BTreeSet<(String, Span)>,
+    /// Experimental projection strategy: retain native class field bindings
+    /// and apply plugin refinements at the source accesses and calls instead.
+    pub use_site_fields: bool,
+    /// Editors need declarations for completion even before a member is typed.
+    pub eager_class_fields: bool,
     cache: RequestCache,
     type_cache: RefCell<RequestCache>,
     projection_generation: u64,
@@ -45,6 +55,7 @@ pub struct Runtime {
     pub executions: usize,
     pub hits: usize,
     pub execution_time: Duration,
+    execution_profile: Option<BTreeMap<String, (usize, Duration)>>,
 }
 
 #[derive(Clone)]
@@ -271,7 +282,204 @@ impl RequestCache {
     }
 }
 
+/// Apply an author's explicit project-index input selection to this plugin's
+/// private request. Other plugins and the source project retain complete data.
+fn select_project_inputs(request: &mut Value, config: &Value) -> Result<()> {
+    let Some(profile) = config
+        .get("companion-project-inputs")
+        .filter(|value| !value.is_null())
+    else {
+        return Ok(());
+    };
+    let object = profile
+        .as_object()
+        .context("companion-project-inputs must be an object")?;
+    for key in object.keys() {
+        if !matches!(
+            key.as_str(),
+            "assignment-kinds"
+                | "class-source"
+                | "field-call-keywords"
+                | "field-call-argument-source"
+                | "overlay-index"
+        ) {
+            bail!("unknown companion-project-inputs option: {key}");
+        }
+    }
+    fn strings(profile: &Value, key: &str) -> Result<Option<BTreeSet<String>>> {
+        profile
+            .get(key)
+            .map(|value| {
+                value
+                    .as_array()
+                    .with_context(|| format!("{key} must be an array"))?
+                    .iter()
+                    .map(|value| {
+                        value
+                            .as_str()
+                            .map(str::to_owned)
+                            .with_context(|| format!("{key} must contain strings"))
+                    })
+                    .collect()
+            })
+            .transpose()
+    }
+    let assignment_kinds = strings(profile, "assignment-kinds")?;
+    if let Some(kinds) = &assignment_kinds {
+        for kind in kinds {
+            if !matches!(
+                kind.as_str(),
+                "call" | "literal" | "name" | "attribute" | "other"
+            ) {
+                bail!("unknown assignment kind: {kind}");
+            }
+        }
+    }
+    let keywords = strings(profile, "field-call-keywords")?;
+    if let Some(mode) = profile.get("overlay-index")
+        && !matches!(mode.as_str(), Some("complete" | "imports"))
+    {
+        bail!("overlay-index must be complete or imports");
+    }
+    let keep_source = profile
+        .get("class-source")
+        .map(|value| value.as_bool().context("class-source must be a boolean"))
+        .transpose()?
+        .unwrap_or(true);
+    let keep_argument_source = profile
+        .get("field-call-argument-source")
+        .map(|value| {
+            value
+                .as_bool()
+                .context("field-call-argument-source must be a boolean")
+        })
+        .transpose()?
+        .unwrap_or(true);
+    if let Some(kinds) = assignment_kinds
+        && let Some(assignments) = request.get_mut("assignments").and_then(Value::as_array_mut)
+    {
+        assignments.retain(|assignment| {
+            assignment
+                .pointer("/assigned-value/kind")
+                .and_then(Value::as_str)
+                .is_none_or(|kind| {
+                    // Selection must not hide malformed host input from the
+                    // typed protocol decoder.
+                    !matches!(kind, "call" | "literal" | "name" | "attribute" | "other")
+                        || kinds.contains(kind)
+                })
+        });
+    }
+    fn class_inputs(
+        class: &mut Value,
+        keep_source: bool,
+        keywords: Option<&BTreeSet<String>>,
+        keep_argument_source: bool,
+    ) {
+        if !keep_source && let Some(class) = class.as_object_mut() {
+            class.remove("source");
+        }
+        for field in class
+            .get_mut("fields")
+            .and_then(Value::as_array_mut)
+            .into_iter()
+            .flatten()
+        {
+            let Some(call) = field.get_mut("assigned-value") else {
+                continue;
+            };
+            if call["kind"] == "call"
+                && let Some(arguments) = call.get_mut("arguments").and_then(Value::as_array_mut)
+            {
+                if let Some(keywords) = keywords {
+                    arguments.retain(|argument| {
+                        argument["kind"] != "keyword"
+                            || argument["name"]
+                                .as_str()
+                                .is_none_or(|name| keywords.contains(name))
+                    });
+                }
+                if !keep_argument_source {
+                    for argument in arguments {
+                        if let Some(argument) = argument.as_object_mut() {
+                            argument.remove("source");
+                        }
+                    }
+                }
+            }
+        }
+        for nested in class
+            .get_mut("nested-classes")
+            .and_then(Value::as_array_mut)
+            .into_iter()
+            .flatten()
+        {
+            class_inputs(nested, keep_source, keywords, keep_argument_source);
+        }
+    }
+    for class in request
+        .get_mut("classes")
+        .and_then(Value::as_array_mut)
+        .into_iter()
+        .flatten()
+    {
+        class_inputs(class, keep_source, keywords.as_ref(), keep_argument_source);
+    }
+    Ok(())
+}
+
+fn early_return_method(config: &Value, method: &str) -> Result<bool> {
+    let Some(profile) = config.get("companion-early-call-returns") else {
+        return Ok(false);
+    };
+    let methods = profile
+        .as_array()
+        .context("companion-early-call-returns must be an array")?;
+    let mut selected = false;
+    for value in methods {
+        let name = value
+            .as_str()
+            .context("companion-early-call-returns must contain method names")?;
+        ensure!(
+            !name.is_empty(),
+            "companion-early-call-returns requires nonempty method names"
+        );
+        selected |= name == method;
+    }
+    Ok(selected)
+}
+
 impl Runtime {
+    pub fn project_call_assignments_only(&self) -> Result<bool> {
+        if !self.use_site_fields || self.plugins.is_empty() {
+            return Ok(false);
+        }
+        let mut calls_only = true;
+        for plugin in &self.plugins {
+            select_project_inputs(&mut json!({}), &plugin.config)?;
+            // Dependency hooks receive assignment summaries independently of
+            // the project-index input selector, so keep their complete input.
+            calls_only &= plugin.config["companion-project-inputs"]["assignment-kinds"]
+                == json!(["call"])
+                && plugin.manifest["capabilities"]["additional-dependencies"] != true;
+        }
+        Ok(calls_only)
+    }
+
+    pub fn sparse_overlay_index(&self) -> Result<bool> {
+        if !self.use_site_fields || self.plugins.is_empty() {
+            return Ok(false);
+        }
+        let mut sparse = true;
+        for plugin in &self.plugins {
+            // Validate every selection before indexing. One plugin requiring
+            // complete syntax keeps the shared host index complete for all.
+            select_project_inputs(&mut json!({}), &plugin.config)?;
+            sparse &= plugin.config["companion-project-inputs"]["overlay-index"] == "imports";
+        }
+        Ok(sparse)
+    }
+
     pub fn new(manifest_path: &Path, plugin_path: &Path) -> Result<Self> {
         Self::from_plugins(&[(
             manifest_path.to_path_buf(),
@@ -383,6 +591,36 @@ impl Runtime {
         if !settings.is_empty() {
             manifest_value["claims"]["settings"] = json!(settings);
         }
+        for plugin in &plugins {
+            early_return_method(&plugin.config, "")?;
+        }
+        let mut method_names = BTreeSet::new();
+        let mut method_patterns = Vec::new();
+        let mut function_names = BTreeSet::new();
+        for claim in manifest_value["claims"]["methods"]
+            .as_array()
+            .into_iter()
+            .flatten()
+        {
+            if let Some(name) = claim["method-name"].as_str() {
+                method_names.insert(name.to_owned());
+            }
+            if let Some(pattern) = claim["method-name-pattern"].as_str() {
+                method_patterns.push(pattern.to_owned());
+            }
+        }
+        for claim in manifest_value["claims"]["functions"]
+            .as_array()
+            .into_iter()
+            .flatten()
+        {
+            if let Some(name) = claim["qualified-name"].as_str() {
+                function_names.insert(name.to_owned());
+                if let Some((_, method)) = name.rsplit_once('.') {
+                    method_names.insert(method.to_owned());
+                }
+            }
+        }
         Ok(Self {
             host: PluginHost::new(environment, runner),
             load_failures,
@@ -399,8 +637,13 @@ impl Runtime {
             }
             .into(),
             manifest: manifest_value,
+            method_names,
+            method_patterns,
+            function_names,
             project: None,
             project_patches: BTreeMap::new(),
+            deferred_field_targets: BTreeSet::new(),
+            contribution_field_targets: BTreeSet::new(),
             project_contributions: Vec::new(),
             contribution_targets: BTreeMap::new(),
             unique_class_names: BTreeMap::new(),
@@ -412,6 +655,9 @@ impl Runtime {
             nominal_candidates: BTreeMap::new(),
             annotation_candidates: BTreeSet::new(),
             context_free_arguments: BTreeSet::new(),
+            use_site_fields: std::env::var_os("TY_COMPANION_NATIVE_FIELDS")
+                .is_some_and(|value| value == "1"),
+            eager_class_fields: false,
             cache: RequestCache::default(),
             type_cache: RefCell::default(),
             projection_generation: 0,
@@ -420,6 +666,8 @@ impl Runtime {
             executions: 0,
             hits: 0,
             execution_time: Duration::ZERO,
+            execution_profile: std::env::var_os("TY_COMPANION_TRACE_PHASES")
+                .map(|_| BTreeMap::new()),
         })
     }
 
@@ -452,6 +700,27 @@ impl Runtime {
         // requests. Configuration is included in each request's cache key.
     }
 
+    pub fn claims_method_name(&self, name: &str) -> bool {
+        self.method_names.contains(name)
+            || self
+                .method_patterns
+                .iter()
+                .any(|pattern| method_name_pattern_matches(pattern, name))
+    }
+
+    pub fn early_returns_enabled(&self) -> bool {
+        self.use_site_fields
+            && self
+                .plugins
+                .iter()
+                .any(|plugin| plugin.config.get("companion-early-call-returns").is_some())
+    }
+
+    pub fn claims_function(&self, source: &Source, name: &str) -> bool {
+        self.function_names
+            .contains(&self.protocol_name(source, name))
+    }
+
     /// Semantic results can depend on each plugin's opaque project index even
     /// when the merged contributions and virtual types have not changed.
     pub fn index_generations(&self) -> Vec<(String, u64)> {
@@ -467,6 +736,25 @@ impl Runtime {
             "bytes": self.cache.bytes,
             "oversized_skips": self.cache.oversized_skips,
         })
+    }
+
+    /// Host execution attempts only; request-cache hits never enter this path.
+    pub fn execution_profile(&self) -> Value {
+        self.execution_profile
+            .as_ref()
+            .map_or(Value::Null, |profile| {
+                Value::Object(
+                    profile
+                        .iter()
+                        .map(|(kind, (executions, elapsed))| {
+                            (
+                                kind.clone(),
+                                json!({"executions":executions,"seconds":elapsed.as_secs_f64()}),
+                            )
+                        })
+                        .collect(),
+                )
+            })
     }
 
     /// Changes observable by another file during one fixed-point loop. The
@@ -513,16 +801,37 @@ impl Runtime {
     }
 
     pub fn set_project_patch(&mut self, qualified: String, patch: Value) {
+        if patch["fields"]
+            .as_array()
+            .is_some_and(|fields| !fields.is_empty())
+            || patch.get("constructor").is_some_and(Value::is_object)
+        {
+            self.deferred_field_targets.insert(qualified.clone());
+        } else {
+            self.deferred_field_targets.remove(&qualified);
+        }
         if self.project_patches.get(&qualified) != Some(&patch) {
             self.project_patches.insert(qualified, patch);
             self.advance_projection_generation();
         }
     }
 
+    pub fn clear_project_patches(&mut self) {
+        self.project_patches.clear();
+        self.deferred_field_targets.clear();
+    }
+
     pub fn set_project_contributions(&mut self, contributions: Vec<Value>) {
         self.contribution_targets.clear();
+        self.contribution_field_targets.clear();
         for (index, contribution) in contributions.iter().enumerate() {
             if let Some(target) = contribution["target"]["qualified-name"].as_str() {
+                if matches!(
+                    contribution["patch"]["kind"].as_str(),
+                    Some("field" | "constructor")
+                ) {
+                    self.contribution_field_targets.insert(target.to_owned());
+                }
                 self.contribution_targets
                     .entry(target.to_owned())
                     .or_default()
@@ -538,6 +847,22 @@ impl Runtime {
             .into_iter()
             .flatten()
             .map(|index| &self.project_contributions[*index])
+    }
+
+    /// In native mode an untouched class needs no generated class declaration.
+    /// Class hooks, installed patches and contributions retain full lowering.
+    pub fn keeps_native_class(&self, qualified: &str) -> bool {
+        self.use_site_fields
+            && self
+                .plugins
+                .iter()
+                .all(|plugin| plugin.manifest["capabilities"]["class-transform"] != true)
+            && self.project_patches.get(qualified).is_none_or(|patch| {
+                patch.as_object().is_some_and(|patch| {
+                    patch.len() == 1 && patch.get("kind").is_some_and(|kind| kind == "no-change")
+                })
+            })
+            && self.contributions_for(qualified).next().is_none()
     }
 
     pub fn set_projected_receiver(&mut self, qualified: String, receiver: String) {
@@ -1165,6 +1490,188 @@ impl Runtime {
             .cloned()
     }
 
+    pub fn has_use_site_fields(&self) -> bool {
+        self.use_site_fields
+            && !self.eager_class_fields
+            && (!self.deferred_field_targets.is_empty()
+                || !self.contribution_field_targets.is_empty())
+    }
+
+    pub fn projects_fields_at_uses(&self, class: &str) -> bool {
+        if !self.has_use_site_fields() {
+            return false;
+        }
+        let Some(project) = self.project.as_ref() else {
+            return false;
+        };
+        let Some(owners) = project.mro(class) else {
+            return false;
+        };
+        // Field contributions retain their native class declaration and
+        // assignment rules. A receiver-only view cannot reproduce that field
+        // contract, including inherited contributions.
+        if owners
+            .iter()
+            .any(|owner| self.contribution_field_targets.contains(owner))
+            || !owners
+                .iter()
+                .any(|owner| self.deferred_field_targets.contains(owner))
+        {
+            return false;
+        }
+        let Some((_, _, original)) = project.original_class(class) else {
+            return false;
+        };
+        if self.project_patches.get(class).is_some_and(|patch| {
+            patch["fields"]
+                .as_array()
+                .into_iter()
+                .flatten()
+                .any(|field| {
+                    let descriptor = &field["descriptor"];
+                    matches!(descriptor["kind"].as_str(), Some("value" | "callable"))
+                        || descriptor.get("class-type").is_some()
+                })
+        }) {
+            return false;
+        }
+        if !original.decorator_list.is_empty()
+            || original.type_params.is_some()
+            || original.arguments.as_ref().is_some_and(|arguments| {
+                arguments
+                    .args
+                    .iter()
+                    .any(|base| matches!(base, ruff_python_ast::Expr::Subscript(_)))
+            })
+            || project.default_constructor_result(class).is_none()
+        {
+            return false;
+        }
+        project.class_summary(class).is_some_and(|summary| {
+            !summary["methods"]
+                .as_array()
+                .into_iter()
+                .flatten()
+                .any(|method| method["name"] == "__init__")
+        })
+    }
+
+    fn use_site_field(&self, source: &Source, owner: &str, member: &str) -> Option<Value> {
+        let nominal = self.nominal_name(source, owner);
+        let owners = self.project.as_ref()?.mro(&nominal)?;
+        for owner in owners {
+            if !self.projects_fields_at_uses(&owner) {
+                continue;
+            }
+            if let Some(field) = self
+                .project_patches
+                .get(&owner)
+                .and_then(|patch| patch["fields"].as_array())
+                .and_then(|fields| fields.iter().find(|field| field["name"] == member))
+            {
+                if field["mode"] != "replace-existing"
+                    && self
+                        .project
+                        .as_ref()?
+                        .class_summary(&owner)
+                        .is_some_and(|class| {
+                            class["fields"]
+                                .as_array()
+                                .into_iter()
+                                .flatten()
+                                .any(|value| value["name"] == member)
+                        })
+                {
+                    return None;
+                }
+                return Some(field.clone());
+            }
+            for contribution in self.contributions_for(&owner) {
+                if contribution["patch"]["kind"] == "field"
+                    && contribution["patch"]["name"] == member
+                {
+                    return Some(contribution["patch"].clone());
+                }
+            }
+        }
+        None
+    }
+
+    fn use_site_constructor(&self, source: &Source, callee: &str) -> Option<Value> {
+        let owner = self.canonical_name(source, callee);
+        if !self.projects_fields_at_uses(&owner) {
+            return None;
+        }
+        let project = self.project.as_ref()?;
+        // Match Python's inherited __init__ lookup. A subclass that receives
+        // no patch still inherits its nearest generated constructor; a real
+        // intervening initializer or eagerly emitted patch remains native.
+        for candidate in project.mro(&owner)? {
+            if project.class_summary(&candidate).is_some_and(|class| {
+                class["methods"]
+                    .as_array()
+                    .into_iter()
+                    .flatten()
+                    .any(|method| method["name"] == "__init__")
+            }) {
+                return None;
+            }
+            let patch = self.project_patches.get(&candidate);
+            let mut fields = BTreeMap::new();
+            for field in patch
+                .and_then(|patch| patch["fields"].as_array())
+                .into_iter()
+                .flatten()
+            {
+                fields.insert(field["name"].as_str()?, field);
+            }
+            let mut explicit = patch
+                .and_then(|patch| patch.get("constructor"))
+                .filter(|value| value.is_object());
+            for contribution in self.contributions_for(&candidate) {
+                let value = &contribution["patch"];
+                match value["kind"].as_str() {
+                    Some("field") => {
+                        fields.entry(value["name"].as_str()?).or_insert(value);
+                    }
+                    Some("constructor") => {
+                        explicit = explicit.or(Some(value));
+                    }
+                    _ => {}
+                }
+            }
+            let mut parameters = Vec::new();
+            for field in fields.values() {
+                if let Some(parameter) = field.get("constructor-parameter") {
+                    let mut parameter = parameter.clone();
+                    if parameter.get("type-expr").is_none_or(Value::is_null) {
+                        parameter["type-expr"] = field
+                            .get("instance-set-type")
+                            .unwrap_or(&field["instance-get-type"])
+                            .clone();
+                    }
+                    if field["has-default"] == true {
+                        parameter["required"] = json!(false);
+                    }
+                    parameters.push(parameter);
+                }
+            }
+            if explicit.is_none() && parameters.is_empty() {
+                continue;
+            }
+            if !self.projects_fields_at_uses(&candidate) {
+                return None;
+            }
+            let mut signature = explicit
+                .cloned()
+                .unwrap_or_else(|| json!({"parameters":parameters}));
+            signature["return-type"] =
+                self.qualified_type_expr(&project.default_constructor_result(&owner)?);
+            return Some(json!({"kind":"call-signature-patch","signature":signature}));
+        }
+        None
+    }
+
     pub fn resolve_member(
         &mut self,
         source: &Source,
@@ -1202,6 +1709,12 @@ impl Runtime {
             if response["kind"] == "member-patch" && response["name"] == member {
                 return Ok(response);
             }
+        }
+        if !class_access && let Some(field) = self.use_site_field(source, owner, member) {
+            return Ok(
+                json!({"kind":"member-patch","name":member,"mode":"replace-existing", "read-only":false,
+                "access":{"kind":"value","type-expr":field["instance-get-type"]}}),
+            );
         }
         Ok(json!({"kind":"no-change"}))
     }
@@ -1251,7 +1764,8 @@ impl Runtime {
                 }
                 // Constructors are state claims in the existing SDK. Ordinary
                 // constructor signatures are returned by class transforms.
-                if kind == "adjust-call-state"
+                if (kind == "adjust-call-state"
+                    || (self.use_site_fields && kind == "adjust-call-signature"))
                     && payload.get("receiver").is_none()
                     && list("constructors")
                         .iter()
@@ -1380,6 +1894,11 @@ impl Runtime {
             };
         let elapsed = start.elapsed();
         self.execution_time += elapsed;
+        if let Some(profile) = &mut self.execution_profile {
+            let entry = profile.entry(kind.to_owned()).or_default();
+            entry.0 += 1;
+            entry.1 += elapsed;
+        }
         if matches!(kind, "build-project-index" | "analyze-classes")
             && std::env::var_os("TY_COMPANION_TRACE_PHASES").is_some()
         {
@@ -1453,7 +1972,7 @@ impl Runtime {
             .context("hook payload must be object")?;
         object.insert("kind".into(), json!(kind));
         object.insert("context".into(), json!({"module":source.protocol_module.as_ref().unwrap_or(&source.module),"file-path":source.path,
-            "python-version":self.python_version,"platform":self.platform,"config":plugin.config,"speculative":false}));
+            "python-version":self.python_version,"platform":self.platform,"config":plugin.config,"speculative":payload["context"]["speculative"].as_bool().unwrap_or(false)}));
         if source.protocol_module.is_some() {
             rewrite_notebook_request(&mut request, source, |name| {
                 self.protocol_name(source, name)
@@ -1641,6 +2160,9 @@ impl Runtime {
             } else {
                 request["config"] = plugin.config.clone();
             }
+            if kind == "build-project-index" && self.use_site_fields {
+                select_project_inputs(&mut request, &plugin.config)?;
+            }
             let id = plugin.id.clone();
             let settings_diagnostics: Vec<_> = request["settings"]
                 .as_array()
@@ -1752,6 +2274,15 @@ impl Runtime {
     }
 
     pub fn execute(&mut self, source: &Source, kind: &str, payload: Value) -> Result<Value> {
+        if kind == "adjust-call-signature"
+            && payload.get("receiver").is_none()
+            && let Some(callee) = payload
+                .pointer("/callee/expression")
+                .and_then(Value::as_str)
+            && let Some(patch) = self.use_site_constructor(source, callee)
+        {
+            return Ok(patch);
+        }
         let mut responses = Vec::new();
         for index in 0..self.plugins.len() {
             let Some(request) = self.semantic_request(index, source, kind, &payload)? else {
@@ -2080,6 +2611,55 @@ pub fn call_request(
     oracle: Option<&Oracle>,
     receiver: Option<&str>,
 ) -> Result<Value> {
+    call_request_with_speculation(runtime, source, kind, call, oracle, receiver, false)
+}
+
+pub fn speculative_call_return(
+    runtime: &mut Runtime,
+    source: &Source,
+    call: &CallSite,
+) -> Result<Option<Value>> {
+    if !runtime.early_returns_enabled()
+        || call.flow_receiver_type.is_none()
+        || !call.arguments.iter().all(|arg| {
+            matches!(
+                arg.literal["kind"].as_str(),
+                Some("int" | "str" | "bool" | "none")
+            )
+        })
+    {
+        return Ok(None);
+    }
+    let response = call_request_with_speculation(
+        runtime,
+        source,
+        "adjust-call-return",
+        call,
+        None,
+        None,
+        true,
+    )?;
+    let ground = response["return-type"]["mode"] == "annotation"
+        && response["return-type"]["expression"]
+            .as_str()
+            .is_some_and(|name| {
+                runtime
+                    .project
+                    .as_ref()
+                    .is_some_and(|project| project.plain_source_class(name))
+            });
+    Ok((response["kind"] == "call-return-patch" && ground).then_some(response))
+}
+
+fn call_request_with_speculation(
+    runtime: &mut Runtime,
+    source: &Source,
+    kind: &str,
+    call: &CallSite,
+    oracle: Option<&Oracle>,
+    receiver: Option<&str>,
+    speculative: bool,
+) -> Result<Value> {
     let mut callee = call.callee.clone();
     let receiver = receiver
         .or(call.flow_receiver_type.as_deref())
@@ -2133,6 +2713,14 @@ pub fn call_request(
             callee = runtime.method_callee(owner, method);
         }
     }
+    // Deferred class fields contribute a constructor independently of call
+    // hook claims. Resolve it before the plugin-only routing fast path.
+    if kind == "adjust-call-signature"
+        && summary.is_none()
+        && let Some(patch) = runtime.use_site_constructor(source, &callee)
+    {
+        return Ok(patch);
+    }
     // Claims inspect only the callee and nominal receiver. Avoid constructing
     // argument/return snapshots and source locations for calls no plugin can
     // observe. Use the same namespace translation and claim implementation as
@@ -2141,15 +2729,27 @@ pub fn call_request(
     if let Some(summary) = &summary {
         routing["receiver"] = json!({"nominal-class":summary["nominal-class"]});
     }
-    let claimed = runtime.plugins.iter().any(|plugin| {
-        if plugin.inverse_virtual_names.is_empty() {
+    let mut claimed = false;
+    for plugin in &runtime.plugins {
+        let matches = if plugin.inverse_virtual_names.is_empty() {
             runtime.allowed(source, kind, &routing, &plugin.manifest)
         } else {
             let mut translated = routing.clone();
             rewrite_protocol_names(&mut translated, &plugin.inverse_virtual_names);
             runtime.allowed(source, kind, &translated, &plugin.manifest)
+        };
+        if matches {
+            if speculative
+                && !early_return_method(
+                    &plugin.config,
+                    callee.rsplit('.').next().unwrap_or(&callee),
+                )?
+            {
+                return Ok(json!({"kind":"no-change"}));
+            }
+            claimed = true;
         }
-    });
+    }
     if !claimed {
         return Ok(json!({"kind":"no-change"}));
     }
@@ -2184,12 +2784,252 @@ pub fn call_request(
     if let Some(summary) = summary {
         value["receiver"] = summary;
     }
+    if speculative {
+        value["context"] = json!({"speculative":true});
+    }
     runtime.execute(source, kind, value)
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn early_return_opt_in_preserves_mixed_plugins_and_missing_native_inputs() -> Result<()> {
+        let directory =
+            std::env::temp_dir().join(format!("ty-early-opt-in-{}", std::process::id()));
+        std::fs::create_dir_all(&directory)?;
+        let path = directory.join("demo.py");
+        std::fs::write(
+            &path,
+            "class Item: pass\nclass Generic[T]: pass\nclass Manager:\n    def get(self, *, key: int) -> Item: raise NotImplementedError\nvalue = Manager().get(key=1)\n",
+        )?;
+        let mut paths = Vec::new();
+        for id in ["first", "second"] {
+            let manifest = directory.join(format!("{id}.json"));
+            let artifact = directory.join(format!("{id}.py"));
+            std::fs::write(&manifest, json!({"id":id,"name":id,"version":"0","protocol-version":{"major":0,"minor":9},"ty-compatibility":{"requirement":">=0.89.0"},"runtime":{"kind":"monty","artifact":format!("{id}.py")},"capabilities":{"call-return":true},"claims":{"methods":[{"kind":"exact","class-qualified-name":"demo.Manager","method-name":"get"}]}}).to_string())?;
+            std::fs::write(
+                &artifact,
+                "@on_call_return\ndef result(request):\n    return call_return_patch(type_annotation('demo.Item' if request['context']['speculative'] else 'str'))\n",
+            )?;
+            paths.push((
+                manifest,
+                artifact,
+                if id == "first" {
+                    json!({"companion-early-call-returns":["get"]})
+                } else {
+                    json!({})
+                },
+            ));
+        }
+        let mut runtime = Runtime::from_plugins(&paths)?;
+        runtime.use_site_fields = true;
+        let project = Project::load(&directory, &[path], &runtime.manifest, json!({}))?;
+        let module = project.modules["demo"].clone();
+        let ruff_python_ast::Stmt::Assign(assignment) = module.suite.last().unwrap() else {
+            unreachable!()
+        };
+        let ruff_python_ast::Expr::Call(expression) = assignment.value.as_ref() else {
+            unreachable!()
+        };
+        let mut call = crate::model::call_site(expression, "demo.Manager.get".into());
+        call.flow_receiver_type = Some("demo.Manager".into());
+        runtime.attach_project(Arc::new(project), json!({}));
+        let before = runtime.executions;
+        assert!(speculative_call_return(&mut runtime, &module.source, &call)?.is_none());
+        assert_eq!(
+            runtime.executions, before,
+            "Every observing plugin must opt in"
+        );
+        for plugin in &mut runtime.plugins {
+            plugin.config["companion-early-call-returns"] = json!(["get"]);
+        }
+        let response = speculative_call_return(&mut runtime, &module.source, &call)?.unwrap();
+        assert_eq!(response["return-type"]["expression"], "demo.Item");
+        let normal = call_request(
+            &mut runtime,
+            &module.source,
+            "adjust-call-return",
+            &call,
+            None,
+            None,
+        )?;
+        assert_eq!(
+            normal["return-type"]["expression"], "str",
+            "Speculative cache entries must not replace normal calls"
+        );
+        let before = runtime.executions;
+        call.arguments[0].literal = json!({"kind":"unknown"});
+        assert!(speculative_call_return(&mut runtime, &module.source, &call)?.is_none());
+        assert_eq!(runtime.executions, before);
+        call.arguments[0].literal = json!({"kind":"int","value":1});
+        runtime.plugins[0].config["companion-early-call-returns"] = json!("get");
+        assert!(speculative_call_return(&mut runtime, &module.source, &call).is_err());
+        assert_eq!(runtime.executions, before);
+        assert!(
+            runtime
+                .project
+                .as_ref()
+                .unwrap()
+                .plain_source_class("demo.Item")
+        );
+        assert!(
+            !runtime
+                .project
+                .as_ref()
+                .unwrap()
+                .plain_source_class("demo.Generic")
+        );
+        std::fs::remove_dir_all(directory)?;
+        Ok(())
+    }
+
+    #[test]
+    fn project_input_selection_is_explicit_isolated_and_validated() -> Result<()> {
+        let directory =
+            std::env::temp_dir().join(format!("native-input-selection-{}", std::process::id()));
+        std::fs::create_dir_all(&directory)?;
+        let profile = json!({"companion-project-inputs":{"assignment-kinds":["call"],"class-source":false,"field-call-keywords":["null"],"field-call-argument-source":false}});
+        let mut paths = Vec::new();
+        for (id, config) in [("selected", profile), ("full", json!({}))] {
+            let artifact = directory.join(format!("{id}.py"));
+            let manifest = directory.join(format!("{id}.json"));
+            std::fs::write(
+                &artifact,
+                "@on_project_index\ndef index(request):\n    return project_index({'classes':request.get('classes',[]),'assignments':request.get('assignments',[])})\n",
+            )?;
+            std::fs::write(
+                &manifest,
+                serde_json::to_vec(
+                    &json!({"id":id,"name":id,"version":"0","protocol-version":{"major":0,"minor":9},"ty-compatibility":{"requirement":">=0.89.0"},"runtime":{"kind":"monty","artifact":format!("{id}.py")},"capabilities":{"project-index":true}}),
+                )?,
+            )?;
+            paths.push((manifest, artifact, config));
+        }
+        let source = json!({"module":"demo","file-path":"demo.py","start":{"line":1,"column":1},"end":{"line":1,"column":2}});
+        let mut request = json!({"kind":"build-project-index","context":{"root":"","python-version":"3.13","platform":"linux","config":{}},"classes":[{"qualified-name":"demo.Row","source":source,"fields":[{"name":"value","source":source,"assigned-value":{"kind":"call","callee":{"qualified-name":"library.Field"},"arguments":[{"kind":"positional","value":{"kind":"str","value":"Target"}},{"kind":"keyword","name":"null","value":{"kind":"bool","value":true}},{"kind":"keyword","name":"max_length","value":{"kind":"int","value":80}},{"kind":"star-kwargs","value":{"kind":"unknown"}}]}}],"nested-classes":[{"name":"Meta","qualified-name":"demo.Row.Meta","source":source}]}],"assignments":[{"name":"constant","qualified-name":"demo.constant","assigned-value":{"kind":"literal","value":{"kind":"int","value":1}}},{"name":"factory","qualified-name":"demo.factory","assigned-value":{"kind":"call","callee":{"qualified-name":"library.factory"}}}]});
+        request["classes"][0]["fields"][0]["assigned-value"]["arguments"][0]["source"] =
+            source.clone();
+        request["classes"][0]["nested-classes"][0]["fields"] =
+            request["classes"][0]["fields"].clone();
+        let original = request.clone();
+        let mut source_only = request.clone();
+        select_project_inputs(
+            &mut source_only,
+            &json!({"companion-project-inputs":{"field-call-argument-source":false}}),
+        )?;
+        assert_eq!(source_only["classes"][0]["source"], source);
+        assert_eq!(source_only["classes"][0]["fields"][0]["source"], source);
+        assert_eq!(
+            source_only["classes"][0]["fields"][0]["assigned-value"]["arguments"]
+                .as_array()
+                .unwrap()
+                .len(),
+            4
+        );
+        assert!(
+            source_only["classes"][0]["fields"][0]["assigned-value"]["arguments"][0]
+                .get("source")
+                .is_none()
+        );
+        assert!(source_only["classes"][0]["nested-classes"][0]["fields"][0]["assigned-value"]["arguments"][0].get("source").is_none());
+        let mut malformed = request.clone();
+        malformed["assignments"][0]["assigned-value"]["kind"] = json!("unexpected");
+        select_project_inputs(&mut malformed, &paths[0].2)?;
+        assert_eq!(
+            malformed["assignments"][0]["assigned-value"]["kind"],
+            "unexpected"
+        );
+        let mut runtime = Runtime::from_plugins(&paths)?;
+        runtime.use_site_fields = true;
+        assert!(!runtime.sparse_overlay_index()?);
+        assert!(!runtime.project_call_assignments_only()?);
+        runtime.execute_project("build-project-index", request.clone())?;
+        assert_eq!(request, original);
+        let selected_index = runtime
+            .plugins
+            .iter()
+            .position(|plugin| plugin.id == "selected")
+            .unwrap();
+        let full_index = runtime
+            .plugins
+            .iter()
+            .position(|plugin| plugin.id == "full")
+            .unwrap();
+        let selected = runtime.plugins[selected_index].index.as_ref().unwrap();
+        let full = runtime.plugins[full_index].index.as_ref().unwrap();
+        assert_eq!(selected["assignments"].as_array().unwrap().len(), 1);
+        assert_eq!(full["assignments"].as_array().unwrap().len(), 2);
+        assert!(selected["classes"][0].get("source").is_none());
+        assert!(
+            selected["classes"][0]["nested-classes"][0]
+                .get("source")
+                .is_none()
+        );
+        assert_eq!(selected["classes"][0]["fields"][0]["source"], source);
+        assert_eq!(full["classes"][0]["source"], source);
+        let arguments = selected["classes"][0]["fields"][0]["assigned-value"]["arguments"]
+            .as_array()
+            .unwrap();
+        assert_eq!(arguments.len(), 3);
+        assert_eq!(arguments[0]["kind"], "positional");
+        assert!(arguments[0].get("source").is_none());
+        assert_eq!(
+            full["classes"][0]["fields"][0]["assigned-value"]["arguments"][0]["source"],
+            source
+        );
+        assert_eq!(arguments[1]["name"], "null");
+        assert_eq!(arguments[2]["kind"], "star-kwargs");
+        runtime.use_site_fields = false;
+        runtime.execute_project("build-project-index", request.clone())?;
+        assert_eq!(
+            runtime.plugins[0].index, runtime.plugins[1].index,
+            "Default SDK requests remain complete"
+        );
+        runtime.use_site_fields = true;
+        for invalid in [
+            json!({"unknown":true}),
+            json!({"class-source":"false"}),
+            json!({"assignment-kinds":["bogus"]}),
+            json!({"field-call-keywords":[1]}),
+            json!({"field-call-argument-source":"false"}),
+            json!({"overlay-index":true}),
+            json!({"overlay-index":"bogus"}),
+        ] {
+            runtime.plugins[selected_index].config["companion-project-inputs"] = invalid;
+            let executions = runtime.executions;
+            assert!(
+                runtime
+                    .execute_project("build-project-index", request.clone())
+                    .is_err()
+            );
+            assert_eq!(
+                runtime.executions, executions,
+                "Reject malformed input selection before invoking a plugin"
+            );
+        }
+        for plugin in &mut runtime.plugins {
+            plugin.config["companion-project-inputs"] =
+                json!({"overlay-index":"imports", "assignment-kinds":["call"]});
+        }
+        assert!(runtime.sparse_overlay_index()?);
+        assert!(runtime.project_call_assignments_only()?);
+        runtime.plugins[full_index].manifest["capabilities"]["additional-dependencies"] =
+            json!(true);
+        assert!(!runtime.project_call_assignments_only()?);
+        runtime.plugins[full_index].manifest["capabilities"]["additional-dependencies"] =
+            json!(false);
+        runtime.plugins[full_index].config = json!({});
+        assert!(!runtime.sparse_overlay_index()?);
+        assert!(!runtime.project_call_assignments_only()?);
+        runtime.plugins[full_index].config =
+            json!({"companion-project-inputs":{"overlay-index":"imports"}});
+        runtime.use_site_fields = false;
+        assert!(!runtime.sparse_overlay_index()?);
+        std::fs::remove_dir_all(directory)?;
+        Ok(())
+    }
 
     #[test]
     fn class_batches_preserve_individual_results_limits_fallback_and_revisions() -> Result<()> {
@@ -3037,6 +3877,7 @@ def member_hook(request):
             "@on_call_return\ndef returns(request):\n    return {'kind':'invalid-response-kind'}\n",
         )?;
         let mut runtime = Runtime::new(&manifest, &plugin)?;
+        runtime.execution_profile = Some(BTreeMap::new());
         let first = runtime.execute(&source, "adjust-call-return", request.clone())?;
         assert_eq!(first["kind"], "no-change");
         assert!(
@@ -3052,6 +3893,10 @@ def member_hook(request):
         );
         assert_eq!(runtime.executions, 1);
         assert_eq!(runtime.hits, 1);
+        assert_eq!(
+            runtime.execution_profile()["adjust-call-return"]["executions"],
+            1
+        );
         // Plugin/config reload creates a new Runtime, so cached failures cannot
         // survive an edited artifact. Ordinary SDK exceptions are protocol
         // Error responses and retain the fork's silent abstention behavior.

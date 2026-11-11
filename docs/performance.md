@@ -4,6 +4,146 @@ The companion checks generated analysis copies with unchanged official ty and
 runs Django hooks in embedded Monty. Its total time includes discovery, plugin
 execution, projection, type queries and the final checker run.
 
+## Parallel source loading experiment
+
+The [v24 receipt](qualification/native-django-parallel-v24.json) compares the
+two-worker companion with a candidate using up to eight available workers for
+initial parsing and independent declaration copies. Both use identical Django
+code, declarations and official Ty 0.0.99 on the same 7,082-file, 2,501-model
+workload. `TY_MAX_PARALLELISM` bounds the companion workers as well as native Ty;
+small inputs remain sequential. Installation and error propagation retain input
+order.
+
+Five alternating fresh-process samples per binary measure **1.881 seconds**
+before and **1.788 seconds** after, a 4.9% reduction. The largest candidate sample
+is **1.813 seconds**, so the one-second target remains unmet. Both binaries pass
+100 assertions, two error controls and 20 focused ORM cases. Every observation
+satisfies the declared source-preservation, host-load and resource checks.
+Filesystem caches may be warm; these are local shared-machine measurements.
+
+Three additional fresh-process samples at each thread limit measure:
+
+| `TY_MAX_PARALLELISM` | Median total | Median initial source loading |
+| -------------------- | -----------: | ----------------------------: |
+| 1                    |      2.227 s |                       0.244 s |
+| 2                    |      1.935 s |                       0.160 s |
+| 4                    |      1.814 s |                       0.113 s |
+| 8                    |      1.798 s |                       0.081 s |
+
+These limits apply to both the companion and native Ty, so the total-time column
+does not isolate parsing. The source-loading column shows the relevant phase.
+The eight-thread result leaves serial work: one representative median candidate
+run spends 0.400 seconds on the Django project index, 0.314 seconds on initial
+lowering plus flow/render, and 0.527 seconds on native checking and its
+preparation. More source-loader threads alone cannot remove those costs.
+
+The identical Django code uses a compact private index. A separate, preceding
+same-binary comparison reduced its opaque payload from 2,853,625 to 1,100,506
+bytes, with medians of 2.040 seconds before and 1.949 seconds after. Decoded model
+and hook responses match in 27,511 comparisons, and the legacy representation
+remains available. This primarily reduces metadata size; it does not remove the
+whole project-index pass.
+
+The v24 source passes 236 regular Rust tests and three additional integration
+tests in each projection mode, formatting and Clippy, and 19 broader SDK/editor
+suites in each mode. Every official Ty version from 0.0.84 through 0.0.99 passes
+172 Django contract cases, SDK field and native API controls in both modes, and
+eight focused regressions. The larger Django example has zero positive-case
+diagnostics and all nine expected negative diagnostics in both modes. Python
+tests are 50/51; the stored full-conformance artifact still fails its stale-source
+gate. Installed artifacts, full API and Django/Python matrices, hosted CI and
+release acceptance remain open. Both build targets were cleaned before timing;
+completed generated benchmark projections were verified, compressed and removed.
+
+## Native Django delegation prototype
+
+The [v20d experimental receipt](qualification/native-django-hybrid-v20d.json)
+records a companion prototype using an adapted `django-types` 0.24.0 declaration
+base and unchanged official Ty 0.0.99. Monty retains constructor and query
+validation, reverse relations, precise result rows, and model-state checks.
+Native declarations handle ordinary fields. Eligible literal `get()` calls avoid
+user type probes; unknown arguments, custom managers and other unsupported cases
+retain native probing. A complete native check is reused only when its final
+source, selection and generated dependency context are unchanged.
+
+Five accepted rotated fresh-process samples per stack use identical source:
+7,082 files, 2,501 models and 100 assertions.
+
+| Stack                                 |  Median |
+| ------------------------------------- | ------: |
+| Native Django hybrid prototype        | 2.076 s |
+| Previous companion candidate          | 5.525 s |
+| MyPy with django-stubs and its plugin | 7.136 s |
+| Official Ty with django-types         | 0.323 s |
+
+All four stacks pass the 100 assertions and both error controls. The additional
+20 focused ORM cases match 20 for the hybrid, 20 for the previous companion,
+19 for MyPy, and eight for native Ty. Source bytes and modification times are
+preserved. All 28 observations satisfy the predeclared host-load and resource
+limits. The receipt retains every observation. Timing acceptance depends on host
+load and resource/source checks, never the observed execution time.
+Filesystem caches may be warm; these are shared-machine local measurements.
+
+On every official Ty release from 0.0.84 through 0.0.99, the current source
+passes 172 Django contract and row cases in memory mode, the generic SDK field
+fixture and runtime-backed API checks in both projection modes, and seven focused
+projection and source-loading regressions. This uses Python 3.13 and Django 6.1.3. Four
+model-name ambiguity cases also pass on Ty 0.0.99. All 235 regular Rust tests and
+three additional native integration tests pass in each of default and native
+modes; 19 broader SDK/editor suites pass in both modes. These source results
+qualify the recorded contracts, not future Ty releases or every Django API.
+
+The larger Django example passes with zero positive-case diagnostics and all
+nine negative-case diagnostics in both modes. Its failing and passing evidence
+is retained: nested receiver views previously collided, nullable relationship
+reads lost branch narrowing, and field contributions needed their existing native
+assignment behavior. The regression checks include aliases, inheritance,
+constructor diagnostics, branch joins and mutation invalidation.
+
+Instrumentation confirms 100 early returns, one inference round and native-check
+reuse on the timed fixture. It also confirms 7,080 untouched files skip flow/render
+passes and 182 external declaration modules enter the companion syntax index.
+All physical stubs remain available to the native checker. Optimized median
+phase timers show where the remaining work goes:
+
+| Stage                                                 | Median phase time |
+| ----------------------------------------------------- | ----------------: |
+| Source and declaration index                          |           0.259 s |
+| Plugin project index, including host work             |           0.411 s |
+| Initial lowering plus flow/render                     |           0.364 s |
+| Complete native check, including preflight validation |           0.620 s |
+
+Setup, support work, diagnostic mapping and cleanup also contribute. Phase
+medians do not add up exactly to a median wall time. The largest accepted hybrid
+sample is **2.358 s**: **the one-second target remains unmet**. The earlier
+[v11 series](qualification/native-django-hybrid-v11.json) measured 2.710 seconds;
+all stacks were slower in that earlier series. The current receipt identifies
+executables, source hashes, commands, resource measurements and every sample.
+
+Large initial snapshots now read and parse with at most two workers, install
+results in input order, and move parsed syntax instead of cloning it. A
+[source-loading development comparison](qualification/native-source-loading-v19.json)
+checks duplicate-module precedence, first-error order, incomplete syntax and
+external sources. Its development timings are separate from the optimized
+comparison above. Classes without a class-transform plugin, contribution or
+nontrivial patch retain native declarations; calls and member hooks still use
+the existing analysis. The large fixture retains 7,080 passthrough units, so this
+change does not bypass the model file or its plugin observations.
+
+The previous [v17b series](qualification/native-django-hybrid-v17b.json) measured
+2.206 seconds. Shared-host variation means these samples do not establish a
+worst-case bound. The current build removed its 700 MiB target before timing;
+qualification removes or compresses completed projections and cleans Cargo
+targets after each stage.
+
+This experiment has no release acceptance. The complete static API audit, fresh
+full conformance receipt, automatic consumer activation, installed-wheel and
+Django editor checks, Django/Python matrices and hosted CI remain open. Django's
+Python tests are 47/48: the stored full-conformance receipt correctly fails its
+stale-source check. It has not been rewritten to make the gate green. The
+prototype requires unreleased companion and Django code plus experimental flags;
+its local Ty matrix does not qualify installed wheels or the full declaration base.
+
 ## Official Ty with native Django support
 
 The [2026-11-08 comparison receipt](qualification/official-django-comparison.json)
@@ -16,11 +156,11 @@ invalid-assignment smoke test verifies that native Django support is active.
 
 The original 7,082-file, 2,501-model, single-module fixture is unchanged:
 
-| Stack                                        | Median | ORM assertions | Error controls |
-| -------------------------------------------- | -----: | -------------: | -------------: |
-| Official Ty with django-types                 | 0.297 s |        100/100 |            2/2 |
-| Candidate companion and candidate Django-ty   | 5.163 s |        100/100 |            2/2 |
-| MyPy with django-stubs and its Django plugin  | 6.793 s |        100/100 |            2/2 |
+| Stack                                        |  Median | ORM assertions | Error controls |
+| -------------------------------------------- | ------: | -------------: | -------------: |
+| Official Ty with django-types                | 0.297 s |        100/100 |            2/2 |
+| Candidate companion and candidate Django-ty  | 5.163 s |        100/100 |            2/2 |
+| MyPy with django-stubs and its Django plugin | 6.793 s |        100/100 |            2/2 |
 
 These are five rotated serial fresh-process samples per stack, with an empty
 MyPy cache each time. Filesystem caches may be warm. Every run preserves source
@@ -43,11 +183,11 @@ public Django APIs and standard-library typing. It retains exactly 7,082 files,
 2,501 models and the original 100 assertions. Each stack checks identical source.
 Its one-shot timings are recorded separately from the medians above.
 
-| Stack                | Valid cases accepted | Invalid cases rejected | Total matched |
-| -------------------- | -------------------: | ---------------------: | ------------: |
-| Official Ty          |                 6/10 |                   2/10 |          8/20 |
-| Candidate companion  |                10/10 |                  10/10 |         20/20 |
-| MyPy + django-stubs  |                10/10 |                   9/10 |         19/20 |
+| Stack               | Valid cases accepted | Invalid cases rejected | Total matched |
+| ------------------- | -------------------: | ---------------------: | ------------: |
+| Official Ty         |                 6/10 |                   2/10 |          8/20 |
+| Candidate companion |                10/10 |                  10/10 |         20/20 |
+| MyPy + django-stubs |                10/10 |                   9/10 |         19/20 |
 
 Native Ty misses string-target relationship types, reverse relationships, precise
 `values()` / `values_list()` results, and constructor/query validation in these

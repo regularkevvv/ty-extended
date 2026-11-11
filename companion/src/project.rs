@@ -108,6 +108,7 @@ pub struct Project {
     notebook_sources: BTreeSet<PathBuf>,
     additional_sources: BTreeSet<PathBuf>,
     assignments: Arc<Vec<Value>>,
+    call_assignments_only: bool,
     functions: Arc<Vec<IndexFunction>>,
     settings: Arc<Vec<Value>>,
     /// All clones describe the same immutable class revision until a rebuild
@@ -169,6 +170,57 @@ pub struct SourceLayout<'a> {
     pub roots: Vec<PathBuf>,
     pub overlays: &'a [PathBuf],
     pub include: &'a dyn Fn(&Path) -> bool,
+    /// Index overlay syntax reachable from imports and claims. The checker
+    /// still receives every physical declaration. Full indexing is the default.
+    pub sparse_overlays: bool,
+    /// Omit unused module assignment summaries while retaining every AST
+    /// binding for imports, constants, settings and field argument resolution.
+    pub call_assignments_only: bool,
+}
+
+fn import_targets(name: &str, module: &Module) -> BTreeSet<String> {
+    use ruff_python_ast::visitor::{self, Visitor};
+    struct Imports<'a> {
+        module: &'a str,
+        package: bool,
+        targets: BTreeSet<String>,
+    }
+    impl<'a> Visitor<'a> for Imports<'a> {
+        fn visit_stmt(&mut self, statement: &'a Stmt) {
+            match statement {
+                Stmt::Import(import) => self
+                    .targets
+                    .extend(import.names.iter().map(|alias| alias.name.to_string())),
+                Stmt::ImportFrom(import) => {
+                    let module = relative_import(
+                        self.module,
+                        self.package,
+                        import.level,
+                        import.module.as_ref().map(|name| name.as_str()),
+                    );
+                    self.targets.insert(module.clone());
+                    self.targets.extend(
+                        import
+                            .names
+                            .iter()
+                            .filter(|alias| alias.name.as_str() != "*")
+                            .map(|alias| format!("{module}.{}", alias.name)),
+                    );
+                }
+                _ => {}
+            }
+            visitor::walk_stmt(self, statement);
+        }
+    }
+    let mut imports = Imports {
+        module: name,
+        package: Path::new(&module.source.path)
+            .file_stem()
+            .is_some_and(|name| name == "__init__"),
+        targets: BTreeSet::new(),
+    };
+    imports.visit_body(&module.suite);
+    imports.targets
 }
 
 impl Project {
@@ -207,6 +259,17 @@ impl Project {
         exact_paths: bool,
         layout: Option<SourceLayout<'_>>,
     ) -> Result<Self> {
+        let trace_load = std::env::var_os("TY_COMPANION_TRACE_PHASES").is_some();
+        let mut tick = std::time::Instant::now();
+        let mut mark = |name: &str| {
+            if trace_load {
+                eprintln!(
+                    "companion project load {name}: {:.6}s",
+                    tick.elapsed().as_secs_f64()
+                );
+            }
+            tick = std::time::Instant::now();
+        };
         let root = root
             .canonicalize()
             .with_context(|| format!("project root {}", root.display()))?;
@@ -230,6 +293,9 @@ impl Project {
             notebook_sources: BTreeSet::new(),
             additional_sources: BTreeSet::new(),
             assignments: Arc::default(),
+            call_assignments_only: layout
+                .as_ref()
+                .is_some_and(|layout| layout.call_assignments_only),
             functions: Arc::default(),
             settings: Arc::default(),
             hierarchy: Arc::default(),
@@ -238,21 +304,8 @@ impl Project {
         if paths.is_empty() && !exact_paths {
             collect_python(&project.root, &mut paths)?;
         }
-        for path in paths {
-            let path = if path.is_absolute() {
-                path
-            } else {
-                project.root.join(path)
-            };
-            let path = path
-                .canonicalize()
-                .with_context(|| format!("source file {}", path.display()))?;
-            if !path.starts_with(&project.root) {
-                project.additional_sources.insert(path.clone());
-            }
-            let module = project.source_module_name(&path)?;
-            project.add_module(&module, &path, false)?;
-        }
+        project.load_initial_sources(&paths, crate::parallel::workers(paths.len()))?;
+        mark("initial_sources");
         // Claims select settings modules; they are dependencies even when user
         // code never imports them directly.
         for name in project.settings_modules() {
@@ -263,12 +316,47 @@ impl Project {
         project.load_imports()?;
         if let Some(layout) = layout {
             project.reindex_source_roots(layout.roots)?;
-            for root in layout.overlays.iter().rev() {
-                project.load_source_tree_filtered(root, layout.include)?;
+            if layout.sparse_overlays {
+                project.load_overlay_imports(layout.overlays, layout.include)?;
+            } else {
+                for root in layout.overlays.iter().rev() {
+                    project.load_source_tree_filtered(root, layout.include)?;
+                }
             }
         }
+        mark("imports_and_overlays");
         project.rebuild()?;
+        mark("summaries_and_hierarchy");
         Ok(project)
+    }
+
+    /// Source parsing has no cross-module dependencies. Read and parse each
+    /// initial snapshot in parallel, then install results in input order so module
+    /// precedence and the first reported error match sequential loading.
+    fn load_initial_sources(&mut self, paths: &[PathBuf], workers: usize) -> Result<()> {
+        let read = |path: &PathBuf| -> Result<_> {
+            let path = if path.is_absolute() {
+                path.clone()
+            } else {
+                self.root.join(path)
+            };
+            let path = path
+                .canonicalize()
+                .with_context(|| format!("source file {}", path.display()))?;
+            let name = self.source_module_name(&path)?;
+            let text = read_source(&path)?;
+            let (module, invalid) = self.parse_module(&name, &path, false, text)?;
+            Ok((path, name, module, invalid))
+        };
+        let sources = crate::parallel::map_ordered(paths, workers, read)?;
+        for source in sources {
+            let (path, name, module, invalid) = source?;
+            if !path.starts_with(&self.root) {
+                self.additional_sources.insert(path);
+            }
+            self.install_module(name, module, invalid);
+        }
+        Ok(())
     }
 
     pub fn set_source_roots(&mut self, roots: Vec<PathBuf>) -> Result<()> {
@@ -427,52 +515,11 @@ impl Project {
     /// Conservative dependency edges for incremental projection. Include imports
     /// in every scope/branch, star imports, package initializers, and submodules.
     pub fn import_dependencies(&self) -> BTreeMap<String, BTreeSet<String>> {
-        use ruff_python_ast::visitor::{self, Visitor};
-        struct Imports<'a> {
-            module: &'a str,
-            package: bool,
-            targets: BTreeSet<String>,
-        }
-        impl<'a> Visitor<'a> for Imports<'a> {
-            fn visit_stmt(&mut self, statement: &'a Stmt) {
-                match statement {
-                    Stmt::Import(import) => self
-                        .targets
-                        .extend(import.names.iter().map(|alias| alias.name.to_string())),
-                    Stmt::ImportFrom(import) => {
-                        let module = relative_import(
-                            self.module,
-                            self.package,
-                            import.level,
-                            import.module.as_ref().map(|name| name.as_str()),
-                        );
-                        self.targets.insert(module.clone());
-                        self.targets.extend(
-                            import
-                                .names
-                                .iter()
-                                .filter(|alias| alias.name.as_str() != "*")
-                                .map(|alias| format!("{module}.{}", alias.name)),
-                        );
-                    }
-                    _ => {}
-                }
-                visitor::walk_stmt(self, statement);
-            }
-        }
         self.modules
             .iter()
             .map(|(name, module)| {
-                let mut imports = Imports {
-                    module: name,
-                    package: Path::new(&module.source.path)
-                        .file_stem()
-                        .is_some_and(|name| name == "__init__"),
-                    targets: BTreeSet::new(),
-                };
-                imports.visit_body(&module.suite);
                 let mut dependencies = BTreeSet::new();
-                for target in imports.targets {
+                for target in import_targets(name, module) {
                     let mut prefix = target.as_str();
                     loop {
                         if self.modules.contains_key(prefix) {
@@ -497,6 +544,78 @@ impl Project {
                     .any(|root| Path::new(&module.source.path).starts_with(root))
         });
         self.rebuild()
+    }
+
+    fn load_overlay_imports(
+        &mut self,
+        roots: &[PathBuf],
+        include: &dyn Fn(&Path) -> bool,
+    ) -> Result<()> {
+        let mut available = BTreeMap::new();
+        for root in roots.iter().rev() {
+            let mut paths = Vec::new();
+            collect_python(root, &mut paths)?;
+            paths.retain(|path| include(path.strip_prefix(root).unwrap()));
+            // Match full indexing: a higher-priority root wins, and .pyi wins
+            // over .py inside a root. First-party modules keep their identity.
+            paths.sort_by_key(|path| path.extension().is_some_and(|ext| ext == "pyi"));
+            for path in paths {
+                available.insert(module_name(root, &path)?, path);
+            }
+        }
+        fn enqueue(
+            target: &str,
+            available: &BTreeMap<String, PathBuf>,
+            pending: &mut BTreeSet<String>,
+        ) {
+            let mut prefix = target;
+            loop {
+                if available.contains_key(prefix) {
+                    pending.insert(prefix.to_owned());
+                }
+                let Some((parent, _)) = prefix.rsplit_once('.') else {
+                    break;
+                };
+                prefix = parent;
+            }
+        }
+        fn claims(
+            value: &Value,
+            available: &BTreeMap<String, PathBuf>,
+            pending: &mut BTreeSet<String>,
+        ) {
+            match value {
+                Value::String(name) => enqueue(name, available, pending),
+                Value::Array(values) => {
+                    for value in values {
+                        claims(value, available, pending);
+                    }
+                }
+                Value::Object(values) => {
+                    for value in values.values() {
+                        claims(value, available, pending);
+                    }
+                }
+                _ => {}
+            }
+        }
+        let mut pending = BTreeSet::new();
+        for (name, module) in self.modules.iter() {
+            for target in import_targets(name, module) {
+                enqueue(&target, &available, &mut pending);
+            }
+        }
+        claims(&self.manifest["claims"], &available, &mut pending);
+        while let Some(name) = pending.pop_first() {
+            if self.modules.contains_key(&name) {
+                continue;
+            }
+            self.add_module(&name, &available[&name], true)?;
+            for target in import_targets(&name, &self.modules[&name]) {
+                enqueue(&target, &available, &mut pending);
+            }
+        }
+        Ok(())
     }
 
     /// Add a stub/source overlay's import graph. External classes participate in
@@ -552,6 +671,18 @@ impl Project {
         external: bool,
         text: String,
     ) -> Result<()> {
+        let (module, invalid) = self.parse_module(name, path, external, text)?;
+        self.install_module(name.to_owned(), module, invalid);
+        Ok(())
+    }
+
+    fn parse_module(
+        &self,
+        name: &str,
+        path: &Path,
+        external: bool,
+        text: String,
+    ) -> Result<(Module, bool)> {
         let source_type = self.source_type(path);
         let parsed = if source_type == ast::PySourceType::Ipynb
             && let Ok(notebook) = ruff_notebook::Notebook::from_path(path)
@@ -565,13 +696,10 @@ impl Project {
         } else {
             ruff_python_parser::parse_unchecked_source(&text, source_type)
         };
+        let invalid = !parsed.errors().is_empty();
         let suite = match parsed.errors().first() {
-            None => {
-                self.syntax_errors.remove(name);
-                parsed.syntax().body.to_vec()
-            }
+            None => parsed.into_syntax().body.into_iter().collect(),
             Some(_) if self.allow_invalid && !external => {
-                self.syntax_errors.insert(name.to_owned());
                 let first_error = parsed
                     .errors()
                     .first()
@@ -580,11 +708,10 @@ impl Project {
                 // A malformed suffix remains byte-for-byte in Source. Safe earlier
                 // declarations still receive plugin fields for editor completion.
                 parsed
-                    .syntax()
+                    .into_syntax()
                     .body
-                    .iter()
-                    .filter(|statement| span(*statement).end <= first_error)
-                    .cloned()
+                    .into_iter()
+                    .filter(|statement| span(statement).end <= first_error)
                     .collect()
             }
             Some(error) => bail!("parse {}: {error}", path.display()),
@@ -613,8 +740,16 @@ impl Project {
             Arc::make_mut(&mut module.bindings),
             Arc::make_mut(&mut module.assignments),
         );
-        Arc::make_mut(&mut self.modules).insert(name.to_owned(), module);
-        Ok(())
+        Ok((module, invalid))
+    }
+
+    fn install_module(&mut self, name: String, module: Module, invalid: bool) {
+        if invalid {
+            self.syntax_errors.insert(name.clone());
+        } else {
+            self.syntax_errors.remove(&name);
+        }
+        Arc::make_mut(&mut self.modules).insert(name, module);
     }
 
     /// Refresh project files without reparsing unchanged modules or external stubs.
@@ -1066,6 +1201,23 @@ impl Project {
         }
         annotation(&class.body, member, &module.imports)
             .map(|expression| self.annotation(module_name, module, expression))
+    }
+
+    /// A limited early return can name an undecorated, nongeneric source
+    /// class. Other expressions retain native type observations and validation.
+    pub fn plain_source_class(&self, name: &str) -> bool {
+        self.original_class(name).is_some_and(|(_, module, class)| {
+            !module.external
+                && class.decorator_list.is_empty()
+                && class.type_params.is_none()
+                && class.arguments.as_ref().is_none_or(|arguments| {
+                    arguments.keywords.is_empty()
+                        && arguments
+                            .args
+                            .iter()
+                            .all(|base| !matches!(base, Expr::Subscript(_)))
+                })
+        })
     }
 
     /// Resolve imported aliases throughout a type expression while preserving
@@ -1537,14 +1689,25 @@ impl Project {
                 Stmt::ClassDef(class) => {
                     self.summarize_class(name, module, class, classes)?;
                 }
-                Stmt::Assign(assignment) if !module.external => {
+                Stmt::Assign(assignment)
+                    if !module.external
+                        && (!self.call_assignments_only
+                            || matches!(assignment.value.as_ref(), Expr::Call(_))) =>
+                {
                     for target in &assignment.targets {
                         if let Expr::Name(target) = target {
                             assignments.push(json!({"name":target.id.as_str(),"qualified-name":format!("{name}.{}",target.id),"assigned-value":self.assigned(name,module,&assignment.value),"source":module.source.location(span(target))}));
                         }
                     }
                 }
-                Stmt::AnnAssign(assignment) if !module.external => {
+                Stmt::AnnAssign(assignment)
+                    if !module.external
+                        && (!self.call_assignments_only
+                            || assignment
+                                .value
+                                .as_ref()
+                                .is_some_and(|value| matches!(value.as_ref(), Expr::Call(_)))) =>
+                {
                     if let (Expr::Name(target), Some(value)) =
                         (assignment.target.as_ref(), assignment.value.as_ref())
                     {
@@ -2756,7 +2919,7 @@ mod tests {
                 std::fs::create_dir_all(path.parent().unwrap()).unwrap();
                 std::fs::write(path, text).unwrap();
             }
-            Self(root)
+            Self(root.canonicalize().unwrap())
         }
         fn project(&self, manifest: Value, config: Value) -> Project {
             Project::load(&self.0, &[self.0.join("models.py")], &manifest, config).unwrap()
@@ -2766,6 +2929,182 @@ mod tests {
         fn drop(&mut self) {
             let _ = std::fs::remove_dir_all(&self.0);
         }
+    }
+
+    #[test]
+    fn parallel_initial_sources_preserve_precedence_summaries_and_parse_errors() -> Result<()> {
+        let source = Fixture::new(&[
+            ("base.py", "class Parent: pass\n"),
+            ("duplicate.py", "class Wrong: pass\n"),
+            ("duplicate.pyi", "class Selected: ...\n"),
+            ("broken.py", "class Safe: pass\ninvalid !!! syntax\n"),
+        ]);
+        let outside = Fixture::new(&[("outside.py", "class Outside: pass\n")]);
+        let mut paths = vec![PathBuf::from("base.py")];
+        for number in 0..130 {
+            let path = source.0.join(format!("model{number}.py"));
+            std::fs::write(
+                &path,
+                format!(
+                    "from base import Parent\nclass Row{number}(Parent):\n    value = Field(null=True)\n    def method(self, count: int) -> str: ...\n"
+                ),
+            )?;
+            paths.push(path);
+        }
+        paths.extend([
+            source.0.join("duplicate.py"),
+            source.0.join("duplicate.pyi"),
+            source.0.join("broken.py"),
+            outside.0.join("outside.py"),
+        ]);
+        let empty = Project::load_inner(&source.0, &[], &json!({}), json!({}), true, true, None)?;
+        let mut sequential = empty.clone();
+        // Retain the previous, one-file-at-a-time loader as the reference.
+        for path in &paths {
+            let path = if path.is_absolute() {
+                path.clone()
+            } else {
+                source.0.join(path)
+            }
+            .canonicalize()?;
+            if !path.starts_with(&sequential.root) {
+                sequential.additional_sources.insert(path.clone());
+            }
+            let name = sequential.source_module_name(&path)?;
+            sequential.add_module(&name, &path, false)?;
+        }
+        sequential.rebuild()?;
+        for workers in [1, 2, 4, 8, 256] {
+            let mut parallel = empty.clone();
+            parallel.load_initial_sources(&paths, workers)?;
+            parallel.rebuild()?;
+            assert_eq!(parallel.build_request(), sequential.build_request());
+            assert_eq!(parallel.syntax_errors, BTreeSet::from(["broken".into()]));
+            assert_eq!(parallel.additional_sources, sequential.additional_sources);
+            assert!(parallel.classes.contains_key("duplicate.Selected"));
+            assert!(!parallel.classes.contains_key("duplicate.Wrong"));
+            assert!(parallel.classes.contains_key("broken.Safe"));
+            assert_eq!(
+                parallel.mro("model129.Row129"),
+                sequential.mro("model129.Row129")
+            );
+            assert_eq!(parallel.modules.len(), 134);
+        }
+
+        // Later worker failures must not mask the first input's parse failure.
+        std::fs::write(source.0.join("first.py"), "first !!! error\n")?;
+        let errors = [PathBuf::from("first.py"), PathBuf::from("broken.py")];
+        let mut strict = empty;
+        strict.allow_invalid = false;
+        let first = strict.load_initial_sources(&errors, 1).unwrap_err();
+        for workers in [2, 4, 8, 256] {
+            let mut strict_parallel = strict.clone();
+            let second = strict_parallel
+                .load_initial_sources(&errors, workers)
+                .unwrap_err();
+            assert_eq!(first.to_string(), second.to_string());
+        }
+        assert!(first.to_string().contains("first.py"));
+        Ok(())
+    }
+
+    #[test]
+    fn sparse_overlay_imports_preserve_summaries_and_reach_every_scope_and_claim() -> Result<()> {
+        let source = Fixture::new(&[
+            (
+                "models.py",
+                "from package import Base\nfrom own import Local\nif False:\n    import conditional\ndef f():\n    import local_import\nclass Row(Base, Local): pass\n",
+            ),
+            ("own.py", "class Local: pass\n"),
+        ]);
+        let stubs = Fixture::new(&[
+            (
+                "high/package/__init__.pyi",
+                "from .used import Base as Base\n",
+            ),
+            ("high/package/used.py", "class WrongSource: pass\n"),
+            (
+                "high/package/used.pyi",
+                "from transitive import Parent\nclass Base(Parent): ...\n",
+            ),
+            ("low/package/used.pyi", "class WrongPriority: ...\n"),
+            ("high/transitive.pyi", "class Parent: ...\n"),
+            ("high/conditional.pyi", "from conditional_child import C\n"),
+            ("high/conditional_child.pyi", "class C: ...\n"),
+            ("high/local_import.pyi", "from star_child import *\n"),
+            ("high/star_child.pyi", "class Star: ...\n"),
+            (
+                "high/hooks.pyi",
+                "from claimed_parent import Parent\nclass Owner(Parent): ...\n",
+            ),
+            ("high/claimed_parent.pyi", "class Parent: ...\n"),
+            ("high/own.pyi", "class WrongLocal: ...\n"),
+            ("high/unreachable.pyi", "class Unused: ...\n"),
+            ("high/excluded.pyi", "invalid !!! syntax\n"),
+        ]);
+        let paths = vec![source.0.join("models.py"), source.0.join("own.py")];
+        let overlays = vec![stubs.0.join("high"), stubs.0.join("low")];
+        let manifest = json!({"claims":{"methods":[{"kind":"exact","class-qualified-name":"hooks.Owner","method-name":"run"}]}});
+        let include = |path: &Path| path.file_name().is_none_or(|name| name != "excluded.pyi");
+        let load = |sparse_overlays| {
+            Project::load_selected(
+                &source.0,
+                &paths,
+                &manifest,
+                json!({}),
+                false,
+                SourceLayout {
+                    roots: vec![source.0.clone()],
+                    overlays: &overlays,
+                    include: &include,
+                    sparse_overlays,
+                    call_assignments_only: false,
+                },
+            )
+        };
+        let full = load(false)?;
+        let sparse = load(true)?;
+        assert!(
+            !full.build_request()["classes"]
+                .as_array()
+                .unwrap()
+                .is_empty()
+        );
+        assert!(sparse.class_summary("models.Row").is_some());
+        assert_eq!(sparse.build_request(), full.build_request());
+        assert_eq!(sparse.mro("models.Row"), full.mro("models.Row"));
+        assert_eq!(
+            sparse.class_summary("models.Row"),
+            full.class_summary("models.Row")
+        );
+        assert_eq!(sparse.mro("hooks.Owner"), full.mro("hooks.Owner"));
+        for name in [
+            "package",
+            "package.used",
+            "transitive",
+            "conditional",
+            "conditional_child",
+            "local_import",
+            "star_child",
+            "hooks",
+            "claimed_parent",
+            "own",
+        ] {
+            assert!(sparse.modules.contains_key(name), "missing {name}");
+        }
+        assert!(!sparse.modules.contains_key("unreachable"));
+        assert!(full.modules.contains_key("unreachable"));
+        assert!(!sparse.modules.contains_key("excluded"));
+        assert!(sparse.classes.contains_key("package.used.Base"));
+        assert!(sparse.classes.contains_key("own.Local"));
+        for name in [
+            "package.used.WrongSource",
+            "package.used.WrongPriority",
+            "own.WrongLocal",
+        ] {
+            assert!(!sparse.classes.contains_key(name));
+        }
+        Ok(())
     }
 
     #[test]
@@ -2816,6 +3155,8 @@ mod tests {
                     roots,
                     overlays: &overlays,
                     include: &include,
+                    sparse_overlays: false,
+                    call_assignments_only: false,
                 },
             )?;
             assert_eq!(combined.build_request(), sequential.build_request());
@@ -3132,6 +3473,61 @@ mod tests {
                 .iter()
                 .any(|class| class["qualified-name"] == "closed.Closed")
         );
+    }
+
+    #[test]
+    fn call_assignment_pushdown_preserves_settings_constants_and_class_summaries() -> Result<()> {
+        let fixture = Fixture::new(&[
+            (
+                "models.py",
+                "from constants import NULL\nVALUE = 42\nOTHER: str = 'unused'\ncomputed = VALUE + 1\nmanager = factory()\nannotated: object = factory()\nif True:\n    nested = factory()\n    dropped = 3\nclass Row:\n    value = Field(null=NULL)\n",
+            ),
+            ("constants.py", "NULL = True\nPREFIX = 'app'\n"),
+            (
+                "settings.py",
+                "from constants import PREFIX\nAUTH_MODEL = PREFIX + '.Row'\nraise RuntimeError('never execute')\n",
+            ),
+        ]);
+        let manifest = json!({"claims":{"settings":[{"config-key":"settings-module"}]}});
+        let load = |call_assignments_only| {
+            Project::load_selected(
+                &fixture.0,
+                &[
+                    fixture.0.join("models.py"),
+                    fixture.0.join("settings.py"),
+                    fixture.0.join("constants.py"),
+                ],
+                &manifest,
+                json!({"settings-module":"settings"}),
+                false,
+                SourceLayout {
+                    roots: vec![fixture.0.clone()],
+                    overlays: &[],
+                    include: &|_| true,
+                    sparse_overlays: false,
+                    call_assignments_only,
+                },
+            )
+        };
+        let full = load(false)?;
+        let selected = load(true)?;
+        let mut expected = full.build_request();
+        expected["assignments"]
+            .as_array_mut()
+            .unwrap()
+            .retain(|assignment| assignment["assigned-value"]["kind"] == "call");
+        assert_eq!(selected.build_request(), expected);
+        assert_eq!(expected["assignments"].as_array().unwrap().len(), 3);
+        assert_eq!(selected.classes, full.classes);
+        assert_eq!(
+            selected.modules["constants"].assignments,
+            full.modules["constants"].assignments
+        );
+        assert_eq!(
+            expected["settings"][0]["values"][0]["value"],
+            json!({"kind":"str","value":"app.Row"})
+        );
+        Ok(())
     }
 
     #[test]

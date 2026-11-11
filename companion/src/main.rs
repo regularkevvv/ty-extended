@@ -9,6 +9,7 @@ mod lsp_server;
 mod mapping;
 mod model;
 mod notebook;
+mod parallel;
 mod project;
 mod project_check;
 mod runtime;
@@ -60,7 +61,11 @@ fn build_edits(
     // avoids asking ty to resolve thousands of identical imported aliases.
     let probe_name = format!("{}probe", source.prefix);
     if probes {
-        for call in analysis.calls.values() {
+        for call in analysis
+            .calls
+            .values()
+            .filter(|call| !analysis.early_calls.contains(&call.span))
+        {
             if let Some(receiver) = call.receiver_span {
                 edits.wrap(
                     receiver,
@@ -98,7 +103,11 @@ fn build_edits(
         );
     }
     if probes {
-        for call in analysis.calls.values() {
+        for call in analysis
+            .calls
+            .values()
+            .filter(|call| !analysis.early_calls.contains(&call.span))
+        {
             for (index, arg) in call.arguments.iter().enumerate() {
                 let isolate_context = analysis.context_free_arguments.contains(&arg.span);
                 edits.wrap(
@@ -123,6 +132,20 @@ fn build_edits(
                 ),
             );
         }
+    }
+    // Native-field mode can leave a module entirely unchanged until a flow
+    // patch or probe actually needs helpers. Add their imports at that point.
+    if analysis.edits.is_empty() && !edits.is_empty() {
+        let mut helpers = Edits::default();
+        helpers.insert(
+            analysis.prelude_offset,
+            format!(
+                "from __future__ import annotations\nfrom typing import cast as {}\n",
+                source.cast_name()
+            ),
+        );
+        helpers.extend(edits);
+        return helpers;
     }
     edits
 }

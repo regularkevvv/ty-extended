@@ -745,6 +745,24 @@ fn class_patch(
                     Some("descriptor") => descriptor.get("class-type"),
                     _ => None,
                 });
+        if runtime.projects_fields_at_uses(qualified) {
+            if field["mode"] == "replace-existing"
+                && native_bindings.complete
+                && !native_bindings.dynamic_class_members
+                && !native_bindings.class_names.contains(name)
+            {
+                let ty = types.render(&field["instance-get-type"])?;
+                instance_code.push_str(&format!("    self.{name}: {ty}\n"));
+            }
+            field_types.insert(
+                name.clone(),
+                field["instance-get-type"]["expression"]
+                    .as_str()
+                    .unwrap_or("object")
+                    .to_owned(),
+            );
+            continue;
+        }
         let ty = types.render(&field["instance-get-type"])?;
         field_types.insert(name.clone(), ty.clone());
         // A native class-transform descriptor supplies a class *value*. Its
@@ -905,7 +923,10 @@ fn class_patch(
         }
         patched_names.insert(name.clone());
     }
-    if !methods.contains("__init__") && (constructor.is_some() || !params.is_empty()) {
+    if (constructor.is_some() || !params.is_empty())
+        && !methods.contains("__init__")
+        && !runtime.projects_fields_at_uses(qualified)
+    {
         let params = constructor
             .as_ref()
             .and_then(|c| c["parameters"].as_array())
@@ -1203,32 +1224,8 @@ impl<'a> Visitor<'a> for Calls<'_> {
             }
             let claims = &self.runtime.manifest["claims"];
             let method = matches!(call.func.as_ref(), Expr::Attribute(_))
-                && (claims["methods"].as_array().into_iter().flatten().any(|c| {
-                    c["method-name"] == last
-                        || c["method-name-pattern"].as_str().is_some_and(|pattern| {
-                            ty_plugin_protocol::method_name_pattern_matches(pattern, last)
-                        })
-                }) || claims["functions"]
-                    .as_array()
-                    .into_iter()
-                    .flatten()
-                    .any(|c| {
-                        // Exact function claims can name a bound method too. Its
-                        // receiver may need the oracle (e.g. factory().method()),
-                        // so defer the full identity check to runtime dispatch.
-                        c["qualified-name"].as_str().is_some_and(|name| {
-                            name.rsplit_once('.')
-                                .is_some_and(|(_, method)| method == last)
-                        })
-                    }));
-            let exact = !shadowed
-                && claims["functions"]
-                    .as_array()
-                    .into_iter()
-                    .flatten()
-                    .any(|c| {
-                        c["qualified-name"] == self.runtime.protocol_name(self.source, &canonical)
-                    });
+                && self.runtime.claims_method_name(last);
+            let exact = !shadowed && self.runtime.claims_function(self.source, &canonical);
             let constructor = !shadowed
                 && self.runtime.project.as_ref().is_some_and(|p| {
                     claims["constructors"]
@@ -1248,7 +1245,11 @@ impl<'a> Visitor<'a> for Calls<'_> {
                                 })
                         })
                 });
-            if method || exact || constructor {
+            if method
+                || exact
+                || constructor
+                || (!shadowed && self.runtime.projects_fields_at_uses(&canonical))
+            {
                 let mut site = call_site(call, canonical);
                 if let Expr::Attribute(a) = call.func.as_ref() {
                     site.receiver_span = Some(span(a.value.as_ref()));
@@ -1286,6 +1287,20 @@ impl<'a> Visitor<'a> for Calls<'_> {
                             }
                         }
                     }
+                }
+                if self.runtime.use_site_fields
+                    && !shadowed
+                    && self
+                        .runtime
+                        .project
+                        .as_ref()
+                        .is_some_and(|project| project.class_summary(&site.callee).is_some())
+                {
+                    // Constructor requests never include a method receiver.
+                    // In particular, a module-qualified class needs no module
+                    // reveal just to confirm that already indexed identity.
+                    site.receiver_span = None;
+                    site.receiver_type = None;
                 }
                 self.calls.insert(span(call), site);
             }
@@ -1474,17 +1489,19 @@ pub fn analyze_with_oracle(
                             "invalid-attribute-override".into(),
                         );
                     }
-                    let info = class_patch(
-                        source,
-                        c,
-                        &name,
-                        runtime,
-                        types,
-                        edits,
-                        diagnostics,
-                        generated,
-                    )?;
-                    classes.insert(name.clone(), info);
+                    if !runtime.keeps_native_class(&name) {
+                        let info = class_patch(
+                            source,
+                            c,
+                            &name,
+                            runtime,
+                            types,
+                            edits,
+                            diagnostics,
+                            generated,
+                        )?;
+                        classes.insert(name.clone(), info);
+                    }
                     classes_in(
                         source,
                         &c.body,
@@ -1621,6 +1638,11 @@ pub fn analyze_with_oracle(
     for call in calls.values() {
         let response = call_request(runtime, source, "adjust-call-signature", call, oracle, None)?;
         if response["kind"] == "call-signature-patch" {
+            // Use-site constructor helpers need the same diagnostic provenance
+            // as constructors emitted inside a transformed class declaration.
+            if constructor_calls.get(&call.span) == Some(&call.callee) {
+                generated.constructors.insert(call.callee.clone());
+            }
             let receiver = call
                 .flow_receiver_type
                 .as_ref()
@@ -1667,9 +1689,8 @@ pub fn analyze_with_oracle(
     // Retain the prelude for potential flow/probe edits discovered later.
     if !edits.is_empty()
         || !prelude.is_empty()
-        || !classes.is_empty()
-        || !calls.is_empty()
-        || !expression_probes.is_empty()
+        || (!runtime.use_site_fields
+            && (!classes.is_empty() || !calls.is_empty() || !expression_probes.is_empty()))
     {
         edits.insert(
             offset,
@@ -1693,6 +1714,7 @@ pub fn analyze_with_oracle(
     Ok(Analysis {
         prelude_offset: offset,
         classes,
+        early_calls: BTreeSet::new(),
         intrinsics,
         calls,
         constructor_calls,

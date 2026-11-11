@@ -1,0 +1,1676 @@
+{
+  "status": "Source-loading change qualified against recorded source contracts. Development A/B only; no new optimized, installed-artifact, hosted-CI or release acceptance.",
+  "changes": [
+    "At most two initial read/parse workers on projects of at least128selected sources. Installation retains original input order.",
+    "Parsed AST is moved into project syntax instead of deep-cloned."
+  ],
+  "build": {
+    "passed": true,
+    "steps": [
+      {
+        "step": "format",
+        "exit": 0,
+        "seconds": 0.6882017079042271
+      },
+      {
+        "step": "focused-parallel-sources",
+        "exit": 0,
+        "seconds": 264.1267085419968
+      },
+      {
+        "step": "focused-profile-cache",
+        "exit": 0,
+        "seconds": 0.42124212498310953
+      },
+      {
+        "step": "focused-contribution",
+        "exit": 0,
+        "seconds": 0.45608050003647804
+      },
+      {
+        "step": "focused-constructor",
+        "exit": 0,
+        "seconds": 0.28959404199849814
+      },
+      {
+        "step": "focused-nullable",
+        "exit": 0,
+        "seconds": 0.4991361659485847
+      },
+      {
+        "step": "focused-nested",
+        "exit": 0,
+        "seconds": 0.3646336669335142
+      },
+      {
+        "step": "focused-complete",
+        "exit": 0,
+        "seconds": 0.2764398750150576
+      },
+      {
+        "step": "focused-restart",
+        "exit": 0,
+        "seconds": 0.5187028750078753
+      },
+      {
+        "step": "focused-early",
+        "exit": 0,
+        "seconds": 0.2832230000058189
+      },
+      {
+        "step": "focused-early-isolation",
+        "exit": 0,
+        "seconds": 0.2332689999602735
+      },
+      {
+        "step": "focused-pushdown",
+        "exit": 0,
+        "seconds": 0.22844304202590138
+      },
+      {
+        "step": "focused-snapshot",
+        "exit": 0,
+        "seconds": 0.29297687497455627
+      },
+      {
+        "step": "focused-state",
+        "exit": 0,
+        "seconds": 0.286879500024952
+      },
+      {
+        "step": "focused-inheritance",
+        "exit": 0,
+        "seconds": 0.28085412504151464
+      },
+      {
+        "step": "focused-unclaimed",
+        "exit": 0,
+        "seconds": 0.23218199994880706
+      },
+      {
+        "step": "focused-input",
+        "exit": 0,
+        "seconds": 0.23991545801982284
+      },
+      {
+        "step": "focused-imports",
+        "exit": 0,
+        "seconds": 0.232526957988739
+      },
+      {
+        "step": "native-units",
+        "exit": 0,
+        "seconds": 6.313511332962662
+      },
+      {
+        "step": "native-ignored",
+        "exit": 0,
+        "seconds": 0.40862545801792294
+      },
+      {
+        "step": "units",
+        "exit": 0,
+        "seconds": 6.306982124922797
+      },
+      {
+        "step": "ignored",
+        "exit": 0,
+        "seconds": 0.4051545000402257
+      },
+      {
+        "step": "binary",
+        "exit": 0,
+        "seconds": 47.92089320800733
+      },
+      {
+        "step": "clippy",
+        "exit": 0,
+        "seconds": 38.930105292005464
+      },
+      {
+        "step": "clean",
+        "exit": 0,
+        "seconds": 0.5185510420706123
+      }
+    ],
+    "source_sha256": {
+      "companion/src/project_config.rs": "24f468df508a496b12be2a2907a92f2f7b54f8d6d5f4047553483f8207fa5b34",
+      "companion/src/flow.rs": "d6d879a0293f7ea07d5da2a1005c93b7b0f07a7a4044948e57a8591d93f5d306",
+      "companion/src/runtime.rs": "f7a396df0bcf7336341b3fcf019384cad4b3f4932bdaafe2a9ba48fda82950b5",
+      "companion/src/static_project.rs": "b57a33c3065aed0caea78b3c7dcdf85fc6f3cef0ffd950585fdcd9d15f68fd1e",
+      "companion/src/editor_options.rs": "6c3d5540fdea2956a9ed179fb2291f087456a48cf744647063bdd11a3f775d46",
+      "companion/src/cli_edits.rs": "01543f2a5d63f7a66545923b6ccd25e06161b6e3fd9b2936d09073768902c444",
+      "companion/src/project_check.rs": "53839f02451191dfa281c611451308e95864a8123fc60519b57d4cfd3528ef31",
+      "companion/src/project.rs": "784045536cb9f46886b81015a53841a24451040984354acfcfac173840ed154f",
+      "companion/src/checker.rs": "a335f03c95ef3a4190c47006e274a7bfc596c4f32d5a78e28d0c2725e3763ab3",
+      "companion/src/verify.rs": "e7708860ec0bd32cdfb8d6a171a53b2c12d5a67703f5a5b4322fa72d1592603d",
+      "companion/src/type_snapshot.rs": "0c018b699a8d140782e3813a5606d188c27b392400d1796ab839d73002eba813",
+      "companion/src/mapping.rs": "2dae11cc2e23cd9697868600b58fc02762185c1e7bf63920bb8d2c9402893774",
+      "companion/src/main.rs": "6efbcefb8196095191bc198a6c6d3b6431a90c6729175e30610e995890e1d8de",
+      "companion/src/notebook.rs": "0bbd10d569d77019c19b7b76e7d2259c93afaaccc7f18c089e6478f3491cd24f",
+      "companion/src/lsp_mapping.rs": "2a3d7cc63f066bc25db11d680819124e3ff609448d2f27ab93b15d877bfc48fb",
+      "companion/src/lsp_server.rs": "f6a49b11f82ef55a8028d78253fb210844135b9c93e7777074dab3c6f846676a",
+      "companion/src/lower.rs": "6a1cddca28970920afcdc47a976a43445dc451c48c4281a4b29e7c56f9c3022e",
+      "companion/src/type_render.rs": "d4f62ea50e5fa320e862ae635e8bf90329211324963a8d92bea21cf6b9533111",
+      "companion/src/model.rs": "de430e36789b8760f8e028456c827f665a25376595cddf0e36654a3b98ce7e19",
+      "companion/src/cli.rs": "1cf30fe5cae409179d860ff2e5611d58e42c83f68599cc354ece0ec9c92a086c"
+    }
+  },
+  "development_ab": {
+    "passed": true,
+    "scope": "Three rotated serial fresh processes per DEVELOPMENT build; exploratory A/B, not optimized or a release acceptance. Load<16 before/after, 4GiB/90seconds; all source bytes+mtimes preserved. Rejected load samples retained.",
+    "records": [
+      {
+        "backend": "companion",
+        "label": "0/before-0",
+        "command": [
+          "$HYBRID/iteration-v18",
+          "check",
+          "--python",
+          "$WORK/environment/bin/python",
+          "--python-version",
+          "3.13",
+          "--output-format",
+          "gitlab",
+          "--no-progress",
+          "--color",
+          "never",
+          "$WORK/stress/project",
+          "--ty",
+          "$WORK/environment/bin/ty",
+          "--config-file",
+          "$HYBRID/stress.toml"
+        ],
+        "seconds": 2.7577917920425534,
+        "exit": 0,
+        "diagnostic_codes": {},
+        "user_cpu_seconds": 1.918523,
+        "system_cpu_seconds": 1.424646,
+        "sampled_process_tree_peak_rss_kib": 438864,
+        "stopped": null,
+        "monitor_error": null,
+        "parse_error": null,
+        "load_before": [
+          6.1181640625,
+          6.43798828125,
+          6.00341796875
+        ],
+        "load_after": [
+          6.5087890625,
+          6.513671875,
+          6.0322265625
+        ],
+        "source_sha256": "51c1a88b05a169f1222685fe6105e4be5f43d4213aaaf57c60bf99dbe0d82df9",
+        "source_preserved": true,
+        "variant": "before",
+        "source_mtimes_preserved": true,
+        "phases": {
+          "startup_source_copy": 0.008,
+          "startup_configuration": 0.004,
+          "startup_runtime": 0.01,
+          "startup_overlays": 0.174,
+          "startup_selection": 0.094,
+          "startup_source_and_stub_index": 0.441,
+          "startup_project": 0.0,
+          "source_scan": 0.0,
+          "external_resolution": 0.007,
+          "function_summaries": 0.0,
+          "project_index": 0.543,
+          "virtual_declarations": 0.003,
+          "class_projection": 0.026,
+          "initial_lowering": 0.246,
+          "flow_and_render": 0.255,
+          "import_preflight": 0.007,
+          "oracle_check": 0.717,
+          "hook_responses": 0.022,
+          "final_render": 0.002,
+          "final_check": 0.006,
+          "diagnostic_mapping": 0.012,
+          "source_maps": 0.011
+        },
+        "source_loading": {
+          "initial_sources": 0.303715,
+          "imports_and_overlays": 0.025269,
+          "summaries_and_hierarchy": 0.111522
+        },
+        "accepted": true
+      },
+      {
+        "backend": "companion",
+        "label": "0/after-0",
+        "command": [
+          "$HYBRID/iteration-v19",
+          "check",
+          "--python",
+          "$WORK/environment/bin/python",
+          "--python-version",
+          "3.13",
+          "--output-format",
+          "gitlab",
+          "--no-progress",
+          "--color",
+          "never",
+          "$WORK/stress/project",
+          "--ty",
+          "$WORK/environment/bin/ty",
+          "--config-file",
+          "$HYBRID/stress.toml"
+        ],
+        "seconds": 2.279394041048363,
+        "exit": 0,
+        "diagnostic_codes": {},
+        "user_cpu_seconds": 1.886296,
+        "system_cpu_seconds": 1.252891,
+        "sampled_process_tree_peak_rss_kib": 432640,
+        "stopped": null,
+        "monitor_error": null,
+        "parse_error": null,
+        "load_before": [
+          6.33740234375,
+          6.47900390625,
+          6.025390625
+        ],
+        "load_after": [
+          6.33740234375,
+          6.47900390625,
+          6.025390625
+        ],
+        "source_sha256": "51c1a88b05a169f1222685fe6105e4be5f43d4213aaaf57c60bf99dbe0d82df9",
+        "source_preserved": true,
+        "variant": "after",
+        "source_mtimes_preserved": true,
+        "phases": {
+          "startup_source_copy": 0.006,
+          "startup_configuration": 0.004,
+          "startup_runtime": 0.01,
+          "startup_overlays": 0.09,
+          "startup_selection": 0.089,
+          "startup_source_and_stub_index": 0.293,
+          "startup_project": 0.0,
+          "source_scan": 0.0,
+          "external_resolution": 0.007,
+          "function_summaries": 0.0,
+          "project_index": 0.509,
+          "virtual_declarations": 0.002,
+          "class_projection": 0.024,
+          "initial_lowering": 0.23,
+          "flow_and_render": 0.237,
+          "import_preflight": 0.007,
+          "oracle_check": 0.571,
+          "hook_responses": 0.02,
+          "final_render": 0.002,
+          "final_check": 0.005,
+          "diagnostic_mapping": 0.011,
+          "source_maps": 0.009
+        },
+        "source_loading": {
+          "initial_sources": 0.162251,
+          "imports_and_overlays": 0.021754,
+          "summaries_and_hierarchy": 0.108788
+        },
+        "accepted": true
+      },
+      {
+        "backend": "companion",
+        "label": "1/after-0",
+        "command": [
+          "$HYBRID/iteration-v19",
+          "check",
+          "--python",
+          "$WORK/environment/bin/python",
+          "--python-version",
+          "3.13",
+          "--output-format",
+          "gitlab",
+          "--no-progress",
+          "--color",
+          "never",
+          "$WORK/stress/project",
+          "--ty",
+          "$WORK/environment/bin/ty",
+          "--config-file",
+          "$HYBRID/stress.toml"
+        ],
+        "seconds": 2.338203667080961,
+        "exit": 0,
+        "diagnostic_codes": {},
+        "user_cpu_seconds": 1.853799,
+        "system_cpu_seconds": 1.585787,
+        "sampled_process_tree_peak_rss_kib": 434064,
+        "stopped": null,
+        "monitor_error": null,
+        "parse_error": null,
+        "load_before": [
+          6.05224609375,
+          6.40625,
+          6.00634765625
+        ],
+        "load_after": [
+          6.05224609375,
+          6.40625,
+          6.00634765625
+        ],
+        "source_sha256": "51c1a88b05a169f1222685fe6105e4be5f43d4213aaaf57c60bf99dbe0d82df9",
+        "source_preserved": true,
+        "variant": "after",
+        "source_mtimes_preserved": true,
+        "phases": {
+          "startup_source_copy": 0.006,
+          "startup_configuration": 0.002,
+          "startup_runtime": 0.008,
+          "startup_overlays": 0.096,
+          "startup_selection": 0.088,
+          "startup_source_and_stub_index": 0.295,
+          "startup_project": 0.0,
+          "source_scan": 0.0,
+          "external_resolution": 0.009,
+          "function_summaries": 0.0,
+          "project_index": 0.524,
+          "virtual_declarations": 0.002,
+          "class_projection": 0.025,
+          "initial_lowering": 0.236,
+          "flow_and_render": 0.241,
+          "import_preflight": 0.006,
+          "oracle_check": 0.596,
+          "hook_responses": 0.021,
+          "final_render": 0.002,
+          "final_check": 0.006,
+          "diagnostic_mapping": 0.012,
+          "source_maps": 0.009
+        },
+        "source_loading": {
+          "initial_sources": 0.160204,
+          "imports_and_overlays": 0.020983,
+          "summaries_and_hierarchy": 0.113726
+        },
+        "accepted": true
+      },
+      {
+        "backend": "companion",
+        "label": "1/before-0",
+        "command": [
+          "$HYBRID/iteration-v18",
+          "check",
+          "--python",
+          "$WORK/environment/bin/python",
+          "--python-version",
+          "3.13",
+          "--output-format",
+          "gitlab",
+          "--no-progress",
+          "--color",
+          "never",
+          "$WORK/stress/project",
+          "--ty",
+          "$WORK/environment/bin/ty",
+          "--config-file",
+          "$HYBRID/stress.toml"
+        ],
+        "seconds": 2.705125999986194,
+        "exit": 0,
+        "diagnostic_codes": {},
+        "user_cpu_seconds": 1.905214,
+        "system_cpu_seconds": 1.4039949999999999,
+        "sampled_process_tree_peak_rss_kib": 439472,
+        "stopped": null,
+        "monitor_error": null,
+        "parse_error": null,
+        "load_before": [
+          6.27099609375,
+          6.44189453125,
+          6.02294921875
+        ],
+        "load_after": [
+          6.2490234375,
+          6.43408203125,
+          6.0224609375
+        ],
+        "source_sha256": "51c1a88b05a169f1222685fe6105e4be5f43d4213aaaf57c60bf99dbe0d82df9",
+        "source_preserved": true,
+        "variant": "before",
+        "source_mtimes_preserved": true,
+        "phases": {
+          "startup_source_copy": 0.009,
+          "startup_configuration": 0.016,
+          "startup_runtime": 0.023,
+          "startup_overlays": 0.185,
+          "startup_selection": 0.094,
+          "startup_source_and_stub_index": 0.457,
+          "startup_project": 0.0,
+          "source_scan": 0.001,
+          "external_resolution": 0.01,
+          "function_summaries": 0.0,
+          "project_index": 0.537,
+          "virtual_declarations": 0.004,
+          "class_projection": 0.026,
+          "initial_lowering": 0.244,
+          "flow_and_render": 0.244,
+          "import_preflight": 0.007,
+          "oracle_check": 0.62,
+          "hook_responses": 0.02,
+          "final_render": 0.002,
+          "final_check": 0.005,
+          "diagnostic_mapping": 0.01,
+          "source_maps": 0.01
+        },
+        "source_loading": {
+          "initial_sources": 0.309987,
+          "imports_and_overlays": 0.028914,
+          "summaries_and_hierarchy": 0.116565
+        },
+        "accepted": true
+      },
+      {
+        "backend": "companion",
+        "label": "2/before-0",
+        "command": [
+          "$HYBRID/iteration-v18",
+          "check",
+          "--python",
+          "$WORK/environment/bin/python",
+          "--python-version",
+          "3.13",
+          "--output-format",
+          "gitlab",
+          "--no-progress",
+          "--color",
+          "never",
+          "$WORK/stress/project",
+          "--ty",
+          "$WORK/environment/bin/ty",
+          "--config-file",
+          "$HYBRID/stress.toml"
+        ],
+        "seconds": 2.433944958029315,
+        "exit": 0,
+        "diagnostic_codes": {},
+        "user_cpu_seconds": 1.8854899999999999,
+        "system_cpu_seconds": 1.275599,
+        "sampled_process_tree_peak_rss_kib": 435552,
+        "stopped": null,
+        "monitor_error": null,
+        "parse_error": null,
+        "load_before": [
+          5.3681640625,
+          6.23828125,
+          5.95751953125
+        ],
+        "load_after": [
+          5.25830078125,
+          6.20068359375,
+          5.94580078125
+        ],
+        "source_sha256": "51c1a88b05a169f1222685fe6105e4be5f43d4213aaaf57c60bf99dbe0d82df9",
+        "source_preserved": true,
+        "variant": "before",
+        "source_mtimes_preserved": true,
+        "phases": {
+          "startup_source_copy": 0.006,
+          "startup_configuration": 0.002,
+          "startup_runtime": 0.008,
+          "startup_overlays": 0.091,
+          "startup_selection": 0.089,
+          "startup_source_and_stub_index": 0.391,
+          "startup_project": 0.0,
+          "source_scan": 0.0,
+          "external_resolution": 0.007,
+          "function_summaries": 0.0,
+          "project_index": 0.507,
+          "virtual_declarations": 0.003,
+          "class_projection": 0.025,
+          "initial_lowering": 0.228,
+          "flow_and_render": 0.236,
+          "import_preflight": 0.006,
+          "oracle_check": 0.631,
+          "hook_responses": 0.021,
+          "final_render": 0.002,
+          "final_check": 0.005,
+          "diagnostic_mapping": 0.011,
+          "source_maps": 0.009
+        },
+        "source_loading": {
+          "initial_sources": 0.255407,
+          "imports_and_overlays": 0.024056,
+          "summaries_and_hierarchy": 0.110718
+        },
+        "accepted": true
+      },
+      {
+        "backend": "companion",
+        "label": "2/after-0",
+        "command": [
+          "$HYBRID/iteration-v19",
+          "check",
+          "--python",
+          "$WORK/environment/bin/python",
+          "--python-version",
+          "3.13",
+          "--output-format",
+          "gitlab",
+          "--no-progress",
+          "--color",
+          "never",
+          "$WORK/stress/project",
+          "--ty",
+          "$WORK/environment/bin/ty",
+          "--config-file",
+          "$HYBRID/stress.toml"
+        ],
+        "seconds": 2.677095790975727,
+        "exit": 0,
+        "diagnostic_codes": {},
+        "user_cpu_seconds": 1.865583,
+        "system_cpu_seconds": 2.226634,
+        "sampled_process_tree_peak_rss_kib": 443760,
+        "stopped": null,
+        "monitor_error": null,
+        "parse_error": null,
+        "load_before": [
+          5.3046875,
+          6.177734375,
+          5.93994140625
+        ],
+        "load_after": [
+          5.3046875,
+          6.177734375,
+          5.93994140625
+        ],
+        "source_sha256": "51c1a88b05a169f1222685fe6105e4be5f43d4213aaaf57c60bf99dbe0d82df9",
+        "source_preserved": true,
+        "variant": "after",
+        "source_mtimes_preserved": true,
+        "phases": {
+          "startup_source_copy": 0.009,
+          "startup_configuration": 0.016,
+          "startup_runtime": 0.024,
+          "startup_overlays": 0.204,
+          "startup_selection": 0.09,
+          "startup_source_and_stub_index": 0.344,
+          "startup_project": 0.0,
+          "source_scan": 0.001,
+          "external_resolution": 0.009,
+          "function_summaries": 0.0,
+          "project_index": 0.523,
+          "virtual_declarations": 0.003,
+          "class_projection": 0.025,
+          "initial_lowering": 0.245,
+          "flow_and_render": 0.249,
+          "import_preflight": 0.008,
+          "oracle_check": 0.703,
+          "hook_responses": 0.02,
+          "final_render": 0.002,
+          "final_check": 0.005,
+          "diagnostic_mapping": 0.011,
+          "source_maps": 0.009
+        },
+        "source_loading": {
+          "initial_sources": 0.203962,
+          "imports_and_overlays": 0.023555,
+          "summaries_and_hierarchy": 0.114958
+        },
+        "accepted": true
+      }
+    ],
+    "binary_sha256": {
+      "before": "6333542f44567f86122f4fdab797f2665e51f34b035120cf15516551ac954d22",
+      "after": "4f8c559503f3adda1ca9cfb4fa1bf9b5d5a54c5b528e3dc4d027b559d7273116"
+    },
+    "source_sha256": "51c1a88b05a169f1222685fe6105e4be5f43d4213aaaf57c60bf99dbe0d82df9",
+    "median_seconds": {
+      "before": 2.705125999986194,
+      "after": 2.338203667080961
+    },
+    "median_initial_sources": {
+      "before": 0.303715,
+      "after": 0.162251
+    }
+  },
+  "source_qualification": {
+    "steps": [
+      {
+        "step": "corpus",
+        "exit": 0,
+        "seconds": 1.3618883329909295
+      },
+      {
+        "step": "multi-app",
+        "exit": 0,
+        "seconds": 0.432636332930997
+      },
+      {
+        "step": "sdk-fields",
+        "exit": 0,
+        "seconds": 0.44877012504730374
+      },
+      {
+        "step": "monty-types",
+        "exit": 0,
+        "seconds": 0.28928716597147286
+      },
+      {
+        "step": "python-units",
+        "exit": 1,
+        "seconds": 4.4397240419639274
+      },
+      {
+        "step": "focus",
+        "exit": 0,
+        "seconds": 4.1536315419944
+      },
+      {
+        "step": "django-runtime",
+        "exit": 0,
+        "seconds": 0.4188771670451388
+      },
+      {
+        "step": "querydict-0",
+        "exit": 0,
+        "seconds": 3.640981709002517
+      },
+      {
+        "step": "querydict-1",
+        "exit": 0,
+        "seconds": 2.96816883306019
+      }
+    ],
+    "binary_sha256": "4f8c559503f3adda1ca9cfb4fa1bf9b5d5a54c5b528e3dc4d027b559d7273116"
+  },
+  "pipeline": [
+    {
+      "step": "dynamic-narrowing",
+      "exit": 0,
+      "seconds": 0.5629142909310758
+    },
+    {
+      "step": "e2e",
+      "exit": 0,
+      "seconds": 4.221272499999031
+    },
+    {
+      "step": "qualification",
+      "exit": 0,
+      "seconds": 18.2245044169249
+    },
+    {
+      "step": "projection",
+      "exit": 0,
+      "seconds": 3.3668250830378383
+    },
+    {
+      "step": "broad",
+      "exit": 0,
+      "seconds": 84.2060752910329
+    },
+    {
+      "step": "matrix",
+      "exit": 0,
+      "seconds": 234.76275295799132
+    }
+  ],
+  "matrix": {
+    "passed": true,
+    "binary_sha256": "4f8c559503f3adda1ca9cfb4fa1bf9b5d5a54c5b528e3dc4d027b559d7273116",
+    "plugin_sha256": "9cb6addbb13b7c7f9714ae71c626f655a799a54aa1401445018b435bfb799464",
+    "rows": [
+      {
+        "ty": "ty 0.0.84 (8dd9a7f7f 2026-09-24)",
+        "django_cases": 172,
+        "django_unmarked": 0,
+        "sdk_assertions": 31,
+        "sdk_controls": 5,
+        "sdk_modes": [
+          "disk",
+          "memory"
+        ],
+        "source_preserved": true,
+        "native_api_modes": [
+          "disk",
+          "memory"
+        ],
+        "native_api_controls": 4,
+        "focused_native_regressions": 6
+      },
+      {
+        "ty": "ty 0.0.85 (d7fc5ef88 2026-10-06)",
+        "django_cases": 172,
+        "django_unmarked": 0,
+        "sdk_assertions": 31,
+        "sdk_controls": 5,
+        "sdk_modes": [
+          "disk",
+          "memory"
+        ],
+        "source_preserved": true,
+        "native_api_modes": [
+          "disk",
+          "memory"
+        ],
+        "native_api_controls": 4,
+        "focused_native_regressions": 6
+      },
+      {
+        "ty": "ty 0.0.86 (d5da069f4 2026-10-09)",
+        "django_cases": 172,
+        "django_unmarked": 0,
+        "sdk_assertions": 31,
+        "sdk_controls": 5,
+        "sdk_modes": [
+          "disk",
+          "memory"
+        ],
+        "source_preserved": true,
+        "native_api_modes": [
+          "disk",
+          "memory"
+        ],
+        "native_api_controls": 4,
+        "focused_native_regressions": 6
+      },
+      {
+        "ty": "ty 0.0.87 (ea4c3d273 2026-10-13)",
+        "django_cases": 172,
+        "django_unmarked": 0,
+        "sdk_assertions": 31,
+        "sdk_controls": 5,
+        "sdk_modes": [
+          "disk",
+          "memory"
+        ],
+        "source_preserved": true,
+        "native_api_modes": [
+          "disk",
+          "memory"
+        ],
+        "native_api_controls": 4,
+        "focused_native_regressions": 6
+      },
+      {
+        "ty": "ty 0.0.88 (64e7f1860 2026-10-15)",
+        "django_cases": 172,
+        "django_unmarked": 0,
+        "sdk_assertions": 31,
+        "sdk_controls": 5,
+        "sdk_modes": [
+          "disk",
+          "memory"
+        ],
+        "source_preserved": true,
+        "native_api_modes": [
+          "disk",
+          "memory"
+        ],
+        "native_api_controls": 4,
+        "focused_native_regressions": 6
+      },
+      {
+        "ty": "ty 0.0.89 (82b0fd431 2026-10-16)",
+        "django_cases": 172,
+        "django_unmarked": 0,
+        "sdk_assertions": 31,
+        "sdk_controls": 5,
+        "sdk_modes": [
+          "disk",
+          "memory"
+        ],
+        "source_preserved": true,
+        "native_api_modes": [
+          "disk",
+          "memory"
+        ],
+        "native_api_controls": 4,
+        "focused_native_regressions": 6
+      },
+      {
+        "ty": "ty 0.0.90 (ebc8bbb31 2026-10-20)",
+        "django_cases": 172,
+        "django_unmarked": 0,
+        "sdk_assertions": 31,
+        "sdk_controls": 5,
+        "sdk_modes": [
+          "disk",
+          "memory"
+        ],
+        "source_preserved": true,
+        "native_api_modes": [
+          "disk",
+          "memory"
+        ],
+        "native_api_controls": 4,
+        "focused_native_regressions": 6
+      },
+      {
+        "ty": "ty 0.0.91 (67fbd2874 2026-10-22)",
+        "django_cases": 172,
+        "django_unmarked": 0,
+        "sdk_assertions": 31,
+        "sdk_controls": 5,
+        "sdk_modes": [
+          "disk",
+          "memory"
+        ],
+        "source_preserved": true,
+        "native_api_modes": [
+          "disk",
+          "memory"
+        ],
+        "native_api_controls": 4,
+        "focused_native_regressions": 6
+      },
+      {
+        "ty": "ty 0.0.92 (3933e6918 2026-10-26)",
+        "django_cases": 172,
+        "django_unmarked": 0,
+        "sdk_assertions": 31,
+        "sdk_controls": 5,
+        "sdk_modes": [
+          "disk",
+          "memory"
+        ],
+        "source_preserved": true,
+        "native_api_modes": [
+          "disk",
+          "memory"
+        ],
+        "native_api_controls": 4,
+        "focused_native_regressions": 6
+      },
+      {
+        "ty": "ty 0.0.93 (3db5e4df7 2026-10-28)",
+        "django_cases": 172,
+        "django_unmarked": 0,
+        "sdk_assertions": 31,
+        "sdk_controls": 5,
+        "sdk_modes": [
+          "disk",
+          "memory"
+        ],
+        "source_preserved": true,
+        "native_api_modes": [
+          "disk",
+          "memory"
+        ],
+        "native_api_controls": 4,
+        "focused_native_regressions": 6
+      },
+      {
+        "ty": "ty 0.0.94 (f8ea270e0 2026-10-28)",
+        "django_cases": 172,
+        "django_unmarked": 0,
+        "sdk_assertions": 31,
+        "sdk_controls": 5,
+        "sdk_modes": [
+          "disk",
+          "memory"
+        ],
+        "source_preserved": true,
+        "native_api_modes": [
+          "disk",
+          "memory"
+        ],
+        "native_api_controls": 4,
+        "focused_native_regressions": 6
+      },
+      {
+        "ty": "ty 0.0.95 (48c5ea1ba 2026-10-29)",
+        "django_cases": 172,
+        "django_unmarked": 0,
+        "sdk_assertions": 31,
+        "sdk_controls": 5,
+        "sdk_modes": [
+          "disk",
+          "memory"
+        ],
+        "source_preserved": true,
+        "native_api_modes": [
+          "disk",
+          "memory"
+        ],
+        "native_api_controls": 4,
+        "focused_native_regressions": 6
+      },
+      {
+        "ty": "ty 0.0.96 (53a7844b8 2026-11-02)",
+        "django_cases": 172,
+        "django_unmarked": 0,
+        "sdk_assertions": 31,
+        "sdk_controls": 5,
+        "sdk_modes": [
+          "disk",
+          "memory"
+        ],
+        "source_preserved": true,
+        "native_api_modes": [
+          "disk",
+          "memory"
+        ],
+        "native_api_controls": 4,
+        "focused_native_regressions": 6
+      },
+      {
+        "ty": "ty 0.0.97 (58e168c67 2026-11-04)",
+        "django_cases": 172,
+        "django_unmarked": 0,
+        "sdk_assertions": 31,
+        "sdk_controls": 5,
+        "sdk_modes": [
+          "disk",
+          "memory"
+        ],
+        "source_preserved": true,
+        "native_api_modes": [
+          "disk",
+          "memory"
+        ],
+        "native_api_controls": 4,
+        "focused_native_regressions": 6
+      },
+      {
+        "ty": "ty 0.0.98 (e8a6c9331 2026-11-05)",
+        "django_cases": 172,
+        "django_unmarked": 0,
+        "sdk_assertions": 31,
+        "sdk_controls": 5,
+        "sdk_modes": [
+          "disk",
+          "memory"
+        ],
+        "source_preserved": true,
+        "native_api_modes": [
+          "disk",
+          "memory"
+        ],
+        "native_api_controls": 4,
+        "focused_native_regressions": 6
+      },
+      {
+        "ty": "ty 0.0.99 (9b48f40c9 2026-11-06)",
+        "django_cases": 172,
+        "django_unmarked": 0,
+        "sdk_assertions": 31,
+        "sdk_controls": 5,
+        "sdk_modes": [
+          "disk",
+          "memory"
+        ],
+        "source_preserved": true,
+        "native_api_modes": [
+          "disk",
+          "memory"
+        ],
+        "native_api_controls": 4,
+        "focused_native_regressions": 6
+      }
+    ],
+    "explicit_package_cutoff": "2026-11-09T00:00:00Z, overriding the environment cutoff for exact published Ty versions",
+    "temporary_environment_cleaned": true
+  },
+  "sdk_editor_native": {
+    "passed": true,
+    "binary_sha256": "4f8c559503f3adda1ca9cfb4fa1bf9b5d5a54c5b528e3dc4d027b559d7273116",
+    "official_version": "ty 0.0.99 (9b48f40c9 2026-11-06)",
+    "reference_version": "ty 0.86.0 (4429f1e88 2026-10-10)",
+    "gates": [
+      {
+        "name": "generic-cli",
+        "exit": 0,
+        "seconds": 17.958277583005838
+      },
+      {
+        "name": "generic-lsp",
+        "exit": 0,
+        "seconds": 15.479559666942805
+      },
+      {
+        "name": "generic-push",
+        "exit": 0,
+        "seconds": 15.037647916935384
+      },
+      {
+        "name": "lsp_acceptance",
+        "exit": 0,
+        "seconds": 0.7086503750178963
+      },
+      {
+        "name": "lsp_configuration",
+        "exit": 0,
+        "seconds": 1.77457583299838
+      },
+      {
+        "name": "lsp_differential",
+        "exit": 0,
+        "seconds": 1.8458197499858215
+      },
+      {
+        "name": "lsp_lifecycle",
+        "exit": 0,
+        "seconds": 0.3448695830302313
+      },
+      {
+        "name": "lsp_notebook_differential",
+        "exit": 0,
+        "seconds": 0.5575580829754472
+      },
+      {
+        "name": "plugin_error_differential",
+        "exit": 0,
+        "seconds": 2.1587904170155525
+      },
+      {
+        "name": "plugin_configuration_differential",
+        "exit": 0,
+        "seconds": 4.475261291954666
+      },
+      {
+        "name": "sdk_state_inventory",
+        "exit": 0,
+        "seconds": 2.0337426669429988
+      },
+      {
+        "name": "sdk_function_inventory",
+        "exit": 0,
+        "seconds": 1.0395644590025768
+      },
+      {
+        "name": "sdk_overlay_inventory",
+        "exit": 0,
+        "seconds": 1.4118425829801708
+      },
+      {
+        "name": "overlay_reload_probe",
+        "exit": 0,
+        "seconds": 5.676435749977827
+      },
+      {
+        "name": "sdk_cli_inventory",
+        "exit": 0,
+        "seconds": 1.1458422091091052
+      },
+      {
+        "name": "sdk_class_inventory",
+        "exit": 0,
+        "seconds": 1.4111658750334755
+      },
+      {
+        "name": "sdk_method_inventory",
+        "exit": 0,
+        "seconds": 2.5458684579934925
+      },
+      {
+        "name": "sdk_class_summary_inventory",
+        "exit": 0,
+        "seconds": 0.8643843749305233
+      },
+      {
+        "name": "sdk_minidjango_inventory",
+        "exit": 0,
+        "seconds": 7.578277125023305
+      }
+    ]
+  },
+  "example": {
+    "passed": true,
+    "scope": "Experimental source checkout, not installed wheel",
+    "runs": [
+      {
+        "backend": "companion",
+        "label": "0/positive",
+        "command": [
+          "$HYBRID/iteration-v19",
+          "check",
+          "--project",
+          "$HYBRID/source-e2e-v19/project",
+          "--config-file",
+          "$HYBRID/source-e2e-v19/hybrid.toml",
+          "--ty",
+          "$WORK/environment/bin/ty",
+          "--output-format",
+          "gitlab",
+          "--no-progress",
+          "--color",
+          "never",
+          "$HYBRID/source-e2e-v19/project/accounts",
+          "$HYBRID/source-e2e-v19/project/library",
+          "$HYBRID/source-e2e-v19/project/commerce",
+          "$HYBRID/source-e2e-v19/project/auditlog",
+          "$HYBRID/source-e2e-v19/project/typechecks/positive.py",
+          "$HYBRID/source-e2e-v19/project/typechecks/static_api.py"
+        ],
+        "seconds": 0.9695672090165317,
+        "exit": 0,
+        "diagnostic_codes": {},
+        "user_cpu_seconds": 0.7214889999999999,
+        "system_cpu_seconds": 0.30493,
+        "sampled_process_tree_peak_rss_kib": 212096,
+        "stopped": null,
+        "monitor_error": null,
+        "parse_error": null,
+        "load_before": [
+          4.7900390625,
+          5.95556640625,
+          5.86572265625
+        ],
+        "load_after": [
+          4.7900390625,
+          5.95556640625,
+          5.86572265625
+        ],
+        "source_sha256": "dd7ded667cf6ea04747e7edbd1b33134e8611132771d300a347449a17f48c396",
+        "source_preserved": true,
+        "mode": "0",
+        "case": "positive",
+        "diagnostics": []
+      },
+      {
+        "backend": "companion",
+        "label": "0/negative",
+        "command": [
+          "$HYBRID/iteration-v19",
+          "check",
+          "--project",
+          "$HYBRID/source-e2e-v19/project",
+          "--config-file",
+          "$HYBRID/source-e2e-v19/hybrid.toml",
+          "--ty",
+          "$WORK/environment/bin/ty",
+          "--output-format",
+          "gitlab",
+          "--no-progress",
+          "--color",
+          "never",
+          "$HYBRID/source-e2e-v19/project/accounts",
+          "$HYBRID/source-e2e-v19/project/library",
+          "$HYBRID/source-e2e-v19/project/commerce",
+          "$HYBRID/source-e2e-v19/project/auditlog",
+          "$HYBRID/source-e2e-v19/project/caveats",
+          "$HYBRID/source-e2e-v19/project/typechecks/negative.py"
+        ],
+        "seconds": 0.9467948749661446,
+        "exit": 1,
+        "diagnostic_codes": {
+          "invalid-argument-type": 1,
+          "invalid-assignment": 1,
+          "plugin-configuration": 7
+        },
+        "user_cpu_seconds": 0.711221,
+        "system_cpu_seconds": 0.299365,
+        "sampled_process_tree_peak_rss_kib": 212160,
+        "stopped": null,
+        "monitor_error": null,
+        "parse_error": null,
+        "load_before": [
+          4.7900390625,
+          5.95556640625,
+          5.86572265625
+        ],
+        "load_after": [
+          4.7900390625,
+          5.95556640625,
+          5.86572265625
+        ],
+        "source_sha256": "dd7ded667cf6ea04747e7edbd1b33134e8611132771d300a347449a17f48c396",
+        "source_preserved": true,
+        "mode": "0",
+        "case": "negative",
+        "diagnostics": [
+          {
+            "check_name": "invalid-argument-type",
+            "description": "invalid-argument-type: Argument is incorrect: Expected `str`, found `Literal[123]`",
+            "fingerprint": "034d458d53a4f1afe8b7d6a08c7770fc7134626ec4c4cd3db7ec8123bcc81c07",
+            "location": {
+              "path": "$HYBRID/source-e2e-v19/project/typechecks/negative.py",
+              "positions": {
+                "begin": {
+                  "column": 6,
+                  "line": 7
+                },
+                "end": {
+                  "column": 15,
+                  "line": 7
+                }
+              }
+            },
+            "severity": "major"
+          },
+          {
+            "check_name": "invalid-assignment",
+            "description": "invalid-assignment: Object of type `str` is not assignable to `int`",
+            "fingerprint": "b5fe8dad66ad26f3c1e04ae1695b416ea88031618d02090a7671b4fc58beafe0",
+            "location": {
+              "path": "$HYBRID/source-e2e-v19/project/typechecks/negative.py",
+              "positions": {
+                "begin": {
+                  "column": 18,
+                  "line": 8
+                },
+                "end": {
+                  "column": 54,
+                  "line": 8
+                }
+              }
+            },
+            "severity": "major"
+          },
+          {
+            "check_name": "plugin-configuration",
+            "description": "plugin-configuration: Conflicting Django reverse relation `library.models.Author.duplicate_books`: django-ty.reverse-relation-conflict",
+            "fingerprint": "0b7eb2c8d481c0555bba49ee4a53c2a9f11d29b35e74c2544498781d6c6ed854",
+            "location": {
+              "path": "$HYBRID/source-e2e-v19/project/caveats/models.py",
+              "positions": {
+                "begin": {
+                  "column": 5,
+                  "line": 17
+                },
+                "end": {
+                  "column": 11,
+                  "line": 17
+                }
+              }
+            },
+            "severity": "major"
+          },
+          {
+            "check_name": "plugin-configuration",
+            "description": "plugin-configuration: Invalid Django lookup value for `pages__icontains` on `library.models.Book.pages`; expected `int | None`: django-ty.invalid-lookup-value",
+            "fingerprint": "e6cec0a72436a0a5c3a7c5d8eba84398430bed9016f5eae8f7780f17b217c701",
+            "location": {
+              "path": "$HYBRID/source-e2e-v19/project/typechecks/negative.py",
+              "positions": {
+                "begin": {
+                  "column": 20,
+                  "line": 9
+                },
+                "end": {
+                  "column": 64,
+                  "line": 9
+                }
+              }
+            },
+            "severity": "major"
+          },
+          {
+            "check_name": "plugin-configuration",
+            "description": "plugin-configuration: Unknown Django lookup `author__missing` for model `library.models.Book`: django-ty.unknown-lookup",
+            "fingerprint": "96f65f3a96cf23dfc18f64a1a9bdb9268d76178caf17a9dbcd11e87e5758b480",
+            "location": {
+              "path": "$HYBRID/source-e2e-v19/project/typechecks/negative.py",
+              "positions": {
+                "begin": {
+                  "column": 23,
+                  "line": 11
+                },
+                "end": {
+                  "column": 63,
+                  "line": 11
+                }
+              }
+            },
+            "severity": "major"
+          },
+          {
+            "check_name": "plugin-configuration",
+            "description": "plugin-configuration: Unknown Django lookup `missing_field` for model `library.models.Book`: django-ty.unknown-lookup",
+            "fingerprint": "f6af18cddfddcc8c1a3fd7c79aacc117ad7876ff73b25f4aec23572b494a49ac",
+            "location": {
+              "path": "$HYBRID/source-e2e-v19/project/typechecks/negative.py",
+              "positions": {
+                "begin": {
+                  "column": 14,
+                  "line": 12
+                },
+                "end": {
+                  "column": 50,
+                  "line": 12
+                }
+              }
+            },
+            "severity": "major"
+          },
+          {
+            "check_name": "plugin-configuration",
+            "description": "plugin-configuration: Unknown Django lookup `missing_field` for model `library.models.Book`: django-ty.unknown-lookup",
+            "fingerprint": "4918eac18c0458cdc92b25b76a9f61b4f1c3bee42a83e3f59561ff9587d65ac0",
+            "location": {
+              "path": "$HYBRID/source-e2e-v19/project/typechecks/negative.py",
+              "positions": {
+                "begin": {
+                  "column": 18,
+                  "line": 10
+                },
+                "end": {
+                  "column": 56,
+                  "line": 10
+                }
+              }
+            },
+            "severity": "major"
+          },
+          {
+            "check_name": "plugin-configuration",
+            "description": "plugin-configuration: Unknown Django lookup `missing_field` for model `library.models.Book`: django-ty.unknown-lookup",
+            "fingerprint": "acb375d7cb3159271e7d0c8f77ff4b232e1698b6dd85b6cb0942e4e6f67d2743",
+            "location": {
+              "path": "$HYBRID/source-e2e-v19/project/typechecks/negative.py",
+              "positions": {
+                "begin": {
+                  "column": 19,
+                  "line": 13
+                },
+                "end": {
+                  "column": 71,
+                  "line": 13
+                }
+              }
+            },
+            "severity": "major"
+          },
+          {
+            "check_name": "plugin-configuration",
+            "description": "plugin-configuration: Unknown Django relation target `missing.App` for field `caveats.models.BrokenLink.target`: django-ty.unknown-relation-target",
+            "fingerprint": "83d0bd1ab79b5bcc37a27bee68edc28d75241509e36148f08d83a81a94348f47",
+            "location": {
+              "path": "$HYBRID/source-e2e-v19/project/caveats/models.py",
+              "positions": {
+                "begin": {
+                  "column": 5,
+                  "line": 5
+                },
+                "end": {
+                  "column": 11,
+                  "line": 5
+                }
+              }
+            },
+            "severity": "major"
+          }
+        ]
+      },
+      {
+        "backend": "companion",
+        "label": "1/positive",
+        "command": [
+          "$HYBRID/iteration-v19",
+          "check",
+          "--project",
+          "$HYBRID/source-e2e-v19/project",
+          "--config-file",
+          "$HYBRID/source-e2e-v19/hybrid.toml",
+          "--ty",
+          "$WORK/environment/bin/ty",
+          "--output-format",
+          "gitlab",
+          "--no-progress",
+          "--color",
+          "never",
+          "$HYBRID/source-e2e-v19/project/accounts",
+          "$HYBRID/source-e2e-v19/project/library",
+          "$HYBRID/source-e2e-v19/project/commerce",
+          "$HYBRID/source-e2e-v19/project/auditlog",
+          "$HYBRID/source-e2e-v19/project/typechecks/positive.py",
+          "$HYBRID/source-e2e-v19/project/typechecks/static_api.py"
+        ],
+        "seconds": 1.08362325001508,
+        "exit": 0,
+        "diagnostic_codes": {},
+        "user_cpu_seconds": 0.841189,
+        "system_cpu_seconds": 0.310229,
+        "sampled_process_tree_peak_rss_kib": 253888,
+        "stopped": null,
+        "monitor_error": null,
+        "parse_error": null,
+        "load_before": [
+          4.7900390625,
+          5.95556640625,
+          5.86572265625
+        ],
+        "load_after": [
+          4.56640625,
+          5.8896484375,
+          5.8427734375
+        ],
+        "source_sha256": "dd7ded667cf6ea04747e7edbd1b33134e8611132771d300a347449a17f48c396",
+        "source_preserved": true,
+        "mode": "1",
+        "case": "positive",
+        "diagnostics": []
+      },
+      {
+        "backend": "companion",
+        "label": "1/negative",
+        "command": [
+          "$HYBRID/iteration-v19",
+          "check",
+          "--project",
+          "$HYBRID/source-e2e-v19/project",
+          "--config-file",
+          "$HYBRID/source-e2e-v19/hybrid.toml",
+          "--ty",
+          "$WORK/environment/bin/ty",
+          "--output-format",
+          "gitlab",
+          "--no-progress",
+          "--color",
+          "never",
+          "$HYBRID/source-e2e-v19/project/accounts",
+          "$HYBRID/source-e2e-v19/project/library",
+          "$HYBRID/source-e2e-v19/project/commerce",
+          "$HYBRID/source-e2e-v19/project/auditlog",
+          "$HYBRID/source-e2e-v19/project/caveats",
+          "$HYBRID/source-e2e-v19/project/typechecks/negative.py"
+        ],
+        "seconds": 1.0853692080127075,
+        "exit": 1,
+        "diagnostic_codes": {
+          "invalid-argument-type": 1,
+          "invalid-assignment": 1,
+          "plugin-configuration": 7
+        },
+        "user_cpu_seconds": 0.8464459999999999,
+        "system_cpu_seconds": 0.31001,
+        "sampled_process_tree_peak_rss_kib": 250496,
+        "stopped": null,
+        "monitor_error": null,
+        "parse_error": null,
+        "load_before": [
+          4.56640625,
+          5.8896484375,
+          5.8427734375
+        ],
+        "load_after": [
+          4.56640625,
+          5.8896484375,
+          5.8427734375
+        ],
+        "source_sha256": "dd7ded667cf6ea04747e7edbd1b33134e8611132771d300a347449a17f48c396",
+        "source_preserved": true,
+        "mode": "1",
+        "case": "negative",
+        "diagnostics": [
+          {
+            "check_name": "invalid-argument-type",
+            "description": "invalid-argument-type: Argument is incorrect: Expected `str`, found `Literal[123]`",
+            "fingerprint": "034d458d53a4f1afe8b7d6a08c7770fc7134626ec4c4cd3db7ec8123bcc81c07",
+            "location": {
+              "path": "$HYBRID/source-e2e-v19/project/typechecks/negative.py",
+              "positions": {
+                "begin": {
+                  "column": 6,
+                  "line": 7
+                },
+                "end": {
+                  "column": 15,
+                  "line": 7
+                }
+              }
+            },
+            "severity": "major"
+          },
+          {
+            "check_name": "invalid-assignment",
+            "description": "invalid-assignment: Object of type `str` is not assignable to `int`",
+            "fingerprint": "b5fe8dad66ad26f3c1e04ae1695b416ea88031618d02090a7671b4fc58beafe0",
+            "location": {
+              "path": "$HYBRID/source-e2e-v19/project/typechecks/negative.py",
+              "positions": {
+                "begin": {
+                  "column": 18,
+                  "line": 8
+                },
+                "end": {
+                  "column": 54,
+                  "line": 8
+                }
+              }
+            },
+            "severity": "major"
+          },
+          {
+            "check_name": "plugin-configuration",
+            "description": "plugin-configuration: Conflicting Django reverse relation `library.models.Author.duplicate_books`: django-ty.reverse-relation-conflict",
+            "fingerprint": "0b7eb2c8d481c0555bba49ee4a53c2a9f11d29b35e74c2544498781d6c6ed854",
+            "location": {
+              "path": "$HYBRID/source-e2e-v19/project/caveats/models.py",
+              "positions": {
+                "begin": {
+                  "column": 5,
+                  "line": 17
+                },
+                "end": {
+                  "column": 11,
+                  "line": 17
+                }
+              }
+            },
+            "severity": "major"
+          },
+          {
+            "check_name": "plugin-configuration",
+            "description": "plugin-configuration: Invalid Django lookup value for `pages__icontains` on `library.models.Book.pages`; expected `int | None`: django-ty.invalid-lookup-value",
+            "fingerprint": "e6cec0a72436a0a5c3a7c5d8eba84398430bed9016f5eae8f7780f17b217c701",
+            "location": {
+              "path": "$HYBRID/source-e2e-v19/project/typechecks/negative.py",
+              "positions": {
+                "begin": {
+                  "column": 20,
+                  "line": 9
+                },
+                "end": {
+                  "column": 64,
+                  "line": 9
+                }
+              }
+            },
+            "severity": "major"
+          },
+          {
+            "check_name": "plugin-configuration",
+            "description": "plugin-configuration: Unknown Django lookup `author__missing` for model `library.models.Book`: django-ty.unknown-lookup",
+            "fingerprint": "96f65f3a96cf23dfc18f64a1a9bdb9268d76178caf17a9dbcd11e87e5758b480",
+            "location": {
+              "path": "$HYBRID/source-e2e-v19/project/typechecks/negative.py",
+              "positions": {
+                "begin": {
+                  "column": 23,
+                  "line": 11
+                },
+                "end": {
+                  "column": 63,
+                  "line": 11
+                }
+              }
+            },
+            "severity": "major"
+          },
+          {
+            "check_name": "plugin-configuration",
+            "description": "plugin-configuration: Unknown Django lookup `missing_field` for model `library.models.Book`: django-ty.unknown-lookup",
+            "fingerprint": "f6af18cddfddcc8c1a3fd7c79aacc117ad7876ff73b25f4aec23572b494a49ac",
+            "location": {
+              "path": "$HYBRID/source-e2e-v19/project/typechecks/negative.py",
+              "positions": {
+                "begin": {
+                  "column": 14,
+                  "line": 12
+                },
+                "end": {
+                  "column": 50,
+                  "line": 12
+                }
+              }
+            },
+            "severity": "major"
+          },
+          {
+            "check_name": "plugin-configuration",
+            "description": "plugin-configuration: Unknown Django lookup `missing_field` for model `library.models.Book`: django-ty.unknown-lookup",
+            "fingerprint": "4918eac18c0458cdc92b25b76a9f61b4f1c3bee42a83e3f59561ff9587d65ac0",
+            "location": {
+              "path": "$HYBRID/source-e2e-v19/project/typechecks/negative.py",
+              "positions": {
+                "begin": {
+                  "column": 18,
+                  "line": 10
+                },
+                "end": {
+                  "column": 56,
+                  "line": 10
+                }
+              }
+            },
+            "severity": "major"
+          },
+          {
+            "check_name": "plugin-configuration",
+            "description": "plugin-configuration: Unknown Django lookup `missing_field` for model `library.models.Book`: django-ty.unknown-lookup",
+            "fingerprint": "acb375d7cb3159271e7d0c8f77ff4b232e1698b6dd85b6cb0942e4e6f67d2743",
+            "location": {
+              "path": "$HYBRID/source-e2e-v19/project/typechecks/negative.py",
+              "positions": {
+                "begin": {
+                  "column": 19,
+                  "line": 13
+                },
+                "end": {
+                  "column": 71,
+                  "line": 13
+                }
+              }
+            },
+            "severity": "major"
+          },
+          {
+            "check_name": "plugin-configuration",
+            "description": "plugin-configuration: Unknown Django relation target `missing.App` for field `caveats.models.BrokenLink.target`: django-ty.unknown-relation-target",
+            "fingerprint": "83d0bd1ab79b5bcc37a27bee68edc28d75241509e36148f08d83a81a94348f47",
+            "location": {
+              "path": "$HYBRID/source-e2e-v19/project/caveats/models.py",
+              "positions": {
+                "begin": {
+                  "column": 5,
+                  "line": 5
+                },
+                "end": {
+                  "column": 11,
+                  "line": 5
+                }
+              }
+            },
+            "severity": "major"
+          }
+        ]
+      }
+    ],
+    "project_cleaned": true
+  },
+  "python_test_gate": "47/48 pass; stale full-conformance receipt remains a legitimate failing gate.",
+  "source_archive_sha256": "5a73cdcfaff4d95d6e87daf92373d0d6ab9b6dcff877e6a6e0d4d327f1aa5db7",
+  "one_second_goal_met": false,
+  "current_optimized_reference": "native-django-hybrid-v17b.json",
+  "open": [
+    "One-second fresh-process target",
+    "Default-mode broader SDK/editor rerun for this revision",
+    "Optimized comparison",
+    "Full new declaration API and Django/Python matrix",
+    "Installed consumers and current hosted CI"
+  ]
+}

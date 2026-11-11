@@ -522,6 +522,7 @@ pub fn analyze(source: &Source, suite: &[Stmt], runtime: &mut Runtime) -> Result
         edits.insert(offset, format!("{separator}from __future__ import annotations\nfrom typing import cast as {}\n{definitions}",source.cast_name()));
     }
     Ok(Analysis {
+        early_calls: BTreeSet::new(),
         prelude_offset: offset,
         classes,
         intrinsics: validation.intrinsics,

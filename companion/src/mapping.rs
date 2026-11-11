@@ -120,6 +120,17 @@ impl DiagnosticOrigins {
                             );
                         }
                     } else if code == "too-many-positional-arguments" {
+                        let function_prefix = format!(
+                            "too-many-positional-arguments: Too many positional arguments to function `{name}`: "
+                        );
+                        if let Some(detail) = description.strip_prefix(&function_prefix) {
+                            return (
+                                original,
+                                format!(
+                                    "too-many-positional-arguments: Too many positional arguments: {detail}"
+                                ),
+                            );
+                        }
                         let prefix = format!(
                             "too-many-positional-arguments: Too many positional arguments to `{printed}`: expected "
                         );

@@ -113,6 +113,8 @@ pub struct Analysis {
     pub classes: BTreeMap<String, ClassInfo>,
     pub intrinsics: BTreeSet<String>,
     pub calls: BTreeMap<Span, CallSite>,
+    /// Explicitly opted-in hooks resolved these calls without native inputs.
+    pub early_calls: std::collections::BTreeSet<Span>,
     pub constructor_calls: BTreeMap<Span, String>,
     pub unbound_calls: BTreeSet<Span>,
     pub annotated_casts: BTreeMap<Span, Value>,
@@ -135,7 +137,9 @@ impl Analysis {
             .is_none_or(|required| required.contains(span))
     }
     pub fn needs_probes(&self) -> bool {
-        !self.calls.is_empty()
+        self.calls
+            .keys()
+            .any(|span| !self.early_calls.contains(span))
             || self
                 .expression_probes
                 .keys()
