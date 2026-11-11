@@ -9,6 +9,7 @@ mod lsp_server;
 mod mapping;
 mod model;
 mod native_rules;
+mod native_warmup;
 mod notebook;
 mod parallel;
 mod project;

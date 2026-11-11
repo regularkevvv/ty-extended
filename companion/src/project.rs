@@ -181,6 +181,26 @@ pub struct SourceLayout<'a> {
     pub call_assignments_only: bool,
     /// Permit a fresh memory CLI check to reuse strongly identified disk bytes.
     pub capture_original_revisions: bool,
+    /// Immutable CLI bytes shared with the concurrent native checker.
+    pub preloaded: Option<&'a BTreeMap<PathBuf, SourceSnapshot>>,
+}
+
+#[derive(Clone)]
+pub struct SourceSnapshot {
+    pub path: PathBuf,
+    pub text: String,
+    pub revision: Option<FileRevision>,
+}
+
+fn read_snapshot(path: &Path) -> Result<(String, Option<FileRevision>)> {
+    use std::io::Read as _;
+    let mut file = std::fs::File::open(path).with_context(|| format!("read {}", path.display()))?;
+    let before = file.metadata().ok().as_ref().and_then(file_revision);
+    let mut text = String::new();
+    file.read_to_string(&mut text)
+        .with_context(|| format!("read {}", path.display()))?;
+    let after = file.metadata().ok().as_ref().and_then(file_revision);
+    Ok((text, before.filter(|revision| Some(*revision) == after)))
 }
 
 fn import_targets(name: &str, module: &Module) -> BTreeSet<String> {
@@ -312,7 +332,15 @@ impl Project {
         if paths.is_empty() && !exact_paths {
             collect_python(&project.root, &mut paths)?;
         }
-        project.load_initial_sources(&paths, crate::parallel::workers(paths.len()))?;
+        if let Some(preloaded) = layout.as_ref().and_then(|layout| layout.preloaded) {
+            project.load_initial_sources_preloaded(
+                &paths,
+                crate::parallel::workers(paths.len()),
+                Some(preloaded),
+            )?;
+        } else {
+            project.load_initial_sources(&paths, crate::parallel::workers(paths.len()))?;
+        }
         mark("initial_sources");
         // Claims select settings modules; they are dependencies even when user
         // code never imports them directly.
@@ -342,7 +370,60 @@ impl Project {
     /// initial snapshot in parallel, then install results in input order so module
     /// precedence and the first reported error match sequential loading.
     fn load_initial_sources(&mut self, paths: &[PathBuf], workers: usize) -> Result<()> {
+        self.load_initial_sources_preloaded(paths, workers, None)
+    }
+
+    /// A read failure retains the original ordered read-and-parse error path.
+    /// In particular, a later I/O error must not precede an earlier parse error.
+    pub fn preload_sources(
+        root: &Path,
+        paths: &[PathBuf],
+    ) -> Option<BTreeMap<PathBuf, SourceSnapshot>> {
+        let snapshots = crate::parallel::map_ordered(
+            paths,
+            crate::parallel::workers(paths.len()),
+            |input| -> Result<_> {
+                let path = if input.is_absolute() {
+                    input.clone()
+                } else {
+                    root.join(input)
+                };
+                let path = path
+                    .canonicalize()
+                    .with_context(|| format!("source file {}", path.display()))?;
+                let (text, revision) = read_snapshot(&path)?;
+                Ok((
+                    input.clone(),
+                    SourceSnapshot {
+                        path,
+                        text,
+                        revision,
+                    },
+                ))
+            },
+        )
+        .ok()?;
+        let snapshots: BTreeMap<_, _> = snapshots.into_iter().collect::<Result<_>>().ok()?;
+        (snapshots.len() == paths.len()).then_some(snapshots)
+    }
+
+    fn load_initial_sources_preloaded(
+        &mut self,
+        paths: &[PathBuf],
+        workers: usize,
+        preloaded: Option<&BTreeMap<PathBuf, SourceSnapshot>>,
+    ) -> Result<()> {
         let read = |path: &PathBuf| -> Result<_> {
+            if let Some(snapshot) = preloaded.and_then(|sources| sources.get(path)) {
+                let name = self.source_module_name(&snapshot.path)?;
+                let (mut module, invalid) =
+                    self.parse_module(&name, &snapshot.path, false, snapshot.text.clone())?;
+                module.original_revision = self
+                    .capture_original_revisions
+                    .then_some(snapshot.revision)
+                    .flatten();
+                return Ok((snapshot.path.clone(), name, module, invalid));
+            }
             let path = if path.is_absolute() {
                 path.clone()
             } else {
@@ -358,15 +439,7 @@ impl Project {
                     .extension()
                     .is_none_or(|extension| extension != "ipynb")
             {
-                use std::io::Read as _;
-                let mut file = std::fs::File::open(&path)
-                    .with_context(|| format!("read {}", path.display()))?;
-                let before = file.metadata().ok().as_ref().and_then(file_revision);
-                let mut text = String::new();
-                file.read_to_string(&mut text)
-                    .with_context(|| format!("read {}", path.display()))?;
-                let after = file.metadata().ok().as_ref().and_then(file_revision);
-                (text, before.filter(|revision| Some(*revision) == after))
+                read_snapshot(&path)?
             } else {
                 (read_source(&path)?, None)
             };
@@ -3018,6 +3091,17 @@ mod tests {
             assert_eq!(parallel.modules.len(), 134);
         }
 
+        let snapshots = Project::preload_sources(&source.0, &paths).context("snapshot preload")?;
+        for workers in [1, 8] {
+            let mut preloaded = empty.clone();
+            preloaded.capture_original_revisions = true;
+            preloaded.load_initial_sources_preloaded(&paths, workers, Some(&snapshots))?;
+            preloaded.rebuild()?;
+            assert_eq!(preloaded.build_request(), sequential.build_request());
+            assert_eq!(preloaded.syntax_errors, sequential.syntax_errors);
+            assert_eq!(preloaded.additional_sources, sequential.additional_sources);
+        }
+
         // Later worker failures must not mask the first input's parse failure.
         std::fs::write(source.0.join("first.py"), "first !!! error\n")?;
         let errors = [PathBuf::from("first.py"), PathBuf::from("broken.py")];
@@ -3032,6 +3116,13 @@ mod tests {
             assert_eq!(first.to_string(), second.to_string());
         }
         assert!(first.to_string().contains("first.py"));
+        let mixed_errors = [PathBuf::from("first.py"), PathBuf::from("missing.py")];
+        assert!(Project::preload_sources(&source.0, &mixed_errors).is_none());
+        let mixed = strict.load_initial_sources(&mixed_errors, 8).unwrap_err();
+        assert_eq!(mixed.to_string(), first.to_string());
+        let duplicates = [PathBuf::from("base.py"), PathBuf::from("base.py")];
+        assert!(Project::preload_sources(&source.0, &duplicates).is_none());
+
         Ok(())
     }
 
@@ -3087,6 +3178,7 @@ mod tests {
                     sparse_overlays,
                     call_assignments_only: false,
                     capture_original_revisions: false,
+                    preloaded: None,
                 },
             )
         };
@@ -3186,6 +3278,7 @@ mod tests {
                     sparse_overlays: false,
                     call_assignments_only: false,
                     capture_original_revisions: false,
+                    preloaded: None,
                 },
             )?;
             assert_eq!(combined.build_request(), sequential.build_request());
@@ -3536,6 +3629,7 @@ mod tests {
                     sparse_overlays: false,
                     call_assignments_only,
                     capture_original_revisions: false,
+                    preloaded: None,
                 },
             )
         };

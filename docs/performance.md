@@ -58,6 +58,49 @@ pass against 0.0.101. The expanded source matrix passes every release from
 These results establish neither installed-artifact acceptance nor release
 readiness.
 
+Two later experiments also fail the release limit. The
+[fused Django index receipt](qualification/native-django-fused-v31b.json)
+measures 1.595 seconds against native Ty's 0.314 seconds, or 5.08 times. Its
+Rust initializer optimization was reverted because it did not improve the
+measured flow phase; the equivalent fused Django index remains under evaluation.
+The [native-return experiment](qualification/native-django-native-returns-v32b.json)
+removes 100 redundant generated casts but measures 1.663 seconds against
+0.296 seconds, or 5.61 times. Both preserve all 100 assertions, two error controls
+and 20 focused Django cases. The second receipt retains two rejected host-load
+observations as well as every accepted observation. Neither experiment establishes
+performance acceptance or release readiness.
+
+The [declaration traversal experiment](qualification/native-django-declaration-v35c.json)
+also fails: 1.671 seconds versus native Ty's 0.376 seconds, or 4.45 times, with
+a largest paired ratio of 5.12. Its previous companion comparison is 1.666
+seconds, so it establishes no material improvement. The declaration shortcut
+and snapshot path shortcut were removed. The receipt retains all 28 accepted
+observations, the correctness controls and the preceding admission attempt that
+accepted no samples. Source and build artifacts are preserved for review.
+
+The [concurrent native-check prototype](qualification/native-django-concurrent-v36b.json)
+is explicitly opt-in. It shares immutable source snapshots with a disposable
+native check while source and plugin indexing proceed, waits before writing
+projections, discards the initial diagnostics, and checks the synchronized final
+state. Source/index discovery that needs another probe namespace and newly
+required external roots retain fresh checker initialization.
+
+On Ty 0.0.101 it passes 239 regular Rust tests and three additional tests in
+each mode, plus 36 SDK/CLI suite runs covering native fields and concurrency
+enabled and disabled. Generated row creation, type changes and deletion produce
+the same diagnostics as a fresh native checker. Django's 172 cases, runtime
+contracts, primary-key cases and larger example pass. The stored full-conformance
+receipt remains stale. The large probe engages concurrency with 7,082 source
+snapshots and zero rereads. Local load prevented timing admission, so these
+results establish no performance acceptance.
+
+The manual `Companion` workflow's `native_performance_only` input runs the
+identical 7,082-file, 2,501-model comparison on isolated Linux and macOS runners.
+It pins the experimental Django source, uses the same official Ty executable
+for both Ty stacks, installs django-types for bare Ty, preserves the strict
+3-times gate, and separately checks the 20 focused ORM cases. Its build target
+is cleaned before timing and temporary Python environments are removed afterward.
+
 ## Parallel source loading experiment
 
 The [v24 receipt](qualification/native-django-parallel-v24.json) compares the

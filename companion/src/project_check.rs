@@ -572,7 +572,7 @@ struct File {
     oracle: Oracle,
     patches: ReturnPatches,
     return_types: BTreeMap<crate::model::Span, Value>,
-    early_returns: BTreeMap<crate::model::Span, Value>,
+    early_returns: BTreeMap<crate::model::Span, crate::runtime::EarlyCallReturn>,
     types: Types,
     diagnostics: Vec<Value>,
     rendered: Option<Rendered>,
@@ -610,10 +610,12 @@ impl File {
         }
         self.analysis.early_calls.clear();
         for (span, response) in &next {
-            let rendered = self.types.render(&response["return-type"])?;
-            self.patches.insert(*span, rendered);
+            if !response.native {
+                let rendered = self.types.render(&response.response["return-type"])?;
+                self.patches.insert(*span, rendered);
+            }
             self.return_types
-                .insert(*span, response["return-type"].clone());
+                .insert(*span, response.response["return-type"].clone());
             self.analysis.early_calls.insert(*span);
         }
         self.types.register_protocol_types(runtime);
@@ -1032,6 +1034,9 @@ pub struct Session {
     dependency_roots: Vec<PathBuf>,
     index_files: Option<BTreeSet<PathBuf>>,
     memory_projection: bool,
+    native_warmup: Option<crate::native_warmup::NativeWarmup>,
+    native_warmup_reused: bool,
+    native_warmup_seeds: usize,
 }
 
 #[derive(Clone)]
@@ -1196,6 +1201,33 @@ impl Session {
             .filter_map(std::result::Result::transpose)
             .collect::<std::io::Result<Vec<_>>>()?;
         phase(&mut startup_phases, "startup_selection", &mut startup_tick);
+        // Opt-in while the concurrent path is qualified. Original bytes are
+        // read once and shared with both parsers; editors keep normal loading.
+        let warmup_requested = options.get("native-warmup").is_some_and(|v| v == "true")
+            || std::env::var_os("TY_COMPANION_NATIVE_WARMUP").is_some_and(|v| v == "1");
+        let preloaded = (warmup_requested
+            && memory_projection
+            && !checker_config.plugins.is_empty()
+            && options.get("public-cli").is_some_and(|v| v == "true"))
+        .then(|| Project::preload_sources(&root, &source_paths))
+        .flatten();
+        let native_warmup = if let Some(sources) = preloaded.as_ref().filter(|sources| {
+            !sources.is_empty()
+                && sources
+                    .values()
+                    .all(|source| source.path.starts_with(&root))
+        }) {
+            crate::native_warmup::NativeWarmup::start(
+                Path::new(required("ty")?),
+                &root,
+                &out,
+                &checker_config_path,
+                sources,
+            )
+            .ok()
+        } else {
+            None
+        };
         let mut base_project = Project::load_selected(
             &root,
             &source_paths,
@@ -1217,6 +1249,7 @@ impl Session {
                     && options
                         .get("public-cli")
                         .is_some_and(|value| value == "true"),
+                preloaded: preloaded.as_ref(),
             },
         )?;
         base_project.add_source_paths(explicit_paths.clone());
@@ -1259,6 +1292,9 @@ impl Session {
             out,
             view,
             memory_projection,
+            native_warmup,
+            native_warmup_reused: false,
+            native_warmup_seeds: 0,
             stubs,
             stub_roots: checker_config.stub_roots,
             overlay_files,
@@ -1314,6 +1350,25 @@ impl Session {
             self.cached_context = None;
         }
         self.register_checker_notebooks()
+    }
+
+    fn finish_native_warmup(&mut self, reuse: bool) {
+        if !reuse && self.native_warmup_reused {
+            self.server = None;
+            self.native_warmup_reused = false;
+        }
+        if let Some(warmup) = self.native_warmup.take() {
+            match warmup.finish() {
+                Ok((checker, seeds)) if reuse => {
+                    self.native_warmup_seeds = seeds;
+                    self.server = Some(checker);
+                    self.native_warmup_reused = true;
+                }
+                // Native failures retain the existing fresh-checker path.
+                // Source/index discovery uses a different probe namespace.
+                _ => self.native_warmup_reused = false,
+            }
+        }
     }
 
     fn register_checker_notebooks(&mut self) -> Result<()> {
@@ -1638,6 +1693,7 @@ impl Session {
             if candidates.is_empty() {
                 return Ok(());
             }
+            self.finish_native_warmup(false);
             let probe = self.out.join("resolution-probe.py");
             let text = candidates
                 .iter()
@@ -2012,6 +2068,7 @@ impl Session {
         if queries.is_empty() {
             return Ok(());
         }
+        self.finish_native_warmup(false);
         let mut sources = BTreeMap::new();
         for module in self
             .base_project
@@ -2098,6 +2155,7 @@ impl Session {
         let mut phase_started = started;
         let reloaded = self.invalidated;
         if reloaded {
+            self.finish_native_warmup(false);
             self.reload_dependencies()?;
         }
         self.register_checker_notebooks()?;
@@ -2228,6 +2286,9 @@ impl Session {
             runtime.execute_project("build-project-index", request)?
         };
         phase(&mut phases, "project_index", &mut phase_started);
+        // No projected dependency is written until the raw native request has
+        // finished. Every following change uses the normal invalidation path.
+        self.finish_native_warmup(frozen_cli_snapshot && overlays.is_empty());
         let targets = index["contributions"]
             .as_array()
             .into_iter()
@@ -2526,20 +2587,35 @@ impl Session {
         // An installed package retains its original resolution location. Only
         // the checker's in-memory document is changed, never dependency files.
         let mut source_cache_seeds = 0;
+        let mut reused_native_warmup = frozen_cli_snapshot && self.native_warmup_reused;
         if self.memory_projection {
             mode = "push";
             let sources = units
                 .iter()
                 .map(|(path, unit)| (path.clone(), unit.source.text.clone()))
                 .collect();
-            *server = Some(crate::checker::ProjectChecker::new_with_memory_projection(
-                Path::new(required("ty")?),
-                &root,
-                &out,
-                &checker_config_path,
-                &sources,
-            )?);
-            if frozen_cli_snapshot {
+            if reused_native_warmup
+                && units
+                    .keys()
+                    .any(|path| !path.starts_with(&root) && !path.starts_with(&out))
+            {
+                // Late installed-package contributions may require additional
+                // workspace roots. Keep their existing fresh initialization.
+                reused_native_warmup = false;
+                self.native_warmup_reused = false;
+            }
+            if !reused_native_warmup {
+                *server = Some(crate::checker::ProjectChecker::new_with_memory_projection(
+                    Path::new(required("ty")?),
+                    &root,
+                    &out,
+                    &checker_config_path,
+                    &sources,
+                )?);
+            }
+            if frozen_cli_snapshot && reused_native_warmup {
+                source_cache_seeds = self.native_warmup_seeds;
+            } else if frozen_cli_snapshot {
                 source_cache_seeds =
                     server
                         .as_mut()
@@ -3129,7 +3205,7 @@ impl Session {
                         .and_then(|span| unit.return_types.get(&span))
                         .and_then(Runtime::receiver_identity);
                     let response = if let Some(response) = unit.early_returns.get(&call.span) {
-                        response.clone()
+                        response.response.clone()
                     } else {
                         call_request(
                             runtime,
@@ -3149,21 +3225,29 @@ impl Session {
                             response["return-type"] == runtime.type_expr(&unit.source, expression)
                         });
                     if response["kind"] == "call-return-patch" && !unchanged {
-                        let native_self = unit
-                            .oracle
-                            .get(&call.receiver_key())
-                            .filter(|value| value.as_str() == "Self" || value.starts_with("Self@"));
-                        let receiver = native_self
-                            .map(String::as_str)
-                            .or(call.flow_receiver_type.as_deref())
-                            .or(call.receiver_type.as_deref())
-                            .or_else(|| unit.oracle.get(&call.receiver_key()).map(String::as_str));
-                        let previous = types.set_self_context(
-                            receiver.map(|receiver| runtime.type_expr(&unit.source, receiver)),
-                        );
-                        let rendered = types.render(&response["return-type"])?;
-                        types.set_self_context(previous);
-                        next.insert(call.span, rendered);
+                        let native = unit
+                            .early_returns
+                            .get(&call.span)
+                            .is_some_and(|response| response.native);
+                        if !native {
+                            let native_self =
+                                unit.oracle.get(&call.receiver_key()).filter(|value| {
+                                    value.as_str() == "Self" || value.starts_with("Self@")
+                                });
+                            let receiver = native_self
+                                .map(String::as_str)
+                                .or(call.flow_receiver_type.as_deref())
+                                .or(call.receiver_type.as_deref())
+                                .or_else(|| {
+                                    unit.oracle.get(&call.receiver_key()).map(String::as_str)
+                                });
+                            let previous = types.set_self_context(
+                                receiver.map(|receiver| runtime.type_expr(&unit.source, receiver)),
+                            );
+                            let rendered = types.render(&response["return-type"])?;
+                            types.set_self_context(previous);
+                            next.insert(call.span, rendered);
+                        }
                         return_types.insert(call.span, response["return-type"].clone());
                     }
                     for d in response["diagnostics"].as_array().into_iter().flatten() {
@@ -3460,12 +3544,24 @@ impl Session {
         phase(&mut phases, "diagnostic_mapping", &mut phase_started);
         let mut result = json!({"diagnostics":diagnostics,"suppressed_generated":suppressed,"implementation":"rust","plugin_runtime":"embedded-monty","project":root,"checker":binary,"checker_mode":mode,"configuration":self.config_source,"revision":self.revisions,"external_resolution_requests":self.external_resolution_requests,"projection_rounds":rounds,"oracle_rounds":oracle_queries,"monty_executions":runtime.executions,"monty_cache_hits":runtime.hits,"monty_seconds":runtime.execution_time.as_secs_f64(),"seconds":started.elapsed().as_secs_f64()});
         result["memory_projection"] = json!(self.memory_projection);
+        result["native_warmup_reused"] = json!(reused_native_warmup);
         result["reused_native_check"] = json!(reused_native_check);
         result["passthrough_units"] = json!(units.values().filter(|unit| unit.passthrough).count());
         result["early_call_returns"] = json!(
             units
                 .values()
                 .map(|unit| unit.early_returns.len())
+                .sum::<usize>()
+        );
+        result["native_call_returns"] = json!(
+            units
+                .values()
+                .map(|unit| {
+                    unit.early_returns
+                        .values()
+                        .filter(|response| response.native)
+                        .count()
+                })
                 .sum::<usize>()
         );
         result["indexed_modules"] = json!(self.base_project.modules.len());
@@ -4095,6 +4191,160 @@ mod tests {
         assert_eq!(std::fs::read_to_string(root.join("checks.py"))?, text);
         assert_eq!(std::fs::read_to_string(&plain)?, "wrong: int = 1\n");
         assert_eq!(plain.metadata()?.modified()?, modified);
+        drop(session);
+        std::fs::remove_dir_all(directory)?;
+        Ok(())
+    }
+
+    #[test]
+    fn native_return_delegation_preserves_source_and_native_diagnostics() -> Result<()> {
+        for delegate in [false, true] {
+            for incorrect_native_result in [false, true] {
+                let directory = std::env::temp_dir().join(format!(
+                    "ty-native-return-{}-{delegate}-{incorrect_native_result}",
+                    std::process::id()
+                ));
+                let root = directory.join("input");
+                let result_type = if incorrect_native_result { "int" } else { "T" };
+                write(
+                    &root.join("model.pyi"),
+                    &format!(
+                        "from typing import ClassVar, Self\nclass Manager[T]:\n    def get(self, *, key: int) -> {result_type}: ...\nclass Base:\n    objects: ClassVar[Manager[Self]]\nclass Item(Base):\n    value: str\n"
+                    ),
+                )?;
+                let text = "from typing import assert_type\nfrom model import Item\nassert_type(Item.objects.get(key=1).value, str)\nwrong: int = Item.objects.get(key=2).value\nItem.objects.get(key='bad')\n";
+                write(&root.join("checks.py"), text)?;
+                let plugin = directory.join("plugin.py");
+                write(
+                    &plugin,
+                    "@on_call_return\ndef result(request):\n    return call_return_patch(type_annotation('model.Item'))\n",
+                )?;
+                let manifest = directory.join("plugin.json");
+                write(&manifest, &json!({"id":"test.native-return","name":"Native return","version":"0","protocol-version":{"major":0,"minor":9},"ty-compatibility":{"requirement":">=0.89.0"},"runtime":{"kind":"monty","artifact":"plugin.py"},"capabilities":{"call-return":true},"claims":{"methods":[{"kind":"exact","class-qualified-name":"model.Manager","method-name":"get"}]},"default-config":{"companion-early-call-returns":["get"],"companion-native-call-returns":if delegate {json!(["get"])} else {json!([])}}}).to_string())?;
+                let binary = PathBuf::from(std::env::var("TY_COMPANION_TEST_OFFICIAL")?);
+                let options = BTreeMap::from([
+                    (
+                        "out".into(),
+                        directory.join("output").to_string_lossy().into_owned(),
+                    ),
+                    ("ty".into(), binary.to_string_lossy().into_owned()),
+                    ("plugin".into(), plugin.to_string_lossy().into_owned()),
+                    ("manifest".into(), manifest.to_string_lossy().into_owned()),
+                    ("checker-mode".into(), "push".into()),
+                    ("memory-projection".into(), "true".into()),
+                    ("native-warmup".into(), "true".into()),
+                    ("public-cli".into(), "true".into()),
+                    ("python-version".into(), "3.13".into()),
+                ]);
+                let mut session = Session::new(&root, &options)?;
+                session.runtime.use_site_fields = true;
+                let native = delegate && session.memory_projection;
+                let result = session.check(&BTreeMap::new())?;
+                assert_eq!(
+                    result["native_warmup_reused"], session.memory_projection,
+                    "{result:#}"
+                );
+                assert_eq!(
+                    result["native_call_returns"],
+                    if native { 3 } else { 0 },
+                    "{result:#}"
+                );
+                let diagnostics = result["diagnostics"].as_array().unwrap();
+                if native {
+                    let documents = session.documents();
+                    let document = documents
+                        .iter()
+                        .find(|d| d.source.path.ends_with("checks.py"))
+                        .unwrap();
+                    assert_eq!(document.rendered.text, text, "{result:#}");
+                    let config = directory.join("native.toml");
+                    write(&config, "[environment]\npython-version='3.13'\n")?;
+                    let baseline = check(&binary, &root, &config, &[root.join("checks.py")])?;
+                    let normalize = |values: &[Value]| {
+                        let mut values: Vec<_> = values.iter().map(|d| json!({
+                            "code":d["check_name"],"description":d["description"],"severity":d["severity"],"positions":d["location"]["positions"]
+                        })).collect();
+                        values.sort_by_key(Value::to_string);
+                        values
+                    };
+                    assert_eq!(normalize(diagnostics), normalize(&baseline), "{result:#}");
+                    if incorrect_native_result {
+                        assert!(diagnostics.iter().any(|d| crate::native_rules::semantic_id(
+                            d["check_name"].as_str().unwrap()
+                        ) == "unresolved-attribute"));
+                    }
+                } else {
+                    assert_eq!(diagnostics.len(), 2, "{result:#}");
+                    assert_eq!(
+                        diagnostics
+                            .iter()
+                            .map(|d| d["location"]["positions"]["begin"]["line"]
+                                .as_u64()
+                                .unwrap())
+                            .collect::<BTreeSet<_>>(),
+                        BTreeSet::from([4, 5])
+                    );
+                }
+                assert_eq!(std::fs::read_to_string(root.join("checks.py"))?, text);
+                drop(session);
+                std::fs::remove_dir_all(directory)?;
+            }
+        }
+        Ok(())
+    }
+
+    #[test]
+    fn native_initializers_preserve_native_errors_and_observed_operations() -> Result<()> {
+        let directory =
+            std::env::temp_dir().join(format!("ty-native-initializers-{}", std::process::id()));
+        let root = directory.join("input");
+        write(
+            &root.join("library.pyi"),
+            "TOKEN: int\nclass Item: pass\ndef make(*, count: int = 0, sentinel: int = 0) -> Item: ...\ndef effect() -> Item: ...\n",
+        )?;
+        let text = "from typing import assert_type\nimport library\nclass Plain:\n    field = library.make(count=1, sentinel=library.TOKEN)\n    typed: library.Item = library.make(count=2)\n    bad = library.make(count='wrong')  # control\nclass Read:\n    field = library.make()\n    alias = field\n    assert_type(alias.dynamic, int)\nclass Nested:\n    field = library.make(count=library.effect().dynamic)\nclass Shadowed:\n    library = library.make()\n    field = library.dynamic\n    assert_type(field, int)\ndef declares():\n    class Inner:\n        field = library.make(count=1)\nordinary: int = 'wrong'  # control\n";
+        write(&root.join("checks.py"), text)?;
+        let plugin = directory.join("plugin.py");
+        write(
+            &plugin,
+            "@on_instance_member\ndef member_hook(request):\n    return member_response(member('dynamic',type_annotation('int')))\n",
+        )?;
+        let manifest = directory.join("plugin.json");
+        write(&manifest, &json!({"id":"test.initializers","name":"Initializers","version":"0","protocol-version":{"major":0,"minor":9},"ty-compatibility":{"requirement":">=0.89.0"},"runtime":{"kind":"monty","artifact":"plugin.py"},"capabilities":{"instance-member":true,"call-state":true},"claims":{"attributes":[{"kind":"exact","scope":"instance","owner-qualified-name":"library.Item","attribute-name":"dynamic"}]}}).to_string())?;
+        let options = BTreeMap::from([
+            (
+                "out".into(),
+                directory.join("output").to_string_lossy().into_owned(),
+            ),
+            ("ty".into(), std::env::var("TY_COMPANION_TEST_OFFICIAL")?),
+            ("plugin".into(), plugin.to_string_lossy().into_owned()),
+            ("manifest".into(), manifest.to_string_lossy().into_owned()),
+            ("checker-mode".into(), "push".into()),
+            ("memory-projection".into(), "true".into()),
+            ("public-cli".into(), "true".into()),
+        ]);
+        let mut session = Session::new(&root, &options)?;
+        session.runtime.use_site_fields = true;
+        let result = session.check(&BTreeMap::new())?;
+        let expected: BTreeSet<_> = text
+            .lines()
+            .enumerate()
+            .filter(|(_, line)| line.contains("# control"))
+            .map(|(i, _)| (i + 1) as u64)
+            .collect();
+        let diagnostics = result["diagnostics"].as_array().unwrap();
+        assert_eq!(diagnostics.len(), expected.len(), "{result:#}");
+        assert_eq!(
+            diagnostics
+                .iter()
+                .map(|d| d["location"]["positions"]["begin"]["line"]
+                    .as_u64()
+                    .unwrap())
+                .collect::<BTreeSet<_>>(),
+            expected,
+            "{result:#}"
+        );
+        assert_eq!(std::fs::read_to_string(root.join("checks.py"))?, text);
         drop(session);
         std::fs::remove_dir_all(directory)?;
         Ok(())

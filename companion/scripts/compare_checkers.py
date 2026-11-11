@@ -251,6 +251,8 @@ def prepare(args):
         f"stub-overlay-path={q(args.plugin / 'stubs')}\n"
         '[plugins.plugin.config]\ndjango-settings-module="settings"\n'
     )
+    if getattr(args, "native_django", False):
+        config += 'companion-native-call-returns=["get"]\n'
     (args.output / "companion.toml").write_text(config)
     (args.output / "mypy.ini").write_text(
         f"[mypy]\nplugins=mypy_django_plugin.main\npython_version={args.python_version}\n[mypy.plugins.django-stubs]\ndjango_settings_module=settings\n"
@@ -347,6 +349,11 @@ def main():
         help="Bare Ty's environment containing django-types; enables native Django expectations",
     )
     parser.add_argument(
+        "--native-django",
+        action="store_true",
+        help="Use the experimental native Django companion profile",
+    )
+    parser.add_argument(
         "--threads", type=int, default=0, help="0 uses each checker's default"
     )
     parser.add_argument("--timeout", type=int, default=180)
@@ -354,6 +361,14 @@ def main():
     args = parser.parse_args()
     if os.name != "posix":
         parser.error("Process-tree RSS and wait4 timing require POSIX")
+    if args.native_django:
+        if not args.official_python:
+            parser.error("--native-django requires --official-python with django-types")
+        os.environ.update(
+            TY_COMPANION_NATIVE_FIELDS="1",
+            TY_COMPANION_MEMORY_PROJECTION="1",
+            TY_COMPANION_NATIVE_WARMUP="1",
+        )
     if not (
         args.files >= 5
         and args.models >= args.queries >= 1
@@ -380,6 +395,7 @@ def main():
         "host": platform.platform(),
         "threads": args.threads or "default",
         "bare_ty_provider": "django-types" if args.official_python else "none",
+        "companion_profile": "native-django" if args.native_django else "legacy",
         "workload": {
             key: getattr(args, key)
             for key in ("files", "models", "model_modules", "queries")

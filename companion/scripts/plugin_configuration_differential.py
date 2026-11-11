@@ -13,6 +13,7 @@ from pathlib import Path
 
 from harness_paths import relative_path
 from lsp_acceptance import Client
+from native_rules import semantic_description, semantic_id
 
 MISSING_ARTIFACT_PATHS = {
     "missing-artifact": "../missing.py",
@@ -53,6 +54,10 @@ def diagnostics(values, root, *, allowed_external=()):
             for key in ("check_name", "description", "severity", "location")
         }
         item["location"] = dict(item["location"])
+        item["check_name"] = semantic_id(value["check_name"])
+        item["description"] = semantic_description(
+            value["check_name"], value["description"]
+        )
         raw = item["location"]["path"]
         if raw:
             item["location"]["path"] = relative_path(
@@ -63,12 +68,19 @@ def diagnostics(values, root, *, allowed_external=()):
 
 
 def lsp_diagnostics(values):
+    normalized = []
+    for value in values:
+        if not value.get("code"):
+            continue
+        item = {
+            key: value[key]
+            for key in ("range", "message", "code", "severity")
+            if key in value
+        }
+        item["code"] = semantic_id(value["code"])
+        normalized.append(item)
     return sorted(
-        [
-            {k: v[k] for k in ("range", "message", "code", "severity") if k in v}
-            for v in values
-            if v.get("code")
-        ],
+        normalized,
         key=lambda v: json.dumps(v, sort_keys=True),
     )
 
@@ -114,6 +126,7 @@ class Gate:
                     Path(__file__).name,
                     "lsp_acceptance.py",
                     "harness_paths.py",
+                    "native_rules.py",
                 )
             },
             "checks": [],

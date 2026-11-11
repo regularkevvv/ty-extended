@@ -1,0 +1,943 @@
+{
+  "status": "source-qualified-performance-unmeasured",
+  "release_accepted": false,
+  "experimental_opt_in": "TY_COMPANION_NATIVE_WARMUP=1",
+  "method": "Read immutable source snapshots once. Run a disposable original-source native check concurrently with source/index work. Join before projection writes, discard its diagnostics, synchronize every generated change, then check the final state normally. Discovery needing other namespaces and new external roots use the existing fresh checker.",
+  "official_ty": "0.0.101",
+  "django_commit": "e65b382462a85eacabd71dd1aee7ec9ce44da97a",
+  "binary_sha256": "dac4bc74450b27997dfaee90c9e9c22c2386fbd3a7311febd3f6e70cca07f5f0",
+  "source_sha256": {
+    "companion/src/project_config.rs": "24f468df508a496b12be2a2907a92f2f7b54f8d6d5f4047553483f8207fa5b34",
+    "companion/src/flow.rs": "d6d879a0293f7ea07d5da2a1005c93b7b0f07a7a4044948e57a8591d93f5d306",
+    "companion/src/runtime.rs": "6b3b9560eda2be71f634688643ad01befc0bfaf7b6272be04c0d0d943c807674",
+    "companion/src/native_rules.rs": "45a10fdebaec5c6307c75d287d97ef3c85701fe21c4ad915c6c79162db196184",
+    "companion/src/static_project.rs": "b57a33c3065aed0caea78b3c7dcdf85fc6f3cef0ffd950585fdcd9d15f68fd1e",
+    "companion/src/editor_options.rs": "6c3d5540fdea2956a9ed179fb2291f087456a48cf744647063bdd11a3f775d46",
+    "companion/src/cli_edits.rs": "01543f2a5d63f7a66545923b6ccd25e06161b6e3fd9b2936d09073768902c444",
+    "companion/src/project_check.rs": "b188dfc8b1adde17e67923f0bf18ba8f87d0964f5371c11f5bac2e9b5d0c3636",
+    "companion/src/project.rs": "f53196163eea62deaaecbcecb6a96fd77f69797a13751753f226d43951157fc4",
+    "companion/src/checker.rs": "ea2e8e239e01972d746e6d5b2fd2d93617ff2e7546b050c6ce83b303616e707b",
+    "companion/src/verify.rs": "e7708860ec0bd32cdfb8d6a171a53b2c12d5a67703f5a5b4322fa72d1592603d",
+    "companion/src/type_snapshot.rs": "0c018b699a8d140782e3813a5606d188c27b392400d1796ab839d73002eba813",
+    "companion/src/mapping.rs": "f92e4155bff39e8d47bed7b19a81e418a200fda3892eaebff485b1ea278bb761",
+    "companion/src/main.rs": "889627d345b64c595b0e5880e825b068f00008e5744ad52577a4c6933d6a668a",
+    "companion/src/parallel.rs": "4bffc4522fdb958d6484bc50a440037c3ac362ab346b3a0f070ce486b6b79658",
+    "companion/src/notebook.rs": "0bbd10d569d77019c19b7b76e7d2259c93afaaccc7f18c089e6478f3491cd24f",
+    "companion/src/lsp_mapping.rs": "2a3d7cc63f066bc25db11d680819124e3ff609448d2f27ab93b15d877bfc48fb",
+    "companion/src/lsp_server.rs": "f6a49b11f82ef55a8028d78253fb210844135b9c93e7777074dab3c6f846676a",
+    "companion/src/native_warmup.rs": "8838ad18b77912fc9ceabaebe81ff4ce19812ffc4163c003fe2771e21bfd984c",
+    "companion/src/lower.rs": "df0249023e8c7f88eff2eb49ca2d0ee64aba682ebc5b244c230435acccb136d4",
+    "companion/src/type_render.rs": "d4f62ea50e5fa320e862ae635e8bf90329211324963a8d92bea21cf6b9533111",
+    "companion/src/model.rs": "8bb5f959e83a06c65603dda8b389a58a5854ae1d47d57b53d7abf3b2e6afe65e",
+    "companion/src/cli.rs": "1cf30fe5cae409179d860ff2e5611d58e42c83f68599cc354ece0ec9c92a086c"
+  },
+  "regular_rust_tests_per_mode": 239,
+  "additional_ignored_tests_per_mode": 3,
+  "sdk_cli_suites": 36,
+  "sdk_modes": "Native fields off/on and warmup off/on",
+  "rust_steps": [
+    {
+      "step": "format",
+      "exit": 0,
+      "seconds": 1.0065282500581816
+    },
+    {
+      "step": "compile-and-clippy",
+      "exit": 0,
+      "seconds": 65.2301961670164
+    },
+    {
+      "step": "focused-warm-cache",
+      "exit": 0,
+      "seconds": 248.90135187492706
+    },
+    {
+      "step": "focused-native-return",
+      "exit": 0,
+      "seconds": 1.0055260829394683
+    },
+    {
+      "step": "focused-initializer-regression",
+      "exit": 0,
+      "seconds": 1.0086692500626668
+    },
+    {
+      "step": "focused-generated-rule-provenance",
+      "exit": 0,
+      "seconds": 1.010009290999733
+    },
+    {
+      "step": "focused-nested-override",
+      "exit": 0,
+      "seconds": 1.0070418750401586
+    },
+    {
+      "step": "focused-source-revision",
+      "exit": 0,
+      "seconds": 1.0094347919803113
+    },
+    {
+      "step": "focused-unpatched-native",
+      "exit": 0,
+      "seconds": 1.0098850410431623
+    },
+    {
+      "step": "focused-parallel-sources",
+      "exit": 0,
+      "seconds": 1.0105531249428168
+    },
+    {
+      "step": "focused-profile-cache",
+      "exit": 0,
+      "seconds": 1.0094952499493957
+    },
+    {
+      "step": "focused-contribution",
+      "exit": 0,
+      "seconds": 1.0079598750453442
+    },
+    {
+      "step": "focused-constructor",
+      "exit": 0,
+      "seconds": 1.0105619580717757
+    },
+    {
+      "step": "focused-nullable",
+      "exit": 0,
+      "seconds": 1.008745624916628
+    },
+    {
+      "step": "focused-nested",
+      "exit": 0,
+      "seconds": 1.0092961670598015
+    },
+    {
+      "step": "focused-complete",
+      "exit": 0,
+      "seconds": 1.0097500419942662
+    },
+    {
+      "step": "focused-restart",
+      "exit": 0,
+      "seconds": 1.0092530420515686
+    },
+    {
+      "step": "focused-early",
+      "exit": 0,
+      "seconds": 1.0099802919430658
+    },
+    {
+      "step": "focused-early-isolation",
+      "exit": 0,
+      "seconds": 1.0089559580665082
+    },
+    {
+      "step": "focused-pushdown",
+      "exit": 0,
+      "seconds": 1.0050502499798313
+    },
+    {
+      "step": "focused-snapshot",
+      "exit": 0,
+      "seconds": 1.0054076249944046
+    },
+    {
+      "step": "focused-state",
+      "exit": 0,
+      "seconds": 1.00677724997513
+    },
+    {
+      "step": "focused-inheritance",
+      "exit": 0,
+      "seconds": 1.0075425419490784
+    },
+    {
+      "step": "focused-unclaimed",
+      "exit": 0,
+      "seconds": 1.0066223749890924
+    },
+    {
+      "step": "focused-input",
+      "exit": 0,
+      "seconds": 1.0080337079707533
+    },
+    {
+      "step": "focused-imports",
+      "exit": 0,
+      "seconds": 1.0094776669284329
+    },
+    {
+      "step": "native-units",
+      "exit": 0,
+      "seconds": 8.036320374929346
+    },
+    {
+      "step": "native-ignored",
+      "exit": 0,
+      "seconds": 1.0108672080095857
+    },
+    {
+      "step": "units",
+      "exit": 0,
+      "seconds": 8.034703749930486
+    },
+    {
+      "step": "ignored",
+      "exit": 0,
+      "seconds": 1.005966458003968
+    },
+    {
+      "step": "binary",
+      "exit": 0,
+      "seconds": 54.18782104202546
+    },
+    {
+      "step": "all-test-binaries",
+      "exit": 0,
+      "seconds": 19.07116270903498
+    },
+    {
+      "step": "all-default-tests",
+      "exit": 0,
+      "seconds": 8.028830499970354
+    },
+    {
+      "step": "sdk-0-generic_project_semantics",
+      "exit": 0,
+      "seconds": 9.036901958985254
+    },
+    {
+      "step": "sdk-0-sdk_extended_semantics",
+      "exit": 0,
+      "seconds": 1.0067854170920327
+    },
+    {
+      "step": "sdk-0-sdk_field_semantics",
+      "exit": 0,
+      "seconds": 1.007903666002676
+    },
+    {
+      "step": "sdk-0-sdk_multi_semantics",
+      "exit": 0,
+      "seconds": 1.0055092920083553
+    },
+    {
+      "step": "sdk-0-sdk_snapshots",
+      "exit": 0,
+      "seconds": 2.0197757920250297
+    },
+    {
+      "step": "sdk-0-sdk_virtual_semantics",
+      "exit": 0,
+      "seconds": 1.008195791975595
+    },
+    {
+      "step": "sdk-0-cli_acceptance",
+      "exit": 0,
+      "seconds": 2.0124259169679135
+    },
+    {
+      "step": "sdk-0-cli_edits",
+      "exit": 0,
+      "seconds": 2.0099121669773012
+    },
+    {
+      "step": "sdk-0-cli_watch",
+      "exit": 0,
+      "seconds": 2.010948999901302
+    },
+    {
+      "step": "sdk-1-generic_project_semantics",
+      "exit": 0,
+      "seconds": 10.04388337500859
+    },
+    {
+      "step": "sdk-1-sdk_extended_semantics",
+      "exit": 0,
+      "seconds": 1.0100398750510067
+    },
+    {
+      "step": "sdk-1-sdk_field_semantics",
+      "exit": 0,
+      "seconds": 1.0072279589949176
+    },
+    {
+      "step": "sdk-1-sdk_multi_semantics",
+      "exit": 0,
+      "seconds": 1.0095643339445814
+    },
+    {
+      "step": "sdk-1-sdk_snapshots",
+      "exit": 0,
+      "seconds": 2.012505041086115
+    },
+    {
+      "step": "sdk-1-sdk_virtual_semantics",
+      "exit": 0,
+      "seconds": 1.0064354999922216
+    },
+    {
+      "step": "sdk-1-cli_acceptance",
+      "exit": 0,
+      "seconds": 2.0115292500704527
+    },
+    {
+      "step": "sdk-1-cli_edits",
+      "exit": 0,
+      "seconds": 2.010952957905829
+    },
+    {
+      "step": "sdk-1-cli_watch",
+      "exit": 0,
+      "seconds": 2.0133392499992624
+    },
+    {
+      "step": "warm-sdk-0-generic_project_semantics",
+      "exit": 0,
+      "seconds": 9.047359584015794
+    },
+    {
+      "step": "warm-sdk-0-sdk_extended_semantics",
+      "exit": 0,
+      "seconds": 1.0071545840473846
+    },
+    {
+      "step": "warm-sdk-0-sdk_field_semantics",
+      "exit": 0,
+      "seconds": 1.0052613340085372
+    },
+    {
+      "step": "warm-sdk-0-sdk_multi_semantics",
+      "exit": 0,
+      "seconds": 1.0090534170158207
+    },
+    {
+      "step": "warm-sdk-0-sdk_snapshots",
+      "exit": 0,
+      "seconds": 2.012676166021265
+    },
+    {
+      "step": "warm-sdk-0-sdk_virtual_semantics",
+      "exit": 0,
+      "seconds": 1.0099401250481606
+    },
+    {
+      "step": "warm-sdk-0-cli_acceptance",
+      "exit": 0,
+      "seconds": 2.014458958990872
+    },
+    {
+      "step": "warm-sdk-0-cli_edits",
+      "exit": 0,
+      "seconds": 2.0087966250721365
+    },
+    {
+      "step": "warm-sdk-0-cli_watch",
+      "exit": 0,
+      "seconds": 2.0133311670506373
+    },
+    {
+      "step": "warm-sdk-1-generic_project_semantics",
+      "exit": 0,
+      "seconds": 9.034267749986611
+    },
+    {
+      "step": "warm-sdk-1-sdk_extended_semantics",
+      "exit": 0,
+      "seconds": 1.0075697910506278
+    },
+    {
+      "step": "warm-sdk-1-sdk_field_semantics",
+      "exit": 0,
+      "seconds": 1.008529792074114
+    },
+    {
+      "step": "warm-sdk-1-sdk_multi_semantics",
+      "exit": 0,
+      "seconds": 1.0103654169943184
+    },
+    {
+      "step": "warm-sdk-1-sdk_snapshots",
+      "exit": 0,
+      "seconds": 2.012195458984934
+    },
+    {
+      "step": "warm-sdk-1-sdk_virtual_semantics",
+      "exit": 0,
+      "seconds": 1.0082020000554621
+    },
+    {
+      "step": "warm-sdk-1-cli_acceptance",
+      "exit": 0,
+      "seconds": 2.0086351670324802
+    },
+    {
+      "step": "warm-sdk-1-cli_edits",
+      "exit": 0,
+      "seconds": 2.0122117090504616
+    },
+    {
+      "step": "warm-sdk-1-cli_watch",
+      "exit": 0,
+      "seconds": 2.0144176670582965
+    },
+    {
+      "step": "clippy",
+      "exit": 0,
+      "seconds": 1.0087350000394508
+    },
+    {
+      "step": "clean",
+      "exit": 0,
+      "seconds": 1.0091290409909561
+    }
+  ],
+  "django_steps": [
+    {
+      "step": "stress-proof",
+      "exit": 0,
+      "seconds": 5.037248875014484
+    },
+    {
+      "step": "corpus",
+      "exit": 0,
+      "seconds": 2.757314500049688
+    },
+    {
+      "step": "multi-app",
+      "exit": 0,
+      "seconds": 0.415454207919538
+    },
+    {
+      "step": "sdk-fields",
+      "exit": 0,
+      "seconds": 0.6389187080785632
+    },
+    {
+      "step": "monty-types",
+      "exit": 0,
+      "seconds": 0.5049753329949453
+    },
+    {
+      "step": "python-units",
+      "exit": 1,
+      "seconds": 5.207741749938577
+    },
+    {
+      "step": "django-runtime",
+      "exit": 0,
+      "seconds": 0.6285945830168203
+    },
+    {
+      "step": "querydict-0",
+      "exit": 0,
+      "seconds": 4.247913207975216
+    },
+    {
+      "step": "querydict-1",
+      "exit": 0,
+      "seconds": 2.89662545803003
+    },
+    {
+      "step": "primary",
+      "exit": 0,
+      "seconds": 0.8880340420873836
+    },
+    {
+      "step": "source-example",
+      "exit": 0,
+      "seconds": 4.880203375010751
+    }
+  ],
+  "known_python_test_failure": "58 of 59 Python tests pass. test_current_evidence_passes rejects the unchanged stored conformance receipt because the implementation SHA changed. The stored receipt must be regenerated before release.",
+  "large_probe": {
+    "native_warmup_reused": true,
+    "native_source_cache_seeds": 7082,
+    "original_source_reads": 0,
+    "native_call_returns": 100,
+    "reused_native_check": true
+  },
+  "benchmark_status": "The shared local host did not admit a quiet window; zero samples accepted. A separate isolated CI benchmark is pending. The 3x gate has not passed.",
+  "benchmark_admission": [
+    {
+      "load": [
+        41.6328125,
+        36.61279296875,
+        25.89306640625
+      ],
+      "time": 1794438673.5082371
+    },
+    {
+      "load": [
+        38.779296875,
+        36.1044921875,
+        25.7763671875
+      ],
+      "time": 1794438678.5104482
+    },
+    {
+      "load": [
+        35.9140625,
+        35.5546875,
+        25.642578125
+      ],
+      "time": 1794438683.515923
+    },
+    {
+      "load": [
+        33.3583984375,
+        35.03076171875,
+        25.515625
+      ],
+      "time": 1794438688.5213811
+    },
+    {
+      "load": [
+        33.56982421875,
+        35.04638671875,
+        25.57666015625
+      ],
+      "time": 1794438693.527317
+    },
+    {
+      "load": [
+        34.72509765625,
+        35.26123046875,
+        25.7080078125
+      ],
+      "time": 1794438698.533778
+    },
+    {
+      "load": [
+        37.3095703125,
+        35.7880859375,
+        25.94970703125
+      ],
+      "time": 1794438703.535049
+    },
+    {
+      "load": [
+        37.44482421875,
+        35.84130859375,
+        26.02587890625
+      ],
+      "time": 1794438708.540384
+    },
+    {
+      "load": [
+        37.6494140625,
+        35.91015625,
+        26.107421875
+      ],
+      "time": 1794438713.545567
+    },
+    {
+      "load": [
+        37.11669921875,
+        35.82861328125,
+        26.1357421875
+      ],
+      "time": 1794438718.551083
+    },
+    {
+      "load": [
+        36.62646484375,
+        35.748046875,
+        26.1640625
+      ],
+      "time": 1794438723.5547872
+    },
+    {
+      "load": [
+        36.015625,
+        35.6357421875,
+        26.1806640625
+      ],
+      "time": 1794438728.561127
+    },
+    {
+      "load": [
+        35.69384765625,
+        35.5751953125,
+        26.21435546875
+      ],
+      "time": 1794438733.566437
+    },
+    {
+      "load": [
+        36.51904296875,
+        35.748046875,
+        26.330078125
+      ],
+      "time": 1794438738.5723891
+    },
+    {
+      "load": [
+        35.19580078125,
+        35.486328125,
+        26.29296875
+      ],
+      "time": 1794438743.578354
+    },
+    {
+      "load": [
+        35.900390625,
+        35.62744140625,
+        26.396484375
+      ],
+      "time": 1794438748.5803342
+    },
+    {
+      "load": [
+        37.189453125,
+        35.89892578125,
+        26.54638671875
+      ],
+      "time": 1794438753.586116
+    },
+    {
+      "load": [
+        36.373046875,
+        35.7509765625,
+        26.548828125
+      ],
+      "time": 1794438758.586878
+    },
+    {
+      "load": [
+        38.4248046875,
+        36.1865234375,
+        26.75634765625
+      ],
+      "time": 1794438763.590712
+    },
+    {
+      "load": [
+        42.234375,
+        37.01318359375,
+        27.10302734375
+      ],
+      "time": 1794438768.596734
+    },
+    {
+      "load": [
+        43.41650390625,
+        37.3447265625,
+        27.27783203125
+      ],
+      "time": 1794438773.5979981
+    },
+    {
+      "load": [
+        43.623046875,
+        37.48828125,
+        27.38720703125
+      ],
+      "time": 1794438778.6053572
+    },
+    {
+      "load": [
+        42.77197265625,
+        37.41357421875,
+        27.419921875
+      ],
+      "time": 1794438783.6078022
+    },
+    {
+      "load": [
+        44.9521484375,
+        37.9541015625,
+        27.6689453125
+      ],
+      "time": 1794438788.613633
+    },
+    {
+      "load": [
+        42.87353515625,
+        37.63916015625,
+        27.61767578125
+      ],
+      "time": 1794438793.61929
+    },
+    {
+      "load": [
+        40.32080078125,
+        37.19677734375,
+        27.52001953125
+      ],
+      "time": 1794438798.6241438
+    },
+    {
+      "load": [
+        37.732421875,
+        36.7119140625,
+        27.4052734375
+      ],
+      "time": 1794438803.62962
+    },
+    {
+      "load": [
+        35.43115234375,
+        36.25146484375,
+        27.29736328125
+      ],
+      "time": 1794438808.634618
+    },
+    {
+      "load": [
+        34.1953125,
+        35.9814453125,
+        27.25439453125
+      ],
+      "time": 1794438813.6401448
+    },
+    {
+      "load": [
+        32.41748046875,
+        35.5830078125,
+        27.16455078125
+      ],
+      "time": 1794438818.6456199
+    },
+    {
+      "load": [
+        31.1826171875,
+        35.2744140625,
+        27.10498046875
+      ],
+      "time": 1794438823.6508029
+    },
+    {
+      "load": [
+        29.166015625,
+        34.7880859375,
+        26.98095703125
+      ],
+      "time": 1794438828.65143
+    },
+    {
+      "load": [
+        27.23046875,
+        34.29345703125,
+        26.85205078125
+      ],
+      "time": 1794438833.6554549
+    },
+    {
+      "load": [
+        25.6904296875,
+        33.85693359375,
+        26.7412109375
+      ],
+      "time": 1794438838.661014
+    },
+    {
+      "load": [
+        25.07421875,
+        33.59326171875,
+        26.68994140625
+      ],
+      "time": 1794438843.662552
+    },
+    {
+      "load": [
+        27.79052734375,
+        34.0146484375,
+        26.87890625
+      ],
+      "time": 1794438848.6685581
+    },
+    {
+      "load": [
+        31.33056640625,
+        34.64501953125,
+        27.14306640625
+      ],
+      "time": 1794438853.6701992
+    },
+    {
+      "load": [
+        34.7470703125,
+        35.29833984375,
+        27.41748046875
+      ],
+      "time": 1794438858.675752
+    },
+    {
+      "load": [
+        37.32958984375,
+        35.82421875,
+        27.64892578125
+      ],
+      "time": 1794438863.6814861
+    },
+    {
+      "load": [
+        37.783203125,
+        35.94287109375,
+        27.73876953125
+      ],
+      "time": 1794438868.6858969
+    },
+    {
+      "load": [
+        40.36279296875,
+        36.5078125,
+        27.986328125
+      ],
+      "time": 1794438873.6892061
+    },
+    {
+      "load": [
+        40.65380859375,
+        36.6318359375,
+        28.080078125
+      ],
+      "time": 1794438878.6938791
+    },
+    {
+      "load": [
+        41.24169921875,
+        36.8203125,
+        28.19677734375
+      ],
+      "time": 1794438883.698959
+    },
+    {
+      "load": [
+        42.90380859375,
+        37.23828125,
+        28.39453125
+      ],
+      "time": 1794438888.7022028
+    },
+    {
+      "load": [
+        41.3896484375,
+        37.01806640625,
+        28.36865234375
+      ],
+      "time": 1794438893.707631
+    },
+    {
+      "load": [
+        38.7958984375,
+        36.552734375,
+        28.2548828125
+      ],
+      "time": 1794438898.713481
+    },
+    {
+      "load": [
+        41.53466796875,
+        37.15771484375,
+        28.5166015625
+      ],
+      "time": 1794438903.718443
+    },
+    {
+      "load": [
+        43.09326171875,
+        37.55322265625,
+        28.70654296875
+      ],
+      "time": 1794438908.724053
+    },
+    {
+      "load": [
+        45.16748046875,
+        38.0751953125,
+        28.9423828125
+      ],
+      "time": 1794438913.726723
+    },
+    {
+      "load": [
+        48.59716796875,
+        38.90380859375,
+        29.2880859375
+      ],
+      "time": 1794438918.731926
+    },
+    {
+      "load": [
+        50.63134765625,
+        39.486328125,
+        29.5498046875
+      ],
+      "time": 1794438923.7381551
+    },
+    {
+      "load": [
+        50.66064453125,
+        39.67724609375,
+        29.67529296875
+      ],
+      "time": 1794438928.744479
+    },
+    {
+      "load": [
+        54.451171875,
+        40.64501953125,
+        30.0751953125
+      ],
+      "time": 1794438933.7493088
+    },
+    {
+      "load": [
+        58.8994140625,
+        41.79638671875,
+        30.54345703125
+      ],
+      "time": 1794438938.7512178
+    },
+    {
+      "load": [
+        60.1884765625,
+        42.34716796875,
+        30.8037109375
+      ],
+      "time": 1794438943.754
+    },
+    {
+      "load": [
+        56.56982421875,
+        41.89306640625,
+        30.7109375
+      ],
+      "time": 1794438948.759512
+    },
+    {
+      "load": [
+        53.80126953125,
+        41.5625,
+        30.65966796875
+      ],
+      "time": 1794438953.762458
+    },
+    {
+      "load": [
+        52.37548828125,
+        41.4697265625,
+        30.69091796875
+      ],
+      "time": 1794438958.767328
+    },
+    {
+      "load": [
+        51.46435546875,
+        41.4619140625,
+        30.7509765625
+      ],
+      "time": 1794438963.7728481
+    },
+    {
+      "load": [
+        50.3056640625,
+        41.3876953125,
+        30.787109375
+      ],
+      "time": 1794438968.775172
+    }
+  ]
+}

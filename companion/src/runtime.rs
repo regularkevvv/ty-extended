@@ -429,21 +429,22 @@ fn select_project_inputs(request: &mut Value, config: &Value) -> Result<()> {
 }
 
 fn early_return_method(config: &Value, method: &str) -> Result<bool> {
-    let Some(profile) = config.get("companion-early-call-returns") else {
+    configured_return_method(config, "companion-early-call-returns", method)
+}
+
+fn configured_return_method(config: &Value, key: &str, method: &str) -> Result<bool> {
+    let Some(profile) = config.get(key) else {
         return Ok(false);
     };
     let methods = profile
         .as_array()
-        .context("companion-early-call-returns must be an array")?;
+        .with_context(|| format!("{key} must be an array"))?;
     let mut selected = false;
     for value in methods {
         let name = value
             .as_str()
-            .context("companion-early-call-returns must contain method names")?;
-        ensure!(
-            !name.is_empty(),
-            "companion-early-call-returns requires nonempty method names"
-        );
+            .with_context(|| format!("{key} must contain method names"))?;
+        ensure!(!name.is_empty(), "{key} requires nonempty method names");
         selected |= name == method;
     }
     Ok(selected)
@@ -2614,11 +2615,20 @@ pub fn call_request(
     call_request_with_speculation(runtime, source, kind, call, oracle, receiver, false)
 }
 
+#[derive(Clone, PartialEq)]
+pub struct EarlyCallReturn {
+    pub response: Value,
+    /// The author opts into keeping native call typing while providing the
+    /// same nominal identity for subsequent flow hooks. This is local host
+    /// policy; it does not change or decorate a plugin protocol response.
+    pub native: bool,
+}
+
 pub fn speculative_call_return(
     runtime: &mut Runtime,
     source: &Source,
     call: &CallSite,
-) -> Result<Option<Value>> {
+) -> Result<Option<EarlyCallReturn>> {
     if !runtime.early_returns_enabled()
         || call.flow_receiver_type.is_none()
         || !call.arguments.iter().all(|arg| {
@@ -2648,7 +2658,25 @@ pub fn speculative_call_return(
                     .as_ref()
                     .is_some_and(|project| project.plain_source_class(name))
             });
-    Ok((response["kind"] == "call-return-patch" && ground).then_some(response))
+    if response["kind"] != "call-return-patch" || !ground {
+        return Ok(None);
+    }
+    // Complex snapshots, annotation imports and opaque result metadata retain
+    // their existing projection/validation path. Native delegation is limited
+    // to the plain source class already accepted above.
+    let mut native = response["return-type"]["snapshot"].is_null()
+        && response["return-type"]["imports"]
+            .as_array()
+            .is_none_or(Vec::is_empty)
+        && response["result-metadata"].is_null();
+    let method = call.callee.rsplit('.').next().unwrap_or(&call.callee);
+    // Unrelated plugins also retain the existing path unless they explicitly
+    // agree. A shared call must never drop another plugin's replacement.
+    for plugin in &runtime.plugins {
+        native &=
+            configured_return_method(&plugin.config, "companion-native-call-returns", method)?;
+    }
+    Ok(Some(EarlyCallReturn { response, native }))
 }
 
 fn call_request_with_speculation(
@@ -2846,7 +2874,22 @@ mod tests {
             plugin.config["companion-early-call-returns"] = json!(["get"]);
         }
         let response = speculative_call_return(&mut runtime, &module.source, &call)?.unwrap();
-        assert_eq!(response["return-type"]["expression"], "demo.Item");
+        assert_eq!(response.response["return-type"]["expression"], "demo.Item");
+        assert!(!response.native);
+        runtime.plugins[0].config["companion-native-call-returns"] = json!(["get"]);
+        assert!(
+            !speculative_call_return(&mut runtime, &module.source, &call)?
+                .unwrap()
+                .native
+        );
+        for plugin in &mut runtime.plugins {
+            plugin.config["companion-native-call-returns"] = json!(["get"]);
+        }
+        assert!(
+            speculative_call_return(&mut runtime, &module.source, &call)?
+                .unwrap()
+                .native
+        );
         let normal = call_request(
             &mut runtime,
             &module.source,
@@ -2859,6 +2902,9 @@ mod tests {
             normal["return-type"]["expression"], "str",
             "Speculative cache entries must not replace normal calls"
         );
+        runtime.plugins[0].config["companion-native-call-returns"] = json!("get");
+        assert!(speculative_call_return(&mut runtime, &module.source, &call).is_err());
+        runtime.plugins[0].config["companion-native-call-returns"] = json!(["get"]);
         let before = runtime.executions;
         call.arguments[0].literal = json!({"kind":"unknown"});
         assert!(speculative_call_return(&mut runtime, &module.source, &call)?.is_none());

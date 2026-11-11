@@ -16,6 +16,11 @@ on:
       - ruff
       - .github/workflows/companion.yml
   workflow_dispatch:
+    inputs:
+      native_performance_only:
+        description: Run only the isolated native Django comparison
+        type: boolean
+        default: false
   schedule:
     - cron: "17 9 * * 1"
 
@@ -24,8 +29,54 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  native-performance:
+    name: Native Django performance (${{ matrix.os }})
+    if: github.event_name == 'workflow_dispatch'
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 45
+    env:
+      CARGO_TARGET_DIR: ${{ github.workspace }}/companion/target-native-benchmark
+      CARGO_BUILD_JOBS: 2
+      CARGO_INCREMENTAL: 0
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+          submodules: recursive
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: "3.13"
+      - name: Install pinned Rust toolchain
+        run: rustup toolchain install 1.98.0 --profile minimal
+      - name: Build and clean the benchmark candidate
+        shell: bash
+        run: |
+          trap 'cargo clean --manifest-path companion/Cargo.toml' EXIT
+          cargo +1.98.0 build --locked --release --manifest-path companion/Cargo.toml --bin ty-extended
+          cp "$CARGO_TARGET_DIR/release/ty-extended" "$RUNNER_TEMP/ty-extended-native"
+      - name: Compare identical workloads and focused Django contracts
+        run: python companion/scripts/native_django_benchmark.py --companion "${{ runner.temp }}/ty-extended-native" --output "${{ runner.temp }}/native-django-evidence"
+      - name: Preserve native Django reports
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: native-django-${{ matrix.os }}
+          retention-days: 5
+          path: |
+            ${{ runner.temp }}/native-django-evidence/native-django.json
+            ${{ runner.temp }}/native-django-evidence/**/benchmark.json
+            ${{ runner.temp }}/native-django-evidence/**/focus.json
+            ${{ runner.temp }}/native-django-evidence/**/result.json
+            ${{ runner.temp }}/native-django-evidence/**/stderr.log
+            ${{ runner.temp }}/native-django-evidence/**/stdout.json
+
   compatibility:
     name: Compatibility (${{ matrix.os }})
+    if: github.event_name != 'workflow_dispatch' || !inputs.native_performance_only
     strategy:
       fail-fast: false
       matrix:

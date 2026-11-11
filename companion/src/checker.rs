@@ -2144,6 +2144,111 @@ mod tests {
 
     #[test]
     #[cfg(not(windows))]
+    fn warmed_memory_updates_match_fresh_native_diagnostics() -> Result<()> {
+        let binary = std::env::var("TY_COMPANION_TEST_OFFICIAL")?;
+        let directory =
+            std::env::temp_dir().join(format!("ty-warmed-native-{}", std::process::id()));
+        let project = directory.join("original");
+        let out = directory.join("generated");
+        let stubs = out.join("stubs");
+        fs::create_dir_all(&project)?;
+        fs::create_dir_all(&stubs)?;
+        let project = project.canonicalize()?;
+        let out = out.canonicalize()?;
+        let stubs = stubs.canonicalize()?;
+        let result = (|| -> Result<()> {
+            let consumer = project.join("checks.py");
+            let library = stubs.join("library.pyi");
+            let rows = stubs.join("rows.pyi");
+            let original = "from typing import assert_type\nfrom library import Settings\nfrom rows import row\nassert_type(row['title'], str)\nassert_type(Settings.VALUE, str)\nwrong: int = 'ordinary error'\n";
+            fs::write(&consumer, original)?;
+            fs::write(&library, "class Settings:\n    VALUE: int\n")?;
+            let original_time = consumer.metadata()?.modified()?;
+            let library_time = library.metadata()?.modified()?;
+            let config = out.join("checker.toml");
+            fs::write(
+                &config,
+                format!(
+                    "[environment]\npython-version='3.13'\nroot=[{}]\nextra-paths=[{},{}]\n",
+                    serde_json::to_string(&project)?,
+                    serde_json::to_string(&project)?,
+                    serde_json::to_string(&stubs)?
+                ),
+            )?;
+            let mut sources = BTreeMap::from([(consumer.clone(), original.to_owned())]);
+            let mut warm = ProjectChecker::new_with_memory_projection(
+                Path::new(&binary),
+                &project,
+                &out,
+                &config,
+                &sources,
+            )?;
+            assert!(
+                !warm
+                    .check_workspace(&sources, std::slice::from_ref(&consumer))?
+                    .is_empty()
+            );
+            let normalize = |values: &[Value]| {
+                let mut values = values.iter().map(|d| json!({"code":d["check_name"],"description":d["description"],"severity":d["severity"],"positions":d["location"]["positions"]})).collect::<Vec<_>>();
+                values.sort_by_key(Value::to_string);
+                values
+            };
+            let mut previous_row_time = None;
+            for (round, field_type) in [Some("str"), Some("int"), None, Some("str")]
+                .into_iter()
+                .enumerate()
+            {
+                let lib = "class Settings:\n    VALUE: str\n";
+                fs::write(&library, lib)?;
+                set_disk_modified(&library, library_time)?;
+                sources.insert(library.clone(), lib.to_owned());
+                if let Some(field_type) = field_type {
+                    let text = format!(
+                        "from typing import TypedDict\nclass Row(TypedDict):\n    title: {field_type}\nrow: Row\n"
+                    );
+                    fs::write(&rows, &text)?;
+                    if let Some(time) = previous_row_time {
+                        set_disk_modified(&rows, time)?;
+                    }
+                    previous_row_time = Some(rows.metadata()?.modified()?);
+                    sources.insert(rows.clone(), text);
+                } else {
+                    fs::remove_file(&rows)?;
+                    sources.remove(&rows);
+                }
+                let actual = warm.check_workspace(&sources, std::slice::from_ref(&consumer))?;
+                let fresh_out = directory.join(format!("fresh-{round}"));
+                fs::create_dir_all(&fresh_out)?;
+                let mut fresh = ProjectChecker::new_with_memory_projection(
+                    Path::new(&binary),
+                    &project,
+                    &fresh_out,
+                    &config,
+                    &sources,
+                )?;
+                let expected = fresh.check_workspace(&sources, std::slice::from_ref(&consumer))?;
+                assert_eq!(
+                    normalize(&actual),
+                    normalize(&expected),
+                    "round {round}: {actual:#?} versus {expected:#?}"
+                );
+                assert!(
+                    actual
+                        .iter()
+                        .any(|d| d["check_name"] == "invalid-assignment"
+                            && d["location"]["positions"]["begin"]["line"] == 6)
+                );
+                assert_eq!(fs::read_to_string(&consumer)?, original);
+                assert_eq!(consumer.metadata()?.modified()?, original_time);
+            }
+            Ok(())
+        })();
+        fs::remove_dir_all(&directory)?;
+        result
+    }
+
+    #[test]
+    #[cfg(not(windows))]
     fn memory_projection_keeps_original_files_and_only_opens_changed_text() -> Result<()> {
         let binary = std::env::var("TY_COMPANION_TEST_OFFICIAL")?;
         let directory =

@@ -603,7 +603,14 @@ def main():
         "official_sha256": digest(args.official),
         "source_sha256": {
             str(p.relative_to(repo)): digest(p)
-            for p in [Path(__file__), adapter, original, rust_plugin]
+            for p in [
+                Path(__file__),
+                adapter,
+                original,
+                rust_plugin,
+                Path(__file__).with_name("plugin_configuration_differential.py"),
+                Path(__file__).with_name("native_rules.py"),
+            ]
         },
         "cases": [],
     }
