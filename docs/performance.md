@@ -30,23 +30,30 @@ meeting the current performance and correctness requirements together.
 
 ## Current native comparison
 
-The [flow-overlap candidate](qualification/native-django-flow-overlap-v44.json)
-passes the local paired gate on the unchanged workload: **0.871 seconds** median
-against native Ty's **0.323 seconds**, or **2.70 times**. The largest paired ratio
-is **2.96**, and the largest companion sample is **0.934 seconds**. MyPy takes
-7.380 seconds. All 28 observations meet the declared resource/load conditions;
-100 assertions, both error controls and all 20 companion focused cases pass.
-Provider bytes and mtimes are preserved and the Cargo targets are cleaned.
-The preliminary native check now overlaps initial flow; its remaining join
-wait is about 3 ms in the diagnostic source probe. All 38 broader SDK/editor
-gates also pass against Ty 0.0.101. The isolated Linux result is 1.095 seconds
-against 0.344 seconds, or 3.19 times median and 3.47 times worst pair. macOS
-measures 1.392 seconds against 0.566 seconds, or 2.46 times median and 3.29
-times worst pair. **Both isolated jobs fail the required gate**, retaining all
-correctness controls, provider preservation and cleanup. Their remaining warmup
-waits are about 4 ms; index construction and semantic hooks need further work.
-Production activation and the fresh version/install matrices remain pending.
-This local pass does **not** establish release acceptance.
+The [factory-index candidate](qualification/native-django-factory-index-v45c.json)
+classifies each field factory once and avoids repeated per-member scans. Its
+complete index response for the preserved 2,501-model request is identical to
+its predecessor. Official Ty remains an unchanged external executable, and all
+plugin execution remains in Monty.
+
+| Runner | Companion | Native Ty with django-types | MyPy | Median ratio | Largest paired ratio |
+| ------ | --------: | --------------------------: | ---: | -----------: | -------------------: |
+| Linux | 0.804 s | 0.247 s | 9.441 s | 3.26 | 3.42 |
+| macOS | 0.873 s | 0.364 s | 6.749 s | 2.40 | 2.49 |
+
+macOS passes the required performance gate. **Linux fails**, so merge and release
+remain blocked. Both preserve 100 assertions, both negative controls, all 20
+companion focused contracts, provider bytes and mtimes, and temporary-environment
+cleanup. MyPy matches 19 focused contracts and native Ty eight. Every job cleans
+its Cargo target before timing. The separate one-second goal passes on Linux
+and fails on macOS because of one larger sample.
+
+The local comparison measures 0.766 seconds against native Ty's 0.309 seconds,
+or 2.48 times median and 2.89 times worst pair. This local pass does not override
+the isolated Linux failure. Production activation and fresh version/install
+matrices remain pending. The preceding
+[flow-overlap candidate](qualification/native-django-flow-overlap-v44.json)
+records its own local pass, isolated failures and 38 passing SDK/editor gates.
 
 The [v43 receipt](qualification/native-django-discovery-catalog-v43.json) records
 isolated Linux and macOS runs on official Ty 0.0.101. Each stack uses the same

@@ -1,0 +1,92 @@
+{
+  "status": "qualification-running-performance-unaccepted",
+  "release_accepted": false,
+  "method": "Match source glob rules together while preserving last-rule negation and ancestor semantics. Defer unused Django QuerySet and general inheritance work until the plain-model path declines.",
+  "official_ty": "0.0.101",
+  "django_commit": "00a376541e31f9700c02e5094598e5369e8898d7",
+  "selection_source_sha256": "3a5c5005ae9ada881e5c31020d782379aeaa3214825eb6654a646cdab95bdade",
+  "selection_reference": {
+    "passed": true,
+    "comparisons": 14400,
+    "coverage": [
+      "absent and empty include sets",
+      "ordered and reversed negations",
+      "directory-only patterns",
+      "nested ancestors",
+      "default environment exclusions",
+      "literal bracket and Unicode roots",
+      "relative roots",
+      "PEP 723 script filtering"
+    ]
+  },
+  "django_hierarchy_regression": {
+    "pre_fix_failed": true,
+    "post_fix_index_units": 26,
+    "complete_index_equivalence": {
+      "scope": "CPython exact response equivalence and operation counts; no runtime performance claim.",
+      "passed": true,
+      "source_request_sha256": "effe3705db4f111a704bf853ec11b19d664b2d5d35d1f0b18eb4bba265c216cc",
+      "response_sha256": "fcf49fadf92020b9d53e8a39a818f6c01576e07be4332329383e390e97fa3b0a",
+      "request_preserved": true,
+      "complete_responses_equal": true,
+      "rows": [
+        {
+          "variant": "before",
+          "plugin_sha256": "26ccdc313a13243c910c13cb5551dc1d6245f04d844d3e76a62b4f76182b362a",
+          "cpython_diagnostic_seconds": 0.09226775006391108,
+          "calls": {
+            "derived_names": 2,
+            "module_of": 5001,
+            "model_scope": 1,
+            "short": 10002,
+            "resolve_class": 5002,
+            "call_of": 12081,
+            "call_name": 5001,
+            "relation_argument": 5000
+          },
+          "model_count": 2501
+        },
+        {
+          "variant": "after",
+          "plugin_sha256": "fea538a2ef091d5dc8d181c0acb3d3c22bb8011646af86b872b7771ce1fe7a9a",
+          "cpython_diagnostic_seconds": 0.03771454200614244,
+          "calls": {
+            "derived_names": 1,
+            "module_of": 5001,
+            "model_scope": 1,
+            "short": 10002,
+            "call_of": 12081,
+            "call_name": 5001,
+            "relation_argument": 5000
+          },
+          "model_count": 2501
+        }
+      ]
+    }
+  },
+  "strict_performance_gates": {
+    "median_native_ratio": 3,
+    "every_paired_native_ratio": 3,
+    "mypy_median_ceiling": true,
+    "preserve_source_sha256": "51c1a88b05a169f1222685fe6105e4be5f43d4213aaaf57c60bf99dbe0d82df9",
+    "files": 7082,
+    "models": 2501,
+    "assertions": 100,
+    "negative_controls": 2,
+    "companion_focused_contracts": 20
+  },
+  "preceding_isolated_ci": {
+    "url": "https://github.com/regularkevvv/ty-extended/actions/runs/43164461276",
+    "linux": "failed: 3.260847 median, 3.424964 worst pair",
+    "macos": "passed: 2.397333 median, 2.490944 worst pair"
+  },
+  "pending_gates": [
+    "full source qualification",
+    "optimized local comparison",
+    "isolated Linux and macOS comparisons",
+    "production activation",
+    "fresh version/install matrices",
+    "Django relation integration",
+    "all CI and installed release qualification"
+  ]
+}

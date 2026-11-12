@@ -1,6 +1,6 @@
 //! Preserve the user's ty options while relocating analysis-only source paths.
 use anyhow::{Context, Result, ensure};
-use globset::{Candidate, GlobBuilder, GlobMatcher};
+use globset::{Candidate, GlobBuilder, GlobMatcher, GlobSet};
 use std::{
     collections::BTreeMap,
     path::{Path, PathBuf},
@@ -87,6 +87,7 @@ impl Pattern {
             negated,
         })
     }
+    #[cfg(test)]
     fn matches(&self, ancestors: &[Candidate<'_>]) -> bool {
         ancestors.iter().enumerate().any(|(index, candidate)| {
             (!self.directory_only || index > 0) && self.matcher.is_match_candidate(candidate)
@@ -95,9 +96,41 @@ impl Pattern {
 }
 
 #[derive(Clone)]
+struct Patterns {
+    patterns: Vec<Pattern>,
+    matcher: GlobSet,
+}
+impl Patterns {
+    fn new(patterns: Vec<Pattern>) -> Result<Self> {
+        let matcher = GlobSet::new(patterns.iter().map(|pattern| pattern.matcher.glob()))?;
+        Ok(Self { patterns, matcher })
+    }
+
+    /// Match all patterns together, retaining the last matching rule across
+    /// every ancestor. Rule order, rather than ancestor order, determines the
+    /// winner when an exclusion is followed by a negated exclusion.
+    fn last_match(&self, ancestors: &[Candidate<'_>]) -> Option<&Pattern> {
+        let mut matches = Vec::new();
+        let mut last = None;
+        for (depth, candidate) in ancestors.iter().enumerate() {
+            self.matcher.matches_candidate_into(candidate, &mut matches);
+            if let Some(index) = matches
+                .iter()
+                .rev()
+                .copied()
+                .find(|&index| depth > 0 || !self.patterns[index].directory_only)
+            {
+                last = Some(last.map_or(index, |previous: usize| previous.max(index)));
+            }
+        }
+        last.map(|index| &self.patterns[index])
+    }
+}
+
+#[derive(Clone)]
 pub struct Selection {
-    includes: Option<Vec<Pattern>>,
-    excludes: Vec<Pattern>,
+    includes: Option<Patterns>,
+    excludes: Patterns,
     root: PathBuf,
     respect_ignore: bool,
     exclude_scripts: bool,
@@ -127,8 +160,8 @@ impl Selection {
             .collect::<Result<Vec<_>>>()?;
         excludes.extend(patterns("exclude")?.unwrap_or_default());
         Ok(Self {
-            includes: patterns("include")?,
-            excludes,
+            includes: patterns("include")?.map(Patterns::new).transpose()?,
+            excludes: Patterns::new(excludes)?,
             root: root.to_owned(),
             respect_ignore: src
                 .and_then(|t| t.get("respect-ignore-files"))
@@ -157,17 +190,13 @@ impl Selection {
         if self
             .includes
             .as_ref()
-            .is_some_and(|patterns| !patterns.iter().any(|p| p.matches(&ancestors)))
+            .is_some_and(|patterns| patterns.last_match(&ancestors).is_none())
         {
             return false;
         }
-        let mut excluded = false;
-        for pattern in &self.excludes {
-            if pattern.matches(&ancestors) {
-                excluded = !pattern.negated;
-            }
-        }
-        !excluded
+        self.excludes
+            .last_match(&ancestors)
+            .is_none_or(|pattern| pattern.negated)
     }
     pub fn includes_explicit(&self, path: &Path, text: &str, force_exclude: bool) -> bool {
         !force_exclude || self.includes(path, text)
@@ -2485,6 +2514,85 @@ mod tests {
             );
         }
     }
+    #[test]
+    fn grouped_source_patterns_match_ordered_reference() -> Result<()> {
+        let include_cases = [
+            None,
+            Some(vec![]),
+            Some(vec!["src"]),
+            Some(vec!["src/[ab]*.py", "lib/**"]),
+            Some(vec!["!src/**"]),
+        ];
+        let exclude_cases = [
+            vec![],
+            vec!["src/generated/", "!src/generated/keep.py"],
+            vec!["!src/generated/keep.py", "src/generated/"],
+            vec!["**/*.py", "!src/**", "src/generated/**"],
+            vec!["src/a.py/", "src/a.py", "!src/a.py/"],
+            vec!["**/.venv/", "!src/.venv/**"],
+            vec!["src/[ab]*.py", "!src/apple.py", "src/apple.py"],
+            vec!["../shared/**", "!../shared/keep.py"],
+        ];
+        for root in [
+            "/workspace",
+            "/workspace [literal] café",
+            "relative/workspace",
+        ] {
+            let root = Path::new(root);
+            for includes in &include_cases {
+                for excludes in &exclude_cases {
+                    for exclude_scripts in [false, true] {
+                        let strings = |items: &[&str]| {
+                            Value::Array(items.iter().map(|s| Value::String((*s).into())).collect())
+                        };
+                        let mut src = Table::new();
+                        if let Some(includes) = includes {
+                            src.insert("include".into(), strings(includes));
+                        }
+                        src.insert("exclude".into(), strings(excludes));
+                        src.insert("exclude-scripts".into(), Value::Boolean(exclude_scripts));
+                        let table = Table::from_iter([("src".into(), Value::Table(src))]);
+                        let selection = Selection::new(&table, root, root)?;
+                        for directory in ["src", "src/generated", "lib", "src/.venv", "../shared"] {
+                            for file in [
+                                "a.py",
+                                "apple.py",
+                                "banana.py",
+                                "keep.py",
+                                "雪.py",
+                                "a.py/child.py",
+                            ] {
+                                let path = root.join(directory).join(file);
+                                let ancestors: Vec<_> =
+                                    path.ancestors().map(Candidate::new).collect();
+                                for text in ["x = 1", "  # /// script\n# dependencies=[]\n"] {
+                                    let script = exclude_scripts
+                                        && text.lines().any(|line| line.trim() == "# /// script");
+                                    let included =
+                                        selection.includes.as_ref().is_none_or(|patterns| {
+                                            patterns.patterns.iter().any(|p| p.matches(&ancestors))
+                                        });
+                                    let excluded = selection
+                                        .excludes
+                                        .patterns
+                                        .iter()
+                                        .rfind(|p| p.matches(&ancestors))
+                                        .is_some_and(|p| !p.negated);
+                                    assert_eq!(
+                                        selection.includes(&path, text),
+                                        !script && included && !excluded,
+                                        "path={path:?}, includes={includes:?}, excludes={excludes:?}, script={exclude_scripts}"
+                                    );
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        Ok(())
+    }
+
     #[test]
     fn source_filters_match_directories_negation_and_scripts() -> Result<()> {
         let root = Path::new("/workspace");

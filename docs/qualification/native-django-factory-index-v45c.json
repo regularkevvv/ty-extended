@@ -1,5 +1,5 @@
 {
-  "status": "source-qualified-performance-pending",
+  "status": "source-and-local-performance-qualified-isolated-linux-performance-failed",
   "release_accepted": false,
   "method": "Classify factories once in the fused index loop, reuse relation classifications, cache module scopes, stop a complete class closure early, and generate native-member abstentions in that same loop. No Rust source or binary changes.",
   "django_commit": "c5a3eab7cb4416fc0f0202103f310422b5273c1c",
@@ -99,7 +99,7 @@
       }
     ],
     "binary_sha256": "575bbd784879624d196080b4ca6f5cef8cd6d92360315efea4016ed93bb4142c",
-    "focus_receipt": "pending optimized paired comparison",
+    "focus_receipt": "All 20 focused contracts passed for the companion; MyPy matched 19 and bare Ty 8.",
     "passed": true
   },
   "source_example": {
@@ -661,5 +661,153 @@
     "Strict paired performance locally and on isolated Linux/macOS",
     "Consumer activation, fresh version/install matrices, integrated Django relation fixes, current conformance receipt and green CI",
     "Release artifacts and installed-consumer acceptance"
-  ]
+  ],
+  "local_performance": {
+    "passed": true,
+    "source_sha256": "51c1a88b05a169f1222685fe6105e4be5f43d4213aaaf57c60bf99dbe0d82df9",
+    "files": 7082,
+    "models": 2501,
+    "assertions": 100,
+    "medians": {
+      "hybrid": 0.7656715420307592,
+      "before": 0.8065135420765728,
+      "mypy": 7.082591624930501,
+      "official": 0.30898233398329467
+    },
+    "maxima": {
+      "hybrid": 0.8516014580382034,
+      "before": 0.8809992079623044,
+      "mypy": 7.245611957972869,
+      "official": 0.36351695901248604
+    },
+    "performance_gate": {
+      "max_ty_ratio": 3.0,
+      "median_ty_ratio": 2.4780431041476816,
+      "paired_ty_ratios": [
+        2.0927927792521026,
+        2.8933376260791617,
+        2.4630973984544893,
+        2.608777704411381,
+        2.5540781160733736
+      ],
+      "max_paired_ty_ratio": 2.8933376260791617,
+      "ty_ceiling_met": true,
+      "mypy_ceiling_met": true,
+      "one_second_goal_met": true,
+      "passed": true
+    }
+  },
+  "isolated_ci": {
+    "url": "https://github.com/regularkevvv/ty-extended/actions/runs/43164461276",
+    "source_commit": "90e44a3",
+    "release_accepted": false,
+    "platforms": {
+      "ubuntu": {
+        "passed": false,
+        "companion_sha256": "cd1a51debdca27545b1202dacc0535744412a6c3cd64a3f081adaf6aa0c52807",
+        "performance_gate": {
+          "max_ty_ratio": 3.0,
+          "median_ty_ratio": 3.2608472584587727,
+          "paired_ty_ratios": [
+            3.2020960718907223,
+            3.361813029594828,
+            3.066347006669296,
+            3.424963688547464,
+            3.200131861658882
+          ],
+          "max_paired_ty_ratio": 3.424963688547464,
+          "ty_ceiling_met": false,
+          "mypy_ceiling_met": true,
+          "one_second_goal_met": true,
+          "passed": false
+        },
+        "phase_medians_seconds": {
+          "class_projection": 0.0,
+          "diagnostic_mapping": 0.007,
+          "external_resolution": 0.01,
+          "final_check": 0.003,
+          "final_render": 0.001,
+          "flow_and_render": 0.003,
+          "function_summaries": 0.0,
+          "hook_responses": 0.016,
+          "import_preflight": 0.005,
+          "initial_lowering": 0.045,
+          "oracle_check": 0.057,
+          "project_index": 0.274,
+          "source_maps": 0.007,
+          "source_scan": 0.0,
+          "startup_configuration": 0.002,
+          "startup_overlays": 0.014,
+          "startup_project": 0.0,
+          "startup_runtime": 0.01,
+          "startup_selection": 0.032,
+          "startup_source_and_stub_index": 0.122,
+          "startup_source_copy": 0.007,
+          "virtual_declarations": 0.003,
+          "warmup_flow": 0.095,
+          "warmup_join": 0.003
+        },
+        "provider_preserved": true,
+        "temporary_environments_cleaned": true,
+        "median_seconds": {
+          "companion": 0.8044333839999354,
+          "bare-ty": 0.24669459200003985,
+          "mypy": 9.440529039000012
+        }
+      },
+      "macos": {
+        "passed": true,
+        "companion_sha256": "d5bec5abf8714f0e48b7ad1480c25e43ebbb816a0207eeff727242b71613dca3",
+        "performance_gate": {
+          "max_ty_ratio": 3.0,
+          "median_ty_ratio": 2.3973333745162457,
+          "paired_ty_ratios": [
+            2.4909443965685805,
+            2.0980029204773127,
+            2.3524670409545485,
+            2.4291675370392296,
+            2.3011795856838124
+          ],
+          "max_paired_ty_ratio": 2.4909443965685805,
+          "ty_ceiling_met": true,
+          "mypy_ceiling_met": true,
+          "one_second_goal_met": false,
+          "passed": true
+        },
+        "phase_medians_seconds": {
+          "class_projection": 0.0,
+          "diagnostic_mapping": 0.007,
+          "external_resolution": 0.006,
+          "final_check": 0.004,
+          "final_render": 0.001,
+          "flow_and_render": 0.003,
+          "function_summaries": 0.0,
+          "hook_responses": 0.015,
+          "import_preflight": 0.005,
+          "initial_lowering": 0.054,
+          "oracle_check": 0.085,
+          "project_index": 0.212,
+          "source_maps": 0.007,
+          "source_scan": 0.0,
+          "startup_configuration": 0.003,
+          "startup_overlays": 0.029,
+          "startup_project": 0.0,
+          "startup_runtime": 0.009,
+          "startup_selection": 0.037,
+          "startup_source_and_stub_index": 0.16,
+          "startup_source_copy": 0.008,
+          "virtual_declarations": 0.002,
+          "warmup_flow": 0.113,
+          "warmup_join": 0.003
+        },
+        "provider_preserved": true,
+        "temporary_environments_cleaned": true,
+        "median_seconds": {
+          "companion": 0.8731672499999377,
+          "bare-ty": 0.3642243750000489,
+          "mypy": 6.748582666999937
+        }
+      }
+    }
+  }
 }

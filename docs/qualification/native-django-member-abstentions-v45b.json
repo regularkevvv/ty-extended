@@ -32,9 +32,9 @@
   "qualification": {
     "clippy": "passed",
     "new_json_response_regression": "passed before fixture correction",
-    "new_member_routing_regression": "rerunning after correcting fixture to use public SDK member helper",
-    "full_rust_and_sdk_suites": "pending",
-    "paired_performance": "pending",
+    "new_member_routing_regression": "passed after fixture correction to the public SDK member helper",
+    "full_rust_and_sdk_suites": "passed: 249 regular and 3 ignored tests in each field mode; 72 SDK and CLI suites",
+    "paired_performance": "passed locally; failed isolated Linux and macOS 3x gates",
     "django_standalone": "24 index tests, static types and SDK invalid controls passed"
   },
   "preceding_evidence": "native-django-flow-overlap-v44.json",
