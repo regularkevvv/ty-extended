@@ -48,8 +48,10 @@ ty timings, correctness controls and the limits of each comparison.
 The [unreleased production-default trial](docs/performance.md#current-native-comparison)
 now checks all five workload shapes against official Ty 0.0.101 with
 `django-types`. **The required 3-times ceiling still fails**, so no release is
-accepted. The 7,082-file/2,501-model single-module case passes locally at 2.50
-times median; isolated Linux measures 3.37 times and macOS 2.56 times. Distributing
+accepted. The latest parallel-call trial passes the 7,082-file/2,501-model single-module
+case at 2.65 times median on isolated Linux and 2.47 times on macOS; the other
+four shapes fail on both runners. A further startup and index optimization has
+passed local correctness checks, with its performance measurements pending. Distributing
 the same number of models across files makes native Ty faster and exposes more
 wrapper overhead. Correctness controls and provider preservation pass. See the
 full results and remaining qualification gates below.

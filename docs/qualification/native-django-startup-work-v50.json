@@ -1,0 +1,779 @@
+{
+  "status": "source-qualified-performance-pending",
+  "release_accepted": false,
+  "method": "Resolve each source import once per loading operation, preserving ordered loading waves and clearing misses before the next update. Plugins may jointly declare third-party overlay names; all custom typesheds and undeclared names retain the official precedence probe. Django caches repeated factory classifications within one index request and reuses the selected relation argument.",
+  "ruff_commit": "1013b852b69bd2c2f7e82f1b70f36675215630e9",
+  "django_commit": "621e91939bea2fd78f555fc53072e7c925e6dcef",
+  "official_ty": {
+    "source": "https://pypi.org/pypi/ty/json",
+    "version": "0.0.101",
+    "files": [
+      {
+        "filename": "ty-0.0.101-py3-none-linux_armv6l.whl",
+        "upload_time_iso_8601": "2026-11-11T13:52:41.694138Z",
+        "yanked": false
+      },
+      {
+        "filename": "ty-0.0.101-py3-none-macosx_10_12_x86_64.whl",
+        "upload_time_iso_8601": "2026-11-11T13:52:45.151045Z",
+        "yanked": false
+      },
+      {
+        "filename": "ty-0.0.101-py3-none-macosx_11_0_arm64.whl",
+        "upload_time_iso_8601": "2026-11-11T13:52:48.087707Z",
+        "yanked": false
+      },
+      {
+        "filename": "ty-0.0.101-py3-none-manylinux_2_17_aarch64.manylinux2014_aarch64.whl",
+        "upload_time_iso_8601": "2026-11-11T13:52:50.753199Z",
+        "yanked": false
+      },
+      {
+        "filename": "ty-0.0.101-py3-none-manylinux_2_17_armv7l.manylinux2014_armv7l.whl",
+        "upload_time_iso_8601": "2026-11-11T13:52:53.993074Z",
+        "yanked": false
+      },
+      {
+        "filename": "ty-0.0.101-py3-none-manylinux_2_17_i686.manylinux2014_i686.whl",
+        "upload_time_iso_8601": "2026-11-11T13:52:56.869782Z",
+        "yanked": false
+      },
+      {
+        "filename": "ty-0.0.101-py3-none-manylinux_2_17_ppc64le.manylinux2014_ppc64le.whl",
+        "upload_time_iso_8601": "2026-11-11T13:52:59.787060Z",
+        "yanked": false
+      },
+      {
+        "filename": "ty-0.0.101-py3-none-manylinux_2_17_s390x.manylinux2014_s390x.whl",
+        "upload_time_iso_8601": "2026-11-11T13:53:02.763111Z",
+        "yanked": false
+      },
+      {
+        "filename": "ty-0.0.101-py3-none-manylinux_2_17_x86_64.manylinux2014_x86_64.whl",
+        "upload_time_iso_8601": "2026-11-11T13:53:06.036307Z",
+        "yanked": false
+      },
+      {
+        "filename": "ty-0.0.101-py3-none-manylinux_2_31_riscv64.whl",
+        "upload_time_iso_8601": "2026-11-11T13:53:09.257028Z",
+        "yanked": false
+      },
+      {
+        "filename": "ty-0.0.101-py3-none-musllinux_1_2_aarch64.whl",
+        "upload_time_iso_8601": "2026-11-11T13:53:12.261263Z",
+        "yanked": false
+      },
+      {
+        "filename": "ty-0.0.101-py3-none-musllinux_1_2_armv7l.whl",
+        "upload_time_iso_8601": "2026-11-11T13:53:14.947621Z",
+        "yanked": false
+      },
+      {
+        "filename": "ty-0.0.101-py3-none-musllinux_1_2_i686.whl",
+        "upload_time_iso_8601": "2026-11-11T13:53:17.978022Z",
+        "yanked": false
+      },
+      {
+        "filename": "ty-0.0.101-py3-none-musllinux_1_2_x86_64.whl",
+        "upload_time_iso_8601": "2026-11-11T13:53:21.289317Z",
+        "yanked": false
+      },
+      {
+        "filename": "ty-0.0.101-py3-none-win32.whl",
+        "upload_time_iso_8601": "2026-11-11T13:53:25.037345Z",
+        "yanked": false
+      },
+      {
+        "filename": "ty-0.0.101-py3-none-win_amd64.whl",
+        "upload_time_iso_8601": "2026-11-11T13:53:27.720299Z",
+        "yanked": false
+      },
+      {
+        "filename": "ty-0.0.101-py3-none-win_arm64.whl",
+        "upload_time_iso_8601": "2026-11-11T13:53:30.584377Z",
+        "yanked": false
+      },
+      {
+        "filename": "ty-0.0.101.tar.gz",
+        "upload_time_iso_8601": "2026-11-11T13:53:32.912191Z",
+        "yanked": false
+      }
+    ]
+  },
+  "companion_qualification": {
+    "passed": true,
+    "steps": [
+      {
+        "step": "format",
+        "exit": 0,
+        "seconds": 1.0142823749920353
+      },
+      {
+        "step": "compile-and-clippy",
+        "exit": 0,
+        "seconds": 66.45904412504751
+      },
+      {
+        "step": "focused-overlay-declarations",
+        "exit": 0,
+        "seconds": 268.83369908307213
+      },
+      {
+        "step": "focused-import-resolution",
+        "exit": 0,
+        "seconds": 1.0116305419942364
+      },
+      {
+        "step": "focused-custom-typeshed",
+        "exit": 0,
+        "seconds": 1.012144292006269
+      },
+      {
+        "step": "focused-prefetched-calls",
+        "exit": 0,
+        "seconds": 1.0142279580468312
+      },
+      {
+        "step": "focused-consumed-project-request",
+        "exit": 0,
+        "seconds": 1.0146771669387817
+      },
+      {
+        "step": "focused-selection-reference",
+        "exit": 0,
+        "seconds": 1.0139087499119341
+      },
+      {
+        "step": "focused-moved-response",
+        "exit": 0,
+        "seconds": 1.0121344591025263
+      },
+      {
+        "step": "focused-prepared-members",
+        "exit": 0,
+        "seconds": 1.0168258330086246
+      },
+      {
+        "step": "focused-borrowed-overlay",
+        "exit": 0,
+        "seconds": 1.0093772920081392
+      },
+      {
+        "step": "focused-signature-selection",
+        "exit": 0,
+        "seconds": 1.0069676249986514
+      },
+      {
+        "step": "focused-parallel-summaries",
+        "exit": 0,
+        "seconds": 1.0141681659733877
+      },
+      {
+        "step": "focused-consumed-index",
+        "exit": 0,
+        "seconds": 1.009026832995005
+      },
+      {
+        "step": "focused-discovery-catalog",
+        "exit": 0,
+        "seconds": 1.0140382919926196
+      },
+      {
+        "step": "focused-catalog-boundary",
+        "exit": 0,
+        "seconds": 1.0061913749668747
+      },
+      {
+        "step": "focused-compact-paths",
+        "exit": 0,
+        "seconds": 1.0147812080103904
+      },
+      {
+        "step": "focused-raw-warmup",
+        "exit": 0,
+        "seconds": 1.0162116249557585
+      },
+      {
+        "step": "focused-warm-cache",
+        "exit": 0,
+        "seconds": 1.0108726249309257
+      },
+      {
+        "step": "focused-native-return",
+        "exit": 0,
+        "seconds": 1.0144114580471069
+      },
+      {
+        "step": "focused-initializer-regression",
+        "exit": 0,
+        "seconds": 1.0144565419759601
+      },
+      {
+        "step": "focused-generated-rule-provenance",
+        "exit": 0,
+        "seconds": 1.0100609579822049
+      },
+      {
+        "step": "focused-nested-override",
+        "exit": 0,
+        "seconds": 1.0150735420174897
+      },
+      {
+        "step": "focused-source-revision",
+        "exit": 0,
+        "seconds": 1.0126061249757186
+      },
+      {
+        "step": "focused-unpatched-native",
+        "exit": 0,
+        "seconds": 1.0060495419893414
+      },
+      {
+        "step": "focused-parallel-sources",
+        "exit": 0,
+        "seconds": 1.0082893749931827
+      },
+      {
+        "step": "focused-profile-cache",
+        "exit": 0,
+        "seconds": 1.0157104160171002
+      },
+      {
+        "step": "focused-contribution",
+        "exit": 0,
+        "seconds": 1.0184562089852989
+      },
+      {
+        "step": "focused-constructor",
+        "exit": 0,
+        "seconds": 1.0086147079709917
+      },
+      {
+        "step": "focused-nullable",
+        "exit": 0,
+        "seconds": 1.0122579159215093
+      },
+      {
+        "step": "focused-nested",
+        "exit": 0,
+        "seconds": 1.0072442919481546
+      },
+      {
+        "step": "focused-complete",
+        "exit": 0,
+        "seconds": 1.0049739169189706
+      },
+      {
+        "step": "focused-restart",
+        "exit": 0,
+        "seconds": 1.0095359159167856
+      },
+      {
+        "step": "focused-early",
+        "exit": 0,
+        "seconds": 1.0062507080147043
+      },
+      {
+        "step": "focused-early-isolation",
+        "exit": 0,
+        "seconds": 1.0142456659814343
+      },
+      {
+        "step": "focused-pushdown",
+        "exit": 0,
+        "seconds": 1.005501416977495
+      },
+      {
+        "step": "focused-snapshot",
+        "exit": 0,
+        "seconds": 1.0188725829357281
+      },
+      {
+        "step": "focused-state",
+        "exit": 0,
+        "seconds": 1.0157860829494894
+      },
+      {
+        "step": "focused-inheritance",
+        "exit": 0,
+        "seconds": 1.0250419999938458
+      },
+      {
+        "step": "focused-unclaimed",
+        "exit": 0,
+        "seconds": 1.0143302920041606
+      },
+      {
+        "step": "focused-input",
+        "exit": 0,
+        "seconds": 1.014785417006351
+      },
+      {
+        "step": "focused-imports",
+        "exit": 0,
+        "seconds": 1.0195897090015933
+      },
+      {
+        "step": "native-units",
+        "exit": 0,
+        "seconds": 9.061148416949436
+      },
+      {
+        "step": "native-ignored",
+        "exit": 0,
+        "seconds": 1.014378666994162
+      },
+      {
+        "step": "units",
+        "exit": 0,
+        "seconds": 9.047859708080068
+      },
+      {
+        "step": "ignored",
+        "exit": 0,
+        "seconds": 1.005881791934371
+      },
+      {
+        "step": "binary",
+        "exit": 0,
+        "seconds": 50.33115079195704
+      },
+      {
+        "step": "all-test-binaries",
+        "exit": 0,
+        "seconds": 17.10490433301311
+      },
+      {
+        "step": "all-default-tests",
+        "exit": 0,
+        "seconds": 10.069516332936473
+      },
+      {
+        "step": "sdk-0-generic_project_semantics",
+        "exit": 0,
+        "seconds": 9.061183874960989
+      },
+      {
+        "step": "sdk-0-sdk_extended_semantics",
+        "exit": 0,
+        "seconds": 1.0053836250444874
+      },
+      {
+        "step": "sdk-0-sdk_field_semantics",
+        "exit": 0,
+        "seconds": 1.0085993339307606
+      },
+      {
+        "step": "sdk-0-sdk_multi_semantics",
+        "exit": 0,
+        "seconds": 1.0099232089705765
+      },
+      {
+        "step": "sdk-0-sdk_snapshots",
+        "exit": 0,
+        "seconds": 2.008690582937561
+      },
+      {
+        "step": "sdk-0-sdk_virtual_semantics",
+        "exit": 0,
+        "seconds": 1.010951624950394
+      },
+      {
+        "step": "sdk-0-cli_acceptance",
+        "exit": 0,
+        "seconds": 2.0234398330794647
+      },
+      {
+        "step": "sdk-0-cli_edits",
+        "exit": 0,
+        "seconds": 2.016485125059262
+      },
+      {
+        "step": "sdk-0-cli_watch",
+        "exit": 0,
+        "seconds": 2.0170386669924483
+      },
+      {
+        "step": "sdk-1-generic_project_semantics",
+        "exit": 0,
+        "seconds": 8.065117582911626
+      },
+      {
+        "step": "sdk-1-sdk_extended_semantics",
+        "exit": 0,
+        "seconds": 1.0142075420590118
+      },
+      {
+        "step": "sdk-1-sdk_field_semantics",
+        "exit": 0,
+        "seconds": 1.0159752500476316
+      },
+      {
+        "step": "sdk-1-sdk_multi_semantics",
+        "exit": 0,
+        "seconds": 1.0153048330685124
+      },
+      {
+        "step": "sdk-1-sdk_snapshots",
+        "exit": 0,
+        "seconds": 2.020428791991435
+      },
+      {
+        "step": "sdk-1-sdk_virtual_semantics",
+        "exit": 0,
+        "seconds": 1.0201782500371337
+      },
+      {
+        "step": "sdk-1-cli_acceptance",
+        "exit": 0,
+        "seconds": 3.0311162499710917
+      },
+      {
+        "step": "sdk-1-cli_edits",
+        "exit": 0,
+        "seconds": 2.0172700830735266
+      },
+      {
+        "step": "sdk-1-cli_watch",
+        "exit": 0,
+        "seconds": 3.060176207916811
+      },
+      {
+        "step": "warm-sdk-0-generic_project_semantics",
+        "exit": 0,
+        "seconds": 11.083131916006096
+      },
+      {
+        "step": "warm-sdk-0-sdk_extended_semantics",
+        "exit": 0,
+        "seconds": 1.0293369580758736
+      },
+      {
+        "step": "warm-sdk-0-sdk_field_semantics",
+        "exit": 0,
+        "seconds": 1.1191562919411808
+      },
+      {
+        "step": "warm-sdk-0-sdk_multi_semantics",
+        "exit": 0,
+        "seconds": 1.1460335840238258
+      },
+      {
+        "step": "warm-sdk-0-sdk_snapshots",
+        "exit": 0,
+        "seconds": 2.0715656670508906
+      },
+      {
+        "step": "warm-sdk-0-sdk_virtual_semantics",
+        "exit": 0,
+        "seconds": 1.0131387080764398
+      },
+      {
+        "step": "warm-sdk-0-cli_acceptance",
+        "exit": 0,
+        "seconds": 3.027848666999489
+      },
+      {
+        "step": "warm-sdk-0-cli_edits",
+        "exit": 0,
+        "seconds": 3.032574041048065
+      },
+      {
+        "step": "warm-sdk-0-cli_watch",
+        "exit": 0,
+        "seconds": 3.034382791025564
+      },
+      {
+        "step": "warm-sdk-1-generic_project_semantics",
+        "exit": 0,
+        "seconds": 10.086120250052772
+      },
+      {
+        "step": "warm-sdk-1-sdk_extended_semantics",
+        "exit": 0,
+        "seconds": 1.0083428329089656
+      },
+      {
+        "step": "warm-sdk-1-sdk_field_semantics",
+        "exit": 0,
+        "seconds": 1.0094910829793662
+      },
+      {
+        "step": "warm-sdk-1-sdk_multi_semantics",
+        "exit": 0,
+        "seconds": 1.0120902920607477
+      },
+      {
+        "step": "warm-sdk-1-sdk_snapshots",
+        "exit": 0,
+        "seconds": 2.0253629579674453
+      },
+      {
+        "step": "warm-sdk-1-sdk_virtual_semantics",
+        "exit": 0,
+        "seconds": 1.025758707895875
+      },
+      {
+        "step": "warm-sdk-1-cli_acceptance",
+        "exit": 0,
+        "seconds": 6.060932749998756
+      },
+      {
+        "step": "warm-sdk-1-cli_edits",
+        "exit": 0,
+        "seconds": 2.030534166027792
+      },
+      {
+        "step": "warm-sdk-1-cli_watch",
+        "exit": 0,
+        "seconds": 3.021921750041656
+      },
+      {
+        "step": "clippy",
+        "exit": 0,
+        "seconds": 1.0264224580023438
+      },
+      {
+        "step": "clean",
+        "exit": 0,
+        "seconds": 1.0152104999870062
+      }
+    ],
+    "source_sha256": {
+      "companion/src/project_config.rs": "3a5c5005ae9ada881e5c31020d782379aeaa3214825eb6654a646cdab95bdade",
+      "companion/src/flow.rs": "d6d879a0293f7ea07d5da2a1005c93b7b0f07a7a4044948e57a8591d93f5d306",
+      "companion/src/runtime.rs": "5e0d11f1a65c27a19358bf527b6c794eae80eb50ea91cbee6df3117c6d17d747",
+      "companion/src/native_rules.rs": "45a10fdebaec5c6307c75d287d97ef3c85701fe21c4ad915c6c79162db196184",
+      "companion/src/static_project.rs": "b57a33c3065aed0caea78b3c7dcdf85fc6f3cef0ffd950585fdcd9d15f68fd1e",
+      "companion/src/editor_options.rs": "6c3d5540fdea2956a9ed179fb2291f087456a48cf744647063bdd11a3f775d46",
+      "companion/src/cli_edits.rs": "01543f2a5d63f7a66545923b6ccd25e06161b6e3fd9b2936d09073768902c444",
+      "companion/src/project_check.rs": "446dee3605c8de87f4d61ed55498aa344a8aa669d9d8c72264f71416045eb887",
+      "companion/src/project.rs": "865d45bc399bc8de59af9a9912d995a692dd6abfbaeb6cc81f5ad8ec8ff8677f",
+      "companion/src/checker.rs": "4cb129fef5bf83671852080f618a0068f0b119bf2258abe4fe855e45c75d9687",
+      "companion/src/verify.rs": "e7708860ec0bd32cdfb8d6a171a53b2c12d5a67703f5a5b4322fa72d1592603d",
+      "companion/src/type_snapshot.rs": "0c018b699a8d140782e3813a5606d188c27b392400d1796ab839d73002eba813",
+      "companion/src/mapping.rs": "f92e4155bff39e8d47bed7b19a81e418a200fda3892eaebff485b1ea278bb761",
+      "companion/src/main.rs": "889627d345b64c595b0e5880e825b068f00008e5744ad52577a4c6933d6a668a",
+      "companion/src/parallel.rs": "ea1b52946ab12fca3cdf9788be063f737ea8a0ab91203565b475f5daf3e314fe",
+      "companion/src/notebook.rs": "0bbd10d569d77019c19b7b76e7d2259c93afaaccc7f18c089e6478f3491cd24f",
+      "companion/src/lsp_mapping.rs": "2a3d7cc63f066bc25db11d680819124e3ff609448d2f27ab93b15d877bfc48fb",
+      "companion/src/lsp_server.rs": "f6a49b11f82ef55a8028d78253fb210844135b9c93e7777074dab3c6f846676a",
+      "companion/src/native_warmup.rs": "08a9e6bd722adfc152cb2dd1b4f9c2b552ee31db7c8d55cc24b96a317c698688",
+      "companion/src/lower.rs": "df0249023e8c7f88eff2eb49ca2d0ee64aba682ebc5b244c230435acccb136d4",
+      "companion/src/type_render.rs": "d4f62ea50e5fa320e862ae635e8bf90329211324963a8d92bea21cf6b9533111",
+      "companion/src/model.rs": "8bb5f959e83a06c65603dda8b389a58a5854ae1d47d57b53d7abf3b2e6afe65e",
+      "companion/src/cli.rs": "c5da2dcd032e87084e8c80a160642c6c2ee615020a3f9bd4e4eb7cbb450be52f",
+      "ruff/crates/ty_plugin_host/src/monty.rs": "3ecf94981aef4e841d1e7a32c27c00907263fceb82e5adeee93dcd63ad632a3b",
+      "ruff/crates/ty_plugin_host/tests/monty.rs": "3ee1f9e8e9f6591603ce89f283c787c6bf3fecd818aab12650b893881dca136e"
+    }
+  },
+  "regular_rust_tests_per_mode": 254,
+  "additional_rust_tests_per_mode": 3,
+  "sdk_cli_suite_invocations": 36,
+  "individual_sdk_cli_tests_in_these_invocations": 44,
+  "django_qualification": {
+    "steps": [
+      {
+        "step": "corpus",
+        "exit": 0,
+        "seconds": 1.2916964169126004
+      },
+      {
+        "step": "multi-app",
+        "exit": 0,
+        "seconds": 0.22892891697119921
+      },
+      {
+        "step": "sdk-fields",
+        "exit": 0,
+        "seconds": 0.3656947090057656
+      },
+      {
+        "step": "monty-types",
+        "exit": 0,
+        "seconds": 0.3425036669941619
+      },
+      {
+        "step": "python-units",
+        "exit": 1,
+        "seconds": 4.309607125003822
+      },
+      {
+        "step": "django-runtime",
+        "exit": 0,
+        "seconds": 0.701194417080842
+      },
+      {
+        "step": "querydict-0",
+        "exit": 0,
+        "seconds": 3.581959457951598
+      },
+      {
+        "step": "querydict-1",
+        "exit": 0,
+        "seconds": 1.4827803750522435
+      },
+      {
+        "step": "primary",
+        "exit": 0,
+        "seconds": 0.5563750410219654
+      },
+      {
+        "step": "source-example",
+        "exit": 0,
+        "seconds": 3.365720083937049
+      }
+    ],
+    "binary_sha256": "272b4802e807a2bbc4f3c930bb893db62ff094266700ddd11a5489f2f077c308",
+    "focus_receipt": "pending optimized paired comparison",
+    "passed": true
+  },
+  "django_index_tests": {
+    "passed": true,
+    "count": 27
+  },
+  "django_type_checks": {
+    "passed": true,
+    "annotated_functions": 98,
+    "sdk_declarations": 46,
+    "invalid_controls_rejected": 7
+  },
+  "django_index_exact_response_equivalence": {
+    "scope": "CPython exact response equivalence and operation counts; no runtime performance claim.",
+    "passed": true,
+    "source_request_sha256": "effe3705db4f111a704bf853ec11b19d664b2d5d35d1f0b18eb4bba265c216cc",
+    "response_sha256": "fcf49fadf92020b9d53e8a39a818f6c01576e07be4332329383e390e97fa3b0a",
+    "request_preserved": true,
+    "complete_responses_equal": true,
+    "rows": [
+      {
+        "variant": "before",
+        "plugin_sha256": "038268494f02cab9d66c2911781baeb741bc78216678d8acf3d7a9146c675173",
+        "cpython_diagnostic_seconds": 0.1586644579656422,
+        "calls": {
+          "module_of": 5001,
+          "model_scope": 1,
+          "short": 10002,
+          "call_of": 12081,
+          "call_name": 5001,
+          "relation_argument": 5000
+        },
+        "model_count": 2501
+      },
+      {
+        "variant": "after",
+        "plugin_sha256": "e7ce0619919d74205d4884db5efa6b801df38f5cf7a573667841680213ed9c0f",
+        "cpython_diagnostic_seconds": 0.03591720899567008,
+        "calls": {
+          "module_of": 5001,
+          "model_scope": 1,
+          "short": 5003,
+          "call_of": 12081,
+          "call_name": 5001,
+          "relation_argument": 2500
+        },
+        "model_count": 2501
+      }
+    ]
+  },
+  "official_contract_suite_all_green": false,
+  "known_interim_exception": "Django runs 62 Python tests; one stale official-contract source-hash receipt fails. That exception is recorded explicitly and cannot be accepted for release.",
+  "optimized_build": {
+    "passed": true,
+    "source_sha256": {
+      "companion/src/project_config.rs": "3a5c5005ae9ada881e5c31020d782379aeaa3214825eb6654a646cdab95bdade",
+      "companion/src/flow.rs": "d6d879a0293f7ea07d5da2a1005c93b7b0f07a7a4044948e57a8591d93f5d306",
+      "companion/src/runtime.rs": "5e0d11f1a65c27a19358bf527b6c794eae80eb50ea91cbee6df3117c6d17d747",
+      "companion/src/native_rules.rs": "45a10fdebaec5c6307c75d287d97ef3c85701fe21c4ad915c6c79162db196184",
+      "companion/src/static_project.rs": "b57a33c3065aed0caea78b3c7dcdf85fc6f3cef0ffd950585fdcd9d15f68fd1e",
+      "companion/src/editor_options.rs": "6c3d5540fdea2956a9ed179fb2291f087456a48cf744647063bdd11a3f775d46",
+      "companion/src/cli_edits.rs": "01543f2a5d63f7a66545923b6ccd25e06161b6e3fd9b2936d09073768902c444",
+      "companion/src/project_check.rs": "446dee3605c8de87f4d61ed55498aa344a8aa669d9d8c72264f71416045eb887",
+      "companion/src/project.rs": "865d45bc399bc8de59af9a9912d995a692dd6abfbaeb6cc81f5ad8ec8ff8677f",
+      "companion/src/checker.rs": "4cb129fef5bf83671852080f618a0068f0b119bf2258abe4fe855e45c75d9687",
+      "companion/src/verify.rs": "e7708860ec0bd32cdfb8d6a171a53b2c12d5a67703f5a5b4322fa72d1592603d",
+      "companion/src/type_snapshot.rs": "0c018b699a8d140782e3813a5606d188c27b392400d1796ab839d73002eba813",
+      "companion/src/mapping.rs": "f92e4155bff39e8d47bed7b19a81e418a200fda3892eaebff485b1ea278bb761",
+      "companion/src/main.rs": "889627d345b64c595b0e5880e825b068f00008e5744ad52577a4c6933d6a668a",
+      "companion/src/parallel.rs": "ea1b52946ab12fca3cdf9788be063f737ea8a0ab91203565b475f5daf3e314fe",
+      "companion/src/notebook.rs": "0bbd10d569d77019c19b7b76e7d2259c93afaaccc7f18c089e6478f3491cd24f",
+      "companion/src/lsp_mapping.rs": "2a3d7cc63f066bc25db11d680819124e3ff609448d2f27ab93b15d877bfc48fb",
+      "companion/src/lsp_server.rs": "f6a49b11f82ef55a8028d78253fb210844135b9c93e7777074dab3c6f846676a",
+      "companion/src/native_warmup.rs": "08a9e6bd722adfc152cb2dd1b4f9c2b552ee31db7c8d55cc24b96a317c698688",
+      "companion/src/lower.rs": "df0249023e8c7f88eff2eb49ca2d0ee64aba682ebc5b244c230435acccb136d4",
+      "companion/src/type_render.rs": "d4f62ea50e5fa320e862ae635e8bf90329211324963a8d92bea21cf6b9533111",
+      "companion/src/model.rs": "8bb5f959e83a06c65603dda8b389a58a5854ae1d47d57b53d7abf3b2e6afe65e",
+      "companion/src/cli.rs": "c5da2dcd032e87084e8c80a160642c6c2ee615020a3f9bd4e4eb7cbb450be52f"
+    },
+    "build_exit": 0,
+    "build_seconds": 347.23598508303985,
+    "stopped": [],
+    "binary_sha256": "9a9366d821296234e6c1f78791493fc34a00940712ba6cf8e20c636f9fcbffb8",
+    "clean_exit": 0,
+    "clean_seconds": 0.30750341701786965
+  },
+  "previous_candidate_receipt": "native-django-prefetched-calls-v49.json",
+  "task_owned_cleanup": {
+    "passed": true,
+    "projects": [
+      {
+        "name": "small",
+        "source_sha256": "d56dec6ca0858f30863af951cfd8ee50cc0820bc9d0acc5fd5774b85ef95908e",
+        "files": 100,
+        "allocated_bytes_removed": 405504,
+        "verified_archive_bytes": 14899,
+        "archive_sha256": "2579486703f73ace8241168d3009d7f690aa7d359d33419749f31dcec72b9bfb",
+        "source_mtimes_preserved_in_archive_manifest": true
+      },
+      {
+        "name": "distributed",
+        "source_sha256": "215897d7d242aeb2411e9f446fed78cd4105eb934b051c4035f409b7323e45a0",
+        "files": 1000,
+        "allocated_bytes_removed": 4104192,
+        "verified_archive_bytes": 138667,
+        "archive_sha256": "bc21d68a0d210e521bd7b5d2ba417d211b0fafd3f890a44fc016eb48f7e967ab",
+        "source_mtimes_preserved_in_archive_manifest": true
+      },
+      {
+        "name": "many-files",
+        "source_sha256": "ba0380a4b1aa169061e65909e3ec9d9ecec7d4679a12e6dc914c7c2a5659b731",
+        "files": 7082,
+        "allocated_bytes_removed": 29016064,
+        "verified_archive_bytes": 928693,
+        "archive_sha256": "c8efece6d3ec849b631734370dc8223017bd87e303f54e6cb6892ad22b19810c",
+        "source_mtimes_preserved_in_archive_manifest": true
+      },
+      {
+        "name": "stress",
+        "source_sha256": "51c1a88b05a169f1222685fe6105e4be5f43d4213aaaf57c60bf99dbe0d82df9",
+        "files": 7082,
+        "allocated_bytes_removed": 29368320,
+        "verified_archive_bytes": 935299,
+        "archive_sha256": "757825e01a20c483e68e9f8ddf4e740391882830ac8c32fd6dd23a9536f65642",
+        "source_mtimes_preserved_in_archive_manifest": true
+      },
+      {
+        "name": "distributed-stress",
+        "source_sha256": "0b165879eeaa32cb6906921446ecaa428c3c4f44890779f7601511dc5d572124",
+        "files": 7082,
+        "allocated_bytes_removed": 29114368,
+        "verified_archive_bytes": 1000228,
+        "archive_sha256": "86374dd143395bce2c9678928d1b9218e074752cc41c7381c23ce96396efafbb",
+        "source_mtimes_preserved_in_archive_manifest": true
+      }
+    ]
+  },
+  "performance_gate": {
+    "median_and_every_pair_max_ty_ratio": 3,
+    "all_five_workloads_required": true,
+    "mypy_ceiling": true,
+    "passed": false,
+    "reason": "Optimized five-workload measurements for this source are pending."
+  },
+  "pending_gates": [
+    "optimized five-workload production benchmark on isolated Linux and macOS",
+    "fresh Ty version/install and broad editor matrices",
+    "Django relation integration and regenerated official-contract evidence",
+    "all CI and published-artifact acceptance"
+  ]
+}

@@ -276,6 +276,7 @@ fn stdlib_overlay_modules(
     config: &project_config::Config,
     options: &BTreeMap<String, String>,
     out: &Path,
+    third_party: &BTreeSet<String>,
 ) -> Result<BTreeSet<String>> {
     let mut candidates = BTreeSet::new();
     for root in &config.stub_roots {
@@ -286,11 +287,14 @@ fn stdlib_overlay_modules(
             let Some(module) = overlay_top_level(relative) else {
                 continue;
             };
-            if ruff_python_parser::parse_module(&format!("import {module}\n")).is_ok() {
-                candidates.insert(module);
+            if config.typeshed.is_none() && third_party.contains(&module) {
+                continue;
             }
+            candidates.insert(module);
         }
     }
+    candidates
+        .retain(|module| ruff_python_parser::parse_module(&format!("import {module}\n")).is_ok());
     if candidates.is_empty() {
         return Ok(BTreeSet::new());
     }
@@ -1220,7 +1224,12 @@ impl Session {
             eprintln!("companion native fields: {}", runtime.use_site_fields);
         }
         phase(&mut startup_phases, "startup_runtime", &mut startup_tick);
-        let stdlib = stdlib_overlay_modules(&checker_config, options, &out)?;
+        let stdlib = stdlib_overlay_modules(
+            &checker_config,
+            options,
+            &out,
+            &runtime.third_party_overlay_modules()?,
+        )?;
         let borrow_requested = options.get("borrow-overlays").map_or_else(
             || {
                 std::env::var_os("TY_COMPANION_BORROW_OVERLAYS")
@@ -1708,7 +1717,13 @@ impl Session {
         // Persistent/reconfigured checks restore the ordinary copied view.
         self.borrowed_overlay = None;
         let config = project_config::load(&self.root, &self.view, &self.stubs, &self.options)?;
-        let stdlib = stdlib_overlay_modules(&config, &self.options, &self.out)?;
+        let runtime = Runtime::from_plugins(&config.plugins)?;
+        let stdlib = stdlib_overlay_modules(
+            &config,
+            &self.options,
+            &self.out,
+            &runtime.third_party_overlay_modules()?,
+        )?;
         if !self.stub_roots.is_empty() || !config.stub_roots.is_empty() {
             // Package markers and new/removed overlay directories alter resolver
             // search state, not just document text. Rebuild only on explicit
@@ -1749,7 +1764,7 @@ impl Session {
         } else {
             json!({})
         };
-        self.runtime = Runtime::from_plugins(&config.plugins)?;
+        self.runtime = runtime;
         self.plugin_files = config.plugin_watch_paths;
         self.has_plugins = !config.plugins.is_empty();
         if !self.has_plugins {
@@ -5999,6 +6014,76 @@ mod tests {
     }
 
     #[test]
+    fn third_party_overlay_declarations_skip_only_declared_native_probes() -> Result<()> {
+        let binary = std::env::var_os("TY_COMPANION_TEST_OFFICIAL").expect("official checker");
+        let directory =
+            std::env::temp_dir().join(format!("ty-overlay-declaration-{}", std::process::id()));
+        let root = directory.join("project");
+        let stubs = directory.join("overlays");
+        write(
+            &root.join("ty.toml"),
+            "[environment]\npython-version='3.13'\n",
+        )?;
+        write(&stubs.join("django-stubs/__init__.pyi"), "value: str\n")?;
+        write(&stubs.join("django-stubs/db/models.pyi"), "value: str\n")?;
+        let fixtures = Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures/generic");
+        let options = BTreeMap::from([
+            (
+                "ty".into(),
+                PathBuf::from(binary).to_string_lossy().into_owned(),
+            ),
+            ("stubs".into(), stubs.to_string_lossy().into_owned()),
+            (
+                "plugin".into(),
+                fixtures.join("plugin.py").to_string_lossy().into_owned(),
+            ),
+            (
+                "manifest".into(),
+                fixtures
+                    .join("plugin.plugin.json")
+                    .to_string_lossy()
+                    .into_owned(),
+            ),
+        ]);
+        let config = project_config::load(
+            &root,
+            &directory.join("view"),
+            &directory.join("target"),
+            &options,
+        )?;
+        let declared = BTreeSet::from(["django".into()]);
+        let skipped = directory.join("skipped");
+        assert!(stdlib_overlay_modules(&config, &options, &skipped, &declared)?.is_empty());
+        assert!(!skipped.join("overlay-resolution").exists());
+        assert!(
+            stdlib_overlay_modules(
+                &config,
+                &options,
+                &directory.join("unclaimed"),
+                &BTreeSet::new()
+            )?
+            .is_empty()
+        );
+        assert!(
+            directory
+                .join("unclaimed/overlay-resolution/stdlib-probe.py")
+                .exists()
+        );
+        write(&stubs.join("json/__init__.pyi"), "value: str\n")?;
+        let mixed = directory.join("mixed");
+        assert_eq!(
+            stdlib_overlay_modules(&config, &options, &mixed, &declared)?,
+            BTreeSet::from(["json".into()])
+        );
+        assert_eq!(
+            std::fs::read_to_string(mixed.join("overlay-resolution/stdlib-probe.py"))?,
+            "import json\n"
+        );
+        std::fs::remove_dir_all(directory)?;
+        Ok(())
+    }
+
+    #[test]
     fn overlay_stdlib_probe_honors_custom_typeshed_version_ranges() -> Result<()> {
         let binary = std::env::var_os("TY_COMPANION_TEST_OFFICIAL").expect("official checker");
         let directory =
@@ -6043,12 +6128,25 @@ mod tests {
         );
         let config =
             project_config::load(&root, &out.join("project"), &out.join("stubs"), &options)?;
-        assert!(stdlib_overlay_modules(&config, &options, &out)?.is_empty());
+        assert!(
+            stdlib_overlay_modules(
+                &config,
+                &options,
+                &out,
+                &BTreeSet::from(["future_module".into()])
+            )?
+            .is_empty()
+        );
         options.insert("python-version".into(), "3.13".into());
         let config =
             project_config::load(&root, &out.join("project"), &out.join("stubs"), &options)?;
         assert_eq!(
-            stdlib_overlay_modules(&config, &options, &out)?,
+            stdlib_overlay_modules(
+                &config,
+                &options,
+                &out,
+                &BTreeSet::from(["future_module".into()])
+            )?,
             BTreeSet::from(["future_module".into()])
         );
         options.insert("out".into(), out.to_string_lossy().into_owned());

@@ -544,6 +544,7 @@ impl Runtime {
                     "companion-parallel-calls must be a boolean"
                 );
             }
+            declared_third_party_overlays(&config)?;
             let native_member_abstentions = config
                 .get("companion-native-member-abstentions")
                 .filter(|value| !value.is_null())
@@ -738,6 +739,21 @@ impl Runtime {
             execution_profile: std::env::var_os("TY_COMPANION_TRACE_PHASES")
                 .map(|_| BTreeMap::new()),
         })
+    }
+
+    /// Every registered plugin must agree before bypassing a native stdlib
+    /// lookup. A custom typeshed always retains the native precedence probe.
+    pub fn third_party_overlay_modules(&self) -> Result<BTreeSet<String>> {
+        let mut plugins = self.plugins.iter();
+        let Some(first) = plugins.next() else {
+            return Ok(BTreeSet::new());
+        };
+        let mut names = declared_third_party_overlays(&first.config)?;
+        for plugin in plugins {
+            let declared = declared_third_party_overlays(&plugin.config)?;
+            names.retain(|name| declared.contains(name));
+        }
+        Ok(names)
     }
 
     pub fn attach_project(&mut self, project: Arc<Project>, config: Value) {
@@ -2691,6 +2707,35 @@ fn hook_failure_message(id: &str, kind: &str, message: &str, hint: &str) -> Valu
     }
 }
 
+fn declared_third_party_overlays(config: &Value) -> Result<BTreeSet<String>> {
+    let Some(names) = config
+        .get("companion-third-party-overlays")
+        .filter(|v| !v.is_null())
+    else {
+        return Ok(BTreeSet::new());
+    };
+    names
+        .as_array()
+        .context("companion-third-party-overlays must be an array")?
+        .iter()
+        .map(|name| {
+            let name = name
+                .as_str()
+                .context("companion-third-party-overlays must contain module names")?;
+            ensure!(
+                !name.is_empty()
+                    && name
+                        .bytes()
+                        .all(|ch| ch == b'_' || ch.is_ascii_alphanumeric())
+                    && !name.as_bytes()[0].is_ascii_digit()
+                    && ruff_python_parser::parse_module(&format!("import {name}\n")).is_ok(),
+                "companion-third-party-overlays must contain top-level Python module names"
+            );
+            Ok(name.to_owned())
+        })
+        .collect()
+}
+
 fn merge_config(config: &mut Value, overrides: &Value) {
     if let (Some(defaults), Some(overrides)) = (config.as_object_mut(), overrides.as_object()) {
         defaults.extend(overrides.clone());
@@ -3437,6 +3482,65 @@ def dynamic(request):
                 assert_eq!(actual["access"]["type-expr"]["expression"], annotation);
             }
         }
+        std::fs::remove_dir_all(directory)?;
+        Ok(())
+    }
+
+    #[test]
+    fn third_party_overlay_declarations_require_all_plugins_and_valid_names() -> Result<()> {
+        assert!(declared_third_party_overlays(&json!({}))?.is_empty());
+        assert!(
+            declared_third_party_overlays(&json!({"companion-third-party-overlays":null}))?
+                .is_empty()
+        );
+        for value in [
+            json!(true),
+            json!("django"),
+            json!([1]),
+            json!([""]),
+            json!(["django.db"]),
+            json!(["x\nimport os"]),
+            json!(["42name"]),
+            json!(["class"]),
+        ] {
+            assert!(
+                declared_third_party_overlays(&json!({"companion-third-party-overlays":value}))
+                    .is_err()
+            );
+        }
+        let directory =
+            std::env::temp_dir().join(format!("ty-third-party-overlays-{}", std::process::id()));
+        std::fs::create_dir_all(&directory)?;
+        let artifact = directory.join("plugin.py");
+        std::fs::write(&artifact, "# Overlay-only plugin.\n")?;
+        let mut paths = Vec::new();
+        for id in ["first", "second"] {
+            let manifest = directory.join(format!("{id}.json"));
+            std::fs::write(&manifest,json!({"id":id,"name":id,"version":"0","protocol-version":{"major":0,"minor":9},"ty-compatibility":{"requirement":">=0.89.0"},"runtime":{"kind":"monty","artifact":"plugin.py"},"capabilities":{"stub-overlays":true},"default-config":{"companion-third-party-overlays":["django","another"]}}).to_string())?;
+            paths.push((manifest, artifact.clone(), json!({})));
+        }
+        assert!(
+            Runtime::from_plugins(&[])?
+                .third_party_overlay_modules()?
+                .is_empty()
+        );
+        assert_eq!(
+            Runtime::from_plugins(&paths)?.third_party_overlay_modules()?,
+            BTreeSet::from(["django".into(), "another".into()])
+        );
+        paths[1].2 = json!({"companion-third-party-overlays":["django"]});
+        assert_eq!(
+            Runtime::from_plugins(&paths)?.third_party_overlay_modules()?,
+            BTreeSet::from(["django".into()])
+        );
+        paths[1].2 = json!({"companion-third-party-overlays":null});
+        assert!(
+            Runtime::from_plugins(&paths)?
+                .third_party_overlay_modules()?
+                .is_empty()
+        );
+        paths[0].2 = json!({"companion-third-party-overlays":true});
+        assert!(Runtime::from_plugins(&paths).is_err());
         std::fs::remove_dir_all(directory)?;
         Ok(())
     }

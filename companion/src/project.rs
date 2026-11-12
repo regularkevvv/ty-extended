@@ -975,6 +975,12 @@ impl Project {
     }
 
     fn load_imports(&mut self) -> Result<()> {
+        // Resolve each name once within this immutable loading wave. Hundreds
+        // of modules can share the same absent external import; retrying each
+        // one repeats filesystem probes without adding project information.
+        // Keep this local so newly created modules and changed source roots are
+        // resolved normally on the next update.
+        let mut resolved = BTreeSet::new();
         loop {
             let mut additions = BTreeMap::new();
             for module in self.modules.values() {
@@ -982,6 +988,7 @@ impl Project {
                     let mut candidate = target.as_str();
                     loop {
                         if !self.modules.contains_key(candidate)
+                            && resolved.insert(candidate.to_owned())
                             && let Some(path) = self.find_source_module(candidate)
                         {
                             additions.insert(candidate.to_owned(), path);
@@ -3161,6 +3168,84 @@ mod tests {
                 );
             }
         }
+        Ok(())
+    }
+
+    #[test]
+    fn unique_import_resolution_preserves_waves_precedence_and_new_modules() -> Result<()> {
+        let source = Fixture::new(&[
+            (
+                "entry.py",
+                "from branch import Row\nfrom other import Other\nimport newly_created\n",
+            ),
+            (
+                "branch.py",
+                "from shared import Base\nimport missing.external\nclass Row(Base): pass\n",
+            ),
+            (
+                "other.py",
+                "from shared import Base\nimport missing.external\nclass Other(Base): pass\n",
+            ),
+            ("shared.pyi", "from cycle import Back\nclass Base: ...\n"),
+            ("shared.py", "class Wrong: pass\n"),
+            ("cycle.py", "import branch\nclass Back: pass\n"),
+        ]);
+        let fallback = Fixture::new(&[("shared.pyi", "class WrongRoot: ...\n")]);
+        let mut empty =
+            Project::load_inner(&source.0, &[], &json!({}), json!({}), false, true, None)?;
+        empty.source_roots.push(fallback.0.clone());
+        empty.load_initial_sources(&[source.0.join("entry.py")], 1)?;
+        fn reference(project: &mut Project) -> Result<()> {
+            loop {
+                let mut additions = BTreeMap::new();
+                for module in project.modules.values() {
+                    for target in module.imports.values() {
+                        let mut candidate = target.as_str();
+                        loop {
+                            if !project.modules.contains_key(candidate)
+                                && let Some(path) = project.find_source_module(candidate)
+                            {
+                                additions.insert(candidate.to_owned(), path);
+                            }
+                            let Some((parent, _)) = candidate.rsplit_once('.') else {
+                                break;
+                            };
+                            candidate = parent;
+                        }
+                    }
+                }
+                if additions.is_empty() {
+                    break;
+                }
+                for (name, path) in additions {
+                    project.add_module(&name, &path, false)?;
+                }
+            }
+            project.rebuild()
+        }
+        let mut expected = empty.clone();
+        reference(&mut expected)?;
+        let mut actual = empty;
+        actual.load_imports()?;
+        actual.rebuild()?;
+        assert_eq!(actual.build_request(), expected.build_request());
+        assert_eq!(actual.import_dependencies(), expected.import_dependencies());
+        assert_eq!(actual.mro("branch.Row"), expected.mro("branch.Row"));
+        assert!(actual.classes.contains_key("shared.Base"));
+        assert!(!actual.classes.contains_key("shared.Wrong"));
+        assert!(!actual.classes.contains_key("shared.WrongRoot"));
+        assert!(!actual.modules.contains_key("newly_created"));
+        std::fs::write(source.0.join("newly_created.py"), "class Fresh: pass\n")?;
+        reference(&mut expected)?;
+        actual.load_imports()?;
+        actual.rebuild()?;
+        assert!(actual.classes.contains_key("newly_created.Fresh"));
+        assert_eq!(actual.build_request(), expected.build_request());
+        // The same dependency error remains first in deterministic name order.
+        std::fs::write(source.0.join("missing.py"), "invalid !!! syntax\n")?;
+        let expected_error = reference(&mut expected).unwrap_err();
+        let actual_error = actual.load_imports().unwrap_err();
+        assert_eq!(actual_error.to_string(), expected_error.to_string());
         Ok(())
     }
 

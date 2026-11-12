@@ -30,6 +30,24 @@ meeting the current performance and correctness requirements together.
 
 ## Current native comparison
 
+The [latest parallel-call trial](qualification/native-django-prefetched-calls-v49.json)
+still fails the complete isolated matrix. Single-module stress passes at 2.65 times
+median and 2.69 times worst pair on Linux, and 2.47 and 2.82 times on macOS.
+The other four shapes fail on both platforms: median ratios range from 3.23 to
+3.80 on Linux and 3.74 to 4.34 on macOS. Every shape remains faster than MyPy;
+correctness controls, provider preservation and environment cleanup pass. These
+separate runner observations do not isolate a speedup from the parallel change.
+
+The [next startup candidate](qualification/native-django-startup-work-v50.json)
+eliminates repeated import filesystem probes, permits declared third-party
+overlays to bypass a separate checker startup, and reuses Django field-factory
+classification and relation arguments. The complete preserved 2,501-model index
+response is identical. Local validation passes 254 regular Rust tests plus three
+additional tests in each mode, 36 SDK/CLI suite invocations containing 44 test
+executions, 27 Django index tests and the Django end-to-end controls. Optimized
+build and Cargo cleanup pass; performance acceptance is pending. The stale
+Django official-contract receipt remains an explicit failing release gate.
+
 The [production-default candidate](qualification/native-django-production-defaults-v47.json)
 uses author-selected native fields, eligible memory projection and provider
 borrowing without experimental environment flags. Its expanded comparison

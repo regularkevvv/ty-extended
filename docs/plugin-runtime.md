@@ -23,6 +23,7 @@ Installed plugins are discovered only when enabled:
 
 ```toml
 [plugins]
+enabled = true
 auto-discover = true
 ```
 
@@ -47,6 +48,31 @@ statically; the companion does not import or execute a project's Python code.
 Protocol validation and runtime limits still apply. In-process memory isolation
 is not a process sandbox; see the resource-limit implementation and validation
 boundaries in [companion status](https://github.com/regularkevvv/ty-extended/blob/main/companion/STATUS.md).
+
+## Companion execution profiles
+
+The unreleased native Django profile selects these host options through the
+manifest's `default-config`. They describe the plugin's requirements; they do
+not change the external checker's version or configuration interfaces.
+
+- `companion-native-fields = true` delegates ordinary fields to official ty.
+  The default activates only when every registered plugin opts in. Explicit
+  environment overrides retain either strategy.
+- `companion-parallel-calls = true` permits bounded prefetch of independent
+  literal-argument hooks on fresh Monty snapshots. Responses enter the ordinary
+  cache under their complete request keys. Changed arguments, contexts or indexes
+  use the normal execution path, and speculative host failures are retried there.
+- `companion-third-party-overlays = ["django"]` declares top-level overlay
+  modules that the plugin author guarantees are third-party packages throughout
+  its supported checker and Python versions. The companion can omit the separate
+  stdlib precedence probe for these names only when every registered plugin
+  agrees. Names must be ASCII Python module identifiers. Undeclared modules and
+  every custom typeshed retain resolution through official ty. This declaration
+  does not remove overlay files from the checker or change source selection.
+
+These options retain per-request Monty resource limits and plugin index isolation.
+CLI memory projection and provider borrowing apply only to eligible fresh checks;
+notebooks and persistent editor updates retain their existing projection paths.
 
 ## CLI and editor behavior
 
