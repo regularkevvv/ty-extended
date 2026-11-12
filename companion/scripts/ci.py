@@ -321,76 +321,37 @@ def scoped_django_gate(
                 "DJANGO_TY_SCOPED_ORACLE": str(scoped),
             },
         )
-    environments = {}
-    try:
-        for name, packages in (
-            (
-                "candidate",
-                [
-                    "Django==6.1.3",
-                    "ty==0.0.99",
-                    "typing-extensions>=4.11.0",
-                    "types-PyYAML>=6.0.12",
-                ],
-            ),
-            ("reference", ["Django==6.1.3", "mypy==2.4.1", "django-stubs==6.1.2"]),
-        ):
-            target = output / ("performance-" + name)
-            environments[name] = target
-            venv.EnvBuilder(with_pip=True).create(target)
-            run(
-                [
-                    str(target / "bin/python"),
-                    "-m",
-                    "pip",
-                    "install",
-                    "--no-cache-dir",
-                    *packages,
-                ],
-                env=env,
-            )
-        for name, files, models, modules, queries in (
-            ("small", 100, 25, 5, 25),
-            ("distributed", 1000, 250, 25, 100),
-            ("many-files", 7082, 250, 25, 100),
-            ("stress", 7082, 2501, 1, 100),
-            ("distributed-stress", 7082, 2501, 250, 100),
-        ):
-            for projection, enabled in (("", "0"), ("memory-", "1")):
-                label = "performance-" + projection + name
-                gates.run(
-                    label,
-                    [
-                        sys.executable,
-                        "companion/scripts/compare_checkers.py",
-                        "--companion",
-                        str(binary),
-                        "--official",
-                        str(environments["candidate"] / "bin/ty"),
-                        "--python",
-                        str(environments["candidate"] / "bin/python"),
-                        "--mypy",
-                        str(environments["reference"] / "bin/mypy"),
-                        "--plugin",
-                        str(source / "python/django_ty"),
-                        "--files",
-                        str(files),
-                        "--models",
-                        str(models),
-                        "--model-modules",
-                        str(modules),
-                        "--queries",
-                        str(queries),
-                        "--repeats",
-                        "3",
-                        "--output",
-                        str(output / label),
-                    ],
-                    env={**env, "TY_COMPANION_MEMORY_PROJECTION": enabled},
-                )
-    finally:
-        for target in environments.values():
-            shutil.rmtree(target)
+    # The historical corpus above remains a compatibility check. Performance
+    # uses the current production plugin and native django-types comparison,
+    # retaining all five workload shapes and the strict per-pair 3x ceiling.
+    performance_binary = output / "performance-companion"
+    shutil.copy2(binary, performance_binary)
+    if (
+        hashlib.sha256(performance_binary.read_bytes()).digest()
+        != hashlib.sha256(binary.read_bytes()).digest()
+    ):
+        raise RuntimeError("performance binary copy changed")
+    gates.run(
+        "clean-before-native-performance",
+        ["cargo", "+1.98.0", "clean", "--manifest-path", "companion/Cargo.toml"],
+        env=env,
+    )
+    native_env = dict(env)
+    native_env.pop("TY_MAX_PARALLELISM", None)
+    gates.run(
+        "native-django-production-performance",
+        [
+            sys.executable,
+            "companion/scripts/native_django_benchmark.py",
+            "--production-defaults",
+            "--matrix",
+            "--companion",
+            str(performance_binary),
+            "--output",
+            str(output / "native-django-production"),
+        ],
+        env=native_env,
+    )
 
 
 def main() -> int:

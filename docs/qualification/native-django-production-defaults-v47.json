@@ -1,0 +1,279 @@
+{
+  "status": "qualification-running",
+  "release_accepted": false,
+  "django_commit": "3253ad56922bf83a7919624d80b55fd58bcd19a2",
+  "method": "Use author-selected native fields when every plugin opts in, default fresh supported CLI checks to memory projection, select eligible warmup and provider borrowing by default, preserve explicit opt-outs and platform/editor fallbacks, and consume internally generated project-index request JSON.",
+  "ownership_boundary": "Unchanged official Astral Ty remains an external executable. Rust owns the host and projections; Python hooks execute inside Monty. The owned decoder applies only to source summaries built by the companion; external and cached requests retain their exact original decoder and errors.",
+  "source_sha256": {
+    "companion/src/project_config.rs": "3a5c5005ae9ada881e5c31020d782379aeaa3214825eb6654a646cdab95bdade",
+    "companion/src/flow.rs": "d6d879a0293f7ea07d5da2a1005c93b7b0f07a7a4044948e57a8591d93f5d306",
+    "companion/src/runtime.rs": "8cf56361ceb279f0196a7353b5c882763c4542b57db2283746eac2b9bdb6bdb1",
+    "companion/src/native_rules.rs": "45a10fdebaec5c6307c75d287d97ef3c85701fe21c4ad915c6c79162db196184",
+    "companion/src/static_project.rs": "b57a33c3065aed0caea78b3c7dcdf85fc6f3cef0ffd950585fdcd9d15f68fd1e",
+    "companion/src/editor_options.rs": "6c3d5540fdea2956a9ed179fb2291f087456a48cf744647063bdd11a3f775d46",
+    "companion/src/cli_edits.rs": "01543f2a5d63f7a66545923b6ccd25e06161b6e3fd9b2936d09073768902c444",
+    "companion/src/project_check.rs": "ff4309773fd33ac2aad6562af4fc410d626e7646ac4494332a38e25e73552026",
+    "companion/src/project.rs": "f534de2ff40b8a6df4f18fe7e30a60322e53c0c3a80ddcbb39d57af5e39170da",
+    "companion/src/checker.rs": "4cb129fef5bf83671852080f618a0068f0b119bf2258abe4fe855e45c75d9687",
+    "companion/src/verify.rs": "e7708860ec0bd32cdfb8d6a171a53b2c12d5a67703f5a5b4322fa72d1592603d",
+    "companion/src/type_snapshot.rs": "0c018b699a8d140782e3813a5606d188c27b392400d1796ab839d73002eba813",
+    "companion/src/mapping.rs": "f92e4155bff39e8d47bed7b19a81e418a200fda3892eaebff485b1ea278bb761",
+    "companion/src/main.rs": "889627d345b64c595b0e5880e825b068f00008e5744ad52577a4c6933d6a668a",
+    "companion/src/parallel.rs": "4bffc4522fdb958d6484bc50a440037c3ac362ab346b3a0f070ce486b6b79658",
+    "companion/src/notebook.rs": "0bbd10d569d77019c19b7b76e7d2259c93afaaccc7f18c089e6478f3491cd24f",
+    "companion/src/lsp_mapping.rs": "2a3d7cc63f066bc25db11d680819124e3ff609448d2f27ab93b15d877bfc48fb",
+    "companion/src/lsp_server.rs": "f6a49b11f82ef55a8028d78253fb210844135b9c93e7777074dab3c6f846676a",
+    "companion/src/native_warmup.rs": "08a9e6bd722adfc152cb2dd1b4f9c2b552ee31db7c8d55cc24b96a317c698688",
+    "companion/src/lower.rs": "df0249023e8c7f88eff2eb49ca2d0ee64aba682ebc5b244c230435acccb136d4",
+    "companion/src/type_render.rs": "d4f62ea50e5fa320e862ae635e8bf90329211324963a8d92bea21cf6b9533111",
+    "companion/src/model.rs": "8bb5f959e83a06c65603dda8b389a58a5854ae1d47d57b53d7abf3b2e6afe65e",
+    "companion/src/cli.rs": "c5da2dcd032e87084e8c80a160642c6c2ee615020a3f9bd4e4eb7cbb450be52f"
+  },
+  "normal_cli_smoke": {
+    "passed": true,
+    "runs": [
+      {
+        "profile": true,
+        "fields": null,
+        "memory": null,
+        "borrow": null,
+        "exit": 1,
+        "diagnostics": [
+          {
+            "check_name": "invalid-assignment",
+            "description": "invalid-assignment: Object of type `Literal[\"ordinary native error\"]` is not assignable to `int`",
+            "fingerprint": "e8444e7733b065c543c402dbe2c450ccb4dff4a3a6607bbc2289aca532a2611b",
+            "location": {
+              "path": "/private/var/folders/k9/vdxym_4178zdbdmc57vkcrtc0000gn/T/ty-defaults-smoke-bcsri0y_/project/demo.py",
+              "positions": {
+                "begin": {
+                  "column": 14,
+                  "line": 4
+                },
+                "end": {
+                  "column": 37,
+                  "line": 4
+                }
+              }
+            },
+            "severity": "major"
+          }
+        ],
+        "stderr": "companion phase startup_source_copy: 0.004s\ncompanion phase startup_configuration: 0.013s\ncompanion native fields: true\ncompanion phase startup_runtime: 0.015s\ncompanion borrowed overlay: true\ncompanion phase startup_overlays: 0.089s\ncompanion phase startup_selection: 0.001s\ncompanion native warmup input_maps: 0.000075s\ncompanion project load initial_sources: 0.000484s\ncompanion project load imports_and_overlays: 0.000411s\ncompanion project load summaries_and_hierarchy: 0.000040s\ncompanion phase startup_source_and_stub_index: 0.002s\ncompanion phase startup_project: 0.000s\ncompanion phase source_scan: 0.000s\ncompanion phase external_resolution: 0.000s\ncompanion phase function_summaries: 0.000s\ncompanion selected-path canonical reuses: 1\ncompanion index selection: 0.000022s\ncompanion index attach: 0.000010s\ncompanion index request: 0.000027s\ncompanion phase project_index: 0.000s\ncompanion phase virtual_declarations: 0.000s\ncompanion phase class_projection: 0.000s\ncompanion phase initial_lowering: 0.001s\ncompanion phase warmup_flow: 0.001s\ncompanion native warmup initialize: 0.014098s\ncompanion native warmup native_check: 0.045552s\ncompanion phase warmup_join: 0.056s\ncompanion phase flow_and_render: 0.000s\ncompanion phase import_preflight: 0.000s\ncompanion phase oracle_check: 0.004s\ncompanion phase hook_responses: 0.001s\ncompanion phase flow_and_render: 0.010s\ncompanion phase import_preflight: 0.000s\ncompanion phase oracle_check: 0.004s\ncompanion phase hook_responses: 0.000s\ncompanion phase flow_and_render: 0.000s\ncompanion phase import_preflight: 0.000s\ncompanion phase oracle_check: 0.001s\ncompanion phase hook_responses: 0.000s\ncompanion phase final_render: 0.000s\ncompanion transport: memory projection workspace diagnostics\ncompanion phase final_check: 0.001s\ncompanion phase diagnostic_mapping: 0.000s\ncompanion phase source_maps: 0.000s\n"
+      },
+      {
+        "profile": true,
+        "fields": "0",
+        "memory": null,
+        "borrow": null,
+        "exit": 1,
+        "diagnostics": [
+          {
+            "check_name": "invalid-assignment",
+            "description": "invalid-assignment: Object of type `Literal[\"ordinary native error\"]` is not assignable to `int`",
+            "fingerprint": "e8444e7733b065c543c402dbe2c450ccb4dff4a3a6607bbc2289aca532a2611b",
+            "location": {
+              "path": "/private/var/folders/k9/vdxym_4178zdbdmc57vkcrtc0000gn/T/ty-defaults-smoke-bcsri0y_/project/demo.py",
+              "positions": {
+                "begin": {
+                  "column": 14,
+                  "line": 4
+                },
+                "end": {
+                  "column": 37,
+                  "line": 4
+                }
+              }
+            },
+            "severity": "major"
+          }
+        ],
+        "stderr": "companion phase startup_source_copy: 0.000s\ncompanion phase startup_configuration: 0.002s\ncompanion native fields: false\ncompanion phase startup_runtime: 0.003s\ncompanion borrowed overlay: false\ncompanion phase startup_overlays: 0.015s\ncompanion phase startup_selection: 0.001s\ncompanion project load initial_sources: 0.000120s\ncompanion project load imports_and_overlays: 0.000087s\ncompanion project load summaries_and_hierarchy: 0.000023s\ncompanion phase startup_source_and_stub_index: 0.000s\ncompanion phase startup_project: 0.000s\ncompanion phase source_scan: 0.000s\ncompanion phase external_resolution: 0.000s\ncompanion phase function_summaries: 0.000s\ncompanion selected-path canonical reuses: 1\ncompanion index selection: 0.000013s\ncompanion index attach: 0.000005s\ncompanion index request: 0.000008s\ncompanion phase project_index: 0.000s\ncompanion phase virtual_declarations: 0.000s\ncompanion phase class_projection: 0.000s\ncompanion phase initial_lowering: 0.000s\ncompanion phase flow_and_render: 0.007s\ncompanion phase import_preflight: 0.000s\ncompanion phase oracle_check: 0.024s\ncompanion phase hook_responses: 0.001s\ncompanion phase flow_and_render: 0.001s\ncompanion phase import_preflight: 0.000s\ncompanion phase oracle_check: 0.002s\ncompanion phase hook_responses: 0.000s\ncompanion phase flow_and_render: 0.000s\ncompanion phase import_preflight: 0.000s\ncompanion phase oracle_check: 0.000s\ncompanion phase hook_responses: 0.000s\ncompanion phase final_render: 0.000s\ncompanion transport: memory projection workspace diagnostics\ncompanion phase final_check: 0.001s\ncompanion phase diagnostic_mapping: 0.000s\ncompanion phase source_maps: 0.000s\n"
+      },
+      {
+        "profile": false,
+        "fields": null,
+        "memory": null,
+        "borrow": null,
+        "exit": 1,
+        "diagnostics": [
+          {
+            "check_name": "invalid-assignment",
+            "description": "invalid-assignment: Object of type `Literal[\"ordinary native error\"]` is not assignable to `int`",
+            "fingerprint": "e8444e7733b065c543c402dbe2c450ccb4dff4a3a6607bbc2289aca532a2611b",
+            "location": {
+              "path": "/private/var/folders/k9/vdxym_4178zdbdmc57vkcrtc0000gn/T/ty-defaults-smoke-bcsri0y_/project/demo.py",
+              "positions": {
+                "begin": {
+                  "column": 14,
+                  "line": 4
+                },
+                "end": {
+                  "column": 37,
+                  "line": 4
+                }
+              }
+            },
+            "severity": "major"
+          }
+        ],
+        "stderr": "companion phase startup_source_copy: 0.000s\ncompanion phase startup_configuration: 0.002s\ncompanion native fields: false\ncompanion phase startup_runtime: 0.003s\ncompanion borrowed overlay: false\ncompanion phase startup_overlays: 0.016s\ncompanion phase startup_selection: 0.001s\ncompanion project load initial_sources: 0.000128s\ncompanion project load imports_and_overlays: 0.000086s\ncompanion project load summaries_and_hierarchy: 0.000023s\ncompanion phase startup_source_and_stub_index: 0.000s\ncompanion phase startup_project: 0.000s\ncompanion phase source_scan: 0.000s\ncompanion phase external_resolution: 0.000s\ncompanion phase function_summaries: 0.000s\ncompanion selected-path canonical reuses: 1\ncompanion index selection: 0.000014s\ncompanion index attach: 0.000006s\ncompanion index request: 0.000009s\ncompanion phase project_index: 0.000s\ncompanion phase virtual_declarations: 0.000s\ncompanion phase class_projection: 0.000s\ncompanion phase initial_lowering: 0.000s\ncompanion phase flow_and_render: 0.007s\ncompanion phase import_preflight: 0.000s\ncompanion phase oracle_check: 0.023s\ncompanion phase hook_responses: 0.000s\ncompanion phase flow_and_render: 0.001s\ncompanion phase import_preflight: 0.000s\ncompanion phase oracle_check: 0.002s\ncompanion phase hook_responses: 0.000s\ncompanion phase flow_and_render: 0.000s\ncompanion phase import_preflight: 0.000s\ncompanion phase oracle_check: 0.000s\ncompanion phase hook_responses: 0.000s\ncompanion phase final_render: 0.000s\ncompanion transport: memory projection workspace diagnostics\ncompanion phase final_check: 0.001s\ncompanion phase diagnostic_mapping: 0.000s\ncompanion phase source_maps: 0.000s\n"
+      },
+      {
+        "profile": false,
+        "fields": "1",
+        "memory": null,
+        "borrow": null,
+        "exit": 1,
+        "diagnostics": [
+          {
+            "check_name": "invalid-assignment",
+            "description": "invalid-assignment: Object of type `Literal[\"ordinary native error\"]` is not assignable to `int`",
+            "fingerprint": "e8444e7733b065c543c402dbe2c450ccb4dff4a3a6607bbc2289aca532a2611b",
+            "location": {
+              "path": "/private/var/folders/k9/vdxym_4178zdbdmc57vkcrtc0000gn/T/ty-defaults-smoke-bcsri0y_/project/demo.py",
+              "positions": {
+                "begin": {
+                  "column": 14,
+                  "line": 4
+                },
+                "end": {
+                  "column": 37,
+                  "line": 4
+                }
+              }
+            },
+            "severity": "major"
+          }
+        ],
+        "stderr": "companion phase startup_source_copy: 0.000s\ncompanion phase startup_configuration: 0.002s\ncompanion native fields: true\ncompanion phase startup_runtime: 0.003s\ncompanion borrowed overlay: true\ncompanion phase startup_overlays: 0.015s\ncompanion phase startup_selection: 0.001s\ncompanion native warmup input_maps: 0.000015s\ncompanion project load initial_sources: 0.000072s\ncompanion project load imports_and_overlays: 0.000084s\ncompanion project load summaries_and_hierarchy: 0.000023s\ncompanion phase startup_source_and_stub_index: 0.000s\ncompanion phase startup_project: 0.000s\ncompanion phase source_scan: 0.000s\ncompanion phase external_resolution: 0.000s\ncompanion phase function_summaries: 0.000s\ncompanion selected-path canonical reuses: 1\ncompanion index selection: 0.000012s\ncompanion index attach: 0.000006s\ncompanion index request: 0.000008s\ncompanion phase project_index: 0.000s\ncompanion phase virtual_declarations: 0.000s\ncompanion phase class_projection: 0.000s\ncompanion phase initial_lowering: 0.000s\ncompanion phase warmup_flow: 0.000s\ncompanion native warmup initialize: 0.007190s\ncompanion native warmup native_check: 0.027006s\ncompanion phase warmup_join: 0.034s\ncompanion phase flow_and_render: 0.000s\ncompanion phase import_preflight: 0.000s\ncompanion phase oracle_check: 0.002s\ncompanion phase hook_responses: 0.000s\ncompanion phase flow_and_render: 0.001s\ncompanion phase import_preflight: 0.000s\ncompanion phase oracle_check: 0.002s\ncompanion phase hook_responses: 0.000s\ncompanion phase flow_and_render: 0.000s\ncompanion phase import_preflight: 0.000s\ncompanion phase oracle_check: 0.000s\ncompanion phase hook_responses: 0.000s\ncompanion phase final_render: 0.000s\ncompanion transport: memory projection workspace diagnostics\ncompanion phase final_check: 0.001s\ncompanion phase diagnostic_mapping: 0.000s\ncompanion phase source_maps: 0.000s\n"
+      },
+      {
+        "profile": true,
+        "fields": null,
+        "memory": "0",
+        "borrow": null,
+        "exit": 1,
+        "diagnostics": [
+          {
+            "check_name": "invalid-assignment",
+            "description": "invalid-assignment: Object of type `Literal[\"ordinary native error\"]` is not assignable to `int`",
+            "fingerprint": "e8444e7733b065c543c402dbe2c450ccb4dff4a3a6607bbc2289aca532a2611b",
+            "location": {
+              "path": "/private/var/folders/k9/vdxym_4178zdbdmc57vkcrtc0000gn/T/ty-defaults-smoke-bcsri0y_/project/demo.py",
+              "positions": {
+                "begin": {
+                  "column": 14,
+                  "line": 4
+                },
+                "end": {
+                  "column": 37,
+                  "line": 4
+                }
+              }
+            },
+            "severity": "major"
+          }
+        ],
+        "stderr": "companion phase startup_source_copy: 0.000s\ncompanion phase startup_configuration: 0.002s\ncompanion native fields: true\ncompanion phase startup_runtime: 0.003s\ncompanion borrowed overlay: false\ncompanion phase startup_overlays: 0.015s\ncompanion phase startup_selection: 0.001s\ncompanion project load initial_sources: 0.000109s\ncompanion project load imports_and_overlays: 0.000082s\ncompanion project load summaries_and_hierarchy: 0.000024s\ncompanion phase startup_source_and_stub_index: 0.000s\ncompanion phase startup_project: 0.000s\ncompanion phase source_scan: 0.000s\ncompanion phase external_resolution: 0.000s\ncompanion phase function_summaries: 0.000s\ncompanion selected-path canonical reuses: 0\ncompanion index selection: 0.000089s\ncompanion index attach: 0.000010s\ncompanion index request: 0.000010s\ncompanion phase project_index: 0.000s\ncompanion phase virtual_declarations: 0.000s\ncompanion phase class_projection: 0.000s\ncompanion phase initial_lowering: 0.000s\ncompanion phase flow_and_render: 0.000s\ncompanion phase import_preflight: 0.000s\ncompanion phase oracle_check: 0.028s\ncompanion phase hook_responses: 0.000s\ncompanion phase flow_and_render: 0.001s\ncompanion phase import_preflight: 0.000s\ncompanion phase oracle_check: 0.002s\ncompanion phase hook_responses: 0.000s\ncompanion phase flow_and_render: 0.000s\ncompanion phase import_preflight: 0.000s\ncompanion phase oracle_check: 0.001s\ncompanion phase hook_responses: 0.000s\ncompanion phase final_render: 0.000s\ncompanion phase final_check: 0.001s\ncompanion phase diagnostic_mapping: 0.000s\ncompanion phase source_maps: 0.000s\n"
+      },
+      {
+        "profile": true,
+        "fields": null,
+        "memory": null,
+        "borrow": "0",
+        "exit": 1,
+        "diagnostics": [
+          {
+            "check_name": "invalid-assignment",
+            "description": "invalid-assignment: Object of type `Literal[\"ordinary native error\"]` is not assignable to `int`",
+            "fingerprint": "e8444e7733b065c543c402dbe2c450ccb4dff4a3a6607bbc2289aca532a2611b",
+            "location": {
+              "path": "/private/var/folders/k9/vdxym_4178zdbdmc57vkcrtc0000gn/T/ty-defaults-smoke-bcsri0y_/project/demo.py",
+              "positions": {
+                "begin": {
+                  "column": 14,
+                  "line": 4
+                },
+                "end": {
+                  "column": 37,
+                  "line": 4
+                }
+              }
+            },
+            "severity": "major"
+          }
+        ],
+        "stderr": "companion phase startup_source_copy: 0.000s\ncompanion phase startup_configuration: 0.002s\ncompanion native fields: true\ncompanion phase startup_runtime: 0.003s\ncompanion borrowed overlay: false\ncompanion phase startup_overlays: 0.015s\ncompanion phase startup_selection: 0.001s\ncompanion project load initial_sources: 0.000075s\ncompanion native warmup input_maps: 0.000038s\ncompanion project load imports_and_overlays: 0.000091s\ncompanion project load summaries_and_hierarchy: 0.000025s\ncompanion phase startup_source_and_stub_index: 0.000s\ncompanion phase startup_project: 0.000s\ncompanion phase source_scan: 0.000s\ncompanion phase external_resolution: 0.000s\ncompanion phase function_summaries: 0.000s\ncompanion selected-path canonical reuses: 1\ncompanion index selection: 0.000013s\ncompanion index attach: 0.000007s\ncompanion index request: 0.000009s\ncompanion phase project_index: 0.000s\ncompanion phase virtual_declarations: 0.000s\ncompanion phase class_projection: 0.000s\ncompanion phase initial_lowering: 0.000s\ncompanion phase warmup_flow: 0.000s\ncompanion native warmup initialize: 0.007568s\ncompanion native warmup native_check: 0.024696s\ncompanion phase warmup_join: 0.032s\ncompanion phase flow_and_render: 0.000s\ncompanion phase import_preflight: 0.000s\ncompanion phase oracle_check: 0.003s\ncompanion phase hook_responses: 0.001s\ncompanion phase flow_and_render: 0.001s\ncompanion phase import_preflight: 0.000s\ncompanion phase oracle_check: 0.003s\ncompanion phase hook_responses: 0.000s\ncompanion phase flow_and_render: 0.000s\ncompanion phase import_preflight: 0.000s\ncompanion phase oracle_check: 0.002s\ncompanion phase hook_responses: 0.000s\ncompanion phase final_render: 0.000s\ncompanion transport: memory projection workspace diagnostics\ncompanion phase final_check: 0.002s\ncompanion phase diagnostic_mapping: 0.000s\ncompanion phase source_maps: 0.000s\n"
+      }
+    ],
+    "project_cleaned": true
+  },
+  "benchmark_method": {
+    "production_flags_removed": [
+      "TY_COMPANION_NATIVE_FIELDS",
+      "TY_COMPANION_MEMORY_PROJECTION",
+      "TY_COMPANION_NATIVE_WARMUP",
+      "TY_COMPANION_BORROW_OVERLAYS"
+    ],
+    "workloads": [
+      [
+        100,
+        25,
+        5,
+        25
+      ],
+      [
+        1000,
+        250,
+        25,
+        100
+      ],
+      [
+        7082,
+        250,
+        25,
+        100
+      ],
+      [
+        7082,
+        2501,
+        1,
+        100
+      ],
+      [
+        7082,
+        2501,
+        250,
+        100
+      ]
+    ],
+    "columns": [
+      "files",
+      "models",
+      "model_modules",
+      "assertions"
+    ],
+    "repeats": 5,
+    "median_and_every_pair_max_native_ratio": 3,
+    "mypy_ceiling": true,
+    "native_provider": "django-types 0.24.0",
+    "official_ty": "0.0.101"
+  },
+  "preceding_qualified_gate": {
+    "source_commit": "69ad554",
+    "url": "https://github.com/regularkevvv/ty-extended/actions/runs/43167223473",
+    "linux_median_ratio": 2.8639823875178387,
+    "linux_worst_pair": 2.9630974046556062,
+    "macos_median_ratio": 2.6136325223873578,
+    "macos_worst_pair": 2.702563734701306
+  },
+  "pending_gates": [
+    "full Rust and SDK qualification with corrected CLI fixture",
+    "five-shape production benchmark",
+    "fresh official Ty version groups",
+    "Django relation integration and full official-contract receipt",
+    "installed consumers and all CI",
+    "release artifact qualification and Django issue closure"
+  ]
+}

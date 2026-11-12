@@ -19,7 +19,7 @@ from types import SimpleNamespace
 
 from compare_checkers import invoke, source_hash
 
-DJANGO_COMMIT = "00a376541e31f9700c02e5094598e5369e8898d7"
+DJANGO_COMMIT = "3253ad56922bf83a7919624d80b55fd58bcd19a2"
 SCRIPTS = Path(__file__).resolve().parent
 
 
@@ -133,20 +133,30 @@ def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--companion", required=True, type=Path)
     parser.add_argument("--output", required=True, type=Path)
+    parser.add_argument("--production-defaults", action="store_true")
+    parser.add_argument(
+        "--matrix", action="store_true", help="Run all five existing workload shapes"
+    )
     args = parser.parse_args()
     args.output.mkdir(parents=True, exist_ok=False)
     output = args.output.resolve()
-    os.environ.update(
-        TY_COMPANION_NATIVE_FIELDS="1",
-        TY_COMPANION_MEMORY_PROJECTION="1",
-        TY_COMPANION_NATIVE_WARMUP="1",
-        TY_COMPANION_BORROW_OVERLAYS="1",
-        TY_COMPANION_TRACE_PHASES="1",
+    flags = (
+        "TY_COMPANION_NATIVE_FIELDS",
+        "TY_COMPANION_MEMORY_PROJECTION",
+        "TY_COMPANION_NATIVE_WARMUP",
+        "TY_COMPANION_BORROW_OVERLAYS",
     )
+    for key in flags:
+        if args.production_defaults:
+            os.environ.pop(key, None)
+        else:
+            os.environ[key] = "1"
+    os.environ["TY_COMPANION_TRACE_PHASES"] = "1"
     report = {
         "passed": False,
         "django_commit": DJANGO_COMMIT,
         "companion_sha256": hashlib.sha256(args.companion.read_bytes()).hexdigest(),
+        "production_defaults": args.production_defaults,
     }
     environments = [output / name for name in ("candidate", "native", "reference")]
     try:
@@ -185,67 +195,103 @@ def main() -> int:
         reference = environment(
             environments[2], ["Django==6.1.3", "mypy==2.4.1", "django-stubs==6.1.2"]
         )
-        target = output / "comparison"
-        command = [
-            sys.executable,
-            SCRIPTS / "compare_checkers.py",
-            "--companion",
-            args.companion.resolve(),
-            "--official",
-            candidate.parent / "ty",
-            "--python",
-            candidate,
-            "--official-python",
-            native,
-            "--mypy",
-            reference.parent / "mypy",
-            "--plugin",
-            source / "python/django_ty",
-            "--files",
-            "7082",
-            "--models",
-            "2501",
-            "--queries",
-            "100",
-            "--repeats",
-            "5",
-            "--threads",
-            "0",
-            "--max-ty-ratio",
-            "3",
-            "--native-django",
-            "--output",
-            target,
-        ]
-        result = subprocess.run(list(map(str, command)), check=False)
-        benchmark = json.loads((target / "benchmark.json").read_text())
-        assert benchmark["passed"], "Workload correctness or process monitoring failed"
-        report["benchmark_exit"] = result.returncode
-        report["performance_gate"] = benchmark["performance_gate"]
-        phases = collections.defaultdict(list)
-        for row in benchmark["records"]:
-            if (
-                row["backend"] != "companion"
-                or not row["label"].split("/")[0].isdigit()
-            ):
-                continue
-            sample = collections.defaultdict(float)
-            for name, seconds in re.findall(
-                r"companion phase (\S+): ([\d.]+)s",
-                (target / "runs" / row["label"] / "stderr.log").read_text(),
-            ):
-                sample[name] += float(seconds)
-            for name, seconds in sample.items():
-                phases[name].append(seconds)
-        report["phase_medians_seconds"] = {
-            name: statistics.median(samples) for name, samples in sorted(phases.items())
-        }
-        report["focus"] = focus(target, benchmark)
+        workloads = (
+            [
+                ("small", 100, 25, 5, 25),
+                ("distributed", 1000, 250, 25, 100),
+                ("many-files", 7082, 250, 25, 100),
+                ("stress", 7082, 2501, 1, 100),
+                ("distributed-stress", 7082, 2501, 250, 100),
+            ]
+            if args.matrix
+            else [("stress", 7082, 2501, 1, 100)]
+        )
+        report["workloads"] = {}
+        for name, files, models, modules, queries in workloads:
+            current = {}
+            target = output / name if args.matrix else output / "comparison"
+            command = [
+                sys.executable,
+                SCRIPTS / "compare_checkers.py",
+                "--companion",
+                args.companion.resolve(),
+                "--official",
+                candidate.parent / "ty",
+                "--python",
+                candidate,
+                "--official-python",
+                native,
+                "--mypy",
+                reference.parent / "mypy",
+                "--plugin",
+                source / "python/django_ty",
+                "--files",
+                str(files),
+                "--models",
+                str(models),
+                "--model-modules",
+                str(modules),
+                "--queries",
+                str(queries),
+                "--repeats",
+                "5",
+                "--threads",
+                "0",
+                "--max-ty-ratio",
+                "3",
+                "--production-defaults"
+                if args.production_defaults
+                else "--native-django",
+                "--output",
+                target,
+            ]
+            result = subprocess.run(list(map(str, command)), check=False)
+            benchmark = json.loads((target / "benchmark.json").read_text())
+            assert benchmark["passed"], (
+                "Workload correctness or process monitoring failed"
+            )
+            current["benchmark_exit"] = result.returncode
+            current["performance_gate"] = benchmark["performance_gate"]
+            phases = collections.defaultdict(list)
+            for row in benchmark["records"]:
+                if (
+                    row["backend"] != "companion"
+                    or not row["label"].split("/")[0].isdigit()
+                ):
+                    continue
+                sample = collections.defaultdict(float)
+                stderr = (target / "runs" / row["label"] / "stderr.log").read_text()
+                if args.production_defaults:
+                    assert "companion native fields: true" in stderr
+                    assert "companion borrowed overlay: true" in stderr
+                    assert "companion native warmup initialize:" in stderr
+                for phase_name, seconds in re.findall(
+                    r"companion phase (\S+): ([\d.]+)s",
+                    stderr,
+                ):
+                    sample[phase_name] += float(seconds)
+                for phase_name, seconds in sample.items():
+                    phases[phase_name].append(seconds)
+            current["phase_medians_seconds"] = {
+                name: statistics.median(samples)
+                for name, samples in sorted(phases.items())
+            }
+            if name == "stress":
+                current["focus"] = focus(target, benchmark)
+            current["passed"] = (
+                result.returncode == 0 and benchmark["performance_gate"]["passed"]
+            )
+            current["median_seconds"] = benchmark["median_seconds"]
+            current["source_sha256"] = benchmark["source_sha256"]
+            current["production_path_verified"] = args.production_defaults
+            report["workloads"][name] = current
+            (output / "native-django.json").write_text(
+                json.dumps(report, indent=2) + "\n"
+            )
         report["provider_preserved"] = provider_state(provider) == provider_before
         assert report["provider_preserved"], "Provider source bytes or mtimes changed"
-        report["passed"] = (
-            result.returncode == 0 and benchmark["performance_gate"]["passed"]
-        )
+        report.update(report["workloads"]["stress"])
+        report["passed"] = all(row["passed"] for row in report["workloads"].values())
     finally:
         for path in environments:
             shutil.rmtree(path, ignore_errors=True)

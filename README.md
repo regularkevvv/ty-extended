@@ -46,15 +46,14 @@ MyPy median ceiling. See
 ty timings, correctness controls and the limits of each comparison.
 
 The latest completed [unreleased native Django trial](docs/performance.md#current-native-comparison)
-measures **0.804 seconds** on isolated Linux, versus **9.441 seconds** for MyPy
-and **0.247 seconds** for official Ty 0.0.101 with `django-types`. All pass the
-same fixture's 100 assertions and both error controls. The companion passes all
-20 additional focused ORM cases; native Ty passes eight. Linux's median is
-**3.26 times** native Ty and its worst pair is **3.42 times**, failing the required
-**3-times ceiling**. Isolated macOS passes at **2.40 times** median and **2.49 times**
-worst pair. Performance, installed-artifact
-and release qualification remain open; the published results above remain the
-release baseline.
+passes the required **3-times ceiling on both isolated platforms**, including
+every paired repeat: Linux measures **2.86 times** median and **2.96 times** worst
+pair; macOS measures **2.61 times** median and **2.70 times** worst pair. The same
+7,082 files, 2,501 models, 100 assertions and both error controls are preserved.
+The companion passes all 20 focused ORM contracts; native Ty passes eight.
+The one-second goal is still unmet across all samples. Production activation,
+installed-artifact checks and release qualification remain open; the published
+results above remain the release baseline.
 
 ## Monty plugins
 

@@ -5,6 +5,121 @@ use std::{fs, path::Path, process::Command};
 
 #[test]
 #[ignore = "requires TY_COMPANION_TEST_OFFICIAL"]
+fn manifest_native_strategy_works_without_experimental_environment_flags() -> Result<()> {
+    let official = std::env::var("TY_COMPANION_TEST_OFFICIAL")?;
+    let temporary = std::env::temp_dir().canonicalize()?;
+    let fixture = temporary.join(format!("ty-native-defaults-{}", std::process::id()));
+    let root = fixture.join("project");
+    struct Cleanup(std::path::PathBuf);
+    impl Drop for Cleanup {
+        fn drop(&mut self) {
+            let _ = fs::remove_dir_all(&self.0);
+        }
+    }
+    let _cleanup = Cleanup(fixture.clone());
+    fs::create_dir_all(&root)?;
+    fs::create_dir_all(fixture.join("provider"))?;
+    let provider = fixture.join("provider/api.pyi");
+    fs::write(&provider, "class External: pass\n")?;
+    let provider_bytes = fs::read(&provider)?;
+    let provider_modified = fs::metadata(&provider)?.modified()?;
+    fs::write(
+        fixture.join("plugin.py"),
+        "@on_instance_member\ndef resolve(request):\n    return member_response(member('extra', type_annotation('str')))\n",
+    )?;
+    fs::write(
+        root.join("demo.py"),
+        "from typing import assert_type\nclass Row: pass\nassert_type(Row().extra, str)\nwrong: int = 'ordinary native error'\n",
+    )?;
+    fs::write(
+        root.join("ty.toml"),
+        "[environment]\npython-version='3.13'\n[plugins]\nenabled=true\nauto-discover=false\n[[plugins.plugin]]\nid='test.defaults'\nruntime='monty'\ntrusted=true\npath='../plugin.py'\nmanifest-path='../plugin.json'\nstub-overlay-path='../provider'\n",
+    )?;
+    let mut manifest = json!({"id":"test.defaults","name":"Defaults","version":"0","protocol-version":{"major":0,"minor":9},"ty-compatibility":{"requirement":">=0.89.0"},"runtime":{"kind":"monty","artifact":"plugin.py"},"capabilities":{"instance-member":true,"stub-overlays":true},"claims":{"attributes":[{"kind":"exact","scope":"instance","owner-qualified-name":"demo.Row","attribute-name":"extra"}]},"stub-overlays":[{"module":"api","path":"provider/api.pyi"}],"default-config":{"companion-native-fields":true}});
+    for (profile, fields, memory, borrow, native, warm, borrowed) in [
+        (true, None, None, None, true, !cfg!(windows), !cfg!(windows)),
+        (true, Some("0"), None, None, false, false, false),
+        (false, None, None, None, false, false, false),
+        (
+            false,
+            Some("1"),
+            None,
+            None,
+            true,
+            !cfg!(windows),
+            !cfg!(windows),
+        ),
+        (true, None, Some("0"), None, true, false, false),
+        (true, None, None, Some("0"), true, !cfg!(windows), false),
+    ] {
+        manifest["default-config"]["companion-native-fields"] = json!(profile);
+        fs::write(fixture.join("plugin.json"), serde_json::to_vec(&manifest)?)?;
+        let mut command = Command::new(env!("CARGO_BIN_EXE_ty-extended"));
+        command
+            .args(["check", "--ty", &official, "--output-format", "gitlab"])
+            .env("TY_UV", "0")
+            .env("TY_MAX_PARALLELISM", "1")
+            .env("TY_COMPANION_TRACE_PHASES", "1")
+            .env_remove("TY_CONFIG_FILE")
+            .env_remove("TY_OUTPUT_FORMAT")
+            .env_remove("TY_COMPANION_NATIVE_WARMUP")
+            .env_remove("TY_COMPANION_NATIVE_FIELDS")
+            .env_remove("TY_COMPANION_MEMORY_PROJECTION")
+            .env_remove("TY_COMPANION_BORROW_OVERLAYS")
+            .current_dir(&root);
+        for (key, value) in [
+            ("TY_COMPANION_NATIVE_FIELDS", fields),
+            ("TY_COMPANION_MEMORY_PROJECTION", memory),
+            ("TY_COMPANION_BORROW_OVERLAYS", borrow),
+        ] {
+            if let Some(value) = value {
+                command.env(key, value);
+            }
+        }
+        let child = command
+            .stdout(std::process::Stdio::piped())
+            .stderr(std::process::Stdio::piped())
+            .spawn()?;
+        let prefix = format!("ty-companion-check-{}-", child.id());
+        let output = child.wait_with_output()?;
+        let stderr = String::from_utf8(output.stderr)?;
+        ensure!(output.status.code() == Some(1), "{stderr}");
+        let diagnostics: Value = serde_json::from_slice(&output.stdout).context(stderr.clone())?;
+        ensure!(
+            diagnostics.as_array().is_some_and(
+                |items| items.len() == 1 && items[0]["check_name"] == "invalid-assignment"
+            ),
+            "{diagnostics:#}: {stderr}"
+        );
+        ensure!(
+            stderr.contains(&format!("companion native fields: {native}")),
+            "{stderr}"
+        );
+        ensure!(
+            stderr.contains("companion native warmup initialize:") == warm,
+            "{stderr}"
+        );
+        ensure!(
+            stderr.contains(&format!("companion borrowed overlay: {borrowed}")),
+            "{stderr}"
+        );
+        ensure!(
+            fs::read(&provider)? == provider_bytes
+                && fs::metadata(&provider)?.modified()? == provider_modified,
+            "provider changed"
+        );
+        for entry in fs::read_dir(&temporary)? {
+            ensure!(
+                !entry?.file_name().to_string_lossy().starts_with(&prefix),
+                "temporary analysis directory leaked"
+            );
+        }
+    }
+    Ok(())
+}
+
+#[test]
+#[ignore = "requires TY_COMPANION_TEST_OFFICIAL"]
 fn normal_check_discovers_plugins_respects_options_and_cleans_temporary_files() -> Result<()> {
     let official = std::env::var("TY_COMPANION_TEST_OFFICIAL")?;
     let temporary = std::env::temp_dir().canonicalize()?;

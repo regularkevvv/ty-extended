@@ -525,6 +525,15 @@ impl Runtime {
                 .cloned()
                 .unwrap_or(json!({}));
             merge_config(&mut config, overrides);
+            if let Some(value) = config
+                .get("companion-native-fields")
+                .filter(|v| !v.is_null())
+            {
+                ensure!(
+                    value.is_boolean(),
+                    "companion-native-fields must be a boolean"
+                );
+            }
             let native_member_abstentions = config
                 .get("companion-native-member-abstentions")
                 .filter(|value| !value.is_null())
@@ -659,6 +668,18 @@ impl Runtime {
                 }
             }
         }
+        // An author can select native field handling for ordinary consumers.
+        // Mixed registrations retain the general strategy unless every plugin
+        // opts in. An explicit environment value still selects either route.
+        let native_fields = std::env::var_os("TY_COMPANION_NATIVE_FIELDS").map_or_else(
+            || {
+                !plugins.is_empty()
+                    && plugins
+                        .iter()
+                        .all(|plugin| plugin.config["companion-native-fields"] == true)
+            },
+            |value| value == "1",
+        );
         Ok(Self {
             host: PluginHost::new(environment, runner),
             load_failures,
@@ -693,8 +714,7 @@ impl Runtime {
             nominal_candidates: BTreeMap::new(),
             annotation_candidates: BTreeSet::new(),
             context_free_arguments: BTreeSet::new(),
-            use_site_fields: std::env::var_os("TY_COMPANION_NATIVE_FIELDS")
-                .is_some_and(|value| value == "1"),
+            use_site_fields: native_fields,
             eager_class_fields: false,
             cache: RequestCache::default(),
             type_cache: RefCell::default(),
@@ -2296,7 +2316,15 @@ impl Runtime {
                 self.dispatch(&id, request)?
             } else {
                 let decode_start = Instant::now();
-                let request = decode_request(request).context("invalid plugin request")?;
+                // This disposable request comes from the companion's typed
+                // source-summary builder. Consume its strings and containers
+                // instead of cloning them through borrowed deserialization.
+                // External and cached requests retain decode_request's exact
+                // enum fallback and invalid-input diagnostics.
+                let request =
+                    serde_json::from_value::<ty_plugin_protocol::BuildProjectIndexRequest>(request)
+                        .map(PluginRequest::BuildProjectIndex)
+                        .context("invalid plugin request")?;
                 if std::env::var_os("TY_COMPANION_TRACE_PHASES").is_some() {
                     eprintln!(
                         "companion index protocol decode: {:.6}s",
@@ -3060,6 +3088,11 @@ mod tests {
         let directory =
             std::env::temp_dir().join(format!("ty-consumed-index-{}", std::process::id()));
         std::fs::create_dir_all(&directory)?;
+        let source_path = directory.join("demo.py");
+        std::fs::write(
+            &source_path,
+            "from typing import ClassVar\nsettings = {'modes': (1, True, None)}\ndef register(*args, **kwargs): ...\nclass Base[T]: pass\n@register('row', enabled=True)\nclass Row(Base[str]):\n    value: ClassVar[int] = 3\n    field = register(default={'nested': [None, 'text']})\n    class Meta:\n        abstract = True\n    def method(self, value: str | None = None, *, count: int = 1) -> tuple[str, int]:\n        return ('text', count)\n",
+        )?;
         let mut paths = Vec::new();
         for (id, annotation) in [("a", "bool"), ("b", "str")] {
             let manifest = directory.join(format!("{id}.json"));
@@ -3090,8 +3123,19 @@ def dynamic(request):
         for count in [1, 2] {
             let mut ordinary = Runtime::from_plugins(&paths[..count])?;
             let mut consumed = Runtime::from_plugins(&paths[..count])?;
+            let project = Project::load(
+                &directory,
+                std::slice::from_ref(&source_path),
+                &ordinary.manifest,
+                json!({}),
+            )?;
             for annotation in ["int", "bytes", "str"] {
-                let request = json!({"context":{"root":annotation,"python-version":"3.13","platform":"darwin"}});
+                let mut request = project.build_request();
+                request["context"]["root"] = json!(annotation);
+                request["context"]["python-version"] = json!("3.13");
+                request["context"]["platform"] = json!("darwin");
+                assert!(!request["classes"].as_array().unwrap().is_empty());
+                assert!(!request["functions"].as_array().unwrap().is_empty());
                 let mut expected =
                     ordinary.execute_project("build-project-index", request.clone())?;
                 let actual = consumed.execute_ephemeral_project_index(request)?;

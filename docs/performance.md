@@ -30,29 +30,38 @@ meeting the current performance and correctness requirements together.
 
 ## Current native comparison
 
-The [factory-index candidate](qualification/native-django-factory-index-v45c.json)
-classifies each field factory once and avoids repeated per-member scans. Its
-complete index response for the preserved 2,501-model request is identical to
-its predecessor. Official Ty remains an unchanged external executable, and all
-plugin execution remains in Monty.
+The [grouped-selection and lazy-hierarchy candidate](qualification/native-django-grouped-selection-v46c.json)
+passes both isolated platforms on official Ty 0.0.101. It preserves ordered
+source-selection behavior in 14,400 differential comparisons, defers unused
+Django hierarchy work and emits the same complete index for the preserved
+2,501-model request. Official Ty remains an unchanged external executable,
+and all plugin execution remains in Monty.
 
 | Runner | Companion | Native Ty with django-types | MyPy | Median ratio | Largest paired ratio |
 | ------ | --------: | --------------------------: | ---: | -----------: | -------------------: |
-| Linux | 0.804 s | 0.247 s | 9.441 s | 3.26 | 3.42 |
-| macOS | 0.873 s | 0.364 s | 6.749 s | 2.40 | 2.49 |
+| Linux | 0.987 s | 0.345 s | 13.123 s | 2.86 | 2.96 |
+| macOS | 1.383 s | 0.529 s | 11.124 s | 2.61 | 2.70 |
 
-macOS passes the required performance gate. **Linux fails**, so merge and release
-remain blocked. Both preserve 100 assertions, both negative controls, all 20
-companion focused contracts, provider bytes and mtimes, and temporary-environment
-cleanup. MyPy matches 19 focused contracts and native Ty eight. Every job cleans
-its Cargo target before timing. The separate one-second goal passes on Linux
-and fails on macOS because of one larger sample.
+Both pass the median and every-pair **3-times gate** and the MyPy ceiling. All
+100 assertions, both negative controls and all 20 companion focused contracts
+pass. MyPy matches 19 focused contracts and native Ty eight. Provider bytes and
+mtimes are preserved, temporary environments are removed, and every job cleans
+its Cargo target before timing. **The separate one-second goal is unmet** on
+both platforms because of larger individual samples.
 
-The local comparison measures 0.766 seconds against native Ty's 0.309 seconds,
-or 2.48 times median and 2.89 times worst pair. This local pass does not override
-the isolated Linux failure. Production activation and fresh version/install
-matrices remain pending. The preceding
-[flow-overlap candidate](qualification/native-django-flow-overlap-v44.json)
+The local comparison also passes: 0.801 seconds against native Ty's 0.311 seconds,
+or 2.58 times median and 2.67 times worst pair. Its paired predecessor takes
+0.741 seconds, so this local run does not establish a standalone speedup from
+grouped glob matching. The source passes 250 regular Rust tests and three
+additional tests in each mode, 72 SDK/CLI suite runs and Django's corpus,
+runtime and positive/negative example controls. The official-contract receipt's
+stale source hash remains an explicit release blocker. Production activation
+and fresh version/install matrices remain pending; these results do not yet
+qualify a published release.
+
+The preceding [factory-index trial](qualification/native-django-factory-index-v45c.json)
+passed macOS but failed Linux at 3.26 times median and 3.42 times worst pair.
+The [flow-overlap trial](qualification/native-django-flow-overlap-v44.json)
 records its own local pass, isolated failures and 38 passing SDK/editor gates.
 
 The [v43 receipt](qualification/native-django-discovery-catalog-v43.json) records

@@ -620,7 +620,7 @@ pub fn check(arguments: &[String]) -> Result<i32> {
         .options
         .insert("out".into(), temporary.0.to_string_lossy().into_owned());
     arguments.options.insert("public-cli".into(), "true".into());
-    if std::env::var("TY_COMPANION_MEMORY_PROJECTION").is_ok_and(|value| value == "1")
+    if std::env::var_os("TY_COMPANION_MEMORY_PROJECTION").is_none_or(|value| value == "1")
         && !arguments.watch
         && !arguments.fix
         && !arguments.add_ignore

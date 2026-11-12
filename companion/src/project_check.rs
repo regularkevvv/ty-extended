@@ -1188,10 +1188,16 @@ impl Session {
             &mut startup_tick,
         );
         let mut runtime = Runtime::from_plugins(&checker_config.plugins)?;
+        if std::env::var_os("TY_COMPANION_TRACE_PHASES").is_some() {
+            eprintln!("companion native fields: {}", runtime.use_site_fields);
+        }
         phase(&mut startup_phases, "startup_runtime", &mut startup_tick);
         let stdlib = stdlib_overlay_modules(&checker_config, options, &out)?;
         let borrow_requested = options.get("borrow-overlays").map_or_else(
-            || std::env::var_os("TY_COMPANION_BORROW_OVERLAYS").is_some_and(|v| v == "1"),
+            || {
+                std::env::var_os("TY_COMPANION_BORROW_OVERLAYS")
+                    .map_or(runtime.use_site_fields, |v| v == "1")
+            },
             |value| value == "true",
         );
         let borrowed_overlay = (borrow_requested
@@ -1209,6 +1215,9 @@ impl Session {
                 .to_str()
                 .is_some_and(|s| !s.contains('\\')))
         .then(|| checker_config.stub_roots[0].clone());
+        if std::env::var_os("TY_COMPANION_TRACE_PHASES").is_some() {
+            eprintln!("companion borrowed overlay: {}", borrowed_overlay.is_some());
+        }
         let overlay_files = if let Some(provider) = &borrowed_overlay {
             // No package is copied into the support directory. Native imports
             // keep the complete provider tree and patches use its original URI.
@@ -1302,8 +1311,13 @@ impl Session {
         // Opt-in while the concurrent path is qualified. Snapshot loading and
         // native disk warmup overlap; the real check still synchronizes the
         // loaded immutable source text. Editors retain normal loading.
-        let warmup_requested = options.get("native-warmup").is_some_and(|v| v == "true")
-            || std::env::var_os("TY_COMPANION_NATIVE_WARMUP").is_some_and(|v| v == "1");
+        let warmup_requested = options.get("native-warmup").map_or_else(
+            || {
+                std::env::var_os("TY_COMPANION_NATIVE_WARMUP")
+                    .map_or(runtime.use_site_fields, |v| v == "1")
+            },
+            |value| value == "true",
+        );
         let preload_requested = warmup_requested
             && memory_projection
             && !checker_config.plugins.is_empty()

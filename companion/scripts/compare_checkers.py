@@ -106,9 +106,10 @@ def invoke(args, backend, command, label):
     stopped = None
     monitor_error = None
     load = os.getloadavg()
-    with (folder / "stdout.json").open("wb") as stdout, (folder / "stderr.log").open(
-        "wb"
-    ) as stderr:
+    with (
+        (folder / "stdout.json").open("wb") as stdout,
+        (folder / "stderr.log").open("wb") as stderr,
+    ):
         started = time.perf_counter()
         process = subprocess.Popen(
             command,
@@ -351,10 +352,16 @@ def main():
         type=Path,
         help="Bare Ty's environment containing django-types; enables native Django expectations",
     )
-    parser.add_argument(
+    profile = parser.add_mutually_exclusive_group()
+    profile.add_argument(
         "--native-django",
         action="store_true",
         help="Use the experimental native Django companion profile",
+    )
+    profile.add_argument(
+        "--production-defaults",
+        action="store_true",
+        help="Use the plugin manifest defaults with all experimental environment flags removed",
     )
     parser.add_argument(
         "--threads", type=int, default=0, help="0 uses each checker's default"
@@ -364,7 +371,19 @@ def main():
     args = parser.parse_args()
     if os.name != "posix":
         parser.error("Process-tree RSS and wait4 timing require POSIX")
-    if args.native_django:
+    if args.production_defaults:
+        if not args.official_python:
+            parser.error(
+                "--production-defaults requires --official-python with django-types"
+            )
+        for key in (
+            "TY_COMPANION_NATIVE_FIELDS",
+            "TY_COMPANION_MEMORY_PROJECTION",
+            "TY_COMPANION_NATIVE_WARMUP",
+            "TY_COMPANION_BORROW_OVERLAYS",
+        ):
+            os.environ.pop(key, None)
+    elif args.native_django:
         if not args.official_python:
             parser.error("--native-django requires --official-python with django-types")
         os.environ.update(
@@ -399,7 +418,11 @@ def main():
         "host": platform.platform(),
         "threads": args.threads or "default",
         "bare_ty_provider": "django-types" if args.official_python else "none",
-        "companion_profile": "native-django" if args.native_django else "legacy",
+        "companion_profile": "production-defaults"
+        if args.production_defaults
+        else "native-django"
+        if args.native_django
+        else "legacy",
         "workload": {
             key: getattr(args, key)
             for key in ("files", "models", "model_modules", "queries")
