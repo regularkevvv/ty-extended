@@ -1,0 +1,135 @@
+{
+  "status": "Source-qualified; optimized local and isolated five-workload performance pending. No merge or release accepted.",
+  "official_ty": "0.0.101",
+  "django_commit": "b25f41c5b3063682e7e1789170ceb6423140a58a",
+  "ruff_commit": "03b2ebfde0653f5295a325c2b6ce0e96b47b0a00",
+  "implementation": [
+    "Move already-built JSON values into source locations, class fields, methods, class summaries and call arguments instead of serializing and copying them again. Preserve all keys and values.",
+    "Disable Django class-snapshot lookups by default after a same-binary structural profile showed higher total indexing time despite lower guest work. Keep bounded snapshot support explicitly opt-in.",
+    "Retain the earlier private combined-record index, lazy reverse-manager annotations, ordered source loading, native-result reuse guards and stateless hook batching."
+  ],
+  "qualification": {
+    "passed": true,
+    "steps": 98,
+    "regular_rust_tests_per_field_mode": 268,
+    "additional_tests_per_field_mode": 3,
+    "sdk_cli_invocations": 36,
+    "sdk_cli_individual_test_executions": 44,
+    "clippy": true,
+    "source_sha256": {
+      "companion/src/project_config.rs": "b404ee4e3427c60af4261698a500454c3c7c2194f86a93bbf24f4be71fc16617",
+      "companion/src/flow.rs": "d6d879a0293f7ea07d5da2a1005c93b7b0f07a7a4044948e57a8591d93f5d306",
+      "companion/src/runtime.rs": "aa976e6dc4db66ccbccf6c68b51b6a884bfb4168f570404be2d6e4b86e55dcae",
+      "companion/src/native_rules.rs": "45a10fdebaec5c6307c75d287d97ef3c85701fe21c4ad915c6c79162db196184",
+      "companion/src/static_project.rs": "b57a33c3065aed0caea78b3c7dcdf85fc6f3cef0ffd950585fdcd9d15f68fd1e",
+      "companion/src/editor_options.rs": "6c3d5540fdea2956a9ed179fb2291f087456a48cf744647063bdd11a3f775d46",
+      "companion/src/cli_edits.rs": "01543f2a5d63f7a66545923b6ccd25e06161b6e3fd9b2936d09073768902c444",
+      "companion/src/project_check.rs": "fba615ab2e3e083d962478b483e2ea307c427f83f39915d5eb26ab85a76bde2b",
+      "companion/src/project.rs": "7f91cae56e3a682175851c79fffc9dcd2a315e3dbdf19df097872ba437941ac3",
+      "companion/src/checker.rs": "4cb129fef5bf83671852080f618a0068f0b119bf2258abe4fe855e45c75d9687",
+      "companion/src/verify.rs": "e7708860ec0bd32cdfb8d6a171a53b2c12d5a67703f5a5b4322fa72d1592603d",
+      "companion/src/type_snapshot.rs": "0c018b699a8d140782e3813a5606d188c27b392400d1796ab839d73002eba813",
+      "companion/src/mapping.rs": "f92e4155bff39e8d47bed7b19a81e418a200fda3892eaebff485b1ea278bb761",
+      "companion/src/main.rs": "889627d345b64c595b0e5880e825b068f00008e5744ad52577a4c6933d6a668a",
+      "companion/src/parallel.rs": "ea1b52946ab12fca3cdf9788be063f737ea8a0ab91203565b475f5daf3e314fe",
+      "companion/src/notebook.rs": "0bbd10d569d77019c19b7b76e7d2259c93afaaccc7f18c089e6478f3491cd24f",
+      "companion/src/lsp_mapping.rs": "2a3d7cc63f066bc25db11d680819124e3ff609448d2f27ab93b15d877bfc48fb",
+      "companion/src/lsp_server.rs": "f6a49b11f82ef55a8028d78253fb210844135b9c93e7777074dab3c6f846676a",
+      "companion/src/native_warmup.rs": "08a9e6bd722adfc152cb2dd1b4f9c2b552ee31db7c8d55cc24b96a317c698688",
+      "companion/src/lower.rs": "df0249023e8c7f88eff2eb49ca2d0ee64aba682ebc5b244c230435acccb136d4",
+      "companion/src/type_render.rs": "d4f62ea50e5fa320e862ae635e8bf90329211324963a8d92bea21cf6b9533111",
+      "companion/src/model.rs": "a7b09f8e510b1554fdbd747efff07bf3aaba40134f0af28c17dd49fb1564bb12",
+      "companion/src/cli.rs": "28f9456cd46a1a2bbf5640b500a2921a38c7b13e18687b1f6d2345a8a0e26bf2",
+      "ruff/crates/ty_plugin_host/src/monty.rs": "297dbe3457a47dd315659154a64f0d5210e731df98a3adf9d81cd48fe7301da5",
+      "ruff/crates/ty_plugin_host/tests/monty.rs": "88e474f60dfc7bcb57d2763fb328522dfb3e208cb9495e3e00c6e45c563d6d61",
+      "ruff/crates/ty_plugin_host/src/lib.rs": "9f4c6b83459fec687cf979798d71a48b1a3f733b862dc130a88ddb766afae0da",
+      "ruff/crates/ty_plugin_host/python/ty_plugin_sdk.py": "59d9c4cc97eaf85b1ce9c178551d1c64a024bd82e2d675fd0a7dd051cb2bd527",
+      "python/ty_extended/plugin_sdk.py": "b34661a7b88baef806f744a946c6030c2e1b95cdbf09856096cd48e8dfef53b2"
+    },
+    "cargo_clean": {
+      "step": "clean",
+      "exit": 0,
+      "seconds": 2.012635000050068
+    },
+    "cargo_clean_report": "Removed 3254 files, 877.4MiB total"
+  },
+  "independent_previous_binary_request_comparison": {
+    "passed": true,
+    "equal_bytes": true,
+    "baseline_sha256": "0b258819116f0d93df34747145ff3308b5b7f0028a2a05a5b994be0384668771",
+    "current_sha256": "0b258819116f0d93df34747145ff3308b5b7f0028a2a05a5b994be0384668771",
+    "bytes": 11530514,
+    "classes": 2501,
+    "task_projection_cleaned": true
+  },
+  "django_source_qualification": {
+    "passed_except_stale_receipt": true,
+    "corpus_cases": 172,
+    "multi_app": true,
+    "sdk_fields": true,
+    "django_runtime_cases": 83,
+    "querydict_cases_per_projection_mode": 9,
+    "primary_key_cases": true,
+    "larger_example": {
+      "disk_positive_diagnostics": 0,
+      "memory_positive_diagnostics": 0,
+      "negative_diagnostics_per_mode": 9,
+      "source_preserved": true
+    },
+    "python_unit_results": "68/69; sole failing official-contract receipt remains stale",
+    "steps": [
+      {
+        "step": "corpus",
+        "exit": 0,
+        "seconds": 1.3044451249297708
+      },
+      {
+        "step": "multi-app",
+        "exit": 0,
+        "seconds": 0.3217211659066379
+      },
+      {
+        "step": "sdk-fields",
+        "exit": 0,
+        "seconds": 0.3517030419316143
+      },
+      {
+        "step": "monty-types",
+        "exit": 0,
+        "seconds": 0.31969987507909536
+      },
+      {
+        "step": "python-units",
+        "exit": 1,
+        "seconds": 5.513222625013441
+      },
+      {
+        "step": "django-runtime",
+        "exit": 0,
+        "seconds": 0.7245692501310259
+      },
+      {
+        "step": "querydict-0",
+        "exit": 0,
+        "seconds": 3.566217999905348
+      },
+      {
+        "step": "querydict-1",
+        "exit": 0,
+        "seconds": 2.030978540889919
+      },
+      {
+        "step": "primary",
+        "exit": 0,
+        "seconds": 0.6856879580300301
+      }
+    ]
+  },
+  "remaining_gates": [
+    "Complete five-workload performance matrix with identical official Ty: each median and every paired repeat at most 3 times bare Ty, and at most MyPy.",
+    "Fresh checker version groups, Django full-contract receipt, editor and installed-artifact qualification.",
+    "Integrate and qualify the separate Django relation/default-row fixes.",
+    "All CI green, merge/release and published-artifact verification for both projects before the final issue response."
+  ],
+  "acceptance": false
+}

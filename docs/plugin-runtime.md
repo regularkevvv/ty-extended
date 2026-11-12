@@ -93,7 +93,7 @@ not change the external checker's version or configuration interfaces.
     and provider projections. A successful early probe containing only absolute imports can
     cover a subset of those imports and their package prefixes. Additional
     imports, executable probe code or probe diagnostics retain normal checking.
-- `companion-source-class-lookups = 512` permits project-index construction to
+- The experimental `companion-source-class-lookups = 512` permits project-index construction to
     retain references to immutable class summaries when the request has at least
     that many declarations. `true` enables all sizes; `false` disables the option.
     The plugin must already have the project-index lookup capability and must
@@ -103,6 +103,8 @@ not change the external checker's version or configuration interfaces.
     a class exceeding the 64 KiB lookup bound retain the ordinary representation.
     Hosts without the option or lookup capability also retain ordinary inputs.
     The source snapshot participates in index generation and cache invalidation.
+    Django leaves this option disabled by default because the measured host work
+    exceeded the guest savings.
 - `companion-third-party-overlays = ["django"]` declares top-level overlay
     modules that the plugin author guarantees are third-party packages throughout
     its supported checker and Python versions. The companion can omit the separate

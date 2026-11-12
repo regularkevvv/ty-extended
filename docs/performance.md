@@ -56,15 +56,23 @@ release requirement: both the median and every paired repeat must be at most
 3×. The stale Django official-contract receipt also remains an explicit failing
 release gate.
 
-The subsequent source-qualified candidate overlaps the two independent ignore
-walks and lets an opted-in plugin retain bounded immutable class summaries in
-the host. Django's private plain-model index combines traits and deferred data,
-constructs reverse-manager annotations on access and uses host class references
-only above its configured threshold. Four independent behavior comparisons
-preserve 10,004 reconstructed class requests, 10,000 reverse-member responses
-and 800 ordinary call responses; the representative response falls from
-1,204,292 to 706,750 bytes. These are correctness and payload measurements,
-not performance acceptance. The complete optimized matrix remains pending.
+The subsequent [v61 candidate](qualification/native-django-source-class-lookups-v61.json)
+also fails the complete isolated matrix. Linux distributed-stress median/worst
+ratios are 3.66×/3.75×; macOS ratios are 3.18×/4.58×. Four Linux shapes and two
+macOS shapes fail. Two local admission windows collected no samples because the
+shared host remained busy. Correctness and cleanup pass.
+
+A same-binary structural profile shows that retaining class snapshots adds more
+host work than it saves in Monty. That experimental option is now disabled by
+default. These busy-host profiles guide implementation and do not establish the
+3-times performance ceiling.
+
+The next [source-qualified candidate](qualification/native-django-owned-json-v62.json)
+moves constructed JSON trees directly into their owners instead of serializing
+and copying them again. Its complete 2,501-model request is byte-identical to
+the previous qualified binary: all 11,530,514 bytes match. Full Rust and SDK
+checks and the Django corpus pass, except the explicitly stale official-contract
+receipt. Optimized timing remains pending; no speedup or release is accepted.
 
 The preceding [bounded-batch candidate](qualification/native-django-stateless-batches-v56.json)
 also fails four local workload gates, with medians of 0.129–0.750 seconds and

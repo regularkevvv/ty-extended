@@ -13,7 +13,7 @@ use anyhow::{Context, Result, bail, ensure};
 use ruff_python_ast::{self as ast, Expr, Stmt};
 use serde_json::{Value, json};
 
-use crate::model::{FileRevision, Source, file_revision, span, typ};
+use crate::model::{FileRevision, Source, file_revision, object, span, typ};
 
 #[derive(Clone)]
 pub struct Module {
@@ -2066,22 +2066,46 @@ impl Project {
                 Stmt::Assign(assignment) => {
                     for target in &assignment.targets {
                         if let Expr::Name(target) = target {
-                            fields.push(json!({"name":target.id.as_str(),"assigned-value":self.assigned(module_name,module,&assignment.value),"has-default":true,"source":module.source.location(span(target))}));
+                            fields.push(object([
+                                ("name", target.id.as_str().into()),
+                                (
+                                    "assigned-value",
+                                    self.assigned(module_name, module, &assignment.value),
+                                ),
+                                ("has-default", true.into()),
+                                ("source", module.source.location(span(target))),
+                            ]));
                             let value = syntactic_literal(&assignment.value);
                             if value["kind"] != "unknown" {
-                                constants.push(json!({"name":target.id.as_str(),"value":value,"source":module.source.location(span(target))}));
+                                constants.push(object([
+                                    ("name", target.id.as_str().into()),
+                                    ("value", value),
+                                    ("source", module.source.location(span(target))),
+                                ]));
                             }
                         }
                     }
                 }
                 Stmt::AnnAssign(assignment) => {
                     if let Expr::Name(target) = assignment.target.as_ref() {
-                        let mut field = json!({"name":target.id.as_str(),"annotation":self.annotation(module_name,module,&assignment.annotation),"has-default":assignment.value.is_some(),"source":module.source.location(span(target))});
+                        let mut field = object([
+                            ("name", target.id.as_str().into()),
+                            (
+                                "annotation",
+                                self.annotation(module_name, module, &assignment.annotation),
+                            ),
+                            ("has-default", assignment.value.is_some().into()),
+                            ("source", module.source.location(span(target))),
+                        ]);
                         if let Some(value) = &assignment.value {
                             field["assigned-value"] = self.assigned(module_name, module, value);
                             let value = syntactic_literal(value);
                             if value["kind"] != "unknown" {
-                                constants.push(json!({"name":target.id.as_str(),"value":value,"source":module.source.location(span(target))}));
+                                constants.push(object([
+                                    ("name", target.id.as_str().into()),
+                                    ("value", value),
+                                    ("source", module.source.location(span(target))),
+                                ]));
                             }
                         }
                         if !field["annotation"]["expression"]
@@ -2096,7 +2120,29 @@ impl Project {
                     }
                 }
                 Stmt::FunctionDef(function) => {
-                    let mut method = json!({"name":function.name.as_str(),"decorators":function.decorator_list.iter().map(|d|self.decorator(module_name,module,&d.expression)).collect::<Vec<_>>(),"parameters":self.parameters(module_name,module,&function.parameters),"is-public":!function.name.starts_with('_'),"source":module.source.location(span(function))});
+                    let mut method = object([
+                        ("name", function.name.as_str().into()),
+                        (
+                            "decorators",
+                            Value::Array(
+                                function
+                                    .decorator_list
+                                    .iter()
+                                    .map(|d| self.decorator(module_name, module, &d.expression))
+                                    .collect(),
+                            ),
+                        ),
+                        (
+                            "parameters",
+                            Value::Array(self.parameters(
+                                module_name,
+                                module,
+                                &function.parameters,
+                            )),
+                        ),
+                        ("is-public", (!function.name.starts_with('_')).into()),
+                        ("source", module.source.location(span(function))),
+                    ]);
                     method["source"]["qualified-name"] = json!(format!("{name}.{}", function.name));
                     if let Some(ret) = &function.returns {
                         let annotation = self.annotation(module_name, module, ret);
@@ -2126,7 +2172,25 @@ impl Project {
             .flat_map(|a| a.args.iter())
             .map(|base| self.annotation(module_name, module, base))
             .collect();
-        let mut summary = json!({"qualified-name":name,"bases":bases,"decorators":class.decorator_list.iter().map(|d|self.decorator(module_name,module,&d.expression)).collect::<Vec<_>>(),"fields":fields,"methods":methods,"nested-classes":nested,"class-constants":constants,"source":module.source.location(span(class))});
+        let mut summary = object([
+            ("qualified-name", name.clone().into()),
+            ("bases", Value::Array(bases)),
+            (
+                "decorators",
+                Value::Array(
+                    class
+                        .decorator_list
+                        .iter()
+                        .map(|d| self.decorator(module_name, module, &d.expression))
+                        .collect(),
+                ),
+            ),
+            ("fields", Value::Array(fields)),
+            ("methods", Value::Array(methods)),
+            ("nested-classes", Value::Array(nested)),
+            ("class-constants", Value::Array(constants)),
+            ("source", module.source.location(span(class))),
+        ]);
         summary["source"]["qualified-name"] = json!(name);
         if let Some(meta) = class.arguments.as_ref().and_then(|a| {
             a.keywords
@@ -2224,7 +2288,7 @@ impl Project {
                 if value["kind"] == "unknown" {
                     json!({"kind":"other"})
                 } else {
-                    json!({"kind":"literal","value":value})
+                    object([("kind", "literal".into()), ("value", value)])
                 }
             }
         }
@@ -2255,8 +2319,11 @@ impl Project {
                 keyword.arg.as_ref().map(|n| n.as_str()),
             ));
         }
-        let mut result =
-            json!({"kind":"call","callee":{"qualified-name":callee},"arguments":arguments});
+        let mut result = object([
+            ("kind", "call".into()),
+            ("callee", object([("qualified-name", callee.into())])),
+            ("arguments", Value::Array(arguments)),
+        ]);
         if let Expr::Attribute(attribute) = call.func.as_ref()
             && let Some(receiver) = syntactic_symbol(&attribute.value)
         {
@@ -2277,7 +2344,11 @@ impl Project {
         // Resolving constants here loses enum-ref/name identity (for example,
         // `models.CASCADE` must remain an enum-ref even when its value is a str).
 
-        let mut argument = json!({"kind":kind,"value":syntactic_literal(expr),"source":module.source.location(span(expr))});
+        let mut argument = object([
+            ("kind", kind.into()),
+            ("value", syntactic_literal(expr)),
+            ("source", module.source.location(span(expr))),
+        ]);
         if let Some(key) = key {
             argument["name"] = json!(key);
         }

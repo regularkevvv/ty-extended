@@ -87,8 +87,12 @@ impl Source {
         json!({"line":line + 1,"column":column})
     }
     pub fn location(&self, s: Span) -> Value {
-        json!({"module":self.module,"file-path":self.path,
-            "start":self.position(s.start),"end":self.position(s.end)})
+        object([
+            ("module", self.module.as_str().into()),
+            ("file-path", self.path.as_str().into()),
+            ("start", self.position(s.start)),
+            ("end", self.position(s.end)),
+        ])
     }
     pub fn cast_name(&self) -> String {
         format!("{}cast", self.prefix)
@@ -172,6 +176,16 @@ impl Analysis {
                 .any(|span| self.needs_expression_probe(span))
     }
 }
+/// Move already-built JSON values into an object without serializing them again.
+pub fn object<const N: usize>(entries: [(&str, Value); N]) -> Value {
+    Value::Object(
+        entries
+            .into_iter()
+            .map(|(key, value)| (key.to_owned(), value))
+            .collect(),
+    )
+}
+
 pub fn typ(expression: impl Into<String>) -> Value {
     json!({"expression":expression.into(),"mode":"annotation"})
 }
