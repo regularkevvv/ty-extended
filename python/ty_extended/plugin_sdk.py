@@ -1,7 +1,7 @@
-"""Authoring surface for companion Monty plugins written in Python.
+"""Authoring surface for `ty` semantic plugins written in Python.
 
 Importable at authoring time so editors and type checkers resolve hook names and
-signatures; inside the sandbox the companion prepends this file so its names are ambient.
+signatures; inside the sandbox `ty` prepends this file so its names are ambient.
 Builders emit plain dicts in the kebab-case protocol wire format; hooks receive a
 request dict and return a response dict (or `None` for `no-change`).
 """
@@ -1125,6 +1125,11 @@ def __ty_handle__(request_json: str) -> str:
     except ValueError as exc:
         return _ty_encode_response(error(f"invalid request JSON: {exc}"))
 
+    # A private transport container; every entry remains an ordinary typed
+    # request. Only the host's explicit stateless-batch API supplies a list.
+    if isinstance(request, list):
+        return __ty_handle_many__(request_json)
+
     kind = request.get("kind")
     if kind == "manifest":
         try:
@@ -1152,3 +1157,19 @@ def __ty_handle__(request_json: str) -> str:
             return _ty_encode_response(result)
 
     return _ty_encode_response(no_change())
+
+
+def __ty_handle_many__(requests_json: str) -> str:
+    """Private transport for explicitly stateless independent ordinary requests.
+
+    Each handler receives a separately decoded request. The host validates each
+    ordinary response, limits the entire batch, and retries normally on failure.
+    """
+    requests = json.loads(requests_json)
+    if not isinstance(requests, list) or len(requests) > 64:
+        raise ValueError("stateless batch requires at most 64 requests")
+    if any(not isinstance(request, str) for request in requests):
+        raise ValueError("stateless batch requires ordinary request JSON strings")
+    return json.dumps(
+        [__ty_handle__(request) for request in requests], separators=(",", ":")
+    )

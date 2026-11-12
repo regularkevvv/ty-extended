@@ -1,0 +1,155 @@
+{
+  "status": "Source-qualified; optimized local and isolated performance pending. No release accepted.",
+  "official_ty": "0.0.101",
+  "django_commit": "95d2d4d52fc146ff929075aba872981165e5fea2",
+  "ruff_commit": "38b94e4d40ae42c2b34cd7f08f6deec738d7e29c",
+  "implementation": [
+    "Immutable per-wave parent-directory pattern matches preserve the global last-matching-rule ordering, negations, directory-only patterns, PEP 723 exclusions and explicit selections. Unknown parents use ordinary matching.",
+    "Path compaction reuses directory-entry file types rather than statting each selected file again. Symlinks and incomplete selections retain their existing behavior.",
+    "Eligible native checks read and parse canonical selected sources in one wave. Pre-launch revisions supply the before-read observation; file-handle metadata after reading must match. Final file and directory checks still gate diagnostic reuse.",
+    "Each native attempt creates a new provider overlay directory atomically. An abandoned attempt cannot leave stale patches in its retry.",
+    "Reuse requires an observed source snapshot and a final source projection for every selected file."
+  ],
+  "qualification": {
+    "passed": true,
+    "steps": 99,
+    "regular_rust_tests_per_field_mode": 267,
+    "additional_tests_per_field_mode": 3,
+    "sdk_cli_invocations": 36,
+    "sdk_cli_individual_test_executions": 44,
+    "clippy": true,
+    "cargo_clean": {
+      "step": "clean",
+      "exit": 0,
+      "seconds": 1.0145427910611033
+    },
+    "red_regressions": [
+      {
+        "step": "red-overlay-retry",
+        "exit": 101,
+        "seconds": 268.28523054206744
+      },
+      {
+        "step": "red-missing-snapshot",
+        "exit": 101,
+        "seconds": 0.40762400021776557
+      }
+    ],
+    "red_failure_scope": [
+      "A discarded provider patch incorrectly removes an ordinary native type error.",
+      "Native diagnostics are accepted without selected source snapshots."
+    ],
+    "green_regressions": true,
+    "selection_comparison_cases": 14400,
+    "selection_comparison_includes_cached_unknown_parent_and_explicit_paths": true,
+    "unit_sha256": "6bf093f33378ecf60698da0746ec36481c443b4f01d0a277d7ed375488aa4938",
+    "iteration_sha256": "7b96837c9c265f22ce2a9826b961ba2e88999af735b843e849d93dd2bb054caa",
+    "source_sha256": {
+      "companion/src/project_config.rs": "cb950cf3d2804efd26fbe6ad721c82e2744cad98fffcf62a5c2345b1ad97c4f2",
+      "companion/src/flow.rs": "d6d879a0293f7ea07d5da2a1005c93b7b0f07a7a4044948e57a8591d93f5d306",
+      "companion/src/runtime.rs": "d469f1ef2a254e4b222fe34022d6b623b20da20e7d21770eb884c405fa4eb324",
+      "companion/src/native_rules.rs": "45a10fdebaec5c6307c75d287d97ef3c85701fe21c4ad915c6c79162db196184",
+      "companion/src/static_project.rs": "b57a33c3065aed0caea78b3c7dcdf85fc6f3cef0ffd950585fdcd9d15f68fd1e",
+      "companion/src/editor_options.rs": "6c3d5540fdea2956a9ed179fb2291f087456a48cf744647063bdd11a3f775d46",
+      "companion/src/cli_edits.rs": "01543f2a5d63f7a66545923b6ccd25e06161b6e3fd9b2936d09073768902c444",
+      "companion/src/project_check.rs": "fba615ab2e3e083d962478b483e2ea307c427f83f39915d5eb26ab85a76bde2b",
+      "companion/src/project.rs": "0e109c4e91bd9757395fb2dff629ebd567744e1d395e2b1270d9b0d3e973a59a",
+      "companion/src/checker.rs": "4cb129fef5bf83671852080f618a0068f0b119bf2258abe4fe855e45c75d9687",
+      "companion/src/verify.rs": "e7708860ec0bd32cdfb8d6a171a53b2c12d5a67703f5a5b4322fa72d1592603d",
+      "companion/src/type_snapshot.rs": "0c018b699a8d140782e3813a5606d188c27b392400d1796ab839d73002eba813",
+      "companion/src/mapping.rs": "f92e4155bff39e8d47bed7b19a81e418a200fda3892eaebff485b1ea278bb761",
+      "companion/src/main.rs": "889627d345b64c595b0e5880e825b068f00008e5744ad52577a4c6933d6a668a",
+      "companion/src/parallel.rs": "ea1b52946ab12fca3cdf9788be063f737ea8a0ab91203565b475f5daf3e314fe",
+      "companion/src/notebook.rs": "0bbd10d569d77019c19b7b76e7d2259c93afaaccc7f18c089e6478f3491cd24f",
+      "companion/src/lsp_mapping.rs": "2a3d7cc63f066bc25db11d680819124e3ff609448d2f27ab93b15d877bfc48fb",
+      "companion/src/lsp_server.rs": "f6a49b11f82ef55a8028d78253fb210844135b9c93e7777074dab3c6f846676a",
+      "companion/src/native_warmup.rs": "08a9e6bd722adfc152cb2dd1b4f9c2b552ee31db7c8d55cc24b96a317c698688",
+      "companion/src/lower.rs": "df0249023e8c7f88eff2eb49ca2d0ee64aba682ebc5b244c230435acccb136d4",
+      "companion/src/type_render.rs": "d4f62ea50e5fa320e862ae635e8bf90329211324963a8d92bea21cf6b9533111",
+      "companion/src/model.rs": "8bb5f959e83a06c65603dda8b389a58a5854ae1d47d57b53d7abf3b2e6afe65e",
+      "companion/src/cli.rs": "28f9456cd46a1a2bbf5640b500a2921a38c7b13e18687b1f6d2345a8a0e26bf2",
+      "ruff/crates/ty_plugin_host/src/monty.rs": "3c32884fb3dd86dd123807700ca9c337c03a6e332ee88638c11ed7ecb4218217",
+      "ruff/crates/ty_plugin_host/tests/monty.rs": "2e93afddb0087ec038f14ba0374d8da4bfd79d9db9921c482a1b771108fba7b0",
+      "ruff/crates/ty_plugin_host/src/lib.rs": "9f4c6b83459fec687cf979798d71a48b1a3f733b862dc130a88ddb766afae0da",
+      "ruff/crates/ty_plugin_host/python/ty_plugin_sdk.py": "59d9c4cc97eaf85b1ce9c178551d1c64a024bd82e2d675fd0a7dd051cb2bd527",
+      "python/ty_extended/plugin_sdk.py": "59d9c4cc97eaf85b1ce9c178551d1c64a024bd82e2d675fd0a7dd051cb2bd527"
+    },
+    "red_source_sha256": {
+      "companion/src/project_config.rs": "3a5c5005ae9ada881e5c31020d782379aeaa3214825eb6654a646cdab95bdade",
+      "companion/src/flow.rs": "d6d879a0293f7ea07d5da2a1005c93b7b0f07a7a4044948e57a8591d93f5d306",
+      "companion/src/runtime.rs": "d469f1ef2a254e4b222fe34022d6b623b20da20e7d21770eb884c405fa4eb324",
+      "companion/src/native_rules.rs": "45a10fdebaec5c6307c75d287d97ef3c85701fe21c4ad915c6c79162db196184",
+      "companion/src/static_project.rs": "b57a33c3065aed0caea78b3c7dcdf85fc6f3cef0ffd950585fdcd9d15f68fd1e",
+      "companion/src/editor_options.rs": "6c3d5540fdea2956a9ed179fb2291f087456a48cf744647063bdd11a3f775d46",
+      "companion/src/cli_edits.rs": "01543f2a5d63f7a66545923b6ccd25e06161b6e3fd9b2936d09073768902c444",
+      "companion/src/project_check.rs": "218dadd4edc6ccc7fcd64e8b3f97a5b8f7210c4342d7902e4ca71c96682dc3cd",
+      "companion/src/project.rs": "eefa02af16bd086e4cde7f08d500ae01411c80bb0f97488184e8cc3bf58be8e6",
+      "companion/src/checker.rs": "4cb129fef5bf83671852080f618a0068f0b119bf2258abe4fe855e45c75d9687",
+      "companion/src/verify.rs": "e7708860ec0bd32cdfb8d6a171a53b2c12d5a67703f5a5b4322fa72d1592603d",
+      "companion/src/type_snapshot.rs": "0c018b699a8d140782e3813a5606d188c27b392400d1796ab839d73002eba813",
+      "companion/src/mapping.rs": "f92e4155bff39e8d47bed7b19a81e418a200fda3892eaebff485b1ea278bb761",
+      "companion/src/main.rs": "889627d345b64c595b0e5880e825b068f00008e5744ad52577a4c6933d6a668a",
+      "companion/src/parallel.rs": "ea1b52946ab12fca3cdf9788be063f737ea8a0ab91203565b475f5daf3e314fe",
+      "companion/src/notebook.rs": "0bbd10d569d77019c19b7b76e7d2259c93afaaccc7f18c089e6478f3491cd24f",
+      "companion/src/lsp_mapping.rs": "2a3d7cc63f066bc25db11d680819124e3ff609448d2f27ab93b15d877bfc48fb",
+      "companion/src/lsp_server.rs": "f6a49b11f82ef55a8028d78253fb210844135b9c93e7777074dab3c6f846676a",
+      "companion/src/native_warmup.rs": "08a9e6bd722adfc152cb2dd1b4f9c2b552ee31db7c8d55cc24b96a317c698688",
+      "companion/src/lower.rs": "df0249023e8c7f88eff2eb49ca2d0ee64aba682ebc5b244c230435acccb136d4",
+      "companion/src/type_render.rs": "d4f62ea50e5fa320e862ae635e8bf90329211324963a8d92bea21cf6b9533111",
+      "companion/src/model.rs": "8bb5f959e83a06c65603dda8b389a58a5854ae1d47d57b53d7abf3b2e6afe65e",
+      "companion/src/cli.rs": "28f9456cd46a1a2bbf5640b500a2921a38c7b13e18687b1f6d2345a8a0e26bf2",
+      "ruff/crates/ty_plugin_host/src/monty.rs": "3c32884fb3dd86dd123807700ca9c337c03a6e332ee88638c11ed7ecb4218217",
+      "ruff/crates/ty_plugin_host/tests/monty.rs": "2e93afddb0087ec038f14ba0374d8da4bfd79d9db9921c482a1b771108fba7b0",
+      "ruff/crates/ty_plugin_host/src/lib.rs": "9f4c6b83459fec687cf979798d71a48b1a3f733b862dc130a88ddb766afae0da",
+      "ruff/crates/ty_plugin_host/python/ty_plugin_sdk.py": "59d9c4cc97eaf85b1ce9c178551d1c64a024bd82e2d675fd0a7dd051cb2bd527",
+      "python/ty_extended/plugin_sdk.py": "59d9c4cc97eaf85b1ce9c178551d1c64a024bd82e2d675fd0a7dd051cb2bd527"
+    }
+  },
+  "real_django_probe": {
+    "passed": true,
+    "source_and_provider_preserved": true,
+    "same_diagnostics": true,
+    "fast_path_engaged": true,
+    "same_hook_execution_count": true,
+    "one_additional_early_project_index": true,
+    "batch_requests_verified": true,
+    "early_native_probe_checked": true
+  },
+  "larger_django_example": {
+    "passed": true,
+    "project_cleaned": true,
+    "cases": [
+      {
+        "mode": "0",
+        "case": "positive",
+        "exit": 0,
+        "source_preserved": true
+      },
+      {
+        "mode": "0",
+        "case": "negative",
+        "exit": 1,
+        "source_preserved": true
+      },
+      {
+        "mode": "1",
+        "case": "positive",
+        "exit": 0,
+        "source_preserved": true
+      },
+      {
+        "mode": "1",
+        "case": "negative",
+        "exit": 1,
+        "source_preserved": true
+      }
+    ]
+  },
+  "remaining_gates": [
+    "Five-shape optimized local and isolated Linux/macOS performance: median and every paired repeat at most 3 times the identical native Ty executable, and at most MyPy.",
+    "Fresh complete Django official-contract receipt and version/editor/installed-artifact qualification.",
+    "Integrate and qualify pending Django relation and default-row-selection fixes.",
+    "All CI green and published-artifact verification before final issue response."
+  ],
+  "acceptance": false
+}

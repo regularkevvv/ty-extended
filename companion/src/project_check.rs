@@ -495,16 +495,20 @@ pub(crate) fn compact_check_paths(
 ) -> Result<Vec<PathBuf>> {
     fn visit(
         path: &Path,
+        entry: Option<&std::fs::DirEntry>,
         remaining: &mut std::collections::HashSet<PathBuf>,
         ancestors: &std::collections::HashSet<&Path>,
     ) -> Result<(bool, Vec<PathBuf>)> {
         if !remaining.contains(path) && !ancestors.contains(path) {
             return Ok((false, Vec::new()));
         }
-        let metadata = std::fs::symlink_metadata(path)?;
-        if !metadata.is_dir() {
+        let kind = entry.map_or_else(
+            || std::fs::symlink_metadata(path).map(|m| m.file_type()),
+            std::fs::DirEntry::file_type,
+        )?;
+        if !kind.is_dir() {
             let included = remaining.remove(path);
-            let discoverable = metadata.is_file()
+            let discoverable = kind.is_file()
                 && path
                     .extension()
                     .is_some_and(|extension| extension == "py" || extension == "pyi");
@@ -516,7 +520,8 @@ pub(crate) fn compact_check_paths(
         let mut complete = true;
         let mut paths = Vec::new();
         for entry in std::fs::read_dir(path)? {
-            let (included, children) = visit(&entry?.path(), remaining, ancestors)?;
+            let entry = entry?;
+            let (included, children) = visit(&entry.path(), Some(&entry), remaining, ancestors)?;
             complete &= included;
             paths.extend(children);
         }
@@ -537,7 +542,7 @@ pub(crate) fn compact_check_paths(
         .flat_map(|path| path.ancestors().skip(1))
         .collect::<std::collections::HashSet<_>>();
     let mut remaining = selected.iter().cloned().collect();
-    let (_, mut paths) = visit(root, &mut remaining, &ancestors)?;
+    let (_, mut paths) = visit(root, None, &mut remaining, &ancestors)?;
     paths.extend(remaining);
     paths.sort();
     Ok(paths)
@@ -591,8 +596,11 @@ fn path_of(d: &Value, root: &Path) -> PathBuf {
 }
 fn imports(text: &str, source_type: ruff_python_ast::PySourceType) -> Result<BTreeSet<String>> {
     let parsed = crate::project::parse_source(text, source_type)?;
+    Ok(imports_from_suite(&parsed.syntax().body))
+}
+fn imports_from_suite(suite: &[ruff_python_ast::Stmt]) -> BTreeSet<String> {
     let mut modules = BTreeSet::new();
-    for statement in &parsed.syntax().body {
+    for statement in suite {
         match statement {
             ruff_python_ast::Stmt::Import(import) => {
                 modules.extend(import.names.iter().map(|alias| alias.name.to_string()));
@@ -607,8 +615,50 @@ fn imports(text: &str, source_type: ruff_python_ast::PySourceType) -> Result<BTr
             _ => {}
         }
     }
-    Ok(modules)
+    modules
 }
+fn pure_import_probe(
+    sources: &BTreeMap<PathBuf, String>,
+    expected: &Path,
+) -> Option<BTreeSet<String>> {
+    if sources.is_empty() {
+        return Some(BTreeSet::new());
+    }
+    if sources.len() != 1 {
+        return None;
+    }
+    let text = sources.get(expected)?;
+    let parsed = crate::project::parse_source(text, ruff_python_ast::PySourceType::Python).ok()?;
+    let mut modules = BTreeSet::new();
+    for statement in &parsed.syntax().body {
+        let ruff_python_ast::Stmt::Import(import) = statement else {
+            return None;
+        };
+        for alias in &import.names {
+            if alias.asname.is_some() {
+                return None;
+            }
+            modules.insert(alias.name.to_string());
+        }
+    }
+    Some(modules)
+}
+
+fn import_prefixes(modules: &BTreeSet<String>) -> BTreeSet<String> {
+    let mut prefixes = BTreeSet::new();
+    for name in modules {
+        let mut prefix = name.as_str();
+        loop {
+            prefixes.insert(prefix.to_owned());
+            let Some((parent, _)) = prefix.rsplit_once('.') else {
+                break;
+            };
+            prefix = parent;
+        }
+    }
+    prefixes
+}
+
 struct File {
     source: Arc<Source>,
     suite: Arc<Vec<ruff_python_ast::Stmt>>,
@@ -758,21 +808,26 @@ struct NativeCliProjection<'a> {
     sources: &'a BTreeMap<PathBuf, String>,
     extras: &'a BTreeMap<PathBuf, String>,
     prepared: Option<&'a NativeCliPrepared>,
+    bootstrap_imports: bool,
 }
 
 struct NativeCliCheck {
+    root: PathBuf,
     thread: Option<std::thread::JoinHandle<Result<Vec<Value>>>>,
     originals: Arc<std::collections::HashMap<PathBuf, (crate::model::FileRevision, Arc<Source>)>>,
+    file_revisions: Arc<std::collections::HashMap<PathBuf, crate::model::FileRevision>>,
     directories: BTreeMap<PathBuf, crate::model::FileRevision>,
     selected: Vec<PathBuf>,
     configuration: Vec<u8>,
     projected_sources: BTreeMap<PathBuf, String>,
     extra_sources: BTreeMap<PathBuf, String>,
+    bootstrap_imports: Option<BTreeSet<String>>,
 }
 
 #[derive(Clone)]
 struct NativeCliPrepared {
     originals: Arc<std::collections::HashMap<PathBuf, (crate::model::FileRevision, Arc<Source>)>>,
+    file_revisions: Arc<std::collections::HashMap<PathBuf, crate::model::FileRevision>>,
     directories: BTreeMap<PathBuf, crate::model::FileRevision>,
     selected: Vec<PathBuf>,
     compact_paths: Vec<PathBuf>,
@@ -787,16 +842,27 @@ impl NativeCliPrepared {
         sources: &[(Arc<Source>, Option<crate::model::FileRevision>)],
         providers: &[PathBuf],
     ) -> Result<Option<Self>> {
+        let Some(discovery) = NativeCliDiscovery::capture(root, config, paths, providers)? else {
+            return Ok(None);
+        };
+        Self::with_discovery(discovery, root, sources, providers)
+    }
+
+    fn with_discovery(
+        discovery: NativeCliDiscovery,
+        root: &Path,
+        sources: &[(Arc<Source>, Option<crate::model::FileRevision>)],
+        providers: &[PathBuf],
+    ) -> Result<Option<Self>> {
         let mut originals = std::collections::HashMap::with_capacity(sources.len());
-        let mut directories = BTreeMap::new();
         for (source, original_revision) in sources {
             let path = PathBuf::from(&source.path);
-            let boundary = std::iter::once(root)
+            if !std::iter::once(root)
                 .chain(providers.iter().map(PathBuf::as_path))
-                .find(|base| path.starts_with(base));
-            let Some(boundary) = boundary else {
+                .any(|base| path.starts_with(base))
+            {
                 return Ok(None);
-            };
+            }
             let revision = if let Some(revision) = *original_revision {
                 revision
             } else {
@@ -809,23 +875,46 @@ impl NativeCliPrepared {
                 };
                 revision
             };
-            originals.insert(path.clone(), (revision, Arc::clone(source)));
-            for directory in path
-                .parent()
-                .into_iter()
-                .flat_map(Path::ancestors)
-                .take_while(|directory| directory.starts_with(boundary))
-            {
-                if !directories.contains_key(directory) {
-                    let Some(revision) =
-                        crate::model::file_revision(&std::fs::metadata(directory)?)
-                    else {
-                        return Ok(None);
-                    };
-                    directories.insert(directory.to_owned(), revision);
-                }
+            if discovery.file_revisions.get(&path) != Some(&revision) {
+                return Ok(None);
             }
+            originals.insert(path, (revision, Arc::clone(source)));
         }
+        if discovery
+            .selected
+            .iter()
+            .any(|path| !discovery.file_revisions.contains_key(path) || !path.starts_with(root))
+        {
+            return Ok(None);
+        }
+        Ok(Some(Self {
+            originals: Arc::new(originals),
+            file_revisions: discovery.file_revisions,
+            directories: discovery.directories,
+            selected: discovery.selected,
+            compact_paths: discovery.compact_paths,
+            configuration: discovery.configuration,
+        }))
+    }
+}
+
+struct NativeCliDiscovery {
+    file_revisions: Arc<std::collections::HashMap<PathBuf, crate::model::FileRevision>>,
+    directories: BTreeMap<PathBuf, crate::model::FileRevision>,
+    selected: Vec<PathBuf>,
+    compact_paths: Vec<PathBuf>,
+    configuration: Vec<u8>,
+}
+
+impl NativeCliDiscovery {
+    fn capture(
+        root: &Path,
+        config: &Path,
+        paths: &[PathBuf],
+        providers: &[PathBuf],
+    ) -> Result<Option<Self>> {
+        let mut directories = BTreeMap::new();
+        let mut files = Vec::new();
         // Observe discovery directories too: a new module can change import
         // resolution without modifying any previously loaded source file.
         // Large unrelated trees retain the ordinary checker route.
@@ -873,61 +962,72 @@ impl NativeCliPrepared {
                 }
                 if kind.is_dir() {
                     pending.push(entry.path());
+                } else if kind.is_file() {
+                    let path = entry.path();
+                    if path
+                        .extension()
+                        .is_some_and(|ext| ext == "py" || ext == "pyi")
+                        || name == "py.typed"
+                    {
+                        files.push(path);
+                    }
                 }
             }
         }
-        if paths.is_empty()
-            || paths
-                .iter()
-                .any(|path| !originals.contains_key(path) || !path.starts_with(root))
-        {
+        if paths.is_empty() {
             return Ok(None);
         }
-        let configuration = std::fs::read(config)?;
-        let selected = paths.to_vec();
-        let compact_paths = compact_check_paths(root, &paths.iter().cloned().collect())?;
+        let revisions =
+            crate::parallel::map_ordered(&files, crate::parallel::workers(files.len()), |path| {
+                std::fs::metadata(path)
+                    .ok()
+                    .as_ref()
+                    .and_then(crate::model::file_revision)
+            })?;
+        let Some(revisions) = revisions.into_iter().collect::<Option<Vec<_>>>() else {
+            return Ok(None);
+        };
         Ok(Some(Self {
-            originals: Arc::new(originals),
+            file_revisions: Arc::new(files.into_iter().zip(revisions).collect()),
             directories,
-            selected,
-            compact_paths,
-            configuration,
+            selected: paths.to_vec(),
+            compact_paths: compact_check_paths(root, &paths.iter().cloned().collect())?,
+            configuration: std::fs::read(config)?,
         }))
     }
 }
 
 struct PendingNativeCliPreparation {
-    thread: Option<std::thread::JoinHandle<Result<Option<NativeCliPrepared>>>>,
+    thread: Option<std::thread::JoinHandle<Result<Option<NativeCliDiscovery>>>>,
+    root: PathBuf,
+    providers: Vec<PathBuf>,
 }
 
 impl PendingNativeCliPreparation {
-    fn start(
-        root: &Path,
-        config: &Path,
-        paths: &[PathBuf],
-        project: &Project,
-        providers: &[PathBuf],
-    ) -> Result<Self> {
+    fn start(root: &Path, config: &Path, paths: &[PathBuf], providers: &[PathBuf]) -> Result<Self> {
+        let task_root = root.to_owned();
+        let config = config.to_owned();
+        let paths = paths.to_vec();
+        let task_providers = providers.to_vec();
+        let thread = std::thread::Builder::new()
+            .name("native-input-discovery".into())
+            .spawn(move || {
+                NativeCliDiscovery::capture(&task_root, &config, &paths, &task_providers)
+            })?;
+        Ok(Self {
+            thread: Some(thread),
+            root: root.to_owned(),
+            providers: providers.to_vec(),
+        })
+    }
+    fn finish(mut self, project: &Project) -> Option<NativeCliPrepared> {
+        let discovery = self.thread.take()?.join().ok()?.ok()??;
         let sources = project
             .modules
             .values()
             .map(|module| (Arc::clone(&module.source), module.original_revision))
             .collect::<Vec<_>>();
-        let root = root.to_owned();
-        let config = config.to_owned();
-        let paths = paths.to_vec();
-        let providers = providers.to_vec();
-        let thread = std::thread::Builder::new()
-            .name("native-input-preparation".into())
-            .spawn(move || {
-                NativeCliPrepared::from_sources(&root, &config, &paths, &sources, &providers)
-            })?;
-        Ok(Self {
-            thread: Some(thread),
-        })
-    }
-    fn finish(mut self) -> Option<NativeCliPrepared> {
-        self.thread.take()?.join().ok()?.ok()?
+        NativeCliPrepared::with_discovery(discovery, &self.root, &sources, &self.providers).ok()?
     }
 }
 
@@ -971,6 +1071,7 @@ impl NativeCliCheck {
         }
         let NativeCliPrepared {
             originals,
+            file_revisions,
             directories,
             selected,
             compact_paths,
@@ -999,10 +1100,31 @@ impl NativeCliCheck {
         let mut overlay_mapping = None;
         if !projected_sources.is_empty() {
             let provider = &providers[0];
-            let overlay = config
-                .parent()
-                .context("native CLI workspace")?
-                .join("native-cli-overlay");
+            // An abandoned early attempt can have a larger patch set than its
+            // retry. Every attempt needs a fresh directory, including when a
+            // caller reuses an output directory left by an older process.
+            static NEXT_OVERLAY: std::sync::atomic::AtomicU64 =
+                std::sync::atomic::AtomicU64::new(0);
+            let parent = config.parent().context("native CLI workspace")?;
+            let mut overlay = None;
+            for _ in 0..32 {
+                let sequence = NEXT_OVERLAY.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
+                let candidate = parent.join(format!(
+                    "native-cli-overlay-{}-{sequence}",
+                    std::process::id()
+                ));
+                match std::fs::create_dir(&candidate) {
+                    Ok(()) => {
+                        overlay = Some(candidate);
+                        break;
+                    }
+                    Err(error) if error.kind() == std::io::ErrorKind::AlreadyExists => {}
+                    Err(error) => return Err(error.into()),
+                }
+            }
+            let Some(overlay) = overlay else {
+                return Ok(None);
+            };
             for (path, text) in &projected_sources {
                 let relative = path.strip_prefix(provider)?;
                 write(&overlay.join(relative), text)?;
@@ -1046,6 +1168,17 @@ impl NativeCliCheck {
         }
         let extra_sources =
             projections.map_or_else(BTreeMap::new, |projection| projection.extras.clone());
+        let bootstrap_imports = if projections.is_some_and(|p| p.bootstrap_imports) {
+            let Some(imports) = pure_import_probe(
+                &extra_sources,
+                &config.with_file_name("native-bootstrap-imports.py"),
+            ) else {
+                return Ok(None);
+            };
+            Some(import_prefixes(&imports))
+        } else {
+            None
+        };
         for (path, text) in &extra_sources {
             write(path, text)?;
         }
@@ -1054,6 +1187,7 @@ impl NativeCliCheck {
         let config = actual_config;
         let mut paths = compact_paths;
         paths.extend(extra_sources.keys().cloned());
+        let checked_root = root.clone();
         let thread = std::thread::Builder::new()
             .name("native-cli-check".into())
             .spawn(move || {
@@ -1080,13 +1214,16 @@ impl NativeCliCheck {
                 result
             })?;
         Ok(Some(Self {
+            root: checked_root,
             thread: Some(thread),
             originals,
+            file_revisions,
             directories,
             selected,
             configuration,
             projected_sources,
             extra_sources,
+            bootstrap_imports,
         }))
     }
 
@@ -1097,8 +1234,23 @@ impl NativeCliCheck {
         extras: &BTreeMap<PathBuf, String>,
     ) -> Option<Vec<Value>> {
         let diagnostics = self.thread.take()?.join().ok()?.ok()?;
-        if *extras != self.extra_sources
+        let extras_match = if let Some(imports) = &self.bootstrap_imports {
+            pure_import_probe(extras, &config.with_file_name("type-imports.py"))
+                .is_some_and(|required| required.is_subset(imports))
+                && diagnostics
+                    .iter()
+                    .all(|diagnostic| self.selected.contains(&path_of(diagnostic, &self.root)))
+                && self.extra_sources.iter().all(|(path, source)| {
+                    std::fs::read_to_string(path).is_ok_and(|actual| actual == *source)
+                })
+        } else {
+            *extras == self.extra_sources
+        };
+        if !extras_match
             || inputs.paths != self.selected
+            || self.selected.iter().any(|path| {
+                !self.originals.contains_key(path) || !inputs.sources.contains_key(path)
+            })
             || !inputs.support_sources.is_empty()
             || inputs
                 .virtual_types
@@ -1124,7 +1276,7 @@ impl NativeCliCheck {
                     .collect::<Vec<_>>();
                 eprintln!(
                     "companion native cli rejected: extras={} selection={} support={} virtual={} changed={changed:?}",
-                    *extras != self.extra_sources,
+                    !extras_match,
                     inputs.paths != self.selected,
                     !inputs.support_sources.is_empty(),
                     inputs
@@ -1135,16 +1287,16 @@ impl NativeCliCheck {
             }
             return None;
         }
-        let originals = self.originals.iter().collect::<Vec<_>>();
+        let originals = self.file_revisions.iter().collect::<Vec<_>>();
         let valid = crate::parallel::map_ordered(
             &originals,
             crate::parallel::workers(originals.len()),
-            |(path, (revision, _))| {
+            |(path, revision)| {
                 std::fs::metadata(path)
                     .ok()
                     .as_ref()
                     .and_then(crate::model::file_revision)
-                    == Some(*revision)
+                    == Some(**revision)
             },
         )
         .ok()?;
@@ -1162,6 +1314,21 @@ impl NativeCliCheck {
             }
         }
         Some(diagnostics)
+    }
+
+    fn observe_project(&mut self, project: &Project) -> bool {
+        let originals = Arc::make_mut(&mut self.originals);
+        for module in project.modules.values() {
+            let path = PathBuf::from(&module.source.path);
+            let Some(revision) = self.file_revisions.get(&path) else {
+                return false;
+            };
+            if module.original_revision != Some(*revision) {
+                return false;
+            }
+            originals.insert(path, (*revision, Arc::clone(&module.source)));
+        }
+        true
     }
 }
 
@@ -1407,6 +1574,13 @@ fn selected_paths(
             .map(|module| module.source.path.as_str())
             .collect::<std::collections::HashSet<_>>()
     });
+    let prepared_selection = selection.prepare_paths(
+        project
+            .modules
+            .values()
+            .filter(|module| !module.external)
+            .map(|module| Path::new(&module.source.path)),
+    );
     let selected: Vec<PathBuf> = if let Some(path) = options.get("files") {
         let names: Vec<String> = serde_json::from_slice(&std::fs::read(path)?)?;
         let mut paths = Vec::new();
@@ -1426,7 +1600,7 @@ fn selected_paths(
             .filter(|m| !m.external)
             .filter(|m| {
                 overlays.contains_key(Path::new(&m.source.path))
-                    || (selection.includes(Path::new(&m.source.path), &m.source.text)
+                    || (prepared_selection.includes(Path::new(&m.source.path), &m.source.text)
                         && !ignored.contains(Path::new(&m.source.path)))
             })
             .map(|m| PathBuf::from(&m.source.path))
@@ -1735,19 +1909,18 @@ impl Session {
         }
         source_paths.sort();
         source_paths.dedup();
+        let prepared_selection = checker_config
+            .selection
+            .prepare_paths(source_paths.iter().map(PathBuf::as_path));
         let selected_sources = crate::parallel::map_ordered(
             &source_paths,
             crate::parallel::workers(source_paths.len()),
             |path| match checker_config.selection.selection_text(path) {
                 Ok(text)
                     if (explicit_files.contains(path)
-                        && checker_config.selection.includes_explicit(
-                            path,
-                            &text,
-                            force_exclude,
-                        )
+                        && prepared_selection.includes_explicit(path, &text, force_exclude)
                         && (!force_exclude || !ignored.contains(path)))
-                        || (checker_config.selection.includes(path, &text)
+                        || (prepared_selection.includes(path, &text)
                             && !ignored.contains(path)) =>
                 {
                     Ok(Some(path.clone()))
@@ -1777,6 +1950,17 @@ impl Session {
             && options.get("public-cli").is_some_and(|v| v == "true");
         let canonical_sources = Arc::new(canonical_sources);
         let prefer_native_cli = preload_requested && runtime.prefers_native_cli();
+        let mut native_cli_preparation = if prefer_native_cli {
+            PendingNativeCliPreparation::start(
+                &root,
+                &checker_config_path,
+                &source_paths,
+                &checker_config.stub_roots,
+            )
+            .ok()
+        } else {
+            None
+        };
         let native_warmup = if preload_requested
             && !prefer_native_cli
             && !source_paths.is_empty()
@@ -1795,7 +1979,57 @@ impl Session {
         } else {
             None
         };
-        let preloaded = preload_requested
+        let mut native_cli = None;
+        if prefer_native_cli
+            && runtime.prepares_project_contributions_early()
+            && let Some(provider) = &borrowed_overlay
+        {
+            // Only settings are needed to prepare provider contributions.
+            // Full source and provider loading starts after native Ty does.
+            let setup = (|| -> Result<Option<NativeCliCheck>> {
+                let mut project = Project::load_selected(
+                    &root,
+                    &[],
+                    &runtime.manifest,
+                    config.clone(),
+                    true,
+                    crate::project::SourceLayout {
+                        roots: checker_config.source_roots.clone(),
+                        overlays: &[],
+                        include: &|_| true,
+                        sparse_overlays: true,
+                        call_assignments_only: runtime.project_call_assignments_only()?,
+                        capture_original_revisions: true,
+                        known_source_revisions: None,
+                        preloaded: None,
+                    },
+                )?;
+                runtime.attach_project(Arc::new(project.clone()), config.clone());
+                let mut request = project.build_request_for_files(None);
+                request["context"]["python-version"] = json!(runtime.python_version);
+                request["context"]["platform"] = json!(runtime.platform);
+                Self::start_early_native_cli(
+                    &mut runtime,
+                    &mut project,
+                    &request,
+                    &source_paths.iter().cloned().collect(),
+                    &root,
+                    &out,
+                    &checker_config_path,
+                    Path::new(required("ty")?),
+                    provider,
+                    native_cli_preparation.take(),
+                    true,
+                )
+            })();
+            native_cli = setup.ok().flatten();
+        }
+        phase(
+            &mut startup_phases,
+            "startup_native_setup",
+            &mut startup_tick,
+        );
+        let preloaded = (preload_requested && native_cli.is_none())
             .then(|| Project::preload_sources(&root, &source_paths, Some(&canonical_sources)))
             .flatten()
             .map(Arc::new);
@@ -1820,22 +2054,18 @@ impl Session {
                     && options
                         .get("public-cli")
                         .is_some_and(|value| value == "true"),
+                known_source_revisions: native_cli
+                    .as_ref()
+                    .map(|worker| worker.file_revisions.as_ref()),
                 preloaded: preloaded.as_deref(),
             },
         )?;
-        let native_cli = None;
-        let native_cli_preparation = if prefer_native_cli {
-            PendingNativeCliPreparation::start(
-                &root,
-                &checker_config_path,
-                &source_paths,
-                &base_project,
-                &checker_config.stub_roots,
-            )
-            .ok()
-        } else {
-            None
-        };
+        if native_cli
+            .as_mut()
+            .is_some_and(|worker| !worker.observe_project(&base_project))
+        {
+            native_cli = None;
+        }
         base_project.add_source_paths(explicit_paths.clone());
         phase(
             &mut startup_phases,
@@ -2758,6 +2988,190 @@ impl Session {
         Ok(())
     }
 
+    #[allow(clippy::too_many_arguments)]
+    fn start_early_native_cli(
+        runtime: &mut Runtime,
+        project: &mut Project,
+        request: &Value,
+        selected: &BTreeSet<PathBuf>,
+        root: &Path,
+        out: &Path,
+        config: &Path,
+        binary: &Path,
+        provider: &Path,
+        preparation: Option<PendingNativeCliPreparation>,
+        before_source_loading: bool,
+    ) -> Result<Option<NativeCliCheck>> {
+        // Authors opt into an extra ordinary project-index call containing
+        // settings and context only. Full model indexing still runs normally.
+        let early = json!({"kind":"build-project-index", "context":request["context"], "settings":request["settings"], "classes":[], "functions":[], "assignments":[]});
+        let response = runtime.execute_ephemeral_project_index(early)?;
+        let contributions = response["contributions"]
+            .as_array()
+            .cloned()
+            .unwrap_or_default();
+        if before_source_loading {
+            let Some(names) = contributions
+                .iter()
+                .map(|contribution| {
+                    contribution
+                        .pointer("/target/qualified-name")
+                        .and_then(Value::as_str)
+                        .map(str::to_owned)
+                })
+                .collect::<Option<Vec<_>>>()
+            else {
+                return Ok(None);
+            };
+            if !project.add_contribution_sources(provider, &names)? {
+                return Ok(None);
+            }
+            runtime.attach_project(Arc::new(project.clone()), project.config.clone());
+        }
+        let mut targets = BTreeSet::new();
+        for contribution in &contributions {
+            let Some(name) = contribution
+                .pointer("/target/qualified-name")
+                .and_then(Value::as_str)
+            else {
+                return Ok(None);
+            };
+            let Some(class) = project.class_summary(name) else {
+                return Ok(None);
+            };
+            let Some(module) = class.pointer("/source/module").and_then(Value::as_str) else {
+                return Ok(None);
+            };
+            let Some(source) = project.modules.get(module) else {
+                return Ok(None);
+            };
+            if !source.external || !Path::new(&source.source.path).starts_with(provider) {
+                return Ok(None);
+            }
+            targets.insert(module.to_owned());
+        }
+        runtime.set_project_contributions(contributions);
+        let mut projected = BTreeMap::new();
+        let mut modules = BTreeSet::from(["builtins".to_owned(), "typing".to_owned()]);
+        if before_source_loading {
+            modules.extend(
+                project.selected_package_imports(&selected.iter().cloned().collect::<Vec<_>>())?,
+            );
+            fn claim_imports(value: &Value, provider: &Path, modules: &mut BTreeSet<String>) {
+                match value {
+                    Value::String(name) => {
+                        let mut prefix = name.as_str();
+                        loop {
+                            let base = provider.join(prefix.replace('.', "/"));
+                            if [
+                                base.with_extension("pyi"),
+                                base.with_extension("py"),
+                                base.join("__init__.pyi"),
+                                base.join("__init__.py"),
+                            ]
+                            .iter()
+                            .any(|path| path.is_file())
+                            {
+                                modules.insert(prefix.to_owned());
+                            }
+                            let Some((parent, _)) = prefix.rsplit_once('.') else {
+                                break;
+                            };
+                            prefix = parent;
+                        }
+                    }
+                    Value::Array(values) => {
+                        for value in values {
+                            claim_imports(value, provider, modules);
+                        }
+                    }
+                    Value::Object(values) => {
+                        for value in values.values() {
+                            claim_imports(value, provider, modules);
+                        }
+                    }
+                    _ => {}
+                }
+            }
+            claim_imports(&runtime.manifest["claims"], provider, &mut modules);
+        }
+        for module in project
+            .modules
+            .values()
+            .filter(|module| !module.external && selected.contains(Path::new(&module.source.path)))
+        {
+            if !project.syntax_errors.contains(&module.source.module) {
+                modules.extend(imports_from_suite(&module.suite));
+            }
+        }
+        for name in targets {
+            let module = &project.modules[&name];
+            if project.syntax_errors.contains(&name) {
+                return Ok(None);
+            }
+            let mut analysis =
+                crate::static_project::analyze(&module.source, &module.suite, runtime)?;
+            if !analysis.calls.is_empty() || !analysis.expression_probes.is_empty() {
+                return Ok(None);
+            }
+            let flow = crate::flow::project_with_return_types(
+                &module.source,
+                &module.suite,
+                &mut analysis,
+                runtime,
+                Some(&Oracle::new()),
+                &ReturnPatches::new(),
+                &BTreeMap::new(),
+            )?;
+            let types =
+                Types::with_project(&format!("{}result_", module.source.prefix), &name, project);
+            let mut edits = crate::build_edits(
+                &module.source,
+                &analysis,
+                flow.edits,
+                &ReturnPatches::new(),
+                false,
+            );
+            edits.insert(analysis.prelude_offset, types.prelude());
+            edits.insert(analysis.prelude_offset, flow.type_prelude);
+            let text = render(&module.source, &edits)?.text;
+            modules.extend(imports(
+                &text,
+                project.source_type(Path::new(&module.source.path)),
+            )?);
+            if text != module.source.text {
+                projected.insert(PathBuf::from(&module.source.path), text);
+            }
+        }
+        let code = modules
+            .iter()
+            .map(|module| format!("import {module}\n"))
+            .collect::<String>();
+        let extras = BTreeMap::from([(out.join("native-bootstrap-imports.py"), code)]);
+        if pure_import_probe(&extras, &out.join("native-bootstrap-imports.py")).is_none() {
+            return Ok(None);
+        }
+        let paths: Vec<_> = selected.iter().cloned().collect();
+        let prepared = preparation.and_then(|pending| pending.finish(project));
+        if before_source_loading && prepared.is_none() {
+            return Ok(None);
+        }
+        NativeCliCheck::start(
+            binary,
+            root,
+            config,
+            &paths,
+            project,
+            &[provider.to_owned()],
+            Some(NativeCliProjection {
+                sources: &projected,
+                extras: &extras,
+                prepared: prepared.as_ref(),
+                bootstrap_imports: true,
+            }),
+        )
+    }
+
     pub fn check(&mut self, overlays: &BTreeMap<PathBuf, String>) -> Result<Value> {
         ensure!(
             !self.memory_projection || (self.revisions == 0 && overlays.is_empty()),
@@ -2897,6 +3311,35 @@ impl Session {
         }
         let index = {
             let attach_start = Instant::now();
+            self.runtime.clear_project_patches();
+            self.runtime.set_project_contributions(Vec::new());
+            self.runtime
+                .attach_project(Arc::new(project.clone()), config.clone());
+            let mut request = project.build_request_for_files(self.index_files.as_ref());
+            request["context"]["python-version"] = json!(self.runtime.python_version);
+            request["context"]["platform"] = json!(self.runtime.platform);
+            if frozen_cli_snapshot
+                && self.server.is_none()
+                && self.native_cli.is_none()
+                && self.runtime.prepares_project_contributions_early()
+                && let Some(provider) = &self.borrowed_overlay
+            {
+                self.native_cli = Self::start_early_native_cli(
+                    &mut self.runtime,
+                    &mut project,
+                    &request,
+                    &selected,
+                    &self.root,
+                    &self.out,
+                    &self.checker_config_path,
+                    Path::new(self.options.get("ty").context("official ty")?),
+                    provider,
+                    self.native_cli_preparation.take(),
+                    false,
+                )
+                .ok()
+                .flatten();
+            }
             let runtime = &mut self.runtime;
             runtime.clear_project_patches();
             runtime.set_project_contributions(Vec::new());
@@ -2908,9 +3351,6 @@ impl Session {
                 );
             }
             let request_start = Instant::now();
-            let mut request = project.build_request_for_files(self.index_files.as_ref());
-            request["context"]["python-version"] = json!(runtime.python_version);
-            request["context"]["platform"] = json!(runtime.platform);
             if index_trace {
                 eprintln!(
                     "companion index request: {:.6}s",
@@ -3280,6 +3720,7 @@ impl Session {
         let binary = PathBuf::from(required("ty")?);
         phase(&mut phases, "initial_lowering", &mut phase_started);
         if frozen_cli_snapshot
+            && self.native_cli.is_none()
             && runtime.prefers_native_cli()
             && server.is_none()
             && let Some(provider) = borrowed_overlay.as_ref()
@@ -3351,7 +3792,7 @@ impl Session {
                 let prepared = self
                     .native_cli_preparation
                     .take()
-                    .and_then(PendingNativeCliPreparation::finish);
+                    .and_then(|pending| pending.finish(&project));
                 self.native_cli = NativeCliCheck::start(
                     &binary,
                     &root,
@@ -3363,6 +3804,7 @@ impl Session {
                         sources: &native_sources,
                         extras: &extras,
                         prepared: prepared.as_ref(),
+                        bootstrap_imports: false,
                     }),
                 )
                 .ok()
@@ -4330,6 +4772,9 @@ impl Session {
                     .flatten()
                     .map(|d| json!({"diagnostic":d,"source":d["location"]})),
             );
+            if local.is_empty() && plugin.is_empty() {
+                continue;
+            }
             let origins = diagnostic_origins(
                 unit,
                 &project,
@@ -4361,6 +4806,11 @@ impl Session {
         diagnostics.sort_by_key(|d| d.to_string());
         diagnostics.dedup();
         phase(&mut phases, "diagnostic_mapping", &mut phase_started);
+        let discard_clean_cli_state = frozen_cli_snapshot
+            && options
+                .get("discard-clean-cli-state")
+                .is_some_and(|value| value == "true")
+            && diagnostics.is_empty();
         let mut result = json!({"diagnostics":diagnostics,"suppressed_generated":suppressed,"implementation":"rust","plugin_runtime":"embedded-monty","project":root,"checker":binary,"checker_mode":mode,"configuration":self.config_source,"revision":self.revisions,"external_resolution_requests":self.external_resolution_requests,"projection_rounds":rounds,"oracle_rounds":oracle_queries,"monty_executions":runtime.executions,"monty_cache_hits":runtime.hits,"monty_seconds":runtime.execution_time.as_secs_f64(),"seconds":started.elapsed().as_secs_f64()});
         result["memory_projection"] = json!(self.memory_projection);
         result["monty_prefetched_executions"] = json!(runtime.prefetched_executions);
@@ -4395,90 +4845,93 @@ impl Session {
                 .filter(|module| module.external)
                 .count()
         );
-        let virtual_names = runtime.virtual_display_names();
-        self.names = project
-            .virtual_identities
-            .iter()
-            .map(|(key, value)| {
-                (
-                    key.clone(),
-                    virtual_names
-                        .get(value)
-                        .unwrap_or(value)
-                        .rsplit('.')
-                        .next()
-                        .unwrap_or(value)
-                        .to_owned(),
-                )
-            })
-            .collect();
-        for (generated, original) in virtual_names {
-            let short = original.rsplit('.').next().unwrap_or(&original).to_owned();
-            self.names.insert(generated, short.clone());
-            self.names.insert(original, short);
-        }
-        // Direct type metadata may retain a logical virtual identity without
-        // passing through the generated identifier. Both presentations use the
-        // native declared class name; protocol identities remain qualified.
-        for logical in project.virtual_identities.values() {
-            self.names.insert(
-                logical.clone(),
-                logical.rsplit('.').next().unwrap_or(logical).to_owned(),
-            );
-        }
-        for unit in units.values_mut() {
-            unit.names.extend(unit.analysis.helpers.clone());
-            unit.names.extend(unit.types.display_names());
-        }
-        self.active_documents = units.keys().cloned().collect();
-        self.projection_edits = units
-            .values()
-            .filter_map(|unit| {
-                unit.final_edits
-                    .clone()
-                    .map(|edits| (unit.source.path.clone(), edits))
-            })
-            .collect();
-        self.documents = units
-            .values()
-            .map(|unit| ProjectDocument {
-                source: unit.source.clone(),
-                path: unit.path.clone(),
-                rendered: unit.rendered.as_ref().unwrap().clone(),
-                names: unit.names.clone(),
-            })
-            .collect();
-        let mut document_paths: BTreeSet<_> = self
-            .documents
-            .iter()
-            .map(|document| document.path.clone())
-            .collect();
-        for module in project.modules.values().filter(|m| m.external) {
-            let projected = projected_stub_path(
-                &stubs,
-                &stub_roots,
-                &self.resolved_paths,
-                Path::new(&module.source.path),
-                borrowed_overlay.as_deref(),
-            )?;
-            if !document_paths.contains(&projected) {
-                let path = if self
-                    .resolved_paths
-                    .contains_key(Path::new(&module.source.path))
-                {
-                    PathBuf::from(&module.source.path)
-                } else {
-                    projected
-                };
-                document_paths.insert(path.clone());
-                self.documents.push(ProjectDocument {
-                    source: module.source.clone(),
-                    path,
-                    rendered: render(&module.source, &crate::mapping::Edits::default())?,
-                    names: BTreeMap::new(),
-                });
+        if !discard_clean_cli_state {
+            let virtual_names = runtime.virtual_display_names();
+            self.names = project
+                .virtual_identities
+                .iter()
+                .map(|(key, value)| {
+                    (
+                        key.clone(),
+                        virtual_names
+                            .get(value)
+                            .unwrap_or(value)
+                            .rsplit('.')
+                            .next()
+                            .unwrap_or(value)
+                            .to_owned(),
+                    )
+                })
+                .collect();
+            for (generated, original) in virtual_names {
+                let short = original.rsplit('.').next().unwrap_or(&original).to_owned();
+                self.names.insert(generated, short.clone());
+                self.names.insert(original, short);
+            }
+            // Direct type metadata may retain a logical virtual identity without
+            // passing through the generated identifier. Both presentations use the
+            // native declared class name; protocol identities remain qualified.
+            for logical in project.virtual_identities.values() {
+                self.names.insert(
+                    logical.clone(),
+                    logical.rsplit('.').next().unwrap_or(logical).to_owned(),
+                );
+            }
+            for unit in units.values_mut() {
+                unit.names.extend(unit.analysis.helpers.clone());
+                unit.names.extend(unit.types.display_names());
+            }
+            self.active_documents = units.keys().cloned().collect();
+            self.projection_edits = units
+                .values()
+                .filter_map(|unit| {
+                    unit.final_edits
+                        .clone()
+                        .map(|edits| (unit.source.path.clone(), edits))
+                })
+                .collect();
+            self.documents = units
+                .values()
+                .map(|unit| ProjectDocument {
+                    source: unit.source.clone(),
+                    path: unit.path.clone(),
+                    rendered: unit.rendered.as_ref().unwrap().clone(),
+                    names: unit.names.clone(),
+                })
+                .collect();
+            let mut document_paths: BTreeSet<_> = self
+                .documents
+                .iter()
+                .map(|document| document.path.clone())
+                .collect();
+            for module in project.modules.values().filter(|m| m.external) {
+                let projected = projected_stub_path(
+                    &stubs,
+                    &stub_roots,
+                    &self.resolved_paths,
+                    Path::new(&module.source.path),
+                    borrowed_overlay.as_deref(),
+                )?;
+                if !document_paths.contains(&projected) {
+                    let path = if self
+                        .resolved_paths
+                        .contains_key(Path::new(&module.source.path))
+                    {
+                        PathBuf::from(&module.source.path)
+                    } else {
+                        projected
+                    };
+                    document_paths.insert(path.clone());
+                    self.documents.push(ProjectDocument {
+                        source: module.source.clone(),
+                        path,
+                        rendered: render(&module.source, &crate::mapping::Edits::default())?,
+                        names: BTreeMap::new(),
+                    });
+                }
             }
         }
+        result["followup_state_saved"] = json!(!discard_clean_cli_state);
         phase(&mut phases, "source_maps", &mut phase_started);
         result["projected_units"] = json!(units.values().filter(|unit| unit.dirty).count());
         result["analysis_passes"] = json!(analysis_passes);
@@ -4487,11 +4940,13 @@ impl Session {
         result["reused_units"] = json!(units.values().filter(|unit| !unit.dirty).count());
         result["monty_cache"] = runtime.cache_statistics();
         result["monty_execution_profile"] = runtime.execution_profile();
-        self.cached_sources = project
-            .modules
-            .iter()
-            .map(|(name, module)| (name.clone(), module.source.clone()))
-            .collect();
+        if !discard_clean_cli_state {
+            self.cached_sources = project
+                .modules
+                .iter()
+                .map(|(name, module)| (name.clone(), module.source.clone()))
+                .collect();
+        }
         result["incremental_context_saved"] = json!(context.is_some());
         result["native_source_cache_seeds"] = json!(source_cache_seeds);
         result["native_cli_reused"] = json!(native_cli_reused);
@@ -4504,7 +4959,9 @@ impl Session {
         self.base_project.unavailable_modules = project.unavailable_modules.clone();
         self.base_project.snapshot_nominals = project.snapshot_nominals.clone();
         self.base_project.snapshot_symbols = project.snapshot_symbols.clone();
-        self.cached_units = units;
+        if !discard_clean_cli_state {
+            self.cached_units = units;
+        }
         result["checker_mode_effective"] = json!(mode);
         result["phases"] = json!(phases);
         result["monty_executions_delta"] =
@@ -4521,7 +4978,9 @@ impl Session {
             &out.join("results.json"),
             &serde_json::to_string_pretty(&result)?,
         )?;
-        self.last_result = Some(result.clone());
+        if !discard_clean_cli_state {
+            self.last_result = Some(result.clone());
+        }
         Ok(result)
     }
 }
@@ -4532,6 +4991,219 @@ pub fn run(input: &Path, options: &BTreeMap<String, String>) -> Result<Value> {
 
 #[cfg(test)]
 mod tests {
+    #[cfg(unix)]
+    #[test]
+    fn one_shot_cli_discards_only_unused_clean_state() -> anyhow::Result<()> {
+        use super::*;
+        struct Cleanup(PathBuf);
+        impl Drop for Cleanup {
+            fn drop(&mut self) {
+                let _ = std::fs::remove_dir_all(&self.0);
+            }
+        }
+        let directory =
+            Cleanup(std::env::temp_dir().join(format!("ty-one-shot-state-{}", std::process::id())));
+        let provider = directory.0.join("provider");
+        write(
+            &provider.join("samplepkg/__init__.pyi"),
+            "class Native: ...\n",
+        )?;
+        let artifact = directory.0.join("plugin.py");
+        write(&artifact, "# Native provider only.\n")?;
+        let manifest = directory.0.join("plugin.json");
+        write(&manifest, &json!({"id":"native","name":"Native","version":"0","protocol-version":{"major":0,"minor":9},"ty-compatibility":{"requirement":">=0.89.0"},"runtime":{"kind":"monty","artifact":"plugin.py"},"capabilities":{"stub-overlays":true},"default-config":{"companion-native-fields":true,"companion-native-cli":true,"companion-third-party-overlays":["samplepkg"]}}).to_string())?;
+        let config = directory.0.join("config.toml");
+        write(
+            &config,
+            &format!(
+                "[environment]\npython-version='3.13'\n[plugins]\nenabled=true\nauto-discover=false\n[[plugins.plugin]]\nid='native'\nruntime='monty'\ntrusted=true\npath={}\nmanifest-path={}\nstub-overlay-path={}\n",
+                json!(artifact),
+                json!(manifest),
+                json!(provider)
+            ),
+        )?;
+        for negative in [false, true] {
+            let root = directory
+                .0
+                .join(if negative { "negative" } else { "positive" });
+            let path = root.join("main.py");
+            write(
+                &path,
+                if negative {
+                    "wrong: int = 'bad'\n"
+                } else {
+                    "good: int = 1\n"
+                },
+            )?;
+            let before = std::fs::read(&path)?;
+            let revision = crate::model::file_revision(&std::fs::metadata(&path)?);
+            let mut expected = None;
+            for discard in [false, true] {
+                let options = BTreeMap::from([
+                    ("ty".into(), std::env::var("TY_COMPANION_TEST_OFFICIAL")?),
+                    ("ty-config".into(), config.to_string_lossy().into_owned()),
+                    (
+                        "out".into(),
+                        directory
+                            .0
+                            .join(format!("output-{negative}-{discard}"))
+                            .to_string_lossy()
+                            .into_owned(),
+                    ),
+                    ("memory-projection".into(), "true".into()),
+                    ("public-cli".into(), "true".into()),
+                    ("ephemeral-evidence".into(), "true".into()),
+                    ("discard-clean-cli-state".into(), discard.to_string()),
+                ]);
+                let mut session = Session::new(&root, &options)?;
+                let result = session.check(&BTreeMap::new())?;
+                assert_eq!(result["followup_state_saved"], !discard || negative);
+                assert_eq!(session.documents().is_empty(), discard && !negative);
+                assert_eq!(session.cached_sources.is_empty(), discard && !negative);
+                assert_eq!(session.cached_units.is_empty(), discard && !negative);
+                assert_eq!(session.last_result.is_none(), discard && !negative);
+                let diagnostics = result["diagnostics"].clone();
+                if let Some(expected) = &expected {
+                    assert_eq!(&diagnostics, expected);
+                } else {
+                    expected = Some(diagnostics);
+                }
+                assert_eq!(
+                    result["diagnostics"].as_array().unwrap().len(),
+                    usize::from(negative)
+                );
+                assert_eq!(std::fs::read(&path)?, before);
+                assert_eq!(
+                    crate::model::file_revision(&std::fs::metadata(&path)?),
+                    revision
+                );
+            }
+        }
+        Ok(())
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn native_cli_bootstrap_probe_preserves_exact_errors_and_requires_import_coverage()
+    -> anyhow::Result<()> {
+        use super::*;
+        let binary = PathBuf::from(
+            std::env::var_os("TY_COMPANION_TEST_OFFICIAL").expect("official checker"),
+        );
+        struct Cleanup(PathBuf);
+        impl Drop for Cleanup {
+            fn drop(&mut self) {
+                let _ = std::fs::remove_dir_all(&self.0);
+            }
+        }
+        let directory = Cleanup(
+            std::env::temp_dir().join(format!("ty-bootstrap-probe-{}", std::process::id())),
+        );
+        for case in [
+            "subset",
+            "prefix",
+            "empty",
+            "new-module",
+            "aliased",
+            "code",
+            "from-import",
+            "wrong-path",
+            "probe-error",
+            "probe-edit",
+        ] {
+            let root = directory.0.join(case).join("project");
+            let out = directory.0.join(case).join("output");
+            write(
+                &root.join("main.py"),
+                "from dependency import value\nwrong: int = 'bad'\n",
+            )?;
+            write(&root.join("dependency.py"), "value: int = 1\n")?;
+            write(&root.join("package/__init__.py"), "")?;
+            write(&root.join("package/sub.py"), "value: int = 1\n")?;
+            let root = root.canonicalize()?;
+            let config = out.join("checker.toml");
+            write(&config, "[environment]\npython-version='3.13'\n")?;
+            let path = root.join("main.py");
+            let project = Project::load(&root, std::slice::from_ref(&path), &json!({}), json!({}))?;
+            let inputs = NativeCheckInputs {
+                sources: project
+                    .modules
+                    .values()
+                    .map(|module| {
+                        (
+                            PathBuf::from(&module.source.path),
+                            module.source.text.clone(),
+                        )
+                    })
+                    .collect(),
+                paths: vec![path.clone()],
+                generation: 0,
+                virtual_types: None,
+                support_sources: BTreeMap::new(),
+            };
+            let early_path = out.join("native-bootstrap-imports.py");
+            let early = BTreeMap::from([(
+                early_path.clone(),
+                if case == "probe-error" {
+                    "import absent_dependency\n"
+                } else {
+                    "import dependency\nimport package.sub\n"
+                }
+                .to_owned(),
+            )]);
+            let worker = NativeCliCheck::start(
+                &binary,
+                &root,
+                &config,
+                &inputs.paths,
+                &project,
+                &[],
+                Some(NativeCliProjection {
+                    sources: &BTreeMap::new(),
+                    extras: &early,
+                    prepared: None,
+                    bootstrap_imports: true,
+                }),
+            )?
+            .context("bootstrap CLI")?;
+            let final_path = out.join(if case == "wrong-path" {
+                "unexpected.py"
+            } else {
+                "type-imports.py"
+            });
+            let final_code = match case {
+                "prefix" => "import package\n",
+                "new-module" => "import typing\n",
+                "aliased" => "import dependency as alias\n",
+                "code" => "import dependency\nwrong: int = 'bad'\n",
+                "from-import" => "from dependency import missing\n",
+                _ => "import dependency\n",
+            };
+            let extras = if case == "empty" {
+                BTreeMap::new()
+            } else {
+                BTreeMap::from([(final_path.clone(), final_code.to_owned())])
+            };
+            for (path, text) in &extras {
+                write(path, text)?;
+            }
+            if case == "probe-edit" {
+                write(&early_path, "import package\n")?;
+            }
+            let actual = worker.finish(&inputs, &config, &extras);
+            if matches!(case, "subset" | "prefix" | "empty") {
+                let mut paths = inputs.paths.clone();
+                paths.extend(extras.keys().cloned());
+                let expected = check_selected_files(&binary, &root, &config, &paths)?;
+                assert_eq!(actual, Some(expected), "{case}");
+                assert_eq!(actual.as_ref().unwrap().len(), 1, "native error retained");
+            } else {
+                assert!(actual.is_none(), "{case} must retain normal checking");
+            }
+        }
+        Ok(())
+    }
+
     #[cfg(unix)]
     #[test]
     fn native_cli_partial_provider_matches_full_projection_and_preserves_originals()
@@ -4589,6 +5261,7 @@ mod tests {
                 sparse_overlays: false,
                 call_assignments_only: false,
                 capture_original_revisions: true,
+                known_source_revisions: None,
                 preloaded: None,
             },
         )?;
@@ -4628,6 +5301,7 @@ mod tests {
                 sources: &inputs.sources,
                 extras: &extras,
                 prepared: None,
+                bootstrap_imports: false,
             }),
         )?
         .context("partial CLI worker")?;
@@ -4670,6 +5344,422 @@ mod tests {
         );
         assert_eq!(std::fs::read(&original)?, bytes);
         assert_eq!(std::fs::metadata(&original)?.modified()?, modified);
+        Ok(())
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn early_native_snapshot_rejects_changes_before_and_after_host_loading() -> anyhow::Result<()> {
+        use super::*;
+        let binary = PathBuf::from(
+            std::env::var_os("TY_COMPANION_TEST_OFFICIAL").expect("official checker"),
+        );
+        struct Cleanup(PathBuf);
+        impl Drop for Cleanup {
+            fn drop(&mut self) {
+                let _ = std::fs::remove_dir_all(&self.0);
+            }
+        }
+        let directory =
+            Cleanup(std::env::temp_dir().join(format!("ty-early-snapshot-{}", std::process::id())));
+        for case in [
+            "positive",
+            "negative",
+            "before-host-read",
+            "after-host-read",
+            "provider-marker",
+            "new-source",
+            "replaced",
+            "deleted",
+        ] {
+            let root = directory.0.join(case);
+            let provider = directory.0.join(format!("{case}-provider"));
+            let out = directory.0.join(format!("{case}-out"));
+            write(
+                &root.join("main.py"),
+                if case == "negative" {
+                    "wrong: int = 'bad'\n"
+                } else {
+                    "value: int = 1\n"
+                },
+            )?;
+            write(&provider.join("pkg/__init__.pyi"), "class Settings: ...\n")?;
+            write(&provider.join("pkg/py.typed"), "partial\n")?;
+            let root = root.canonicalize()?;
+            let provider = provider.canonicalize()?;
+            let config = out.join("checker.toml");
+            write(&config, "[environment]\npython-version='3.13'\n")?;
+            let paths = vec![root.join("main.py")];
+            let load = |known: &std::collections::HashMap<PathBuf, crate::model::FileRevision>| {
+                Project::load_selected(
+                    &root,
+                    &paths,
+                    &json!({}),
+                    json!({}),
+                    true,
+                    crate::project::SourceLayout {
+                        roots: vec![root.clone()],
+                        overlays: &[],
+                        include: &|_| true,
+                        sparse_overlays: true,
+                        call_assignments_only: true,
+                        capture_original_revisions: true,
+                        known_source_revisions: Some(known),
+                        preloaded: None,
+                    },
+                )
+            };
+            let empty = Project::load_selected(
+                &root,
+                &[],
+                &json!({}),
+                json!({}),
+                true,
+                crate::project::SourceLayout {
+                    roots: vec![root.clone()],
+                    overlays: &[],
+                    include: &|_| true,
+                    sparse_overlays: true,
+                    call_assignments_only: true,
+                    capture_original_revisions: true,
+                    known_source_revisions: None,
+                    preloaded: None,
+                },
+            )?;
+            assert!(
+                empty.modules.is_empty(),
+                "source parsing must wait until after launch"
+            );
+            let prepared = PendingNativeCliPreparation::start(
+                &root,
+                &config,
+                &paths,
+                std::slice::from_ref(&provider),
+            )?
+            .finish(&empty)
+            .context("pre-read revisions")?;
+            assert!(prepared.originals.is_empty());
+            let mut worker = NativeCliCheck::start(
+                &binary,
+                &root,
+                &config,
+                &paths,
+                &empty,
+                std::slice::from_ref(&provider),
+                Some(NativeCliProjection {
+                    sources: &BTreeMap::new(),
+                    extras: &BTreeMap::new(),
+                    prepared: Some(&prepared),
+                    bootstrap_imports: false,
+                }),
+            )?
+            .context("pre-read native launch")?;
+            if case == "before-host-read" {
+                write(&paths[0], "value: str = 'changed'\n")?;
+            }
+            let project = load(&worker.file_revisions)?;
+            let observed = worker.observe_project(&project);
+            if case == "before-host-read" {
+                assert!(!observed);
+                continue;
+            }
+            assert!(observed, "{case}");
+            let inputs = NativeCheckInputs {
+                sources: project
+                    .modules
+                    .values()
+                    .map(|module| {
+                        (
+                            PathBuf::from(&module.source.path),
+                            module.source.text.clone(),
+                        )
+                    })
+                    .collect(),
+                paths: paths.clone(),
+                generation: 0,
+                virtual_types: None,
+                support_sources: BTreeMap::new(),
+            };
+            match case {
+                "after-host-read" => write(&paths[0], "value: str = 'changed'\n")?,
+                "provider-marker" => write(&provider.join("pkg/py.typed"), "changed\n")?,
+                "new-source" => write(&root.join("new.py"), "value = 1\n")?,
+                "replaced" => {
+                    write(
+                        &out.join("replacement"),
+                        &std::fs::read_to_string(&paths[0])?,
+                    )?;
+                    std::fs::rename(out.join("replacement"), &paths[0])?;
+                }
+                "deleted" => std::fs::remove_file(&paths[0])?,
+                _ => {}
+            }
+            let actual = worker.finish(&inputs, &config, &BTreeMap::new());
+            if matches!(case, "positive" | "negative") {
+                assert_eq!(
+                    actual,
+                    Some(check_selected_files(&binary, &root, &config, &paths)?),
+                    "{case}"
+                );
+            } else {
+                assert!(actual.is_none(), "{case}");
+            }
+        }
+        Ok(())
+    }
+
+    #[test]
+    fn settings_bootstrap_loads_only_contributed_provider_sources() -> anyhow::Result<()> {
+        use super::*;
+        let directory =
+            std::env::temp_dir().join(format!("ty-settings-bootstrap-{}", std::process::id()));
+        struct Cleanup(PathBuf);
+        impl Drop for Cleanup {
+            fn drop(&mut self) {
+                let _ = std::fs::remove_dir_all(&self.0);
+            }
+        }
+        let directory = Cleanup(directory);
+        let root = directory.0.join("project");
+        let provider = directory.0.join("provider");
+        write(
+            &root.join("settings.py"),
+            "SECRET_SETTING: str = 'test-only'\n",
+        )?;
+        write(&root.join("src/app/main.py"), "class UnindexedModel: ...\n")?;
+        write(&provider.join("pkg/__init__.pyi"), "")?;
+        write(&provider.join("pkg/conf.pyi"), "class Settings: ...\n")?;
+        write(
+            &provider.join("pkg/unrelated.pyi"),
+            "class Unrelated: ...\n",
+        )?;
+        let root = root.canonicalize()?;
+        let provider = provider.canonicalize()?;
+        let mut project = Project::load_selected(
+            &root,
+            &[],
+            &json!({"claims":{"settings":[{"config-key":"settings-module"}]}}),
+            json!({"settings-module":"settings"}),
+            true,
+            crate::project::SourceLayout {
+                roots: vec![root.join("src"), root.clone()],
+                overlays: &[],
+                include: &|_| true,
+                sparse_overlays: true,
+                call_assignments_only: true,
+                capture_original_revisions: true,
+                known_source_revisions: None,
+                preloaded: None,
+            },
+        )?;
+        assert_eq!(project.modules.len(), 1);
+        assert!(
+            !project.build_request_for_files(None)["settings"]
+                .as_array()
+                .unwrap()
+                .is_empty()
+        );
+        assert_eq!(
+            project.selected_package_imports(&[root.join("src/app/main.py")])?,
+            BTreeSet::from(["app".into()])
+        );
+        assert!(project.add_contribution_sources(&provider, &["pkg.conf.Settings".into()])?);
+        assert!(project.class_summary("pkg.conf.Settings").is_some());
+        assert!(!project.modules.contains_key("pkg.unrelated"));
+        assert!(!project.add_contribution_sources(&provider, &["missing.Target".into()])?);
+        Ok(())
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn native_cli_attempts_do_not_reuse_discarded_provider_patches() -> anyhow::Result<()> {
+        use super::*;
+        let binary = PathBuf::from(
+            std::env::var_os("TY_COMPANION_TEST_OFFICIAL").expect("official checker"),
+        );
+        struct Cleanup(PathBuf);
+        impl Drop for Cleanup {
+            fn drop(&mut self) {
+                let _ = std::fs::remove_dir_all(&self.0);
+            }
+        }
+        let directory = Cleanup(
+            std::env::temp_dir().join(format!("ty-native-retry-overlay-{}", std::process::id())),
+        );
+        let root = directory.0.join("project");
+        let provider = directory.0.join("provider");
+        let out = directory.0.join("output");
+        write(
+            &root.join("main.py"),
+            "from pkg.a import Settings as A\nfrom pkg.b import Settings as B\nleft: str = A().value\nright: str = B().value\n",
+        )?;
+        let original = "class Settings:\n    value: int\n";
+        let patch = "class Settings:\n    value: str\n";
+        write(&provider.join("pkg/__init__.pyi"), "")?;
+        for name in ["a", "b"] {
+            write(&provider.join(format!("pkg/{name}.pyi")), original)?;
+        }
+        let root = root.canonicalize()?;
+        let provider = provider.canonicalize()?;
+        let paths = vec![root.join("main.py")];
+        let config = out.join("checker.toml");
+        write(
+            &config,
+            &format!(
+                "[environment]\npython-version='3.13'\nextra-paths=[{}]\n",
+                serde_json::to_string(&provider)?
+            ),
+        )?;
+        let mut project = Project::load(&root, &paths, &json!({}), json!({}))?;
+        project.add_source_tree_filtered(&provider, |_| true)?;
+        let before = ["a", "b"].map(|name| {
+            let path = provider.join(format!("pkg/{name}.pyi"));
+            (
+                std::fs::read(&path).unwrap(),
+                std::fs::metadata(path).unwrap().modified().unwrap(),
+            )
+        });
+        let mut second = None;
+        for retry in [false, true] {
+            let mut sources: BTreeMap<_, _> = project
+                .modules
+                .values()
+                .map(|module| {
+                    (
+                        PathBuf::from(&module.source.path),
+                        module.source.text.clone(),
+                    )
+                })
+                .collect();
+            for name in if retry { &["b"][..] } else { &["a", "b"][..] } {
+                sources.insert(provider.join(format!("pkg/{name}.pyi")), patch.to_owned());
+            }
+            let inputs = NativeCheckInputs {
+                sources,
+                paths: paths.clone(),
+                generation: 0,
+                virtual_types: None,
+                support_sources: BTreeMap::new(),
+            };
+            let worker = NativeCliCheck::start(
+                &binary,
+                &root,
+                &config,
+                &paths,
+                &project,
+                std::slice::from_ref(&provider),
+                Some(NativeCliProjection {
+                    sources: &inputs.sources,
+                    extras: &BTreeMap::new(),
+                    prepared: None,
+                    bootstrap_imports: false,
+                }),
+            )?
+            .context("native attempt")?;
+            let actual = worker
+                .finish(&inputs, &config, &BTreeMap::new())
+                .context("qualified attempt")?;
+            if retry {
+                second = Some(actual);
+            } else {
+                assert!(actual.is_empty(), "{actual:?}");
+            }
+        }
+        let full = out.join("fresh-provider");
+        write(&full.join("pkg/__init__.pyi"), "")?;
+        write(&full.join("pkg/a.pyi"), original)?;
+        write(&full.join("pkg/b.pyi"), patch)?;
+        let reference = out.join("reference.toml");
+        write(
+            &reference,
+            &format!(
+                "[environment]\npython-version='3.13'\nextra-paths=[{}]\n",
+                serde_json::to_string(&full)?
+            ),
+        )?;
+        let expected = check_selected_files(&binary, &root, &reference, &paths)?;
+        assert_eq!(expected.len(), 1, "{expected:?}");
+        assert_eq!(
+            second,
+            Some(expected),
+            "a discarded attempt must not leave stale provider patches"
+        );
+        for (index, name) in ["a", "b"].iter().enumerate() {
+            let path = provider.join(format!("pkg/{name}.pyi"));
+            assert_eq!(std::fs::read(&path)?, before[index].0);
+            assert_eq!(std::fs::metadata(path)?.modified()?, before[index].1);
+        }
+        Ok(())
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn early_native_reuse_requires_observed_selected_source_snapshots() -> anyhow::Result<()> {
+        use super::*;
+        let binary = PathBuf::from(
+            std::env::var_os("TY_COMPANION_TEST_OFFICIAL").expect("official checker"),
+        );
+        struct Cleanup(PathBuf);
+        impl Drop for Cleanup {
+            fn drop(&mut self) {
+                let _ = std::fs::remove_dir_all(&self.0);
+            }
+        }
+        let directory = Cleanup(
+            std::env::temp_dir().join(format!("ty-unobserved-native-{}", std::process::id())),
+        );
+        let root = directory.0.join("project");
+        write(&root.join("main.py"), "value: int = 1\n")?;
+        let root = root.canonicalize()?;
+        let config = directory.0.join("output/checker.toml");
+        write(&config, "[environment]\npython-version='3.13'\n")?;
+        let paths = vec![root.join("main.py")];
+        let empty = Project::load_selected(
+            &root,
+            &[],
+            &json!({}),
+            json!({}),
+            true,
+            crate::project::SourceLayout {
+                roots: vec![root.clone()],
+                overlays: &[],
+                include: &|_| true,
+                sparse_overlays: true,
+                call_assignments_only: true,
+                capture_original_revisions: true,
+                known_source_revisions: None,
+                preloaded: None,
+            },
+        )?;
+        let prepared = PendingNativeCliPreparation::start(&root, &config, &paths, &[])?
+            .finish(&empty)
+            .context("pre-read metadata")?;
+        let worker = NativeCliCheck::start(
+            &binary,
+            &root,
+            &config,
+            &paths,
+            &empty,
+            &[],
+            Some(NativeCliProjection {
+                sources: &BTreeMap::new(),
+                extras: &BTreeMap::new(),
+                prepared: Some(&prepared),
+                bootstrap_imports: false,
+            }),
+        )?
+        .context("pre-read native attempt")?;
+        let inputs = NativeCheckInputs {
+            sources: BTreeMap::new(),
+            paths,
+            generation: 0,
+            virtual_types: None,
+            support_sources: BTreeMap::new(),
+        };
+        assert!(
+            worker.finish(&inputs, &config, &BTreeMap::new()).is_none(),
+            "selected source snapshots must be observed before accepting native diagnostics"
+        );
         Ok(())
     }
 
@@ -4737,10 +5827,9 @@ mod tests {
                 virtual_types: None,
                 support_sources: BTreeMap::new(),
             };
-            let prepared =
-                PendingNativeCliPreparation::start(&root, &config, &inputs.paths, &project, &[])?
-                    .finish()
-                    .context("prepared native inputs")?;
+            let prepared = PendingNativeCliPreparation::start(&root, &config, &inputs.paths, &[])?
+                .finish(&project)
+                .context("prepared native inputs")?;
             let mut extras = BTreeMap::new();
             let worker = NativeCliCheck::start(
                 &binary,
@@ -4753,6 +5842,7 @@ mod tests {
                     sources: &BTreeMap::new(),
                     extras: &extras,
                     prepared: Some(&prepared),
+                    bootstrap_imports: false,
                 }),
             )?
             .context("native CLI worker")?;

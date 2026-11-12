@@ -57,6 +57,10 @@ pub struct Runtime {
     pub hits: usize,
     pub execution_time: Duration,
     execution_profile: Option<BTreeMap<String, (usize, Duration)>>,
+    batch_dispatches: usize,
+    batch_requests: usize,
+    batch_time: Duration,
+    batched_kinds: BTreeSet<String>,
 }
 
 #[derive(Clone)]
@@ -547,6 +551,24 @@ impl Runtime {
             if let Some(value) = config.get("companion-native-cli").filter(|v| !v.is_null()) {
                 ensure!(value.is_boolean(), "companion-native-cli must be a boolean");
             }
+            if let Some(value) = config
+                .get("companion-early-project-contributions")
+                .filter(|v| !v.is_null())
+            {
+                ensure!(
+                    value.is_boolean(),
+                    "companion-early-project-contributions must be a boolean"
+                );
+            }
+            if let Some(value) = config
+                .get("companion-stateless-call-batches")
+                .filter(|v| !v.is_null())
+            {
+                ensure!(
+                    value.is_boolean(),
+                    "companion-stateless-call-batches must be a boolean"
+                );
+            }
             declared_third_party_overlays(&config)?;
             let native_member_abstentions = config
                 .get("companion-native-member-abstentions")
@@ -739,6 +761,10 @@ impl Runtime {
             prefetched_executions: 0,
             hits: 0,
             execution_time: Duration::ZERO,
+            batch_dispatches: 0,
+            batch_requests: 0,
+            batch_time: Duration::ZERO,
+            batched_kinds: BTreeSet::new(),
             execution_profile: std::env::var_os("TY_COMPANION_TRACE_PHASES")
                 .map(|_| BTreeMap::new()),
         })
@@ -757,6 +783,14 @@ impl Runtime {
             names.retain(|name| declared.contains(name));
         }
         Ok(names)
+    }
+
+    pub fn prepares_project_contributions_early(&self) -> bool {
+        self.prefers_native_cli()
+            && self
+                .plugins
+                .iter()
+                .all(|plugin| plugin.config["companion-early-project-contributions"] == true)
     }
 
     pub fn prefers_native_cli(&self) -> bool {
@@ -892,43 +926,93 @@ impl Runtime {
         if invocations.len() < 8 {
             return Ok(0);
         }
+        // Only an explicit author promise permits shared module initialization.
+        // Each bounded group owns one plugin and that plugin's immutable index.
+        let mut groups = Vec::new();
+        let mut first = 0;
+        while first < invocations.len() {
+            let owner = invocations[first].owner;
+            let opted_in = self.plugins[owner].config["companion-stateless-call-batches"] == true;
+            let mut end = first + 1;
+            if opted_in {
+                while end < invocations.len() && end - first < 16 && invocations[end].owner == owner
+                {
+                    end += 1;
+                }
+            }
+            groups.push((first..end, opted_in && end - first > 1));
+            first = end;
+        }
         let results = {
             let host = &self.host;
             let plugins = &self.plugins;
             crate::parallel::map_ordered(
-                &invocations,
+                &groups,
                 crate::parallel::worker_limit(),
-                |invocation| {
+                |(range, batched)| {
                     let started = Instant::now();
-                    let plugin = &plugins[invocation.owner];
-                    let result = match plugin.index.as_ref() {
-                        Some(index) => {
-                            host.execute_with_project_index(&plugin.id, &invocation.request, index)
+                    let plugin = &plugins[invocations[range.start].owner];
+                    let replies = if *batched {
+                        let requests = invocations[range.clone()]
+                            .iter()
+                            .map(|invocation| &invocation.request)
+                            .collect::<Vec<_>>();
+                        match host.execute_stateless_batch_with_project_index(
+                            &plugin.id,
+                            &requests,
+                            plugin.index.as_ref().expect("indexed prefetch"),
+                        ) {
+                            Ok(replies) => replies.into_iter().map(Some).collect(),
+                            Err(_) => std::iter::repeat_with(|| None).take(range.len()).collect(),
                         }
-                        None => host.execute(&plugin.id, &invocation.request),
+                    } else {
+                        let invocation = &invocations[range.start];
+                        vec![
+                            host.execute_with_project_index(
+                                &plugin.id,
+                                &invocation.request,
+                                plugin.index.as_ref().expect("indexed prefetch"),
+                            )
+                            .ok(),
+                        ]
                     };
-                    (result, started.elapsed())
+                    (replies, started.elapsed())
                 },
             )?
         };
-        for (invocation, (result, elapsed)) in invocations.iter().zip(results) {
+        for ((range, batched), (replies, elapsed)) in groups.iter().zip(results) {
             self.execution_time += elapsed;
-            self.executions += 1;
-            self.prefetched_executions += 1;
-            if let Some(profile) = &mut self.execution_profile {
-                let entry = profile.entry(invocation.kind.to_owned()).or_default();
-                entry.0 += 1;
-                entry.1 += elapsed;
+            if *batched {
+                self.batch_dispatches += 1;
+                self.batch_requests += range.len();
+                self.batch_time += elapsed;
             }
-            let response = match result {
-                Ok(ty_plugin_protocol::PluginResponse::Error(_)) => json!({"kind":"no-change"}),
-                Ok(response) => response_value(response)?,
-                // Resource contention during speculative work must not turn
-                // into an actual-call failure. The normal path retries it and
-                // preserves its own diagnostics and per-call resource limits.
-                Err(_) => continue,
-            };
-            self.cache.insert(invocation.key, &response);
+            for (invocation, reply) in invocations[range.clone()].iter().zip(replies) {
+                self.executions += 1;
+                self.prefetched_executions += 1;
+                if *batched {
+                    self.batched_kinds.insert(invocation.kind.to_owned());
+                }
+                if let Some(profile) = &mut self.execution_profile {
+                    let entry = profile.entry(invocation.kind.to_owned()).or_default();
+                    entry.0 += 1;
+                    // Per-handler timing is unavailable inside a shared run.
+                    // Report null plus the separate complete batch duration.
+                    if !*batched {
+                        entry.1 += elapsed;
+                    }
+                }
+                let response = match reply {
+                    Some(ty_plugin_protocol::PluginResponse::Error(_)) => {
+                        json!({"kind":"no-change"})
+                    }
+                    Some(response) => response_value(response)?,
+                    // No speculative batch failure becomes a real-call result.
+                    // The existing path retries with fresh request state.
+                    None => continue,
+                };
+                self.cache.insert(invocation.key, &response);
+            }
         }
         Ok(invocations.len())
     }
@@ -952,6 +1036,9 @@ impl Runtime {
             "entries": self.cache.entries.len(),
             "bytes": self.cache.bytes,
             "oversized_skips": self.cache.oversized_skips,
+            "stateless_batch_dispatches": self.batch_dispatches,
+            "stateless_batch_requests": self.batch_requests,
+            "stateless_batch_seconds": self.batch_time.as_secs_f64(),
         })
     }
 
@@ -966,7 +1053,9 @@ impl Runtime {
                         .map(|(kind, (executions, elapsed))| {
                             (
                                 kind.clone(),
-                                json!({"executions":executions,"seconds":elapsed.as_secs_f64()}),
+                                if self.batched_kinds.contains(kind) {
+                                    json!({"executions":executions,"seconds":null,"seconds_unbatched":elapsed.as_secs_f64(),"timing":"See total stateless_batch_seconds; individual batch-handler durations are not measured."})
+                                } else { json!({"executions":executions,"seconds":elapsed.as_secs_f64()}) },
                             )
                         })
                         .collect(),
@@ -3330,6 +3419,127 @@ def state(request):
     }
 
     #[test]
+    fn stateless_prefetched_batches_preserve_serial_keys_failures_and_revisions() -> Result<()> {
+        let directory = std::env::temp_dir().join(format!(
+            "ty-stateless-prefetched-calls-{}",
+            std::process::id()
+        ));
+        std::fs::create_dir_all(&directory)?;
+        let manifest = directory.join("plugin.json");
+        let artifact = directory.join("plugin.py");
+        let source_path = directory.join("demo.py");
+        std::fs::write(
+            &source_path,
+            "class Row: pass\nclass Manager:\n    def get(self, *, key: int) -> Row: ...\n",
+        )?;
+        std::fs::write(&manifest, json!({"id":"prefetch","name":"Prefetch","version":"0","protocol-version":{"major":0,"minor":9},"ty-compatibility":{"requirement":">=0.89.0"},"runtime":{"kind":"monty","artifact":"plugin.py"},"capabilities":{"project-index":true,"project-index-lookup":true,"call-return":true,"call-state":true},"claims":{"methods":[{"kind":"exact","class-qualified-name":"demo.Manager","method-name":"get"}]},"default-config":{"companion-native-fields":true,"companion-parallel-calls":true,"companion-stateless-call-batches":true,"companion-early-call-returns":["get"]}}).to_string())?;
+        std::fs::write(
+            &artifact,
+            r#"
+@on_project_index
+def index(request):
+    return project_index({'annotation': request['context']['root']})
+@on_call_return
+def returns(request):
+    if request['arguments'][0]['value']['kind'] == 'str':
+        assert request['arguments'][0]['value']['value'] == 'café😀\n"quoted"'
+    if request['arguments'][0]['value']['value'] == -1:
+        return {'kind': 'malformed-response'}
+    return call_return_patch(type_annotation(project_index_value(request, ['annotation'])))
+@on_call_state
+def state(request):
+    return call_state_patch(result_members={'value': type_annotation(project_index_value(request, ['annotation']))}, fresh_result=True)
+"#,
+        )?;
+        let mut serial = Runtime::new(&manifest, &artifact)?;
+        let mut parallel = Runtime::new(&manifest, &artifact)?;
+        serial.use_site_fields = true;
+        parallel.use_site_fields = true;
+        let project = Arc::new(Project::load(
+            &directory,
+            std::slice::from_ref(&source_path),
+            &serial.manifest,
+            json!({}),
+        )?);
+        serial.attach_project(Arc::clone(&project), json!({}));
+        parallel.attach_project(Arc::clone(&project), json!({}));
+        let source = &project.modules["demo"].source;
+        let mut calls: Vec<_> = (0..16).map(|position| CallSite {
+            span: Span { start: position, end: position + 1 },
+            function: Span { start: position, end: position + 1 },
+            callee: "demo.Manager.get".into(),
+            arguments: vec![crate::model::Argument { span: Span { start: position, end: position + 1 }, name: Some("key".into()), literal: json!({"kind":"int","value": if position == 0 {-1} else {position as i64}}), kind: "keyword", inferred_type: None }],
+            receiver_span: None,
+            receiver_type: Some("demo.Manager".into()),
+            flow_receiver_type: Some("demo.Manager".into()),
+        }).collect();
+        calls.last_mut().unwrap().arguments[0].literal =
+            json!({"kind":"str", "value":"café😀\n\"quoted\""});
+        for annotation in ["str", "bytes"] {
+            for runtime in [&mut serial, &mut parallel] {
+                runtime.execute_project("build-project-index", json!({"context":{"root":annotation,"python-version":"3.13","platform":"linux"}}))?;
+            }
+            let before = parallel.executions;
+            assert_eq!(parallel.prefetch_call_hooks(source, calls.iter())?, 32);
+            assert_eq!(parallel.executions - before, 32);
+            for call in &calls {
+                for (kind, speculative) in
+                    [("adjust-call-return", true), ("adjust-call-state", false)]
+                {
+                    let expected = call_request_with_speculation(
+                        &mut serial,
+                        source,
+                        kind,
+                        call,
+                        None,
+                        None,
+                        speculative,
+                    )?;
+                    let actual = call_request_with_speculation(
+                        &mut parallel,
+                        source,
+                        kind,
+                        call,
+                        None,
+                        None,
+                        speculative,
+                    )?;
+                    assert_eq!(actual, expected);
+                }
+            }
+            // One malformed reply discards its whole speculative group. Every
+            // real request still matches serial execution and its complete key.
+            assert_eq!(parallel.executions - before, 48);
+            assert!(parallel.batch_dispatches >= 2);
+            assert!(parallel.batch_requests >= 32);
+            let mut changed = calls[1].clone();
+            changed.arguments[0].literal = json!({"kind":"str","value":"changed"});
+            let before = parallel.executions;
+            assert_eq!(
+                call_request(
+                    &mut parallel,
+                    source,
+                    "adjust-call-state",
+                    &changed,
+                    None,
+                    None
+                )?,
+                call_request(
+                    &mut serial,
+                    source,
+                    "adjust-call-state",
+                    &changed,
+                    None,
+                    None
+                )?
+            );
+            assert_eq!(parallel.executions, before + 1);
+        }
+        std::fs::remove_dir_all(directory)?;
+        Ok(())
+    }
+
+    #[test]
     fn signature_method_selection_preserves_first_owner_functions_constructors_and_errors()
     -> Result<()> {
         let directory =
@@ -3522,6 +3732,33 @@ def dynamic(request):
         paths[1].2 = json!({"companion-native-cli":"yes"});
         assert!(Runtime::from_plugins(&paths).is_err());
         assert!(!Runtime::from_plugins(&[])?.prefers_native_cli());
+        paths[1].2 = json!({});
+        assert!(!Runtime::from_plugins(&paths)?.prepares_project_contributions_early());
+        paths[0].2 = json!({"companion-early-project-contributions":true});
+        assert!(!Runtime::from_plugins(&paths)?.prepares_project_contributions_early());
+        paths[1].2 = paths[0].2.clone();
+        let mut early = Runtime::from_plugins(&paths)?;
+        early.use_site_fields = true;
+        assert!(early.prepares_project_contributions_early());
+        early.use_site_fields = false;
+        assert!(!early.prepares_project_contributions_early());
+        for invalid in [json!("yes"), json!(0), json!([])] {
+            paths[1].2 = json!({"companion-early-project-contributions":invalid});
+            assert!(Runtime::from_plugins(&paths).is_err());
+        }
+        for disabled in [json!(false), json!(null)] {
+            paths[1].2 = json!({"companion-early-project-contributions":disabled});
+            assert!(!Runtime::from_plugins(&paths)?.prepares_project_contributions_early());
+        }
+
+        for invalid in [json!("yes"), json!(1), json!([])] {
+            paths[1].2 = json!({"companion-stateless-call-batches":invalid});
+            assert!(Runtime::from_plugins(&paths).is_err());
+        }
+        for valid in [json!(true), json!(false), json!(null)] {
+            paths[1].2 = json!({"companion-stateless-call-batches":valid});
+            assert!(Runtime::from_plugins(&paths).is_ok());
+        }
         std::fs::remove_dir_all(directory)?;
         Ok(())
     }

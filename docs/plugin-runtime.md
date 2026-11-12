@@ -66,8 +66,33 @@ not change the external checker's version or configuration interfaces.
     every plugin selects it and ordinary fields use native typing. Temporary
     partial overlays retain changed provider declarations. Native diagnostics
     are reused only when the final projections, selected paths, source revisions,
-    import probes and checker configuration still match. Inferred-type queries
+    import validation and checker configuration still match. Inferred-type queries
     and mismatched inputs use the existing checker transport.
+- `companion-stateless-call-batches = true` permits eligible ordinary call hooks
+    for the same plugin to share a bounded Monty execution. Authors attest that
+    these handlers depend only on each request and its fixed project index,
+    without observable mutable module state or ambient state. Exact request
+    keys and first-owner routing remain unchanged. Each response is validated;
+    a failed group takes the ordinary individual retry path. The shared run
+    retains the ordinary time, response and suspension limits. Non-opted
+    requests keep fresh module globals. Timing reports separate batch execution
+    time from unbatched per-hook time.
+- `companion-early-project-contributions = true` permits an extra ordinary
+    project-index call with settings and context, before full model indexing.
+    Every plugin must opt in. Authors use this when provider declarations can be
+    produced from those inputs alone. The complete project index still runs and
+    replaces the setup index. The startup prototype reads only settings and
+    contributed provider declarations before launching native Ty, then loads the
+    complete project concurrently. It captures source/provider file and directory
+    revisions before launch, requires later host reads to match those revisions,
+    and validates them again before reuse. Eligible sources are read and parsed
+    in one wave, with the open file verified against its pre-launch revision
+    after reading. Each native attempt uses a fresh provider overlay directory;
+    discarded attempts cannot retain patches in a retry. Unknown revisions and
+    unsupported inputs retain normal checking. Reuse also requires identical final source
+    and provider projections. A successful early probe containing only absolute imports can
+    cover a subset of those imports and their package prefixes. Additional
+    imports, executable probe code or probe diagnostics retain normal checking.
 - `companion-third-party-overlays = ["django"]` declares top-level overlay
     modules that the plugin author guarantees are third-party packages throughout
     its supported checker and Python versions. The companion can omit the separate

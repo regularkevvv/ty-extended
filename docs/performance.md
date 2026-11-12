@@ -30,6 +30,36 @@ meeting the current performance and correctness requirements together.
 
 ## Current native comparison
 
+The [latest completed local candidate](qualification/native-django-before-source-load-v57c.json)
+**fails four of the five workload gates**. Five rotated fresh-process repeats use
+unchanged official Ty 0.0.101, production defaults, and the same positive
+assertions and error controls. Correctness, source/provider preservation and
+environment cleanup pass. No isolated matrix was dispatched for this rejected
+source.
+
+| Workload           | Companion median | Bare Ty median | Median ratio | Worst paired ratio |
+| ------------------ | ---------------: | -------------: | -----------: | -----------------: |
+| small              |          0.108 s |        0.039 s |        2.75× |              3.14× |
+| distributed        |          0.193 s |        0.068 s |        2.86× |              3.14× |
+| many-files         |          0.518 s |        0.166 s |        3.13× |              3.64× |
+| stress             |          0.702 s |        0.307 s |        2.29× |              2.62× |
+| distributed-stress |          0.718 s |        0.199 s |        3.61× |              3.68× |
+
+All five medians remain below one second and below MyPy. The companion matches
+20/20 focused contracts, MyPy 19/20, and bare Ty 8/20. These results do not meet
+the release requirement: both the median and every paired repeat must be at
+most 3×. Full Rust, SDK and Django qualification passes except for the stale
+official-contract receipt, which remains an explicit failing release gate.
+Further loading and selection changes and fallback regressions are under
+qualification.
+
+The preceding [bounded-batch candidate](qualification/native-django-stateless-batches-v56.json)
+also fails four local workload gates, with medians of 0.129–0.750 seconds and
+worst paired ratios of 2.25–3.36. Separate runner series do not isolate a speedup
+from one implementation change.
+
+Earlier rejected candidates follow for comparison.
+
 The [latest parallel-call trial](qualification/native-django-prefetched-calls-v49.json)
 still fails the complete isolated matrix. Single-module stress passes at 2.65 times
 median and 2.69 times worst pair on Linux, and 2.47 and 2.82 times on macOS.
@@ -69,7 +99,14 @@ controls, source/provider preservation and cleanup pass. No isolated matrix was
 dispatched for this rejected source. The [subsequent scheduling candidate](qualification/native-django-prepared-inputs-v53.json)
 moves input preparation into the indexing window and reuses compacted checker
 paths. Its local source qualification and real Django diagnostic comparison
-pass; optimized performance remains under measurement.
+pass. Its complete optimized local matrix also fails: median ratios range from
+2.81 to 3.79 and worst pairs from 3.05 to 3.94. The focused comparison remains
+20/20 for the companion, 19/20 for MyPy and 8/20 for native Ty. All five shapes
+remain below MyPy, and provider preservation and environment cleanup pass.
+Isolated Linux and macOS CI also fail all five workload gates. Linux median
+ratios range from 2.94 to 3.49, with worst pairs of 3.03 to 3.59. macOS
+medians range from 2.57 to 3.85, with worst pairs of 3.99 to 6.00.
+Correctness, source/provider and cleanup controls pass on both runners.
 
 The [production-default candidate](qualification/native-django-production-defaults-v47.json)
 uses author-selected native fields, eligible memory projection and provider

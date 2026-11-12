@@ -181,6 +181,10 @@ pub struct SourceLayout<'a> {
     pub call_assignments_only: bool,
     /// Permit a fresh memory CLI check to reuse strongly identified disk bytes.
     pub capture_original_revisions: bool,
+    /// Strong revisions captured before a concurrent native check. Matching
+    /// canonical paths can be read and parsed in one wave, without a second
+    /// snapshot map. File-handle metadata after reading must still match.
+    pub known_source_revisions: Option<&'a std::collections::HashMap<PathBuf, FileRevision>>,
     /// Immutable CLI bytes shared with the concurrent native checker.
     pub preloaded: Option<&'a BTreeMap<PathBuf, SourceSnapshot>>,
 }
@@ -206,6 +210,20 @@ pub(crate) fn read_snapshot(path: &Path) -> Result<(String, Option<FileRevision>
     .with_context(|| format!("read {}", path.display()))?;
     let after = file.metadata().ok().as_ref().and_then(file_revision);
     Ok((text, before.filter(|revision| Some(*revision) == after)))
+}
+
+fn read_snapshot_at_revision(
+    path: &Path,
+    expected: FileRevision,
+) -> Result<(String, Option<FileRevision>)> {
+    let mut file = std::fs::File::open(path).with_context(|| format!("read {}", path.display()))?;
+    let text = read_text_with_size(&mut file, expected.2)
+        .with_context(|| format!("read {}", path.display()))?;
+    // The pre-launch identity supplies the before-read observation. A matching
+    // identity on the open handle after reading proves the same stable interval
+    // as read_snapshot. Native reuse also checks the path and directories later.
+    let after = file.metadata().ok().as_ref().and_then(file_revision);
+    Ok((text, (after == Some(expected)).then_some(expected)))
 }
 
 // File::read_to_string queries metadata and the stream position to reserve
@@ -300,6 +318,58 @@ impl Project {
         Self::load_inner(root, paths, manifest, config, editor, true, Some(layout))
     }
 
+    /// Load only the provider declarations needed by early settings contributions.
+    /// Their transitive imports remain the native checker's responsibility here;
+    /// the ordinary full project still loads and indexes them independently.
+    pub fn add_contribution_sources(&mut self, provider: &Path, names: &[String]) -> Result<bool> {
+        for name in names {
+            let mut prefix = name.as_str();
+            let (module, path) = loop {
+                if let Some(path) = find_module(provider, prefix) {
+                    break (prefix.to_owned(), path);
+                }
+                let Some((parent, _)) = prefix.rsplit_once('.') else {
+                    return Ok(false);
+                };
+                prefix = parent;
+            };
+            if self
+                .modules
+                .get(&module)
+                .is_some_and(|source| !source.external)
+            {
+                return Ok(false);
+            }
+            self.add_module(&module, &path, true)?;
+            let mut ancestor = module.as_str();
+            while let Some((parent, _)) = ancestor.rsplit_once('.') {
+                if let Some(path) = find_module(provider, parent) {
+                    if self
+                        .modules
+                        .get(parent)
+                        .is_some_and(|source| !source.external)
+                    {
+                        return Ok(false);
+                    }
+                    self.add_module(parent, &path, true)?;
+                }
+                ancestor = parent;
+            }
+        }
+        self.rebuild()?;
+        Ok(true)
+    }
+
+    pub fn selected_package_imports(&self, paths: &[PathBuf]) -> Result<BTreeSet<String>> {
+        Ok(paths
+            .iter()
+            .map(|path| self.source_module_name(path))
+            .collect::<Result<Vec<_>>>()?
+            .into_iter()
+            .filter_map(|name| name.rsplit_once('.').map(|(parent, _)| parent.to_owned()))
+            .collect())
+    }
+
     fn load_inner(
         root: &Path,
         source_paths: &[PathBuf],
@@ -357,11 +427,12 @@ impl Project {
         if paths.is_empty() && !exact_paths {
             collect_python(&project.root, &mut paths)?;
         }
-        if let Some(preloaded) = layout.as_ref().and_then(|layout| layout.preloaded) {
+        if let Some(layout) = layout.as_ref() {
             project.load_initial_sources_preloaded(
                 &paths,
                 crate::parallel::workers(paths.len()),
-                Some(preloaded),
+                layout.preloaded,
+                layout.known_source_revisions,
             )?;
         } else {
             project.load_initial_sources(&paths, crate::parallel::workers(paths.len()))?;
@@ -395,7 +466,7 @@ impl Project {
     /// initial snapshot in parallel, then install results in input order so module
     /// precedence and the first reported error match sequential loading.
     fn load_initial_sources(&mut self, paths: &[PathBuf], workers: usize) -> Result<()> {
-        self.load_initial_sources_preloaded(paths, workers, None)
+        self.load_initial_sources_preloaded(paths, workers, None, None)
     }
 
     /// A read failure retains the original ordered read-and-parse error path.
@@ -441,6 +512,7 @@ impl Project {
         paths: &[PathBuf],
         workers: usize,
         preloaded: Option<&BTreeMap<PathBuf, SourceSnapshot>>,
+        known_revisions: Option<&std::collections::HashMap<PathBuf, FileRevision>>,
     ) -> Result<()> {
         let read = |path: &PathBuf| -> Result<_> {
             if let Some(snapshot) = preloaded.and_then(|sources| sources.get(path)) {
@@ -458,9 +530,13 @@ impl Project {
             } else {
                 self.root.join(path)
             };
-            let path = path
-                .canonicalize()
-                .with_context(|| format!("source file {}", path.display()))?;
+            let expected = known_revisions.and_then(|known| known.get(&path)).copied();
+            let path = if expected.is_some() {
+                path
+            } else {
+                path.canonicalize()
+                    .with_context(|| format!("source file {}", path.display()))?
+            };
             let name = self.source_module_name(&path)?;
             let (text, revision) = if self.capture_original_revisions
                 && cfg!(unix)
@@ -468,7 +544,11 @@ impl Project {
                     .extension()
                     .is_none_or(|extension| extension != "ipynb")
             {
-                read_snapshot(&path)?
+                if let Some(expected) = expected {
+                    read_snapshot_at_revision(&path, expected)?
+                } else {
+                    read_snapshot(&path)?
+                }
             } else {
                 (read_source(&path)?, None)
             };
@@ -784,13 +864,25 @@ impl Project {
     }
 
     fn add_module(&mut self, name: &str, path: &Path, external: bool) -> Result<()> {
-        let text = read_source(path)?;
+        let (text, revision) = if self.capture_original_revisions
+            && cfg!(unix)
+            && path
+                .extension()
+                .is_none_or(|extension| extension != "ipynb")
+        {
+            read_snapshot(path)?
+        } else {
+            (read_source(path)?, None)
+        };
         if self.modules.get(name).is_some_and(|m| {
             m.external == external && m.source.text == text && Path::new(&m.source.path) == path
         }) {
             return Ok(());
         }
-        self.add_module_text(name, path, external, text)
+        let (mut module, invalid) = self.parse_module(name, path, external, text)?;
+        module.original_revision = revision;
+        self.install_module(name.to_owned(), module, invalid);
+        Ok(())
     }
 
     fn add_module_text(
@@ -3192,6 +3284,32 @@ mod tests {
         }
     }
 
+    #[cfg(unix)]
+    #[test]
+    fn preobserved_snapshot_reads_preserve_utf8_and_reject_changed_revisions() -> Result<()> {
+        let fixture = Fixture::new(&[("main.py", "value = 'café😀'\n")]);
+        let path = fixture.0.join("main.py");
+        let expected = file_revision(&std::fs::metadata(&path)?).context("strong file revision")?;
+        let (text, revision) = read_snapshot_at_revision(&path, expected)?;
+        assert_eq!(text, std::fs::read_to_string(&path)?);
+        assert_eq!(revision, Some(expected));
+        for replacement in ["value = 'longer café😀 雪 and more text'\n", "x=1\n", ""] {
+            std::fs::write(&path, replacement)?;
+            let (text, revision) = read_snapshot_at_revision(&path, expected)?;
+            assert_eq!(text, replacement);
+            assert_eq!(revision, None);
+        }
+        let substitute = fixture.0.join("replacement.py");
+        std::fs::write(&substitute, "value = 'café😀'\n")?;
+        std::fs::rename(substitute, &path)?;
+        assert_eq!(read_snapshot_at_revision(&path, expected)?.1, None);
+        std::fs::write(&path, [0xff])?;
+        assert!(read_snapshot_at_revision(&path, expected).is_err());
+        std::fs::remove_file(&path)?;
+        assert!(read_snapshot_at_revision(&path, expected).is_err());
+        Ok(())
+    }
+
     #[test]
     fn parallel_summaries_preserve_sequential_requests_and_declarations() -> Result<()> {
         let mut text = String::from(
@@ -3491,11 +3609,38 @@ mod tests {
         for workers in [1, 8] {
             let mut preloaded = empty.clone();
             preloaded.capture_original_revisions = true;
-            preloaded.load_initial_sources_preloaded(&paths, workers, Some(&snapshots))?;
+            preloaded.load_initial_sources_preloaded(&paths, workers, Some(&snapshots), None)?;
             preloaded.rebuild()?;
             assert_eq!(preloaded.build_request(), sequential.build_request());
             assert_eq!(preloaded.syntax_errors, sequential.syntax_errors);
             assert_eq!(preloaded.additional_sources, sequential.additional_sources);
+        }
+
+        let known = snapshots
+            .values()
+            .filter_map(|snapshot| {
+                snapshot
+                    .revision
+                    .map(|revision| (snapshot.path.clone(), revision))
+            })
+            .collect::<std::collections::HashMap<_, _>>();
+        let canonical = paths
+            .iter()
+            .map(|path| snapshots[path].path.clone())
+            .collect::<Vec<_>>();
+        for workers in [1, 8] {
+            let mut fused = empty.clone();
+            fused.capture_original_revisions = true;
+            fused.load_initial_sources_preloaded(&canonical, workers, None, Some(&known))?;
+            fused.rebuild()?;
+            assert_eq!(fused.build_request(), sequential.build_request());
+            assert_eq!(fused.syntax_errors, sequential.syntax_errors);
+            assert_eq!(fused.additional_sources, sequential.additional_sources);
+            for module in fused.modules.values() {
+                if let Some(expected) = known.get(Path::new(&module.source.path)) {
+                    assert_eq!(module.original_revision, Some(*expected));
+                }
+            }
         }
 
         // Later worker failures must not mask the first input's parse failure.
@@ -3574,6 +3719,7 @@ mod tests {
                     sparse_overlays,
                     call_assignments_only: false,
                     capture_original_revisions: false,
+                    known_source_revisions: None,
                     preloaded: None,
                 },
             )
@@ -3674,6 +3820,7 @@ mod tests {
                     sparse_overlays: false,
                     call_assignments_only: false,
                     capture_original_revisions: false,
+                    known_source_revisions: None,
                     preloaded: None,
                 },
             )?;
@@ -4025,6 +4172,7 @@ mod tests {
                     sparse_overlays: false,
                     call_assignments_only,
                     capture_original_revisions: false,
+                    known_source_revisions: None,
                     preloaded: None,
                 },
             )

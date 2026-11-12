@@ -109,7 +109,7 @@ impl Patterns {
     /// Match all patterns together, retaining the last matching rule across
     /// every ancestor. Rule order, rather than ancestor order, determines the
     /// winner when an exclusion is followed by a negated exclusion.
-    fn last_match(&self, ancestors: &[Candidate<'_>]) -> Option<&Pattern> {
+    fn last_index(&self, ancestors: &[Candidate<'_>], depth_offset: usize) -> Option<usize> {
         let mut matches = Vec::new();
         let mut last = None;
         for (depth, candidate) in ancestors.iter().enumerate() {
@@ -118,12 +118,16 @@ impl Patterns {
                 .iter()
                 .rev()
                 .copied()
-                .find(|&index| depth > 0 || !self.patterns[index].directory_only)
+                .find(|&index| depth + depth_offset > 0 || !self.patterns[index].directory_only)
             {
                 last = Some(last.map_or(index, |previous: usize| previous.max(index)));
             }
         }
-        last.map(|index| &self.patterns[index])
+        last
+    }
+    fn last_match(&self, ancestors: &[Candidate<'_>]) -> Option<&Pattern> {
+        self.last_index(ancestors, 0)
+            .map(|index| &self.patterns[index])
     }
 }
 
@@ -135,7 +139,68 @@ pub struct Selection {
     respect_ignore: bool,
     exclude_scripts: bool,
 }
+
+/// Immutable per-wave parent matches. File names and PEP 723 text are still
+/// tested independently, with the same global pattern ordering as Selection.
+pub struct PreparedSelection<'a> {
+    selection: &'a Selection,
+    parents: std::collections::HashMap<PathBuf, (Option<usize>, Option<usize>)>,
+}
+
+impl PreparedSelection<'_> {
+    pub fn includes(&self, path: &Path, text: &str) -> bool {
+        let Some((included, excluded)) = path.parent().and_then(|parent| self.parents.get(parent))
+        else {
+            return self.selection.includes(path, text);
+        };
+        if self.selection.exclude_scripts && text.lines().any(|line| line.trim() == "# /// script")
+        {
+            return false;
+        }
+        let candidate = Candidate::new(path);
+        let candidates = std::slice::from_ref(&candidate);
+        if self.selection.includes.as_ref().is_some_and(|patterns| {
+            (*included)
+                .max(patterns.last_index(candidates, 0))
+                .is_none()
+        }) {
+            return false;
+        }
+        (*excluded)
+            .max(self.selection.excludes.last_index(candidates, 0))
+            .is_none_or(|index| self.selection.excludes.patterns[index].negated)
+    }
+
+    pub fn includes_explicit(&self, path: &Path, text: &str, force_exclude: bool) -> bool {
+        !force_exclude || self.includes(path, text)
+    }
+}
+
 impl Selection {
+    pub fn prepare_paths<'a, 'p>(
+        &'a self,
+        paths: impl IntoIterator<Item = &'p Path>,
+    ) -> PreparedSelection<'a> {
+        let mut parents = std::collections::HashMap::new();
+        for path in paths {
+            if let Some(parent) = path.parent()
+                && let std::collections::hash_map::Entry::Vacant(entry) =
+                    parents.entry(parent.to_owned())
+            {
+                let ancestors = parent.ancestors().map(Candidate::new).collect::<Vec<_>>();
+                entry.insert((
+                    self.includes
+                        .as_ref()
+                        .and_then(|patterns| patterns.last_index(&ancestors, 1)),
+                    self.excludes.last_index(&ancestors, 1),
+                ));
+            }
+        }
+        PreparedSelection {
+            selection: self,
+            parents,
+        }
+    }
     fn new(table: &Table, base: &Path, root: &Path) -> Result<Self> {
         let src = table.get("src").and_then(Value::as_table);
         let patterns = |key: &str| -> Result<Option<Vec<Pattern>>> {
@@ -2578,6 +2643,27 @@ mod tests {
                                         .iter()
                                         .rfind(|p| p.matches(&ancestors))
                                         .is_some_and(|p| !p.negated);
+                                    let prepared =
+                                        selection.prepare_paths(std::iter::once(path.as_path()));
+                                    let unknown =
+                                        selection.prepare_paths(std::iter::empty::<&Path>());
+                                    for cached in [&prepared, &unknown] {
+                                        assert_eq!(
+                                            cached.includes(&path, text),
+                                            !script && included && !excluded
+                                        );
+                                        for force_exclude in [false, true] {
+                                            assert_eq!(
+                                                cached.includes_explicit(
+                                                    &path,
+                                                    text,
+                                                    force_exclude
+                                                ),
+                                                !force_exclude
+                                                    || (!script && included && !excluded)
+                                            );
+                                        }
+                                    }
                                     assert_eq!(
                                         selection.includes(&path, text),
                                         !script && included && !excluded,

@@ -628,6 +628,9 @@ pub fn check(arguments: &[String]) -> Result<i32> {
         arguments
             .options
             .insert("memory-projection".into(), "true".into());
+        arguments
+            .options
+            .insert("discard-clean-cli-state".into(), "true".into());
     }
     arguments
         .options

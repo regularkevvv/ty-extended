@@ -92,6 +92,14 @@ jobs:
           cargo +1.98.0 test --locked --release --manifest-path companion/Cargo.toml --bin ty-extended prefetched_hooks_preserve_serial_responses_keys_and_failures -- --test-threads=1
           cargo +1.98.0 test --locked --release --manifest-path companion/Cargo.toml --bin ty-extended unique_import_resolution_preserves_waves_precedence_and_new_modules -- --test-threads=1
           cargo +1.98.0 test --locked --release --manifest-path companion/Cargo.toml --bin ty-extended third_party_overlay_declarations_require_all_plugins_and_valid_names -- --test-threads=1
+          cargo +1.98.0 test --locked --release --manifest-path companion/Cargo.toml --bin ty-extended stateless_prefetched_batches_preserve_serial_keys_failures_and_revisions -- --test-threads=1
+          cargo +1.98.0 test --locked --release --manifest-path companion/Cargo.toml --bin ty-extended one_shot_cli_discards_only_unused_clean_state -- --test-threads=1
+          cargo +1.98.0 test --locked --release --manifest-path companion/Cargo.toml --bin ty-extended native_cli_attempts_do_not_reuse_discarded_provider_patches -- --test-threads=1
+          cargo +1.98.0 test --locked --release --manifest-path companion/Cargo.toml --bin ty-extended early_native_reuse_requires_observed_selected_source_snapshots -- --test-threads=1
+          cargo +1.98.0 test --locked --release --manifest-path companion/Cargo.toml --bin ty-extended preobserved_snapshot_reads_preserve_utf8_and_reject_changed_revisions -- --test-threads=1
+          cargo +1.98.0 test --locked --release --manifest-path companion/Cargo.toml --bin ty-extended early_native_snapshot_rejects_changes_before_and_after_host_loading -- --test-threads=1
+          cargo +1.98.0 test --locked --release --manifest-path companion/Cargo.toml --bin ty-extended settings_bootstrap_loads_only_contributed_provider_sources -- --test-threads=1
+          cargo +1.98.0 test --locked --release --manifest-path companion/Cargo.toml --bin ty-extended native_cli_bootstrap_probe_preserves_exact_errors_and_requires_import_coverage -- --test-threads=1
           cargo +1.98.0 test --locked --release --manifest-path companion/Cargo.toml --bin ty-extended native_cli_partial_provider_matches_full_projection_and_preserves_originals -- --test-threads=1
           cargo +1.98.0 test --locked --release --manifest-path companion/Cargo.toml --bin ty-extended native_cli_reuse_matches_fresh_reports_and_rejects_changed_inputs -- --test-threads=1
           cargo +1.98.0 test --locked --release --manifest-path companion/Cargo.toml --bin ty-extended cached_module_directory_probes_match_direct_lookup_and_refresh -- --test-threads=1
