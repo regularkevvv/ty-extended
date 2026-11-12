@@ -2440,9 +2440,12 @@ impl Session {
             }
         };
         phase(&mut phases, "project_index", &mut phase_started);
-        // No projected dependency is written until the raw native request has
-        // finished. Every following change uses the normal invalidation path.
-        self.finish_native_warmup(frozen_cli_snapshot && overlays.is_empty());
+        // Lowering and flow operate on immutable source snapshots. Keep the
+        // disposable native request running until those in-memory passes end;
+        // projection writes and checker requests wait below.
+        if !frozen_cli_snapshot || !overlays.is_empty() {
+            self.finish_native_warmup(false);
+        }
         let targets = index["contributions"]
             .as_array()
             .into_iter()
@@ -2746,55 +2749,9 @@ impl Session {
         // the checker's in-memory document is changed, never dependency files.
         let mut source_cache_seeds = 0;
         let mut reused_native_warmup = frozen_cli_snapshot && self.native_warmup_reused;
-        if self.memory_projection {
-            mode = "push";
-            let sources = units
-                .iter()
-                .map(|(path, unit)| (path.clone(), unit.source.text.clone()))
-                .collect();
-            if reused_native_warmup
-                && units.keys().any(|path| {
-                    !path.starts_with(&root)
-                        && !path.starts_with(&out)
-                        && !borrowed_overlay
-                            .as_ref()
-                            .is_some_and(|provider| path.starts_with(provider))
-                })
-            {
-                // Late installed-package contributions may require additional
-                // workspace roots. Keep their existing fresh initialization.
-                reused_native_warmup = false;
-                self.native_warmup_reused = false;
-            }
-            if !reused_native_warmup {
-                *server = Some(
-                    crate::checker::ProjectChecker::new_with_memory_projection_roots(
-                        Path::new(required("ty")?),
-                        &root,
-                        &out,
-                        &checker_config_path,
-                        &sources,
-                        &borrowed_overlay.iter().cloned().collect::<Vec<_>>(),
-                    )?,
-                );
-            }
-            if frozen_cli_snapshot && reused_native_warmup {
-                source_cache_seeds = self.native_warmup_seeds;
-            } else if frozen_cli_snapshot {
-                source_cache_seeds =
-                    server
-                        .as_mut()
-                        .unwrap()
-                        .seed_original_sources(project.modules.values().map(|module| {
-                            (
-                                Path::new(&module.source.path),
-                                module.source.text.as_str(),
-                                module.original_revision,
-                            )
-                        }));
-            }
-        } else if !self.notebook_sources.is_empty()
-            || units.keys().any(|path| !path.starts_with(&out))
+        if !self.memory_projection
+            && (!self.notebook_sources.is_empty()
+                || units.keys().any(|path| !path.starts_with(&out)))
         {
             mode = "push";
             if server.is_none() {
@@ -2836,6 +2793,7 @@ impl Session {
         let mut rounds = 0;
         let mut oracle_queries = 0;
         let mut analysis_passes = 0;
+        let mut warmup_analysis_passes = 0;
         let mut reused_analysis_passes = 0;
         let mut reused_final_flows = 0;
         let mut checked_projection = None;
@@ -2858,6 +2816,7 @@ impl Session {
             // entire earlier check, including diagnostics for unchanged files.
             checked_projection = None;
             rounds = iteration + 1;
+            let mut pending_projections = Vec::new();
             for unit in units
                 .values_mut()
                 .filter(|unit| unit.dirty && !unit.passthrough)
@@ -2872,7 +2831,13 @@ impl Session {
                     );
                     let generated = render(&unit.source, &edits)?;
                     unit.final_edits = Some(edits);
-                    unit.write_projection(&generated, &out)?;
+                    if self.native_warmup.is_some() {
+                        if unit.path.starts_with(&out) {
+                            pending_projections.push((unit.path.clone(), generated.text.clone()));
+                        }
+                    } else {
+                        unit.write_projection(&generated, &out)?;
+                    }
                     unit.rendered = Some(generated);
                     continue;
                 }
@@ -2930,7 +2895,13 @@ impl Session {
                 edits.insert(unit.analysis.prelude_offset, flow.type_prelude.clone());
                 let generated = render(&unit.source, &edits)
                     .with_context(|| format!("render {}", unit.source.module))?;
-                unit.write_projection(&generated, &out)?;
+                if self.native_warmup.is_some() {
+                    if unit.path.starts_with(&out) {
+                        pending_projections.push((unit.path.clone(), generated.text.clone()));
+                    }
+                } else {
+                    unit.write_projection(&generated, &out)?;
+                }
                 unit.rendered = Some(generated);
                 // Alias changes affect consumers that actually read protocol
                 // types, including cache hits. A producer with no such reads
@@ -2942,6 +2913,81 @@ impl Session {
                 unit.pass = (inputs.generation
                     == runtime.projection_context(unit.reads_protocol_aliases))
                 .then_some(ProjectionPass { inputs, flow });
+            }
+            if iteration == 0 && self.memory_projection {
+                if let Some(warmup) = self.native_warmup.take() {
+                    warmup_analysis_passes = analysis_passes;
+                    phase(&mut phases, "warmup_flow", &mut phase_started);
+                    match warmup.finish() {
+                        Ok(mut checker) => {
+                            self.native_warmup_seeds = checker.seed_original_sources(
+                                self.base_project
+                                    .modules
+                                    .values()
+                                    .filter(|module| !module.external)
+                                    .map(|module| {
+                                        (
+                                            Path::new(&module.source.path),
+                                            module.source.text.as_str(),
+                                            module.original_revision,
+                                        )
+                                    }),
+                            );
+                            *server = Some(checker);
+                            self.native_warmup_reused = true;
+                        }
+                        _ => self.native_warmup_reused = false,
+                    }
+                    phase(&mut phases, "warmup_join", &mut phase_started);
+                }
+                reused_native_warmup = frozen_cli_snapshot && self.native_warmup_reused;
+                mode = "push";
+                let sources = units
+                    .iter()
+                    .map(|(path, unit)| (path.clone(), unit.source.text.clone()))
+                    .collect();
+                if reused_native_warmup
+                    && units.keys().any(|path| {
+                        !path.starts_with(&root)
+                            && !path.starts_with(&out)
+                            && !borrowed_overlay
+                                .as_ref()
+                                .is_some_and(|provider| path.starts_with(provider))
+                    })
+                {
+                    // Late installed-package contributions may require additional
+                    // workspace roots. Keep their existing fresh initialization.
+                    reused_native_warmup = false;
+                    self.native_warmup_reused = false;
+                }
+                if !reused_native_warmup {
+                    *server = Some(
+                        crate::checker::ProjectChecker::new_with_memory_projection_roots(
+                            Path::new(required("ty")?),
+                            &root,
+                            &out,
+                            &checker_config_path,
+                            &sources,
+                            &borrowed_overlay.iter().cloned().collect::<Vec<_>>(),
+                        )?,
+                    );
+                }
+                if frozen_cli_snapshot && reused_native_warmup {
+                    source_cache_seeds = self.native_warmup_seeds;
+                } else if frozen_cli_snapshot {
+                    source_cache_seeds = server.as_mut().unwrap().seed_original_sources(
+                        project.modules.values().map(|module| {
+                            (
+                                Path::new(&module.source.path),
+                                module.source.text.as_str(),
+                                module.original_revision,
+                            )
+                        }),
+                    );
+                }
+            }
+            for (path, text) in pending_projections {
+                write(&path, &text)?;
             }
             virtual_projection.sync(
                 &stubs,
@@ -3710,6 +3756,7 @@ impl Session {
         let mut result = json!({"diagnostics":diagnostics,"suppressed_generated":suppressed,"implementation":"rust","plugin_runtime":"embedded-monty","project":root,"checker":binary,"checker_mode":mode,"configuration":self.config_source,"revision":self.revisions,"external_resolution_requests":self.external_resolution_requests,"projection_rounds":rounds,"oracle_rounds":oracle_queries,"monty_executions":runtime.executions,"monty_cache_hits":runtime.hits,"monty_seconds":runtime.execution_time.as_secs_f64(),"seconds":started.elapsed().as_secs_f64()});
         result["memory_projection"] = json!(self.memory_projection);
         result["native_warmup_reused"] = json!(reused_native_warmup);
+        result["native_warmup_analysis_passes"] = json!(warmup_analysis_passes);
         result["borrowed_overlay"] = json!(borrowed_overlay);
         result["reused_native_check"] = json!(reused_native_check);
         result["passthrough_units"] = json!(units.values().filter(|unit| unit.passthrough).count());
@@ -4142,6 +4189,13 @@ mod tests {
             if reload {
                 assert!(session.borrowed_overlay.is_none());
                 assert!(session.stubs.join("api/__init__.pyi").is_file());
+            }
+            if warm && !reload {
+                assert_eq!(result["native_warmup_reused"], true, "{case}: {result:#}");
+                assert!(
+                    result["native_warmup_analysis_passes"].as_u64().unwrap() > 0,
+                    "flow must finish before joining native warmup: {case}: {result:#}"
+                );
             }
             let diagnostics = result["diagnostics"].clone();
             assert_eq!(

@@ -8,7 +8,9 @@ import collections
 import hashlib
 import json
 import os
+import re
 import shutil
+import statistics
 import subprocess
 import sys
 import venv
@@ -139,6 +141,7 @@ def main() -> int:
         TY_COMPANION_MEMORY_PROJECTION="1",
         TY_COMPANION_NATIVE_WARMUP="1",
         TY_COMPANION_BORROW_OVERLAYS="1",
+        TY_COMPANION_TRACE_PHASES="1",
     )
     report = {
         "passed": False,
@@ -219,6 +222,24 @@ def main() -> int:
         assert benchmark["passed"], "Workload correctness or process monitoring failed"
         report["benchmark_exit"] = result.returncode
         report["performance_gate"] = benchmark["performance_gate"]
+        phases = collections.defaultdict(list)
+        for row in benchmark["records"]:
+            if (
+                row["backend"] != "companion"
+                or not row["label"].split("/")[0].isdigit()
+            ):
+                continue
+            sample = collections.defaultdict(float)
+            for name, seconds in re.findall(
+                r"companion phase (\S+): ([\d.]+)s",
+                (target / "runs" / row["label"] / "stderr.log").read_text(),
+            ):
+                sample[name] += float(seconds)
+            for name, seconds in sample.items():
+                phases[name].append(seconds)
+        report["phase_medians_seconds"] = {
+            name: statistics.median(samples) for name, samples in sorted(phases.items())
+        }
         report["focus"] = focus(target, benchmark)
         report["provider_preserved"] = provider_state(provider) == provider_before
         assert report["provider_preserved"], "Provider source bytes or mtimes changed"

@@ -30,24 +30,28 @@ meeting the current performance and correctness requirements together.
 
 ## Current native comparison
 
-The [Ty 0.0.101 receipt](qualification/native-django-latest-v28.json) uses the
-same official executable for both Ty stacks. Five rotated fresh processes per
-stack check the unchanged 7,082 files, 2,501 models and 100 assertions:
+The [v43 receipt](qualification/native-django-discovery-catalog-v43.json) records
+isolated Linux and macOS runs on official Ty 0.0.101. Each stack uses the same
+Ty executable and unchanged 7,082 files, 2,501 models and 100 assertions. Five
+rotated fresh processes per stack permit warm filesystem caches:
 
-| Stack                                 |  Median |
-| ------------------------------------- | ------: |
-| Companion with Django hooks in Monty  | 1.626 s |
-| Official Ty with django-types         | 0.286 s |
-| MyPy with django-stubs and its plugin | 6.680 s |
+| Runner | Companion | Native Ty with django-types |    MyPy | Median ratio | Largest paired ratio |
+| ------ | --------: | --------------------------: | ------: | -----------: | -------------------: |
+| Linux  |   0.821 s |                     0.245 s | 9.207 s |         3.35 |                 3.41 |
+| macOS  |   0.936 s |                     0.303 s | 5.998 s |         3.09 |                 3.74 |
 
-The companion is **5.68 times** native Ty; the largest paired ratio is **5.76**.
-The required 3-times gate **fails**. All stacks pass the 100 assertions and both
-error controls. The additional focused cases match 20/20 for the companion,
-19/20 for MyPy and 8/20 for native Ty, with no unmarked diagnostics. All 21
-observations meet the declared source, host-load and resource limits. Their
-temporary projections are removed after each run, and both Cargo targets were
-cleaned before timing. These are local shared-machine measurements with warm
-filesystem caches permitted.
+Both runners meet the additional one-second goal and the MyPy ceiling. Both
+**fail the required 3-times gate**, so merge and release remain blocked. All
+100 assertions and both error controls pass. Focused cases match 20/20 for the
+companion, 19/20 for MyPy and 8/20 for native Ty. Provider bytes and mtimes are
+preserved, Python environments are removed, and Cargo targets are cleaned
+before timing. Two later local admission attempts accepted no observations
+because the shared machine was busy; they do not replace the isolated results.
+
+The earlier [v28 receipt](qualification/native-django-latest-v28.json) measured
+1.626 seconds against native Ty's 0.286 seconds, or 5.68 times, with the same
+workload and correctness controls. Later changes reduced that overhead, but
+subsecond execution alone does not establish performance acceptance.
 
 The earlier candidate handles native diagnostic renames introduced in Ty 0.0.100.
 Internal classification recognizes both spellings while CLI and editor output

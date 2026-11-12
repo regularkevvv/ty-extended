@@ -1,0 +1,946 @@
+{
+  "status": "source-qualified-optimized-performance-pending",
+  "release_accepted": false,
+  "method": "Overlap immutable lowering and initial flow with discarded native warmup; defer projection writes and native initialization until the worker joins. Final synchronized diagnostics and fallback paths remain unchanged.",
+  "official_ty": "0.0.101",
+  "django_commit": "e65b382462a85eacabd71dd1aee7ec9ce44da97a",
+  "build": {
+    "passed": true,
+    "steps": [
+      {
+        "step": "format",
+        "exit": 0,
+        "seconds": 1.0070563339395449
+      },
+      {
+        "step": "compile-and-clippy",
+        "exit": 0,
+        "seconds": 63.22322104196064
+      },
+      {
+        "step": "focused-borrowed-overlay",
+        "exit": 0,
+        "seconds": 269.0068983329693
+      },
+      {
+        "step": "focused-signature-selection",
+        "exit": 0,
+        "seconds": 1.009761416935362
+      },
+      {
+        "step": "focused-parallel-summaries",
+        "exit": 0,
+        "seconds": 1.0089212500024587
+      },
+      {
+        "step": "focused-consumed-index",
+        "exit": 0,
+        "seconds": 1.0086266249418259
+      },
+      {
+        "step": "focused-discovery-catalog",
+        "exit": 0,
+        "seconds": 1.0098169590346515
+      },
+      {
+        "step": "focused-catalog-boundary",
+        "exit": 0,
+        "seconds": 1.0091486249584705
+      },
+      {
+        "step": "focused-compact-paths",
+        "exit": 0,
+        "seconds": 1.0091707080136985
+      },
+      {
+        "step": "focused-raw-warmup",
+        "exit": 0,
+        "seconds": 1.0079283330123872
+      },
+      {
+        "step": "focused-warm-cache",
+        "exit": 0,
+        "seconds": 1.0074100840138271
+      },
+      {
+        "step": "focused-native-return",
+        "exit": 0,
+        "seconds": 1.0085080419667065
+      },
+      {
+        "step": "focused-initializer-regression",
+        "exit": 0,
+        "seconds": 1.008900959044695
+      },
+      {
+        "step": "focused-generated-rule-provenance",
+        "exit": 0,
+        "seconds": 1.0094035840593278
+      },
+      {
+        "step": "focused-nested-override",
+        "exit": 0,
+        "seconds": 1.010105957975611
+      },
+      {
+        "step": "focused-source-revision",
+        "exit": 0,
+        "seconds": 1.0060609170468524
+      },
+      {
+        "step": "focused-unpatched-native",
+        "exit": 0,
+        "seconds": 1.0064087499631569
+      },
+      {
+        "step": "focused-parallel-sources",
+        "exit": 0,
+        "seconds": 1.008168499916792
+      },
+      {
+        "step": "focused-profile-cache",
+        "exit": 0,
+        "seconds": 1.0092752920463681
+      },
+      {
+        "step": "focused-contribution",
+        "exit": 0,
+        "seconds": 1.0069682500325143
+      },
+      {
+        "step": "focused-constructor",
+        "exit": 0,
+        "seconds": 1.0053796670399606
+      },
+      {
+        "step": "focused-nullable",
+        "exit": 0,
+        "seconds": 1.0101190839195624
+      },
+      {
+        "step": "focused-nested",
+        "exit": 0,
+        "seconds": 1.0068425830686465
+      },
+      {
+        "step": "focused-complete",
+        "exit": 0,
+        "seconds": 1.0092280419776216
+      },
+      {
+        "step": "focused-restart",
+        "exit": 0,
+        "seconds": 1.0093857920728624
+      },
+      {
+        "step": "focused-early",
+        "exit": 0,
+        "seconds": 1.0053841249318793
+      },
+      {
+        "step": "focused-early-isolation",
+        "exit": 0,
+        "seconds": 1.0094800000078976
+      },
+      {
+        "step": "focused-pushdown",
+        "exit": 0,
+        "seconds": 1.0097297499887645
+      },
+      {
+        "step": "focused-snapshot",
+        "exit": 0,
+        "seconds": 1.0093389169778675
+      },
+      {
+        "step": "focused-state",
+        "exit": 0,
+        "seconds": 1.0081491660093889
+      },
+      {
+        "step": "focused-inheritance",
+        "exit": 0,
+        "seconds": 1.0096257920376956
+      },
+      {
+        "step": "focused-unclaimed",
+        "exit": 0,
+        "seconds": 1.0094086671015248
+      },
+      {
+        "step": "focused-input",
+        "exit": 0,
+        "seconds": 1.0074507920071483
+      },
+      {
+        "step": "focused-imports",
+        "exit": 0,
+        "seconds": 1.012764084036462
+      },
+      {
+        "step": "native-units",
+        "exit": 0,
+        "seconds": 9.033398958970793
+      },
+      {
+        "step": "native-ignored",
+        "exit": 0,
+        "seconds": 1.0100513329962268
+      },
+      {
+        "step": "units",
+        "exit": 0,
+        "seconds": 10.041705833980814
+      },
+      {
+        "step": "ignored",
+        "exit": 0,
+        "seconds": 1.0099953749449924
+      },
+      {
+        "step": "binary",
+        "exit": 0,
+        "seconds": 53.19664245797321
+      },
+      {
+        "step": "all-test-binaries",
+        "exit": 0,
+        "seconds": 17.063979625003412
+      },
+      {
+        "step": "all-default-tests",
+        "exit": 0,
+        "seconds": 10.037014417001046
+      },
+      {
+        "step": "sdk-0-generic_project_semantics",
+        "exit": 0,
+        "seconds": 9.03260733303614
+      },
+      {
+        "step": "sdk-0-sdk_extended_semantics",
+        "exit": 0,
+        "seconds": 1.008602499961853
+      },
+      {
+        "step": "sdk-0-sdk_field_semantics",
+        "exit": 0,
+        "seconds": 1.0088782919337973
+      },
+      {
+        "step": "sdk-0-sdk_multi_semantics",
+        "exit": 0,
+        "seconds": 1.0088526250328869
+      },
+      {
+        "step": "sdk-0-sdk_snapshots",
+        "exit": 0,
+        "seconds": 2.0115668339421973
+      },
+      {
+        "step": "sdk-0-sdk_virtual_semantics",
+        "exit": 0,
+        "seconds": 1.0099805829813704
+      },
+      {
+        "step": "sdk-0-cli_acceptance",
+        "exit": 0,
+        "seconds": 2.0103457920486107
+      },
+      {
+        "step": "sdk-0-cli_edits",
+        "exit": 0,
+        "seconds": 2.010490791988559
+      },
+      {
+        "step": "sdk-0-cli_watch",
+        "exit": 0,
+        "seconds": 2.007039124961011
+      },
+      {
+        "step": "sdk-1-generic_project_semantics",
+        "exit": 0,
+        "seconds": 9.0342314169975
+      },
+      {
+        "step": "sdk-1-sdk_extended_semantics",
+        "exit": 0,
+        "seconds": 1.004734667018056
+      },
+      {
+        "step": "sdk-1-sdk_field_semantics",
+        "exit": 0,
+        "seconds": 1.0084395839367062
+      },
+      {
+        "step": "sdk-1-sdk_multi_semantics",
+        "exit": 0,
+        "seconds": 1.0098887500353158
+      },
+      {
+        "step": "sdk-1-sdk_snapshots",
+        "exit": 0,
+        "seconds": 2.012140749953687
+      },
+      {
+        "step": "sdk-1-sdk_virtual_semantics",
+        "exit": 0,
+        "seconds": 1.0069761250633746
+      },
+      {
+        "step": "sdk-1-cli_acceptance",
+        "exit": 0,
+        "seconds": 2.010107542038895
+      },
+      {
+        "step": "sdk-1-cli_edits",
+        "exit": 0,
+        "seconds": 2.0138079159660265
+      },
+      {
+        "step": "sdk-1-cli_watch",
+        "exit": 0,
+        "seconds": 2.0124464170075953
+      },
+      {
+        "step": "warm-sdk-0-generic_project_semantics",
+        "exit": 0,
+        "seconds": 9.037854041089304
+      },
+      {
+        "step": "warm-sdk-0-sdk_extended_semantics",
+        "exit": 0,
+        "seconds": 1.0104213340673596
+      },
+      {
+        "step": "warm-sdk-0-sdk_field_semantics",
+        "exit": 0,
+        "seconds": 1.0098554170690477
+      },
+      {
+        "step": "warm-sdk-0-sdk_multi_semantics",
+        "exit": 0,
+        "seconds": 1.004358125035651
+      },
+      {
+        "step": "warm-sdk-0-sdk_snapshots",
+        "exit": 0,
+        "seconds": 2.009951415937394
+      },
+      {
+        "step": "warm-sdk-0-sdk_virtual_semantics",
+        "exit": 0,
+        "seconds": 1.008355624973774
+      },
+      {
+        "step": "warm-sdk-0-cli_acceptance",
+        "exit": 0,
+        "seconds": 2.0146691250847653
+      },
+      {
+        "step": "warm-sdk-0-cli_edits",
+        "exit": 0,
+        "seconds": 2.012152250041254
+      },
+      {
+        "step": "warm-sdk-0-cli_watch",
+        "exit": 0,
+        "seconds": 2.0119508750503883
+      },
+      {
+        "step": "warm-sdk-1-generic_project_semantics",
+        "exit": 0,
+        "seconds": 9.036074166069739
+      },
+      {
+        "step": "warm-sdk-1-sdk_extended_semantics",
+        "exit": 0,
+        "seconds": 1.0078045829432085
+      },
+      {
+        "step": "warm-sdk-1-sdk_field_semantics",
+        "exit": 0,
+        "seconds": 1.007781874970533
+      },
+      {
+        "step": "warm-sdk-1-sdk_multi_semantics",
+        "exit": 0,
+        "seconds": 1.0068004169734195
+      },
+      {
+        "step": "warm-sdk-1-sdk_snapshots",
+        "exit": 0,
+        "seconds": 2.0106257079169154
+      },
+      {
+        "step": "warm-sdk-1-sdk_virtual_semantics",
+        "exit": 0,
+        "seconds": 1.0101788330357522
+      },
+      {
+        "step": "warm-sdk-1-cli_acceptance",
+        "exit": 0,
+        "seconds": 2.0074968750122935
+      },
+      {
+        "step": "warm-sdk-1-cli_edits",
+        "exit": 0,
+        "seconds": 2.015246875002049
+      },
+      {
+        "step": "warm-sdk-1-cli_watch",
+        "exit": 0,
+        "seconds": 2.0121849169954658
+      },
+      {
+        "step": "clippy",
+        "exit": 0,
+        "seconds": 1.0093887500697747
+      },
+      {
+        "step": "clean",
+        "exit": 0,
+        "seconds": 1.0097732079448178
+      }
+    ],
+    "source_sha256": {
+      "companion/src/project_config.rs": "24f468df508a496b12be2a2907a92f2f7b54f8d6d5f4047553483f8207fa5b34",
+      "companion/src/flow.rs": "d6d879a0293f7ea07d5da2a1005c93b7b0f07a7a4044948e57a8591d93f5d306",
+      "companion/src/runtime.rs": "aec788a5031c367751eb263f70a64aa0b5b57c6c5bd98d9ced1f1504ef42dafb",
+      "companion/src/native_rules.rs": "45a10fdebaec5c6307c75d287d97ef3c85701fe21c4ad915c6c79162db196184",
+      "companion/src/static_project.rs": "b57a33c3065aed0caea78b3c7dcdf85fc6f3cef0ffd950585fdcd9d15f68fd1e",
+      "companion/src/editor_options.rs": "6c3d5540fdea2956a9ed179fb2291f087456a48cf744647063bdd11a3f775d46",
+      "companion/src/cli_edits.rs": "01543f2a5d63f7a66545923b6ccd25e06161b6e3fd9b2936d09073768902c444",
+      "companion/src/project_check.rs": "8398591f3d77a13a1c12717ab761c250ac9bc502d5ee5536ebea4d1223011a62",
+      "companion/src/project.rs": "43bbeca27dc196ce85c68279c40864bade3f79b2f3af18d282de5e7b4d4041ea",
+      "companion/src/checker.rs": "4cb129fef5bf83671852080f618a0068f0b119bf2258abe4fe855e45c75d9687",
+      "companion/src/verify.rs": "e7708860ec0bd32cdfb8d6a171a53b2c12d5a67703f5a5b4322fa72d1592603d",
+      "companion/src/type_snapshot.rs": "0c018b699a8d140782e3813a5606d188c27b392400d1796ab839d73002eba813",
+      "companion/src/mapping.rs": "f92e4155bff39e8d47bed7b19a81e418a200fda3892eaebff485b1ea278bb761",
+      "companion/src/main.rs": "889627d345b64c595b0e5880e825b068f00008e5744ad52577a4c6933d6a668a",
+      "companion/src/parallel.rs": "4bffc4522fdb958d6484bc50a440037c3ac362ab346b3a0f070ce486b6b79658",
+      "companion/src/notebook.rs": "0bbd10d569d77019c19b7b76e7d2259c93afaaccc7f18c089e6478f3491cd24f",
+      "companion/src/lsp_mapping.rs": "2a3d7cc63f066bc25db11d680819124e3ff609448d2f27ab93b15d877bfc48fb",
+      "companion/src/lsp_server.rs": "f6a49b11f82ef55a8028d78253fb210844135b9c93e7777074dab3c6f846676a",
+      "companion/src/native_warmup.rs": "08a9e6bd722adfc152cb2dd1b4f9c2b552ee31db7c8d55cc24b96a317c698688",
+      "companion/src/lower.rs": "df0249023e8c7f88eff2eb49ca2d0ee64aba682ebc5b244c230435acccb136d4",
+      "companion/src/type_render.rs": "d4f62ea50e5fa320e862ae635e8bf90329211324963a8d92bea21cf6b9533111",
+      "companion/src/model.rs": "8bb5f959e83a06c65603dda8b389a58a5854ae1d47d57b53d7abf3b2e6afe65e",
+      "companion/src/cli.rs": "1cf30fe5cae409179d860ff2e5611d58e42c83f68599cc354ece0ec9c92a086c"
+    }
+  },
+  "sdk_borrow": {
+    "passed": true,
+    "modes": [
+      {
+        "name": "generic_project_semantics",
+        "native": "0",
+        "warmup": "0",
+        "exit": 0,
+        "seconds": 8.087798834079877
+      },
+      {
+        "name": "sdk_extended_semantics",
+        "native": "0",
+        "warmup": "0",
+        "exit": 0,
+        "seconds": 0.2913148340303451
+      },
+      {
+        "name": "sdk_field_semantics",
+        "native": "0",
+        "warmup": "0",
+        "exit": 0,
+        "seconds": 0.23418479191605002
+      },
+      {
+        "name": "sdk_multi_semantics",
+        "native": "0",
+        "warmup": "0",
+        "exit": 0,
+        "seconds": 0.2846407500328496
+      },
+      {
+        "name": "sdk_snapshots",
+        "native": "0",
+        "warmup": "0",
+        "exit": 0,
+        "seconds": 0.9341025840258226
+      },
+      {
+        "name": "sdk_virtual_semantics",
+        "native": "0",
+        "warmup": "0",
+        "exit": 0,
+        "seconds": 0.28731549996882677
+      },
+      {
+        "name": "cli_acceptance",
+        "native": "0",
+        "warmup": "0",
+        "exit": 0,
+        "seconds": 1.1399956250097603
+      },
+      {
+        "name": "cli_edits",
+        "native": "0",
+        "warmup": "0",
+        "exit": 0,
+        "seconds": 1.2560466669965535
+      },
+      {
+        "name": "cli_watch",
+        "native": "0",
+        "warmup": "0",
+        "exit": 0,
+        "seconds": 1.5264458330348134
+      },
+      {
+        "name": "generic_project_semantics",
+        "native": "0",
+        "warmup": "1",
+        "exit": 0,
+        "seconds": 7.9981770410668105
+      },
+      {
+        "name": "sdk_extended_semantics",
+        "native": "0",
+        "warmup": "1",
+        "exit": 0,
+        "seconds": 0.28799754101783037
+      },
+      {
+        "name": "sdk_field_semantics",
+        "native": "0",
+        "warmup": "1",
+        "exit": 0,
+        "seconds": 0.2379529169993475
+      },
+      {
+        "name": "sdk_multi_semantics",
+        "native": "0",
+        "warmup": "1",
+        "exit": 0,
+        "seconds": 0.2861937910784036
+      },
+      {
+        "name": "sdk_snapshots",
+        "native": "0",
+        "warmup": "1",
+        "exit": 0,
+        "seconds": 0.977559500024654
+      },
+      {
+        "name": "sdk_virtual_semantics",
+        "native": "0",
+        "warmup": "1",
+        "exit": 0,
+        "seconds": 0.2978045829804614
+      },
+      {
+        "name": "cli_acceptance",
+        "native": "0",
+        "warmup": "1",
+        "exit": 0,
+        "seconds": 1.2488842500606552
+      },
+      {
+        "name": "cli_edits",
+        "native": "0",
+        "warmup": "1",
+        "exit": 0,
+        "seconds": 1.247543124947697
+      },
+      {
+        "name": "cli_watch",
+        "native": "0",
+        "warmup": "1",
+        "exit": 0,
+        "seconds": 1.6701886670198292
+      },
+      {
+        "name": "generic_project_semantics",
+        "native": "1",
+        "warmup": "0",
+        "exit": 0,
+        "seconds": 8.103881083079614
+      },
+      {
+        "name": "sdk_extended_semantics",
+        "native": "1",
+        "warmup": "0",
+        "exit": 0,
+        "seconds": 0.2904046250041574
+      },
+      {
+        "name": "sdk_field_semantics",
+        "native": "1",
+        "warmup": "0",
+        "exit": 0,
+        "seconds": 0.28045904100872576
+      },
+      {
+        "name": "sdk_multi_semantics",
+        "native": "1",
+        "warmup": "0",
+        "exit": 0,
+        "seconds": 0.2903364999219775
+      },
+      {
+        "name": "sdk_snapshots",
+        "native": "1",
+        "warmup": "0",
+        "exit": 0,
+        "seconds": 0.9250774999381974
+      },
+      {
+        "name": "sdk_virtual_semantics",
+        "native": "1",
+        "warmup": "0",
+        "exit": 0,
+        "seconds": 0.29150587506592274
+      },
+      {
+        "name": "cli_acceptance",
+        "native": "1",
+        "warmup": "0",
+        "exit": 0,
+        "seconds": 1.2564978329464793
+      },
+      {
+        "name": "cli_edits",
+        "native": "1",
+        "warmup": "0",
+        "exit": 0,
+        "seconds": 1.2529036669293419
+      },
+      {
+        "name": "cli_watch",
+        "native": "1",
+        "warmup": "0",
+        "exit": 0,
+        "seconds": 1.4560284580802545
+      },
+      {
+        "name": "generic_project_semantics",
+        "native": "1",
+        "warmup": "1",
+        "exit": 0,
+        "seconds": 8.140007375041023
+      },
+      {
+        "name": "sdk_extended_semantics",
+        "native": "1",
+        "warmup": "1",
+        "exit": 0,
+        "seconds": 0.28961116704158485
+      },
+      {
+        "name": "sdk_field_semantics",
+        "native": "1",
+        "warmup": "1",
+        "exit": 0,
+        "seconds": 0.23719329095911235
+      },
+      {
+        "name": "sdk_multi_semantics",
+        "native": "1",
+        "warmup": "1",
+        "exit": 0,
+        "seconds": 0.2944209580309689
+      },
+      {
+        "name": "sdk_snapshots",
+        "native": "1",
+        "warmup": "1",
+        "exit": 0,
+        "seconds": 0.9183416669256985
+      },
+      {
+        "name": "sdk_virtual_semantics",
+        "native": "1",
+        "warmup": "1",
+        "exit": 0,
+        "seconds": 0.28883466601837426
+      },
+      {
+        "name": "cli_acceptance",
+        "native": "1",
+        "warmup": "1",
+        "exit": 0,
+        "seconds": 1.2001310419291258
+      },
+      {
+        "name": "cli_edits",
+        "native": "1",
+        "warmup": "1",
+        "exit": 0,
+        "seconds": 1.2472682920051739
+      },
+      {
+        "name": "cli_watch",
+        "native": "1",
+        "warmup": "1",
+        "exit": 0,
+        "seconds": 1.667377750040032
+      }
+    ],
+    "main_sha256": "8377f5de5c65cf32eb69a2f61e7def450713a979ed4e0a9faeee9af20a64fa30",
+    "retained_executables": {
+      "generic_project_semantics": {
+        "source": "/private/tmp/ty-companion-subsecond-work/native-hybrid/build-v44/target/iteration/deps/generic_project_semantics-d3087dfcc08b575c",
+        "path": "/private/tmp/ty-companion-subsecond-work/native-hybrid/sdk-binaries-v44/generic_project_semantics",
+        "sha256": "6397b8389cbc0e16b0686057049a4c91b0beaaacf9e278018135e73b4790efd7",
+        "bytes": 1365480
+      },
+      "sdk_extended_semantics": {
+        "source": "/private/tmp/ty-companion-subsecond-work/native-hybrid/build-v44/target/iteration/deps/sdk_extended_semantics-acdc9297aeb3269a",
+        "path": "/private/tmp/ty-companion-subsecond-work/native-hybrid/sdk-binaries-v44/sdk_extended_semantics",
+        "sha256": "0325577afd712ba163a05d1402ec109ed4a167ea6b02590f86cc076af7f7632a",
+        "bytes": 1345400
+      },
+      "sdk_field_semantics": {
+        "source": "/private/tmp/ty-companion-subsecond-work/native-hybrid/build-v44/target/iteration/deps/sdk_field_semantics-4033d10152b96465",
+        "path": "/private/tmp/ty-companion-subsecond-work/native-hybrid/sdk-binaries-v44/sdk_field_semantics",
+        "sha256": "e13b78ae9f46bb62925748fcde7d9a5c7dd3f2112dc66fbeee95498862917cba",
+        "bytes": 1366088
+      },
+      "sdk_multi_semantics": {
+        "source": "/private/tmp/ty-companion-subsecond-work/native-hybrid/build-v44/target/iteration/deps/sdk_multi_semantics-a28108e7f534b642",
+        "path": "/private/tmp/ty-companion-subsecond-work/native-hybrid/sdk-binaries-v44/sdk_multi_semantics",
+        "sha256": "1cc7a898a826c0d69ec92540c81a2531590ed681f1ec0175d1beb9f033d170c7",
+        "bytes": 1361320
+      },
+      "sdk_snapshots": {
+        "source": "/private/tmp/ty-companion-subsecond-work/native-hybrid/build-v44/target/iteration/deps/sdk_snapshots-9281fd28bf340dee",
+        "path": "/private/tmp/ty-companion-subsecond-work/native-hybrid/sdk-binaries-v44/sdk_snapshots",
+        "sha256": "edb14791913b1ced9e5545ea2313eccba5cfe61d4ea1b5722dc961bbd3a7cfc4",
+        "bytes": 1363088
+      },
+      "sdk_virtual_semantics": {
+        "source": "/private/tmp/ty-companion-subsecond-work/native-hybrid/build-v44/target/iteration/deps/sdk_virtual_semantics-3a670a5396d60384",
+        "path": "/private/tmp/ty-companion-subsecond-work/native-hybrid/sdk-binaries-v44/sdk_virtual_semantics",
+        "sha256": "0aad8c69a95576fdc405c293e1fe91ad325c03d1d75efef137b111f6ffd7c614",
+        "bytes": 1345016
+      },
+      "cli_acceptance": {
+        "source": "/private/tmp/ty-companion-subsecond-work/native-hybrid/build-v44/target/iteration/deps/cli_acceptance-8d7ad7bd11e0f5b8",
+        "path": "/private/tmp/ty-companion-subsecond-work/native-hybrid/sdk-binaries-v44/cli_acceptance",
+        "sha256": "2ddf10721cda859963895143462ef2764067529523b4689ec0ee8607fa307dfd",
+        "bytes": 1275168
+      },
+      "cli_edits": {
+        "source": "/private/tmp/ty-companion-subsecond-work/native-hybrid/build-v44/target/iteration/deps/cli_edits-451d30573adf41dd",
+        "path": "/private/tmp/ty-companion-subsecond-work/native-hybrid/sdk-binaries-v44/cli_edits",
+        "sha256": "0f836eece11db4a8dd55f0a0d1714d7516f33dcb7fccadc7e2b7dd9f5910fd41",
+        "bytes": 1350408
+      },
+      "cli_watch": {
+        "source": "/private/tmp/ty-companion-subsecond-work/native-hybrid/build-v44/target/iteration/deps/cli_watch-c3a92be04f8070c0",
+        "path": "/private/tmp/ty-companion-subsecond-work/native-hybrid/sdk-binaries-v44/cli_watch",
+        "sha256": "5bb72b8932ad97d5b195208377a4615852b70170c762903bf5d7b57e9f081ff4",
+        "bytes": 1295416
+      }
+    },
+    "clean_exit": 0,
+    "temporary_target_removed": true
+  },
+  "qualification": {
+    "steps": [
+      {
+        "step": "stress-proof",
+        "exit": 0,
+        "seconds": 2.417984624975361
+      },
+      {
+        "step": "corpus",
+        "exit": 0,
+        "seconds": 1.2215703750262037
+      },
+      {
+        "step": "multi-app",
+        "exit": 0,
+        "seconds": 0.22333545796573162
+      },
+      {
+        "step": "sdk-fields",
+        "exit": 0,
+        "seconds": 0.3369854169432074
+      },
+      {
+        "step": "monty-types",
+        "exit": 0,
+        "seconds": 0.3534934170311317
+      },
+      {
+        "step": "python-units",
+        "exit": 1,
+        "seconds": 4.364892916055396
+      },
+      {
+        "step": "django-runtime",
+        "exit": 0,
+        "seconds": 0.5280870830174536
+      },
+      {
+        "step": "querydict-0",
+        "exit": 0,
+        "seconds": 3.3057176250731573
+      },
+      {
+        "step": "querydict-1",
+        "exit": 0,
+        "seconds": 1.4195159170776606
+      },
+      {
+        "step": "primary",
+        "exit": 0,
+        "seconds": 0.6275779999559745
+      },
+      {
+        "step": "source-example",
+        "exit": 0,
+        "seconds": 3.782826834009029
+      }
+    ],
+    "binary_sha256": "8377f5de5c65cf32eb69a2f61e7def450713a979ed4e0a9faeee9af20a64fa30",
+    "focus_receipt": "pending optimized paired comparison",
+    "passed": true
+  },
+  "stress_inspection": {
+    "run": {
+      "command": [
+        "/private/tmp/ty-companion-subsecond-work/native-hybrid/iteration-v44",
+        "project",
+        "/private/tmp/ty-companion-subsecond-work/stress/project",
+        "--ty",
+        "/private/tmp/ty-companion-subsecond-work/native-hybrid/official-00101/bin/ty",
+        "--python",
+        "/private/tmp/ty-companion-subsecond-work/environment/bin/python",
+        "--ty-config",
+        "/private/tmp/ty-companion-subsecond-work/native-hybrid/stress-native-v40.toml",
+        "--out",
+        "/private/tmp/ty-companion-subsecond-work/native-hybrid/projection-details-v44/projection",
+        "--checker-mode",
+        "push",
+        "--memory-projection",
+        "true",
+        "--public-cli",
+        "true",
+        "--ephemeral-evidence",
+        "true"
+      ],
+      "exit": 0,
+      "seconds": 1.176263084053062,
+      "peak_process_tree_rss_kib": 323744,
+      "peak_processes_pid_ppid_rss_kib": [
+        [
+          71942,
+          71941,
+          215536
+        ],
+        [
+          71946,
+          71942,
+          108208
+        ]
+      ],
+      "stopped": null,
+      "source_sha256": "51c1a88b05a169f1222685fe6105e4be5f43d4213aaaf57c60bf99dbe0d82df9",
+      "source_preserved": true,
+      "stdout": "/private/tmp/ty-companion-subsecond-work/native-hybrid/projection-details-v44/stdout.json",
+      "stderr": "/private/tmp/ty-companion-subsecond-work/native-hybrid/projection-details-v44/stderr.log"
+    },
+    "result": {
+      "analysis_passes": 3,
+      "borrowed_overlay": "/private/tmp/ty-companion-subsecond-work/native-hybrid/django-source/python/django_ty/stubs",
+      "checker": "/private/tmp/ty-companion-subsecond-work/native-hybrid/official-00101/bin/ty",
+      "checker_mode": "push",
+      "checker_mode_effective": "push",
+      "configuration": "/private/tmp/ty-companion-subsecond-work/native-hybrid/stress-native-v40.toml",
+      "diagnostics": [],
+      "early_call_returns": 100,
+      "external_resolution_requests": 0,
+      "implementation": "rust",
+      "incremental_context_saved": false,
+      "indexed_external_modules": 182,
+      "indexed_modules": 7264,
+      "memory_projection": true,
+      "monty_cache": {
+        "bytes": 239917,
+        "entries": 301,
+        "oversized_skips": 0
+      },
+      "monty_cache_hits": 199,
+      "monty_cache_hits_delta": 199,
+      "monty_execution_profile": {
+        "adjust-call-return": {
+          "executions": 100,
+          "seconds": 0.05117833
+        },
+        "adjust-call-state": {
+          "executions": 100,
+          "seconds": 0.036336167
+        },
+        "build-project-index": {
+          "executions": 1,
+          "seconds": 0.182642
+        },
+        "resolve-instance-member": {
+          "executions": 101,
+          "seconds": 0.039592418
+        }
+      },
+      "monty_executions": 302,
+      "monty_executions_delta": 302,
+      "monty_seconds": 0.309748915,
+      "monty_seconds_delta": 0.309748915,
+      "native_call_returns": 100,
+      "native_source_cache_seeds": 7082,
+      "native_warmup_analysis_passes": 3,
+      "native_warmup_reused": true,
+      "oracle_rounds": 1,
+      "original_source_reads": 1,
+      "passthrough_units": 7080,
+      "phases": {
+        "class_projection": 0.000259791,
+        "diagnostic_mapping": 0.007577667,
+        "external_resolution": 0.006520583,
+        "final_check": 0.004782166,
+        "final_render": 0.001136625,
+        "flow_and_render": 0.003029333,
+        "function_summaries": 0.000103834,
+        "hook_responses": 0.017262917,
+        "import_preflight": 0.005707417,
+        "initial_lowering": 0.053870792,
+        "oracle_check": 0.088984125,
+        "project_index": 0.252165708,
+        "source_maps": 0.007658375,
+        "source_scan": 0.000338667,
+        "virtual_declarations": 0.002240292,
+        "warmup_flow": 0.182550875,
+        "warmup_join": 0.002684625
+      },
+      "plugin_runtime": "embedded-monty",
+      "project": "/private/tmp/ty-companion-subsecond-work/stress/project",
+      "projected_units": 7083,
+      "projection_rounds": 1,
+      "reused_analysis_passes": 0,
+      "reused_final_flows": 3,
+      "reused_native_check": true,
+      "reused_units": 0,
+      "revision": 1,
+      "seconds": 0.637555667,
+      "suppressed_generated": []
+    },
+    "oracle_counts": {
+      "oracle-0.json": 0
+    }
+  },
+  "pending_gates": [
+    "Strict optimized paired performance: median and every pair <=3x official Ty and <=MyPy",
+    "Fresh Ty version-group and broader SDK/editor matrix",
+    "Consumer default activation and final Django plugin integration",
+    "Current full-conformance receipt, installed artifacts, green CI and release acceptance"
+  ]
+}

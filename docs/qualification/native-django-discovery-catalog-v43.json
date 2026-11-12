@@ -1,5 +1,5 @@
 {
-  "status": "source-qualified-local-timing-not-admitted",
+  "status": "source-qualified-isolated-performance-failed",
   "release_accepted": false,
   "method": "Reuse ordinary file identities discovered under canonical directories in both snapshot readers; symlinks retain full resolution. Avoid repeated root enumeration and ignore scans.",
   "official_ty": "0.0.101",
@@ -5011,5 +5011,1581 @@
         "time": 1794455123.46123
       }
     ]
+  },
+  "isolated_ci": {
+    "linux": {
+      "run_url": "https://github.com/regularkevvv/ty-extended/actions/runs/43150790956",
+      "commit": "d13e631a9b09ea309200a284fff54026e59d50be",
+      "median_seconds": {
+        "companion": 0.8207545320000236,
+        "bare-ty": 0.24473127999999633,
+        "mypy": 9.206960181999989
+      },
+      "performance_gate": {
+        "max_ty_ratio": 3.0,
+        "median_ty_ratio": 3.353696887459731,
+        "paired_ty_ratios": [
+          3.3867798388278647,
+          3.2519034591736267,
+          3.412492843003848,
+          3.288981465780811,
+          3.4070039120661866
+        ],
+        "max_paired_ty_ratio": 3.412492843003848,
+        "ty_ceiling_met": false,
+        "mypy_ceiling_met": true,
+        "one_second_goal_met": true,
+        "passed": false
+      },
+      "workload": {
+        "files": 7082,
+        "models": 2501,
+        "model_modules": 1,
+        "queries": 100
+      },
+      "source_sha256": "51c1a88b05a169f1222685fe6105e4be5f43d4213aaaf57c60bf99dbe0d82df9",
+      "positive_records": [
+        {
+          "backend": "companion",
+          "label": "0/companion",
+          "command": [
+            "/home/runner/work/_temp/ty-extended-native",
+            "check",
+            "--python",
+            "/home/runner/work/_temp/native-django-evidence/candidate/bin/python",
+            "--output-format",
+            "gitlab",
+            "--no-progress",
+            "--color",
+            "never",
+            "/home/runner/work/_temp/native-django-evidence/comparison/project",
+            "--ty",
+            "/home/runner/work/_temp/native-django-evidence/candidate/bin/ty",
+            "--config-file",
+            "/home/runner/work/_temp/native-django-evidence/comparison/companion.toml"
+          ],
+          "seconds": 0.8344807990000618,
+          "exit": 0,
+          "diagnostic_codes": {},
+          "user_cpu_seconds": 1.305861,
+          "system_cpu_seconds": 0.281145,
+          "sampled_process_tree_peak_rss_kib": 333880,
+          "stopped": null,
+          "monitor_error": null,
+          "parse_error": null,
+          "load_before": [
+            1.30126953125,
+            0.9892578125,
+            0.451171875
+          ],
+          "load_after": [
+            1.30126953125,
+            0.9892578125,
+            0.451171875
+          ],
+          "source_sha256": "51c1a88b05a169f1222685fe6105e4be5f43d4213aaaf57c60bf99dbe0d82df9",
+          "source_preserved": true
+        },
+        {
+          "backend": "bare-ty",
+          "label": "0/bare-ty",
+          "command": [
+            "/home/runner/work/_temp/native-django-evidence/candidate/bin/ty",
+            "check",
+            "--python",
+            "/home/runner/work/_temp/native-django-evidence/native/bin/python",
+            "--output-format",
+            "gitlab",
+            "--no-progress",
+            "--color",
+            "never",
+            "/home/runner/work/_temp/native-django-evidence/comparison/project",
+            "--config-file",
+            "/home/runner/work/_temp/native-django-evidence/comparison/bare.toml"
+          ],
+          "seconds": 0.24639357699993525,
+          "exit": 0,
+          "diagnostic_codes": {},
+          "user_cpu_seconds": 0.343921,
+          "system_cpu_seconds": 0.107222,
+          "sampled_process_tree_peak_rss_kib": 92400,
+          "stopped": null,
+          "monitor_error": null,
+          "parse_error": null,
+          "load_before": [
+            1.30126953125,
+            0.9892578125,
+            0.451171875
+          ],
+          "load_after": [
+            1.30126953125,
+            0.9892578125,
+            0.451171875
+          ],
+          "source_sha256": "51c1a88b05a169f1222685fe6105e4be5f43d4213aaaf57c60bf99dbe0d82df9",
+          "source_preserved": true
+        },
+        {
+          "backend": "mypy",
+          "label": "0/mypy",
+          "command": [
+            "/home/runner/work/_temp/native-django-evidence/reference/bin/mypy",
+            "--config-file",
+            "/home/runner/work/_temp/native-django-evidence/comparison/mypy.ini",
+            "--output",
+            "json",
+            "--no-incremental",
+            "/home/runner/work/_temp/native-django-evidence/comparison/project",
+            "--cache-dir",
+            "/home/runner/work/_temp/native-django-evidence/comparison/runs/0/mypy/scratch/mypy-cache"
+          ],
+          "seconds": 9.890048601999979,
+          "exit": 0,
+          "diagnostic_codes": {},
+          "user_cpu_seconds": 8.497675,
+          "system_cpu_seconds": 0.9847429999999999,
+          "sampled_process_tree_peak_rss_kib": 461360,
+          "stopped": null,
+          "monitor_error": null,
+          "parse_error": null,
+          "load_before": [
+            1.30126953125,
+            0.9892578125,
+            0.451171875
+          ],
+          "load_after": [
+            1.25439453125,
+            0.990234375,
+            0.45751953125
+          ],
+          "source_sha256": "51c1a88b05a169f1222685fe6105e4be5f43d4213aaaf57c60bf99dbe0d82df9",
+          "source_preserved": true
+        },
+        {
+          "backend": "bare-ty",
+          "label": "1/bare-ty",
+          "command": [
+            "/home/runner/work/_temp/native-django-evidence/candidate/bin/ty",
+            "check",
+            "--python",
+            "/home/runner/work/_temp/native-django-evidence/native/bin/python",
+            "--output-format",
+            "gitlab",
+            "--no-progress",
+            "--color",
+            "never",
+            "/home/runner/work/_temp/native-django-evidence/comparison/project",
+            "--config-file",
+            "/home/runner/work/_temp/native-django-evidence/comparison/bare.toml"
+          ],
+          "seconds": 0.24473127999999633,
+          "exit": 0,
+          "diagnostic_codes": {},
+          "user_cpu_seconds": 0.37155699999999997,
+          "system_cpu_seconds": 0.111664,
+          "sampled_process_tree_peak_rss_kib": 89760,
+          "stopped": null,
+          "monitor_error": null,
+          "parse_error": null,
+          "load_before": [
+            1.25439453125,
+            0.990234375,
+            0.45751953125
+          ],
+          "load_after": [
+            1.25439453125,
+            0.990234375,
+            0.45751953125
+          ],
+          "source_sha256": "51c1a88b05a169f1222685fe6105e4be5f43d4213aaaf57c60bf99dbe0d82df9",
+          "source_preserved": true
+        },
+        {
+          "backend": "mypy",
+          "label": "1/mypy",
+          "command": [
+            "/home/runner/work/_temp/native-django-evidence/reference/bin/mypy",
+            "--config-file",
+            "/home/runner/work/_temp/native-django-evidence/comparison/mypy.ini",
+            "--output",
+            "json",
+            "--no-incremental",
+            "/home/runner/work/_temp/native-django-evidence/comparison/project",
+            "--cache-dir",
+            "/home/runner/work/_temp/native-django-evidence/comparison/runs/1/mypy/scratch/mypy-cache"
+          ],
+          "seconds": 9.284266169000034,
+          "exit": 0,
+          "diagnostic_codes": {},
+          "user_cpu_seconds": 8.462131,
+          "system_cpu_seconds": 1.010433,
+          "sampled_process_tree_peak_rss_kib": 460052,
+          "stopped": null,
+          "monitor_error": null,
+          "parse_error": null,
+          "load_before": [
+            1.23388671875,
+            0.99072265625,
+            0.46044921875
+          ],
+          "load_after": [
+            1.21484375,
+            0.9912109375,
+            0.46337890625
+          ],
+          "source_sha256": "51c1a88b05a169f1222685fe6105e4be5f43d4213aaaf57c60bf99dbe0d82df9",
+          "source_preserved": true
+        },
+        {
+          "backend": "companion",
+          "label": "1/companion",
+          "command": [
+            "/home/runner/work/_temp/ty-extended-native",
+            "check",
+            "--python",
+            "/home/runner/work/_temp/native-django-evidence/candidate/bin/python",
+            "--output-format",
+            "gitlab",
+            "--no-progress",
+            "--color",
+            "never",
+            "/home/runner/work/_temp/native-django-evidence/comparison/project",
+            "--ty",
+            "/home/runner/work/_temp/native-django-evidence/candidate/bin/ty",
+            "--config-file",
+            "/home/runner/work/_temp/native-django-evidence/comparison/companion.toml"
+          ],
+          "seconds": 0.7958424959999775,
+          "exit": 0,
+          "diagnostic_codes": {},
+          "user_cpu_seconds": 1.343153,
+          "system_cpu_seconds": 0.257909,
+          "sampled_process_tree_peak_rss_kib": 340316,
+          "stopped": null,
+          "monitor_error": null,
+          "parse_error": null,
+          "load_before": [
+            1.21484375,
+            0.9912109375,
+            0.46337890625
+          ],
+          "load_after": [
+            1.75830078125,
+            1.10791015625,
+            0.50390625
+          ],
+          "source_sha256": "51c1a88b05a169f1222685fe6105e4be5f43d4213aaaf57c60bf99dbe0d82df9",
+          "source_preserved": true
+        },
+        {
+          "backend": "mypy",
+          "label": "2/mypy",
+          "command": [
+            "/home/runner/work/_temp/native-django-evidence/reference/bin/mypy",
+            "--config-file",
+            "/home/runner/work/_temp/native-django-evidence/comparison/mypy.ini",
+            "--output",
+            "json",
+            "--no-incremental",
+            "/home/runner/work/_temp/native-django-evidence/comparison/project",
+            "--cache-dir",
+            "/home/runner/work/_temp/native-django-evidence/comparison/runs/2/mypy/scratch/mypy-cache"
+          ],
+          "seconds": 9.168493596000076,
+          "exit": 0,
+          "diagnostic_codes": {},
+          "user_cpu_seconds": 8.354142,
+          "system_cpu_seconds": 0.9832519999999999,
+          "sampled_process_tree_peak_rss_kib": 459848,
+          "stopped": null,
+          "monitor_error": null,
+          "parse_error": null,
+          "load_before": [
+            1.75830078125,
+            1.10791015625,
+            0.50390625
+          ],
+          "load_after": [
+            1.64111328125,
+            1.10400390625,
+            0.509765625
+          ],
+          "source_sha256": "51c1a88b05a169f1222685fe6105e4be5f43d4213aaaf57c60bf99dbe0d82df9",
+          "source_preserved": true
+        },
+        {
+          "backend": "companion",
+          "label": "2/companion",
+          "command": [
+            "/home/runner/work/_temp/ty-extended-native",
+            "check",
+            "--python",
+            "/home/runner/work/_temp/native-django-evidence/candidate/bin/python",
+            "--output-format",
+            "gitlab",
+            "--no-progress",
+            "--color",
+            "never",
+            "/home/runner/work/_temp/native-django-evidence/comparison/project",
+            "--ty",
+            "/home/runner/work/_temp/native-django-evidence/candidate/bin/ty",
+            "--config-file",
+            "/home/runner/work/_temp/native-django-evidence/comparison/companion.toml"
+          ],
+          "seconds": 0.8207545320000236,
+          "exit": 0,
+          "diagnostic_codes": {},
+          "user_cpu_seconds": 1.335283,
+          "system_cpu_seconds": 0.263644,
+          "sampled_process_tree_peak_rss_kib": 338092,
+          "stopped": null,
+          "monitor_error": null,
+          "parse_error": null,
+          "load_before": [
+            1.64111328125,
+            1.10400390625,
+            0.509765625
+          ],
+          "load_after": [
+            1.64111328125,
+            1.10400390625,
+            0.509765625
+          ],
+          "source_sha256": "51c1a88b05a169f1222685fe6105e4be5f43d4213aaaf57c60bf99dbe0d82df9",
+          "source_preserved": true
+        },
+        {
+          "backend": "bare-ty",
+          "label": "2/bare-ty",
+          "command": [
+            "/home/runner/work/_temp/native-django-evidence/candidate/bin/ty",
+            "check",
+            "--python",
+            "/home/runner/work/_temp/native-django-evidence/native/bin/python",
+            "--output-format",
+            "gitlab",
+            "--no-progress",
+            "--color",
+            "never",
+            "/home/runner/work/_temp/native-django-evidence/comparison/project",
+            "--config-file",
+            "/home/runner/work/_temp/native-django-evidence/comparison/bare.toml"
+          ],
+          "seconds": 0.24051465299999109,
+          "exit": 0,
+          "diagnostic_codes": {},
+          "user_cpu_seconds": 0.35218099999999997,
+          "system_cpu_seconds": 0.107055,
+          "sampled_process_tree_peak_rss_kib": 87456,
+          "stopped": null,
+          "monitor_error": null,
+          "parse_error": null,
+          "load_before": [
+            1.64111328125,
+            1.10400390625,
+            0.509765625
+          ],
+          "load_after": [
+            1.64111328125,
+            1.10400390625,
+            0.509765625
+          ],
+          "source_sha256": "51c1a88b05a169f1222685fe6105e4be5f43d4213aaaf57c60bf99dbe0d82df9",
+          "source_preserved": true
+        },
+        {
+          "backend": "companion",
+          "label": "3/companion",
+          "command": [
+            "/home/runner/work/_temp/ty-extended-native",
+            "check",
+            "--python",
+            "/home/runner/work/_temp/native-django-evidence/candidate/bin/python",
+            "--output-format",
+            "gitlab",
+            "--no-progress",
+            "--color",
+            "never",
+            "/home/runner/work/_temp/native-django-evidence/comparison/project",
+            "--ty",
+            "/home/runner/work/_temp/native-django-evidence/candidate/bin/ty",
+            "--config-file",
+            "/home/runner/work/_temp/native-django-evidence/comparison/companion.toml"
+          ],
+          "seconds": 0.8075837349999802,
+          "exit": 0,
+          "diagnostic_codes": {},
+          "user_cpu_seconds": 1.360041,
+          "system_cpu_seconds": 0.252023,
+          "sampled_process_tree_peak_rss_kib": 338144,
+          "stopped": null,
+          "monitor_error": null,
+          "parse_error": null,
+          "load_before": [
+            1.64111328125,
+            1.10400390625,
+            0.509765625
+          ],
+          "load_after": [
+            1.64111328125,
+            1.10400390625,
+            0.509765625
+          ],
+          "source_sha256": "51c1a88b05a169f1222685fe6105e4be5f43d4213aaaf57c60bf99dbe0d82df9",
+          "source_preserved": true
+        },
+        {
+          "backend": "bare-ty",
+          "label": "3/bare-ty",
+          "command": [
+            "/home/runner/work/_temp/native-django-evidence/candidate/bin/ty",
+            "check",
+            "--python",
+            "/home/runner/work/_temp/native-django-evidence/native/bin/python",
+            "--output-format",
+            "gitlab",
+            "--no-progress",
+            "--color",
+            "never",
+            "/home/runner/work/_temp/native-django-evidence/comparison/project",
+            "--config-file",
+            "/home/runner/work/_temp/native-django-evidence/comparison/bare.toml"
+          ],
+          "seconds": 0.24554219699996338,
+          "exit": 0,
+          "diagnostic_codes": {},
+          "user_cpu_seconds": 0.361851,
+          "system_cpu_seconds": 0.10625,
+          "sampled_process_tree_peak_rss_kib": 88128,
+          "stopped": null,
+          "monitor_error": null,
+          "parse_error": null,
+          "load_before": [
+            1.64111328125,
+            1.10400390625,
+            0.509765625
+          ],
+          "load_after": [
+            1.64111328125,
+            1.10400390625,
+            0.509765625
+          ],
+          "source_sha256": "51c1a88b05a169f1222685fe6105e4be5f43d4213aaaf57c60bf99dbe0d82df9",
+          "source_preserved": true
+        },
+        {
+          "backend": "mypy",
+          "label": "3/mypy",
+          "command": [
+            "/home/runner/work/_temp/native-django-evidence/reference/bin/mypy",
+            "--config-file",
+            "/home/runner/work/_temp/native-django-evidence/comparison/mypy.ini",
+            "--output",
+            "json",
+            "--no-incremental",
+            "/home/runner/work/_temp/native-django-evidence/comparison/project",
+            "--cache-dir",
+            "/home/runner/work/_temp/native-django-evidence/comparison/runs/3/mypy/scratch/mypy-cache"
+          ],
+          "seconds": 9.113703121000071,
+          "exit": 0,
+          "diagnostic_codes": {},
+          "user_cpu_seconds": 8.38396,
+          "system_cpu_seconds": 0.9347759999999999,
+          "sampled_process_tree_peak_rss_kib": 468524,
+          "stopped": null,
+          "monitor_error": null,
+          "parse_error": null,
+          "load_before": [
+            1.64111328125,
+            1.10400390625,
+            0.509765625
+          ],
+          "load_after": [
+            1.62255859375,
+            1.1171875,
+            0.52099609375
+          ],
+          "source_sha256": "51c1a88b05a169f1222685fe6105e4be5f43d4213aaaf57c60bf99dbe0d82df9",
+          "source_preserved": true
+        },
+        {
+          "backend": "bare-ty",
+          "label": "4/bare-ty",
+          "command": [
+            "/home/runner/work/_temp/native-django-evidence/candidate/bin/ty",
+            "check",
+            "--python",
+            "/home/runner/work/_temp/native-django-evidence/native/bin/python",
+            "--output-format",
+            "gitlab",
+            "--no-progress",
+            "--color",
+            "never",
+            "/home/runner/work/_temp/native-django-evidence/comparison/project",
+            "--config-file",
+            "/home/runner/work/_temp/native-django-evidence/comparison/bare.toml"
+          ],
+          "seconds": 0.24288343199998508,
+          "exit": 0,
+          "diagnostic_codes": {},
+          "user_cpu_seconds": 0.34913299999999997,
+          "system_cpu_seconds": 0.103742,
+          "sampled_process_tree_peak_rss_kib": 92780,
+          "stopped": null,
+          "monitor_error": null,
+          "parse_error": null,
+          "load_before": [
+            1.62255859375,
+            1.1171875,
+            0.52099609375
+          ],
+          "load_after": [
+            1.62255859375,
+            1.1171875,
+            0.52099609375
+          ],
+          "source_sha256": "51c1a88b05a169f1222685fe6105e4be5f43d4213aaaf57c60bf99dbe0d82df9",
+          "source_preserved": true
+        },
+        {
+          "backend": "mypy",
+          "label": "4/mypy",
+          "command": [
+            "/home/runner/work/_temp/native-django-evidence/reference/bin/mypy",
+            "--config-file",
+            "/home/runner/work/_temp/native-django-evidence/comparison/mypy.ini",
+            "--output",
+            "json",
+            "--no-incremental",
+            "/home/runner/work/_temp/native-django-evidence/comparison/project",
+            "--cache-dir",
+            "/home/runner/work/_temp/native-django-evidence/comparison/runs/4/mypy/scratch/mypy-cache"
+          ],
+          "seconds": 9.206960181999989,
+          "exit": 0,
+          "diagnostic_codes": {},
+          "user_cpu_seconds": 8.388835,
+          "system_cpu_seconds": 1.0185,
+          "sampled_process_tree_peak_rss_kib": 460196,
+          "stopped": null,
+          "monitor_error": null,
+          "parse_error": null,
+          "load_before": [
+            1.62255859375,
+            1.1171875,
+            0.52099609375
+          ],
+          "load_after": [
+            1.5263671875,
+            1.11328125,
+            0.52685546875
+          ],
+          "source_sha256": "51c1a88b05a169f1222685fe6105e4be5f43d4213aaaf57c60bf99dbe0d82df9",
+          "source_preserved": true
+        },
+        {
+          "backend": "companion",
+          "label": "4/companion",
+          "command": [
+            "/home/runner/work/_temp/ty-extended-native",
+            "check",
+            "--python",
+            "/home/runner/work/_temp/native-django-evidence/candidate/bin/python",
+            "--output-format",
+            "gitlab",
+            "--no-progress",
+            "--color",
+            "never",
+            "/home/runner/work/_temp/native-django-evidence/comparison/project",
+            "--ty",
+            "/home/runner/work/_temp/native-django-evidence/candidate/bin/ty",
+            "--config-file",
+            "/home/runner/work/_temp/native-django-evidence/comparison/companion.toml"
+          ],
+          "seconds": 0.8275048030000107,
+          "exit": 0,
+          "diagnostic_codes": {},
+          "user_cpu_seconds": 1.3362859999999999,
+          "system_cpu_seconds": 0.278657,
+          "sampled_process_tree_peak_rss_kib": 334180,
+          "stopped": null,
+          "monitor_error": null,
+          "parse_error": null,
+          "load_before": [
+            1.5263671875,
+            1.11328125,
+            0.52685546875
+          ],
+          "load_after": [
+            1.5263671875,
+            1.11328125,
+            0.52685546875
+          ],
+          "source_sha256": "51c1a88b05a169f1222685fe6105e4be5f43d4213aaaf57c60bf99dbe0d82df9",
+          "source_preserved": true
+        }
+      ],
+      "negative_controls": [
+        {
+          "backend": "companion",
+          "label": "negative/companion",
+          "command": [
+            "/home/runner/work/_temp/ty-extended-native",
+            "check",
+            "--python",
+            "/home/runner/work/_temp/native-django-evidence/candidate/bin/python",
+            "--output-format",
+            "gitlab",
+            "--no-progress",
+            "--color",
+            "never",
+            "/home/runner/work/_temp/native-django-evidence/comparison/project",
+            "--ty",
+            "/home/runner/work/_temp/native-django-evidence/candidate/bin/ty",
+            "--config-file",
+            "/home/runner/work/_temp/native-django-evidence/comparison/companion.toml"
+          ],
+          "seconds": 0.8075687769999149,
+          "exit": 1,
+          "diagnostic_codes": {
+            "invalid-assignment": 2
+          },
+          "user_cpu_seconds": 1.347279,
+          "system_cpu_seconds": 0.268183,
+          "sampled_process_tree_peak_rss_kib": 339412,
+          "stopped": null,
+          "monitor_error": null,
+          "parse_error": null,
+          "load_before": [
+            1.48388671875,
+            1.111328125,
+            0.52978515625
+          ],
+          "load_after": [
+            1.48388671875,
+            1.111328125,
+            0.52978515625
+          ],
+          "source_sha256": "1d6a6430d5c3eaec3a1d648f4c95b35912d6efc7d7c15370efadb0d6f41164ef",
+          "source_preserved": true,
+          "verified_negative_locations": [
+            {
+              "path": "checks.py",
+              "line": 103
+            },
+            {
+              "path": "filler00000.py",
+              "line": 1
+            }
+          ]
+        },
+        {
+          "backend": "bare-ty",
+          "label": "negative/bare-ty",
+          "command": [
+            "/home/runner/work/_temp/native-django-evidence/candidate/bin/ty",
+            "check",
+            "--python",
+            "/home/runner/work/_temp/native-django-evidence/native/bin/python",
+            "--output-format",
+            "gitlab",
+            "--no-progress",
+            "--color",
+            "never",
+            "/home/runner/work/_temp/native-django-evidence/comparison/project",
+            "--config-file",
+            "/home/runner/work/_temp/native-django-evidence/comparison/bare.toml"
+          ],
+          "seconds": 0.24790791599991735,
+          "exit": 1,
+          "diagnostic_codes": {
+            "invalid-assignment": 2
+          },
+          "user_cpu_seconds": 0.352331,
+          "system_cpu_seconds": 0.11443199999999999,
+          "sampled_process_tree_peak_rss_kib": 92004,
+          "stopped": null,
+          "monitor_error": null,
+          "parse_error": null,
+          "load_before": [
+            1.48388671875,
+            1.111328125,
+            0.52978515625
+          ],
+          "load_after": [
+            1.48388671875,
+            1.111328125,
+            0.52978515625
+          ],
+          "source_sha256": "1d6a6430d5c3eaec3a1d648f4c95b35912d6efc7d7c15370efadb0d6f41164ef",
+          "source_preserved": true,
+          "verified_negative_locations": [
+            {
+              "path": "checks.py",
+              "line": 103
+            },
+            {
+              "path": "filler00000.py",
+              "line": 1
+            }
+          ]
+        },
+        {
+          "backend": "mypy",
+          "label": "negative/mypy",
+          "command": [
+            "/home/runner/work/_temp/native-django-evidence/reference/bin/mypy",
+            "--config-file",
+            "/home/runner/work/_temp/native-django-evidence/comparison/mypy.ini",
+            "--output",
+            "json",
+            "--no-incremental",
+            "/home/runner/work/_temp/native-django-evidence/comparison/project",
+            "--cache-dir",
+            "/home/runner/work/_temp/native-django-evidence/comparison/runs/negative/mypy/scratch/mypy-cache"
+          ],
+          "seconds": 9.174029768999958,
+          "exit": 1,
+          "diagnostic_codes": {
+            "assignment": 2
+          },
+          "user_cpu_seconds": 8.42918,
+          "system_cpu_seconds": 0.9470529999999999,
+          "sampled_process_tree_peak_rss_kib": 460132,
+          "stopped": null,
+          "monitor_error": null,
+          "parse_error": null,
+          "load_before": [
+            1.48388671875,
+            1.111328125,
+            0.52978515625
+          ],
+          "load_after": [
+            1.48974609375,
+            1.12451171875,
+            0.541015625
+          ],
+          "source_sha256": "1d6a6430d5c3eaec3a1d648f4c95b35912d6efc7d7c15370efadb0d6f41164ef",
+          "source_preserved": true,
+          "verified_negative_locations": [
+            {
+              "path": "checks.py",
+              "line": 103
+            },
+            {
+              "path": "filler00000.py",
+              "line": 1
+            }
+          ]
+        }
+      ],
+      "focus": {
+        "companion": {
+          "matched": 20,
+          "total": 20,
+          "unmarked": []
+        },
+        "bare-ty": {
+          "matched": 8,
+          "total": 20,
+          "unmarked": []
+        },
+        "mypy": {
+          "matched": 19,
+          "total": 20,
+          "unmarked": []
+        }
+      },
+      "provider_preserved": true,
+      "temporary_environments_cleaned": true
+    },
+    "macos": {
+      "run_url": "https://github.com/regularkevvv/ty-extended/actions/runs/43150790956",
+      "commit": "d13e631a9b09ea309200a284fff54026e59d50be",
+      "median_seconds": {
+        "companion": 0.936222999999984,
+        "bare-ty": 0.30301070799998797,
+        "mypy": 5.998284791999993
+      },
+      "performance_gate": {
+        "max_ty_ratio": 3.0,
+        "median_ty_ratio": 3.089735693433056,
+        "paired_ty_ratios": [
+          2.6278874085671,
+          2.647771661245042,
+          3.089735693433056,
+          3.744720730029485,
+          3.536179980194908
+        ],
+        "max_paired_ty_ratio": 3.744720730029485,
+        "ty_ceiling_met": false,
+        "mypy_ceiling_met": true,
+        "one_second_goal_met": true,
+        "passed": false
+      },
+      "workload": {
+        "files": 7082,
+        "models": 2501,
+        "model_modules": 1,
+        "queries": 100
+      },
+      "source_sha256": "51c1a88b05a169f1222685fe6105e4be5f43d4213aaaf57c60bf99dbe0d82df9",
+      "positive_records": [
+        {
+          "backend": "companion",
+          "label": "0/companion",
+          "command": [
+            "/Users/runner/work/_temp/ty-extended-native",
+            "check",
+            "--python",
+            "/Users/runner/work/_temp/native-django-evidence/candidate/bin/python",
+            "--output-format",
+            "gitlab",
+            "--no-progress",
+            "--color",
+            "never",
+            "/Users/runner/work/_temp/native-django-evidence/comparison/project",
+            "--ty",
+            "/Users/runner/work/_temp/native-django-evidence/candidate/bin/ty",
+            "--config-file",
+            "/Users/runner/work/_temp/native-django-evidence/comparison/companion.toml"
+          ],
+          "seconds": 0.9298667909999949,
+          "exit": 0,
+          "diagnostic_codes": {},
+          "user_cpu_seconds": 1.220064,
+          "system_cpu_seconds": 0.607152,
+          "sampled_process_tree_peak_rss_kib": 336208,
+          "stopped": null,
+          "monitor_error": null,
+          "parse_error": null,
+          "load_before": [
+            1.67041015625,
+            5.177734375,
+            4.072265625
+          ],
+          "load_after": [
+            3.37841796875,
+            5.47314453125,
+            4.18310546875
+          ],
+          "source_sha256": "51c1a88b05a169f1222685fe6105e4be5f43d4213aaaf57c60bf99dbe0d82df9",
+          "source_preserved": true
+        },
+        {
+          "backend": "bare-ty",
+          "label": "0/bare-ty",
+          "command": [
+            "/Users/runner/work/_temp/native-django-evidence/candidate/bin/ty",
+            "check",
+            "--python",
+            "/Users/runner/work/_temp/native-django-evidence/native/bin/python",
+            "--output-format",
+            "gitlab",
+            "--no-progress",
+            "--color",
+            "never",
+            "/Users/runner/work/_temp/native-django-evidence/comparison/project",
+            "--config-file",
+            "/Users/runner/work/_temp/native-django-evidence/comparison/bare.toml"
+          ],
+          "seconds": 0.35384575000000495,
+          "exit": 0,
+          "diagnostic_codes": {},
+          "user_cpu_seconds": 0.323139,
+          "system_cpu_seconds": 0.161771,
+          "sampled_process_tree_peak_rss_kib": 77200,
+          "stopped": null,
+          "monitor_error": null,
+          "parse_error": null,
+          "load_before": [
+            3.37841796875,
+            5.47314453125,
+            4.18310546875
+          ],
+          "load_after": [
+            3.37841796875,
+            5.47314453125,
+            4.18310546875
+          ],
+          "source_sha256": "51c1a88b05a169f1222685fe6105e4be5f43d4213aaaf57c60bf99dbe0d82df9",
+          "source_preserved": true
+        },
+        {
+          "backend": "mypy",
+          "label": "0/mypy",
+          "command": [
+            "/Users/runner/work/_temp/native-django-evidence/reference/bin/mypy",
+            "--config-file",
+            "/Users/runner/work/_temp/native-django-evidence/comparison/mypy.ini",
+            "--output",
+            "json",
+            "--no-incremental",
+            "/Users/runner/work/_temp/native-django-evidence/comparison/project",
+            "--cache-dir",
+            "/Users/runner/work/_temp/native-django-evidence/comparison/runs/0/mypy/scratch/mypy-cache"
+          ],
+          "seconds": 5.7172232919999715,
+          "exit": 0,
+          "diagnostic_codes": {},
+          "user_cpu_seconds": 4.834752,
+          "system_cpu_seconds": 0.9191239999999999,
+          "sampled_process_tree_peak_rss_kib": 503984,
+          "stopped": null,
+          "monitor_error": null,
+          "parse_error": null,
+          "load_before": [
+            3.37841796875,
+            5.47314453125,
+            4.18310546875
+          ],
+          "load_after": [
+            3.267578125,
+            5.4150390625,
+            4.169921875
+          ],
+          "source_sha256": "51c1a88b05a169f1222685fe6105e4be5f43d4213aaaf57c60bf99dbe0d82df9",
+          "source_preserved": true
+        },
+        {
+          "backend": "bare-ty",
+          "label": "1/bare-ty",
+          "command": [
+            "/Users/runner/work/_temp/native-django-evidence/candidate/bin/ty",
+            "check",
+            "--python",
+            "/Users/runner/work/_temp/native-django-evidence/native/bin/python",
+            "--output-format",
+            "gitlab",
+            "--no-progress",
+            "--color",
+            "never",
+            "/Users/runner/work/_temp/native-django-evidence/comparison/project",
+            "--config-file",
+            "/Users/runner/work/_temp/native-django-evidence/comparison/bare.toml"
+          ],
+          "seconds": 0.36733829100001003,
+          "exit": 0,
+          "diagnostic_codes": {},
+          "user_cpu_seconds": 0.390019,
+          "system_cpu_seconds": 0.253207,
+          "sampled_process_tree_peak_rss_kib": 88880,
+          "stopped": null,
+          "monitor_error": null,
+          "parse_error": null,
+          "load_before": [
+            3.267578125,
+            5.4150390625,
+            4.169921875
+          ],
+          "load_after": [
+            3.267578125,
+            5.4150390625,
+            4.169921875
+          ],
+          "source_sha256": "51c1a88b05a169f1222685fe6105e4be5f43d4213aaaf57c60bf99dbe0d82df9",
+          "source_preserved": true
+        },
+        {
+          "backend": "mypy",
+          "label": "1/mypy",
+          "command": [
+            "/Users/runner/work/_temp/native-django-evidence/reference/bin/mypy",
+            "--config-file",
+            "/Users/runner/work/_temp/native-django-evidence/comparison/mypy.ini",
+            "--output",
+            "json",
+            "--no-incremental",
+            "/Users/runner/work/_temp/native-django-evidence/comparison/project",
+            "--cache-dir",
+            "/Users/runner/work/_temp/native-django-evidence/comparison/runs/1/mypy/scratch/mypy-cache"
+          ],
+          "seconds": 5.770394042000021,
+          "exit": 0,
+          "diagnostic_codes": {},
+          "user_cpu_seconds": 5.000822,
+          "system_cpu_seconds": 0.881443,
+          "sampled_process_tree_peak_rss_kib": 503680,
+          "stopped": null,
+          "monitor_error": null,
+          "parse_error": null,
+          "load_before": [
+            3.267578125,
+            5.4150390625,
+            4.169921875
+          ],
+          "load_after": [
+            3.0859375,
+            5.34130859375,
+            4.15087890625
+          ],
+          "source_sha256": "51c1a88b05a169f1222685fe6105e4be5f43d4213aaaf57c60bf99dbe0d82df9",
+          "source_preserved": true
+        },
+        {
+          "backend": "companion",
+          "label": "1/companion",
+          "command": [
+            "/Users/runner/work/_temp/ty-extended-native",
+            "check",
+            "--python",
+            "/Users/runner/work/_temp/native-django-evidence/candidate/bin/python",
+            "--output-format",
+            "gitlab",
+            "--no-progress",
+            "--color",
+            "never",
+            "/Users/runner/work/_temp/native-django-evidence/comparison/project",
+            "--ty",
+            "/Users/runner/work/_temp/native-django-evidence/candidate/bin/ty",
+            "--config-file",
+            "/Users/runner/work/_temp/native-django-evidence/comparison/companion.toml"
+          ],
+          "seconds": 0.9726279170000112,
+          "exit": 0,
+          "diagnostic_codes": {},
+          "user_cpu_seconds": 1.183227,
+          "system_cpu_seconds": 0.544764,
+          "sampled_process_tree_peak_rss_kib": 336688,
+          "stopped": null,
+          "monitor_error": null,
+          "parse_error": null,
+          "load_before": [
+            3.0859375,
+            5.34130859375,
+            4.15087890625
+          ],
+          "load_after": [
+            3.71923828125,
+            5.43505859375,
+            4.19091796875
+          ],
+          "source_sha256": "51c1a88b05a169f1222685fe6105e4be5f43d4213aaaf57c60bf99dbe0d82df9",
+          "source_preserved": true
+        },
+        {
+          "backend": "mypy",
+          "label": "2/mypy",
+          "command": [
+            "/Users/runner/work/_temp/native-django-evidence/reference/bin/mypy",
+            "--config-file",
+            "/Users/runner/work/_temp/native-django-evidence/comparison/mypy.ini",
+            "--output",
+            "json",
+            "--no-incremental",
+            "/Users/runner/work/_temp/native-django-evidence/comparison/project",
+            "--cache-dir",
+            "/Users/runner/work/_temp/native-django-evidence/comparison/runs/2/mypy/scratch/mypy-cache"
+          ],
+          "seconds": 6.407825542000012,
+          "exit": 0,
+          "diagnostic_codes": {},
+          "user_cpu_seconds": 5.585879,
+          "system_cpu_seconds": 1.020904,
+          "sampled_process_tree_peak_rss_kib": 504608,
+          "stopped": null,
+          "monitor_error": null,
+          "parse_error": null,
+          "load_before": [
+            3.71923828125,
+            5.43505859375,
+            4.19091796875
+          ],
+          "load_after": [
+            3.50146484375,
+            5.361328125,
+            4.171875
+          ],
+          "source_sha256": "51c1a88b05a169f1222685fe6105e4be5f43d4213aaaf57c60bf99dbe0d82df9",
+          "source_preserved": true
+        },
+        {
+          "backend": "companion",
+          "label": "2/companion",
+          "command": [
+            "/Users/runner/work/_temp/ty-extended-native",
+            "check",
+            "--python",
+            "/Users/runner/work/_temp/native-django-evidence/candidate/bin/python",
+            "--output-format",
+            "gitlab",
+            "--no-progress",
+            "--color",
+            "never",
+            "/Users/runner/work/_temp/native-django-evidence/comparison/project",
+            "--ty",
+            "/Users/runner/work/_temp/native-django-evidence/candidate/bin/ty",
+            "--config-file",
+            "/Users/runner/work/_temp/native-django-evidence/comparison/companion.toml"
+          ],
+          "seconds": 0.936222999999984,
+          "exit": 0,
+          "diagnostic_codes": {},
+          "user_cpu_seconds": 1.199137,
+          "system_cpu_seconds": 0.571122,
+          "sampled_process_tree_peak_rss_kib": 341232,
+          "stopped": null,
+          "monitor_error": null,
+          "parse_error": null,
+          "load_before": [
+            3.50146484375,
+            5.361328125,
+            4.171875
+          ],
+          "load_after": [
+            3.50146484375,
+            5.361328125,
+            4.171875
+          ],
+          "source_sha256": "51c1a88b05a169f1222685fe6105e4be5f43d4213aaaf57c60bf99dbe0d82df9",
+          "source_preserved": true
+        },
+        {
+          "backend": "bare-ty",
+          "label": "2/bare-ty",
+          "command": [
+            "/Users/runner/work/_temp/native-django-evidence/candidate/bin/ty",
+            "check",
+            "--python",
+            "/Users/runner/work/_temp/native-django-evidence/native/bin/python",
+            "--output-format",
+            "gitlab",
+            "--no-progress",
+            "--color",
+            "never",
+            "/Users/runner/work/_temp/native-django-evidence/comparison/project",
+            "--config-file",
+            "/Users/runner/work/_temp/native-django-evidence/comparison/bare.toml"
+          ],
+          "seconds": 0.30301070799998797,
+          "exit": 0,
+          "diagnostic_codes": {},
+          "user_cpu_seconds": 0.35101899999999997,
+          "system_cpu_seconds": 0.251839,
+          "sampled_process_tree_peak_rss_kib": 80208,
+          "stopped": null,
+          "monitor_error": null,
+          "parse_error": null,
+          "load_before": [
+            3.50146484375,
+            5.361328125,
+            4.171875
+          ],
+          "load_after": [
+            3.50146484375,
+            5.361328125,
+            4.171875
+          ],
+          "source_sha256": "51c1a88b05a169f1222685fe6105e4be5f43d4213aaaf57c60bf99dbe0d82df9",
+          "source_preserved": true
+        },
+        {
+          "backend": "companion",
+          "label": "3/companion",
+          "command": [
+            "/Users/runner/work/_temp/ty-extended-native",
+            "check",
+            "--python",
+            "/Users/runner/work/_temp/native-django-evidence/candidate/bin/python",
+            "--output-format",
+            "gitlab",
+            "--no-progress",
+            "--color",
+            "never",
+            "/Users/runner/work/_temp/native-django-evidence/comparison/project",
+            "--ty",
+            "/Users/runner/work/_temp/native-django-evidence/candidate/bin/ty",
+            "--config-file",
+            "/Users/runner/work/_temp/native-django-evidence/comparison/companion.toml"
+          ],
+          "seconds": 0.96399550000001,
+          "exit": 0,
+          "diagnostic_codes": {},
+          "user_cpu_seconds": 1.155569,
+          "system_cpu_seconds": 0.540837,
+          "sampled_process_tree_peak_rss_kib": 337760,
+          "stopped": null,
+          "monitor_error": null,
+          "parse_error": null,
+          "load_before": [
+            5.142578125,
+            5.67041015625,
+            4.28759765625
+          ],
+          "load_after": [
+            5.142578125,
+            5.67041015625,
+            4.28759765625
+          ],
+          "source_sha256": "51c1a88b05a169f1222685fe6105e4be5f43d4213aaaf57c60bf99dbe0d82df9",
+          "source_preserved": true
+        },
+        {
+          "backend": "bare-ty",
+          "label": "3/bare-ty",
+          "command": [
+            "/Users/runner/work/_temp/native-django-evidence/candidate/bin/ty",
+            "check",
+            "--python",
+            "/Users/runner/work/_temp/native-django-evidence/native/bin/python",
+            "--output-format",
+            "gitlab",
+            "--no-progress",
+            "--color",
+            "never",
+            "/Users/runner/work/_temp/native-django-evidence/comparison/project",
+            "--config-file",
+            "/Users/runner/work/_temp/native-django-evidence/comparison/bare.toml"
+          ],
+          "seconds": 0.25742787500001896,
+          "exit": 0,
+          "diagnostic_codes": {},
+          "user_cpu_seconds": 0.35873299999999997,
+          "system_cpu_seconds": 0.23411099999999999,
+          "sampled_process_tree_peak_rss_kib": 78848,
+          "stopped": null,
+          "monitor_error": null,
+          "parse_error": null,
+          "load_before": [
+            5.142578125,
+            5.67041015625,
+            4.28759765625
+          ],
+          "load_after": [
+            5.142578125,
+            5.67041015625,
+            4.28759765625
+          ],
+          "source_sha256": "51c1a88b05a169f1222685fe6105e4be5f43d4213aaaf57c60bf99dbe0d82df9",
+          "source_preserved": true
+        },
+        {
+          "backend": "mypy",
+          "label": "3/mypy",
+          "command": [
+            "/Users/runner/work/_temp/native-django-evidence/reference/bin/mypy",
+            "--config-file",
+            "/Users/runner/work/_temp/native-django-evidence/comparison/mypy.ini",
+            "--output",
+            "json",
+            "--no-incremental",
+            "/Users/runner/work/_temp/native-django-evidence/comparison/project",
+            "--cache-dir",
+            "/Users/runner/work/_temp/native-django-evidence/comparison/runs/3/mypy/scratch/mypy-cache"
+          ],
+          "seconds": 5.998284791999993,
+          "exit": 0,
+          "diagnostic_codes": {},
+          "user_cpu_seconds": 5.306654,
+          "system_cpu_seconds": 0.879575,
+          "sampled_process_tree_peak_rss_kib": 503680,
+          "stopped": null,
+          "monitor_error": null,
+          "parse_error": null,
+          "load_before": [
+            5.142578125,
+            5.67041015625,
+            4.28759765625
+          ],
+          "load_after": [
+            4.810546875,
+            5.5927734375,
+            4.26806640625
+          ],
+          "source_sha256": "51c1a88b05a169f1222685fe6105e4be5f43d4213aaaf57c60bf99dbe0d82df9",
+          "source_preserved": true
+        },
+        {
+          "backend": "bare-ty",
+          "label": "4/bare-ty",
+          "command": [
+            "/Users/runner/work/_temp/native-django-evidence/candidate/bin/ty",
+            "check",
+            "--python",
+            "/Users/runner/work/_temp/native-django-evidence/native/bin/python",
+            "--output-format",
+            "gitlab",
+            "--no-progress",
+            "--color",
+            "never",
+            "/Users/runner/work/_temp/native-django-evidence/comparison/project",
+            "--config-file",
+            "/Users/runner/work/_temp/native-django-evidence/comparison/bare.toml"
+          ],
+          "seconds": 0.2632095829999912,
+          "exit": 0,
+          "diagnostic_codes": {},
+          "user_cpu_seconds": 0.336982,
+          "system_cpu_seconds": 0.213034,
+          "sampled_process_tree_peak_rss_kib": 91072,
+          "stopped": null,
+          "monitor_error": null,
+          "parse_error": null,
+          "load_before": [
+            4.810546875,
+            5.5927734375,
+            4.26806640625
+          ],
+          "load_after": [
+            4.810546875,
+            5.5927734375,
+            4.26806640625
+          ],
+          "source_sha256": "51c1a88b05a169f1222685fe6105e4be5f43d4213aaaf57c60bf99dbe0d82df9",
+          "source_preserved": true
+        },
+        {
+          "backend": "mypy",
+          "label": "4/mypy",
+          "command": [
+            "/Users/runner/work/_temp/native-django-evidence/reference/bin/mypy",
+            "--config-file",
+            "/Users/runner/work/_temp/native-django-evidence/comparison/mypy.ini",
+            "--output",
+            "json",
+            "--no-incremental",
+            "/Users/runner/work/_temp/native-django-evidence/comparison/project",
+            "--cache-dir",
+            "/Users/runner/work/_temp/native-django-evidence/comparison/runs/4/mypy/scratch/mypy-cache"
+          ],
+          "seconds": 6.555222958999991,
+          "exit": 0,
+          "diagnostic_codes": {},
+          "user_cpu_seconds": 5.932853,
+          "system_cpu_seconds": 1.022381,
+          "sampled_process_tree_peak_rss_kib": 504192,
+          "stopped": null,
+          "monitor_error": null,
+          "parse_error": null,
+          "load_before": [
+            4.810546875,
+            5.5927734375,
+            4.26806640625
+          ],
+          "load_after": [
+            8.53564453125,
+            6.36328125,
+            4.556640625
+          ],
+          "source_sha256": "51c1a88b05a169f1222685fe6105e4be5f43d4213aaaf57c60bf99dbe0d82df9",
+          "source_preserved": true
+        },
+        {
+          "backend": "companion",
+          "label": "4/companion",
+          "command": [
+            "/Users/runner/work/_temp/ty-extended-native",
+            "check",
+            "--python",
+            "/Users/runner/work/_temp/native-django-evidence/candidate/bin/python",
+            "--output-format",
+            "gitlab",
+            "--no-progress",
+            "--color",
+            "never",
+            "/Users/runner/work/_temp/native-django-evidence/comparison/project",
+            "--ty",
+            "/Users/runner/work/_temp/native-django-evidence/candidate/bin/ty",
+            "--config-file",
+            "/Users/runner/work/_temp/native-django-evidence/comparison/companion.toml"
+          ],
+          "seconds": 0.9307564580000189,
+          "exit": 0,
+          "diagnostic_codes": {},
+          "user_cpu_seconds": 1.265349,
+          "system_cpu_seconds": 0.562453,
+          "sampled_process_tree_peak_rss_kib": 327456,
+          "stopped": null,
+          "monitor_error": null,
+          "parse_error": null,
+          "load_before": [
+            8.53564453125,
+            6.36328125,
+            4.556640625
+          ],
+          "load_after": [
+            8.53564453125,
+            6.36328125,
+            4.556640625
+          ],
+          "source_sha256": "51c1a88b05a169f1222685fe6105e4be5f43d4213aaaf57c60bf99dbe0d82df9",
+          "source_preserved": true
+        }
+      ],
+      "negative_controls": [
+        {
+          "backend": "companion",
+          "label": "negative/companion",
+          "command": [
+            "/Users/runner/work/_temp/ty-extended-native",
+            "check",
+            "--python",
+            "/Users/runner/work/_temp/native-django-evidence/candidate/bin/python",
+            "--output-format",
+            "gitlab",
+            "--no-progress",
+            "--color",
+            "never",
+            "/Users/runner/work/_temp/native-django-evidence/comparison/project",
+            "--ty",
+            "/Users/runner/work/_temp/native-django-evidence/candidate/bin/ty",
+            "--config-file",
+            "/Users/runner/work/_temp/native-django-evidence/comparison/companion.toml"
+          ],
+          "seconds": 0.8421060409999654,
+          "exit": 1,
+          "diagnostic_codes": {
+            "invalid-assignment": 2
+          },
+          "user_cpu_seconds": 1.2847169999999999,
+          "system_cpu_seconds": 0.51073,
+          "sampled_process_tree_peak_rss_kib": 342096,
+          "stopped": null,
+          "monitor_error": null,
+          "parse_error": null,
+          "load_before": [
+            8.53564453125,
+            6.36328125,
+            4.556640625
+          ],
+          "load_after": [
+            8.53564453125,
+            6.36328125,
+            4.556640625
+          ],
+          "source_sha256": "1d6a6430d5c3eaec3a1d648f4c95b35912d6efc7d7c15370efadb0d6f41164ef",
+          "source_preserved": true,
+          "verified_negative_locations": [
+            {
+              "path": "checks.py",
+              "line": 103
+            },
+            {
+              "path": "filler00000.py",
+              "line": 1
+            }
+          ]
+        },
+        {
+          "backend": "bare-ty",
+          "label": "negative/bare-ty",
+          "command": [
+            "/Users/runner/work/_temp/native-django-evidence/candidate/bin/ty",
+            "check",
+            "--python",
+            "/Users/runner/work/_temp/native-django-evidence/native/bin/python",
+            "--output-format",
+            "gitlab",
+            "--no-progress",
+            "--color",
+            "never",
+            "/Users/runner/work/_temp/native-django-evidence/comparison/project",
+            "--config-file",
+            "/Users/runner/work/_temp/native-django-evidence/comparison/bare.toml"
+          ],
+          "seconds": 0.233177957999942,
+          "exit": 1,
+          "diagnostic_codes": {
+            "invalid-assignment": 2
+          },
+          "user_cpu_seconds": 0.319903,
+          "system_cpu_seconds": 0.214774,
+          "sampled_process_tree_peak_rss_kib": 88064,
+          "stopped": null,
+          "monitor_error": null,
+          "parse_error": null,
+          "load_before": [
+            8.53564453125,
+            6.36328125,
+            4.556640625
+          ],
+          "load_after": [
+            8.53564453125,
+            6.36328125,
+            4.556640625
+          ],
+          "source_sha256": "1d6a6430d5c3eaec3a1d648f4c95b35912d6efc7d7c15370efadb0d6f41164ef",
+          "source_preserved": true,
+          "verified_negative_locations": [
+            {
+              "path": "checks.py",
+              "line": 103
+            },
+            {
+              "path": "filler00000.py",
+              "line": 1
+            }
+          ]
+        },
+        {
+          "backend": "mypy",
+          "label": "negative/mypy",
+          "command": [
+            "/Users/runner/work/_temp/native-django-evidence/reference/bin/mypy",
+            "--config-file",
+            "/Users/runner/work/_temp/native-django-evidence/comparison/mypy.ini",
+            "--output",
+            "json",
+            "--no-incremental",
+            "/Users/runner/work/_temp/native-django-evidence/comparison/project",
+            "--cache-dir",
+            "/Users/runner/work/_temp/native-django-evidence/comparison/runs/negative/mypy/scratch/mypy-cache"
+          ],
+          "seconds": 4.912770667000018,
+          "exit": 1,
+          "diagnostic_codes": {
+            "assignment": 2
+          },
+          "user_cpu_seconds": 4.427912,
+          "system_cpu_seconds": 0.795406,
+          "sampled_process_tree_peak_rss_kib": 471200,
+          "stopped": null,
+          "monitor_error": null,
+          "parse_error": null,
+          "load_before": [
+            8.01220703125,
+            6.29052734375,
+            4.54150390625
+          ],
+          "load_after": [
+            7.4501953125,
+            6.20263671875,
+            4.5205078125
+          ],
+          "source_sha256": "1d6a6430d5c3eaec3a1d648f4c95b35912d6efc7d7c15370efadb0d6f41164ef",
+          "source_preserved": true,
+          "verified_negative_locations": [
+            {
+              "path": "checks.py",
+              "line": 103
+            },
+            {
+              "path": "filler00000.py",
+              "line": 1
+            }
+          ]
+        }
+      ],
+      "focus": {
+        "companion": {
+          "matched": 20,
+          "total": 20,
+          "unmarked": []
+        },
+        "bare-ty": {
+          "matched": 8,
+          "total": 20,
+          "unmarked": []
+        },
+        "mypy": {
+          "matched": 19,
+          "total": 20,
+          "unmarked": []
+        }
+      },
+      "provider_preserved": true,
+      "temporary_environments_cleaned": true
+    }
   }
 }
