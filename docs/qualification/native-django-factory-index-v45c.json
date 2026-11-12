@@ -1,0 +1,665 @@
+{
+  "status": "source-qualified-performance-pending",
+  "release_accepted": false,
+  "method": "Classify factories once in the fused index loop, reuse relation classifications, cache module scopes, stop a complete class closure early, and generate native-member abstentions in that same loop. No Rust source or binary changes.",
+  "django_commit": "c5a3eab7cb4416fc0f0202103f310422b5273c1c",
+  "official_ty": "0.0.101",
+  "rust_source_commit": "9b15216",
+  "binary_sha256": "681b149b28abc77190ad2987440cbad948fc5ffbdc632ca95c7b98fdeda22c01",
+  "complete_index_equivalence": {
+    "scope": "CPython exact response equivalence and operation counts; no runtime performance claim.",
+    "passed": true,
+    "source_request_sha256": "effe3705db4f111a704bf853ec11b19d664b2d5d35d1f0b18eb4bba265c216cc",
+    "response_sha256": "fcf49fadf92020b9d53e8a39a818f6c01576e07be4332329383e390e97fa3b0a",
+    "request_preserved": true,
+    "complete_responses_equal": true,
+    "rows": [
+      {
+        "variant": "before",
+        "plugin_sha256": "e915c6b4c63e07948159407e3ce00029d06e04072872de2d5caca6dc417f0ebc",
+        "cpython_diagnostic_seconds": 0.09742679202463478,
+        "calls": {
+          "module_of": 10003,
+          "model_scope": 2501,
+          "short": 35008,
+          "resolve_class": 5002,
+          "call_of": 12081,
+          "call_name": 30006,
+          "auto_field": 7502,
+          "manager_call": 5001,
+          "relation_kind": 12502,
+          "relation_argument": 5000,
+          "native_scalar_member": 5001
+        },
+        "model_count": 2501
+      },
+      {
+        "variant": "after",
+        "plugin_sha256": "26ccdc313a13243c910c13cb5551dc1d6245f04d844d3e76a62b4f76182b362a",
+        "cpython_diagnostic_seconds": 0.040563125046901405,
+        "calls": {
+          "module_of": 5001,
+          "model_scope": 1,
+          "short": 10002,
+          "resolve_class": 5002,
+          "call_of": 12081,
+          "call_name": 5001,
+          "relation_argument": 5000
+        },
+        "model_count": 2501
+      }
+    ]
+  },
+  "qualification": {
+    "steps": [
+      {
+        "step": "corpus",
+        "exit": 0,
+        "seconds": 2.5754131670109928
+      },
+      {
+        "step": "multi-app",
+        "exit": 0,
+        "seconds": 0.30500587506685406
+      },
+      {
+        "step": "sdk-fields",
+        "exit": 0,
+        "seconds": 0.6987562080612406
+      },
+      {
+        "step": "monty-types",
+        "exit": 0,
+        "seconds": 0.34643304196652025
+      },
+      {
+        "step": "python-units",
+        "exit": 1,
+        "seconds": 6.7498867500107735
+      },
+      {
+        "step": "django-runtime",
+        "exit": 0,
+        "seconds": 0.6734657500637695
+      },
+      {
+        "step": "querydict-0",
+        "exit": 0,
+        "seconds": 4.158449708018452
+      },
+      {
+        "step": "querydict-1",
+        "exit": 0,
+        "seconds": 2.775144250015728
+      },
+      {
+        "step": "primary",
+        "exit": 0,
+        "seconds": 0.8978020830545574
+      }
+    ],
+    "binary_sha256": "575bbd784879624d196080b4ca6f5cef8cd6d92360315efea4016ed93bb4142c",
+    "focus_receipt": "pending optimized paired comparison",
+    "passed": true
+  },
+  "source_example": {
+    "passed": true,
+    "scope": "Experimental source checkout, not installed wheel",
+    "runs": [
+      {
+        "backend": "companion",
+        "label": "0/positive",
+        "command": [
+          "/private/tmp/ty-companion-subsecond-work/native-hybrid/iteration-v45b",
+          "check",
+          "--project",
+          "/private/tmp/ty-companion-subsecond-work/native-hybrid/source-e2e-v45c/project",
+          "--config-file",
+          "/private/tmp/ty-companion-subsecond-work/native-hybrid/source-e2e-v45c/hybrid.toml",
+          "--ty",
+          "/private/tmp/ty-companion-subsecond-work/native-hybrid/official-00101/bin/ty",
+          "--output-format",
+          "gitlab",
+          "--no-progress",
+          "--color",
+          "never",
+          "/private/tmp/ty-companion-subsecond-work/native-hybrid/source-e2e-v45c/project/accounts",
+          "/private/tmp/ty-companion-subsecond-work/native-hybrid/source-e2e-v45c/project/library",
+          "/private/tmp/ty-companion-subsecond-work/native-hybrid/source-e2e-v45c/project/commerce",
+          "/private/tmp/ty-companion-subsecond-work/native-hybrid/source-e2e-v45c/project/auditlog",
+          "/private/tmp/ty-companion-subsecond-work/native-hybrid/source-e2e-v45c/project/typechecks/positive.py",
+          "/private/tmp/ty-companion-subsecond-work/native-hybrid/source-e2e-v45c/project/typechecks/static_api.py"
+        ],
+        "seconds": 1.5582626250106841,
+        "exit": 0,
+        "diagnostic_codes": {},
+        "user_cpu_seconds": 0.91064,
+        "system_cpu_seconds": 0.495866,
+        "sampled_process_tree_peak_rss_kib": 235456,
+        "stopped": null,
+        "monitor_error": null,
+        "parse_error": null,
+        "load_before": [
+          42.1689453125,
+          30.18017578125,
+          24.63330078125
+        ],
+        "load_after": [
+          42.1689453125,
+          30.18017578125,
+          24.63330078125
+        ],
+        "source_sha256": "dd7ded667cf6ea04747e7edbd1b33134e8611132771d300a347449a17f48c396",
+        "source_preserved": true,
+        "mode": "0",
+        "case": "positive",
+        "diagnostics": []
+      },
+      {
+        "backend": "companion",
+        "label": "0/negative",
+        "command": [
+          "/private/tmp/ty-companion-subsecond-work/native-hybrid/iteration-v45b",
+          "check",
+          "--project",
+          "/private/tmp/ty-companion-subsecond-work/native-hybrid/source-e2e-v45c/project",
+          "--config-file",
+          "/private/tmp/ty-companion-subsecond-work/native-hybrid/source-e2e-v45c/hybrid.toml",
+          "--ty",
+          "/private/tmp/ty-companion-subsecond-work/native-hybrid/official-00101/bin/ty",
+          "--output-format",
+          "gitlab",
+          "--no-progress",
+          "--color",
+          "never",
+          "/private/tmp/ty-companion-subsecond-work/native-hybrid/source-e2e-v45c/project/accounts",
+          "/private/tmp/ty-companion-subsecond-work/native-hybrid/source-e2e-v45c/project/library",
+          "/private/tmp/ty-companion-subsecond-work/native-hybrid/source-e2e-v45c/project/commerce",
+          "/private/tmp/ty-companion-subsecond-work/native-hybrid/source-e2e-v45c/project/auditlog",
+          "/private/tmp/ty-companion-subsecond-work/native-hybrid/source-e2e-v45c/project/caveats",
+          "/private/tmp/ty-companion-subsecond-work/native-hybrid/source-e2e-v45c/project/typechecks/negative.py"
+        ],
+        "seconds": 1.3177192499861121,
+        "exit": 1,
+        "diagnostic_codes": {
+          "invalid-argument-type": 1,
+          "invalid-assignment": 1,
+          "plugin-configuration": 7
+        },
+        "user_cpu_seconds": 0.859209,
+        "system_cpu_seconds": 0.41256499999999996,
+        "sampled_process_tree_peak_rss_kib": 231824,
+        "stopped": null,
+        "monitor_error": null,
+        "parse_error": null,
+        "load_before": [
+          42.1689453125,
+          30.18017578125,
+          24.63330078125
+        ],
+        "load_after": [
+          42.1689453125,
+          30.18017578125,
+          24.63330078125
+        ],
+        "source_sha256": "dd7ded667cf6ea04747e7edbd1b33134e8611132771d300a347449a17f48c396",
+        "source_preserved": true,
+        "mode": "0",
+        "case": "negative",
+        "diagnostics": [
+          {
+            "check_name": "invalid-argument-type",
+            "description": "invalid-argument-type: Argument is incorrect: Expected `str`, found `Literal[123]`",
+            "fingerprint": "349a397311d595756e7c4b271fbac5aa6b45be2e814c5c7f9d822afe12ab38ab",
+            "location": {
+              "path": "/private/tmp/ty-companion-subsecond-work/native-hybrid/source-e2e-v45c/project/typechecks/negative.py",
+              "positions": {
+                "begin": {
+                  "column": 6,
+                  "line": 7
+                },
+                "end": {
+                  "column": 15,
+                  "line": 7
+                }
+              }
+            },
+            "severity": "major"
+          },
+          {
+            "check_name": "invalid-assignment",
+            "description": "invalid-assignment: Object of type `str` is not assignable to `int`",
+            "fingerprint": "3aafad68e663e90750cd3eef830420349cf61b9aadb963a113cabd03bda167d4",
+            "location": {
+              "path": "/private/tmp/ty-companion-subsecond-work/native-hybrid/source-e2e-v45c/project/typechecks/negative.py",
+              "positions": {
+                "begin": {
+                  "column": 18,
+                  "line": 8
+                },
+                "end": {
+                  "column": 54,
+                  "line": 8
+                }
+              }
+            },
+            "severity": "major"
+          },
+          {
+            "check_name": "plugin-configuration",
+            "description": "plugin-configuration: Conflicting Django reverse relation `library.models.Author.duplicate_books`: django-ty.reverse-relation-conflict",
+            "fingerprint": "b41615d134ed93eca9b290c0be205f6647fa296b0f2ffc46456e06b7b6798d18",
+            "location": {
+              "path": "/private/tmp/ty-companion-subsecond-work/native-hybrid/source-e2e-v45c/project/caveats/models.py",
+              "positions": {
+                "begin": {
+                  "column": 5,
+                  "line": 17
+                },
+                "end": {
+                  "column": 11,
+                  "line": 17
+                }
+              }
+            },
+            "severity": "major"
+          },
+          {
+            "check_name": "plugin-configuration",
+            "description": "plugin-configuration: Invalid Django lookup value for `pages__icontains` on `library.models.Book.pages`; expected `int | None`: django-ty.invalid-lookup-value",
+            "fingerprint": "f00e5a9b2f0ae9612a3db9b949bd6c257fe74f2cd69e481e938a7e49f7185085",
+            "location": {
+              "path": "/private/tmp/ty-companion-subsecond-work/native-hybrid/source-e2e-v45c/project/typechecks/negative.py",
+              "positions": {
+                "begin": {
+                  "column": 20,
+                  "line": 9
+                },
+                "end": {
+                  "column": 64,
+                  "line": 9
+                }
+              }
+            },
+            "severity": "major"
+          },
+          {
+            "check_name": "plugin-configuration",
+            "description": "plugin-configuration: Unknown Django lookup `author__missing` for model `library.models.Book`: django-ty.unknown-lookup",
+            "fingerprint": "3837ddc258fd3569ba5ea77aab82c1992231e7872b0c63d85a525976344b4f78",
+            "location": {
+              "path": "/private/tmp/ty-companion-subsecond-work/native-hybrid/source-e2e-v45c/project/typechecks/negative.py",
+              "positions": {
+                "begin": {
+                  "column": 23,
+                  "line": 11
+                },
+                "end": {
+                  "column": 63,
+                  "line": 11
+                }
+              }
+            },
+            "severity": "major"
+          },
+          {
+            "check_name": "plugin-configuration",
+            "description": "plugin-configuration: Unknown Django lookup `missing_field` for model `library.models.Book`: django-ty.unknown-lookup",
+            "fingerprint": "717e053f93e8b38cbba0218c297085151aad1609d6f522c34948cbb248a7a71d",
+            "location": {
+              "path": "/private/tmp/ty-companion-subsecond-work/native-hybrid/source-e2e-v45c/project/typechecks/negative.py",
+              "positions": {
+                "begin": {
+                  "column": 14,
+                  "line": 12
+                },
+                "end": {
+                  "column": 50,
+                  "line": 12
+                }
+              }
+            },
+            "severity": "major"
+          },
+          {
+            "check_name": "plugin-configuration",
+            "description": "plugin-configuration: Unknown Django lookup `missing_field` for model `library.models.Book`: django-ty.unknown-lookup",
+            "fingerprint": "067eb8e5f69979574da6e616492352984ba444d68a91d90d89ca9454b1e3600c",
+            "location": {
+              "path": "/private/tmp/ty-companion-subsecond-work/native-hybrid/source-e2e-v45c/project/typechecks/negative.py",
+              "positions": {
+                "begin": {
+                  "column": 18,
+                  "line": 10
+                },
+                "end": {
+                  "column": 56,
+                  "line": 10
+                }
+              }
+            },
+            "severity": "major"
+          },
+          {
+            "check_name": "plugin-configuration",
+            "description": "plugin-configuration: Unknown Django lookup `missing_field` for model `library.models.Book`: django-ty.unknown-lookup",
+            "fingerprint": "35631667b09adafdcd9c80707142fc21f3a41b735f3905915f016effa49d2383",
+            "location": {
+              "path": "/private/tmp/ty-companion-subsecond-work/native-hybrid/source-e2e-v45c/project/typechecks/negative.py",
+              "positions": {
+                "begin": {
+                  "column": 19,
+                  "line": 13
+                },
+                "end": {
+                  "column": 71,
+                  "line": 13
+                }
+              }
+            },
+            "severity": "major"
+          },
+          {
+            "check_name": "plugin-configuration",
+            "description": "plugin-configuration: Unknown Django relation target `missing.App` for field `caveats.models.BrokenLink.target`: django-ty.unknown-relation-target",
+            "fingerprint": "42c560411e6f8f7aac0963745740fd1b943ae053c40e77366ce60202169060bb",
+            "location": {
+              "path": "/private/tmp/ty-companion-subsecond-work/native-hybrid/source-e2e-v45c/project/caveats/models.py",
+              "positions": {
+                "begin": {
+                  "column": 5,
+                  "line": 5
+                },
+                "end": {
+                  "column": 11,
+                  "line": 5
+                }
+              }
+            },
+            "severity": "major"
+          }
+        ]
+      },
+      {
+        "backend": "companion",
+        "label": "1/positive",
+        "command": [
+          "/private/tmp/ty-companion-subsecond-work/native-hybrid/iteration-v45b",
+          "check",
+          "--project",
+          "/private/tmp/ty-companion-subsecond-work/native-hybrid/source-e2e-v45c/project",
+          "--config-file",
+          "/private/tmp/ty-companion-subsecond-work/native-hybrid/source-e2e-v45c/hybrid.toml",
+          "--ty",
+          "/private/tmp/ty-companion-subsecond-work/native-hybrid/official-00101/bin/ty",
+          "--output-format",
+          "gitlab",
+          "--no-progress",
+          "--color",
+          "never",
+          "/private/tmp/ty-companion-subsecond-work/native-hybrid/source-e2e-v45c/project/accounts",
+          "/private/tmp/ty-companion-subsecond-work/native-hybrid/source-e2e-v45c/project/library",
+          "/private/tmp/ty-companion-subsecond-work/native-hybrid/source-e2e-v45c/project/commerce",
+          "/private/tmp/ty-companion-subsecond-work/native-hybrid/source-e2e-v45c/project/auditlog",
+          "/private/tmp/ty-companion-subsecond-work/native-hybrid/source-e2e-v45c/project/typechecks/positive.py",
+          "/private/tmp/ty-companion-subsecond-work/native-hybrid/source-e2e-v45c/project/typechecks/static_api.py"
+        ],
+        "seconds": 2.476144624990411,
+        "exit": 0,
+        "diagnostic_codes": {},
+        "user_cpu_seconds": 0.980861,
+        "system_cpu_seconds": 0.504763,
+        "sampled_process_tree_peak_rss_kib": 258352,
+        "stopped": null,
+        "monitor_error": null,
+        "parse_error": null,
+        "load_before": [
+          42.1689453125,
+          30.18017578125,
+          24.63330078125
+        ],
+        "load_after": [
+          42.7958984375,
+          30.5087890625,
+          24.78173828125
+        ],
+        "source_sha256": "dd7ded667cf6ea04747e7edbd1b33134e8611132771d300a347449a17f48c396",
+        "source_preserved": true,
+        "mode": "1",
+        "case": "positive",
+        "diagnostics": []
+      },
+      {
+        "backend": "companion",
+        "label": "1/negative",
+        "command": [
+          "/private/tmp/ty-companion-subsecond-work/native-hybrid/iteration-v45b",
+          "check",
+          "--project",
+          "/private/tmp/ty-companion-subsecond-work/native-hybrid/source-e2e-v45c/project",
+          "--config-file",
+          "/private/tmp/ty-companion-subsecond-work/native-hybrid/source-e2e-v45c/hybrid.toml",
+          "--ty",
+          "/private/tmp/ty-companion-subsecond-work/native-hybrid/official-00101/bin/ty",
+          "--output-format",
+          "gitlab",
+          "--no-progress",
+          "--color",
+          "never",
+          "/private/tmp/ty-companion-subsecond-work/native-hybrid/source-e2e-v45c/project/accounts",
+          "/private/tmp/ty-companion-subsecond-work/native-hybrid/source-e2e-v45c/project/library",
+          "/private/tmp/ty-companion-subsecond-work/native-hybrid/source-e2e-v45c/project/commerce",
+          "/private/tmp/ty-companion-subsecond-work/native-hybrid/source-e2e-v45c/project/auditlog",
+          "/private/tmp/ty-companion-subsecond-work/native-hybrid/source-e2e-v45c/project/caveats",
+          "/private/tmp/ty-companion-subsecond-work/native-hybrid/source-e2e-v45c/project/typechecks/negative.py"
+        ],
+        "seconds": 2.2354602499399334,
+        "exit": 1,
+        "diagnostic_codes": {
+          "invalid-argument-type": 1,
+          "invalid-assignment": 1,
+          "plugin-configuration": 7
+        },
+        "user_cpu_seconds": 1.013258,
+        "system_cpu_seconds": 0.5499809999999999,
+        "sampled_process_tree_peak_rss_kib": 214416,
+        "stopped": null,
+        "monitor_error": null,
+        "parse_error": null,
+        "load_before": [
+          42.7958984375,
+          30.5087890625,
+          24.78173828125
+        ],
+        "load_after": [
+          42.7958984375,
+          30.5087890625,
+          24.78173828125
+        ],
+        "source_sha256": "dd7ded667cf6ea04747e7edbd1b33134e8611132771d300a347449a17f48c396",
+        "source_preserved": true,
+        "mode": "1",
+        "case": "negative",
+        "diagnostics": [
+          {
+            "check_name": "invalid-argument-type",
+            "description": "invalid-argument-type: Argument is incorrect: Expected `str`, found `Literal[123]`",
+            "fingerprint": "349a397311d595756e7c4b271fbac5aa6b45be2e814c5c7f9d822afe12ab38ab",
+            "location": {
+              "path": "/private/tmp/ty-companion-subsecond-work/native-hybrid/source-e2e-v45c/project/typechecks/negative.py",
+              "positions": {
+                "begin": {
+                  "column": 6,
+                  "line": 7
+                },
+                "end": {
+                  "column": 15,
+                  "line": 7
+                }
+              }
+            },
+            "severity": "major"
+          },
+          {
+            "check_name": "invalid-assignment",
+            "description": "invalid-assignment: Object of type `str` is not assignable to `int`",
+            "fingerprint": "3aafad68e663e90750cd3eef830420349cf61b9aadb963a113cabd03bda167d4",
+            "location": {
+              "path": "/private/tmp/ty-companion-subsecond-work/native-hybrid/source-e2e-v45c/project/typechecks/negative.py",
+              "positions": {
+                "begin": {
+                  "column": 18,
+                  "line": 8
+                },
+                "end": {
+                  "column": 54,
+                  "line": 8
+                }
+              }
+            },
+            "severity": "major"
+          },
+          {
+            "check_name": "plugin-configuration",
+            "description": "plugin-configuration: Conflicting Django reverse relation `library.models.Author.duplicate_books`: django-ty.reverse-relation-conflict",
+            "fingerprint": "b41615d134ed93eca9b290c0be205f6647fa296b0f2ffc46456e06b7b6798d18",
+            "location": {
+              "path": "/private/tmp/ty-companion-subsecond-work/native-hybrid/source-e2e-v45c/project/caveats/models.py",
+              "positions": {
+                "begin": {
+                  "column": 5,
+                  "line": 17
+                },
+                "end": {
+                  "column": 11,
+                  "line": 17
+                }
+              }
+            },
+            "severity": "major"
+          },
+          {
+            "check_name": "plugin-configuration",
+            "description": "plugin-configuration: Invalid Django lookup value for `pages__icontains` on `library.models.Book.pages`; expected `int | None`: django-ty.invalid-lookup-value",
+            "fingerprint": "f00e5a9b2f0ae9612a3db9b949bd6c257fe74f2cd69e481e938a7e49f7185085",
+            "location": {
+              "path": "/private/tmp/ty-companion-subsecond-work/native-hybrid/source-e2e-v45c/project/typechecks/negative.py",
+              "positions": {
+                "begin": {
+                  "column": 20,
+                  "line": 9
+                },
+                "end": {
+                  "column": 64,
+                  "line": 9
+                }
+              }
+            },
+            "severity": "major"
+          },
+          {
+            "check_name": "plugin-configuration",
+            "description": "plugin-configuration: Unknown Django lookup `author__missing` for model `library.models.Book`: django-ty.unknown-lookup",
+            "fingerprint": "3837ddc258fd3569ba5ea77aab82c1992231e7872b0c63d85a525976344b4f78",
+            "location": {
+              "path": "/private/tmp/ty-companion-subsecond-work/native-hybrid/source-e2e-v45c/project/typechecks/negative.py",
+              "positions": {
+                "begin": {
+                  "column": 23,
+                  "line": 11
+                },
+                "end": {
+                  "column": 63,
+                  "line": 11
+                }
+              }
+            },
+            "severity": "major"
+          },
+          {
+            "check_name": "plugin-configuration",
+            "description": "plugin-configuration: Unknown Django lookup `missing_field` for model `library.models.Book`: django-ty.unknown-lookup",
+            "fingerprint": "717e053f93e8b38cbba0218c297085151aad1609d6f522c34948cbb248a7a71d",
+            "location": {
+              "path": "/private/tmp/ty-companion-subsecond-work/native-hybrid/source-e2e-v45c/project/typechecks/negative.py",
+              "positions": {
+                "begin": {
+                  "column": 14,
+                  "line": 12
+                },
+                "end": {
+                  "column": 50,
+                  "line": 12
+                }
+              }
+            },
+            "severity": "major"
+          },
+          {
+            "check_name": "plugin-configuration",
+            "description": "plugin-configuration: Unknown Django lookup `missing_field` for model `library.models.Book`: django-ty.unknown-lookup",
+            "fingerprint": "067eb8e5f69979574da6e616492352984ba444d68a91d90d89ca9454b1e3600c",
+            "location": {
+              "path": "/private/tmp/ty-companion-subsecond-work/native-hybrid/source-e2e-v45c/project/typechecks/negative.py",
+              "positions": {
+                "begin": {
+                  "column": 18,
+                  "line": 10
+                },
+                "end": {
+                  "column": 56,
+                  "line": 10
+                }
+              }
+            },
+            "severity": "major"
+          },
+          {
+            "check_name": "plugin-configuration",
+            "description": "plugin-configuration: Unknown Django lookup `missing_field` for model `library.models.Book`: django-ty.unknown-lookup",
+            "fingerprint": "35631667b09adafdcd9c80707142fc21f3a41b735f3905915f016effa49d2383",
+            "location": {
+              "path": "/private/tmp/ty-companion-subsecond-work/native-hybrid/source-e2e-v45c/project/typechecks/negative.py",
+              "positions": {
+                "begin": {
+                  "column": 19,
+                  "line": 13
+                },
+                "end": {
+                  "column": 71,
+                  "line": 13
+                }
+              }
+            },
+            "severity": "major"
+          },
+          {
+            "check_name": "plugin-configuration",
+            "description": "plugin-configuration: Unknown Django relation target `missing.App` for field `caveats.models.BrokenLink.target`: django-ty.unknown-relation-target",
+            "fingerprint": "42c560411e6f8f7aac0963745740fd1b943ae053c40e77366ce60202169060bb",
+            "location": {
+              "path": "/private/tmp/ty-companion-subsecond-work/native-hybrid/source-e2e-v45c/project/caveats/models.py",
+              "positions": {
+                "begin": {
+                  "column": 5,
+                  "line": 5
+                },
+                "end": {
+                  "column": 11,
+                  "line": 5
+                }
+              }
+            },
+            "severity": "major"
+          }
+        ]
+      }
+    ],
+    "project_cleaned": true
+  },
+  "pending_gates": [
+    "Strict paired performance locally and on isolated Linux/macOS",
+    "Consumer activation, fresh version/install matrices, integrated Django relation fixes, current conformance receipt and green CI",
+    "Release artifacts and installed-consumer acceptance"
+  ]
+}

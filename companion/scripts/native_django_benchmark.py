@@ -19,7 +19,7 @@ from types import SimpleNamespace
 
 from compare_checkers import invoke, source_hash
 
-DJANGO_COMMIT = "090495fe302e087256b2cf99090da9ded46eca49"
+DJANGO_COMMIT = "c5a3eab7cb4416fc0f0202103f310422b5273c1c"
 SCRIPTS = Path(__file__).resolve().parent
 
 
