@@ -45,8 +45,31 @@ classification and relation arguments. The complete preserved 2,501-model index
 response is identical. Local validation passes 254 regular Rust tests plus three
 additional tests in each mode, 36 SDK/CLI suite invocations containing 44 test
 executions, 27 Django index tests and the Django end-to-end controls. Optimized
-build and Cargo cleanup pass; performance acceptance is pending. The stale
-Django official-contract receipt remains an explicit failing release gate.
+build and Cargo cleanup pass. Its completed local, Linux and macOS matrices
+all fail the strict ceiling: distributed-stress median ratios are 3.89, 4.27
+and 3.13 respectively, and each matrix has at least one failed paired repeat.
+Correctness, source/provider preservation and environment cleanup pass. The
+stale Django official-contract receipt remains an explicit failing release gate.
+
+A later guarded CLI prototype is under qualification. An unpatched native check
+was correctly rejected because Django's settings declarations change. A partial
+provider overlay matches the full copied provider in a focused positive/negative
+regression. The current prototype retains exact import preflight inputs as well.
+The [effective CLI candidate](qualification/native-django-effective-cli-v52c.json)
+now reuses that native result on the real distributed Django workload, with the
+same diagnostics and 202 Monty executions. It passes 259 regular Rust tests plus
+three additional tests in each mode, 36 SDK/CLI suite invocations containing 44
+individual test executions, 28 Django index tests and the Django end-to-end
+controls. Its complete monolithic and distributed 2,501-model index responses
+remain identical. The optimized build and mandatory Cargo cleanup pass. These
+structural and correctness results do not establish speed. Its completed local
+matrix fails all five shapes: median ratios range from 3.16 to 4.39, and worst
+paired ratios from 3.36 to 5.26. All checks remain faster than MyPy; correctness
+controls, source/provider preservation and cleanup pass. No isolated matrix was
+dispatched for this rejected source. The [subsequent scheduling candidate](qualification/native-django-prepared-inputs-v53.json)
+moves input preparation into the indexing window and reuses compacted checker
+paths. Its local source qualification and real Django diagnostic comparison
+pass; optimized performance remains under measurement.
 
 The [production-default candidate](qualification/native-django-production-defaults-v47.json)
 uses author-selected native fields, eligible memory projection and provider
@@ -55,13 +78,13 @@ retains every existing workload shape, five fresh paired repeats, both error
 controls and the focused Django contracts. Every pair and the median must stay
 within three times the identical official Ty executable.
 
-| Workload | Linux median ratio | Linux worst pair | macOS median ratio | macOS worst pair |
-| -------- | -----------------: | ---------------: | -----------------: | ---------------: |
-| Small | 3.33 | 3.97 | 3.49 | 4.43 |
-| Distributed | 3.89 | 4.34 | 2.45 | 3.11 |
-| Many files | 4.21 | 4.52 | 2.81 | 3.11 |
-| Single-module stress | 3.37 | 3.52 | 2.56 | 2.76 |
-| Distributed stress | 4.94 | 5.15 | 3.41 | 5.61 |
+| Workload             | Linux median ratio | Linux worst pair | macOS median ratio | macOS worst pair |
+| -------------------- | -----------------: | ---------------: | -----------------: | ---------------: |
+| Small                |               3.33 |             3.97 |               3.49 |             4.43 |
+| Distributed          |               3.89 |             4.34 |               2.45 |             3.11 |
+| Many files           |               4.21 |             4.52 |               2.81 |             3.11 |
+| Single-module stress |               3.37 |             3.52 |               2.56 |             2.76 |
+| Distributed stress   |               4.94 |             5.15 |               3.41 |             5.61 |
 
 **Both isolated matrix jobs fail.** The single-module stress case takes 0.696
 seconds against native Ty's 0.206 seconds on Linux, and 0.743 seconds against

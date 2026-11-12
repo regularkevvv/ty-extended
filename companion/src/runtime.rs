@@ -544,6 +544,9 @@ impl Runtime {
                     "companion-parallel-calls must be a boolean"
                 );
             }
+            if let Some(value) = config.get("companion-native-cli").filter(|v| !v.is_null()) {
+                ensure!(value.is_boolean(), "companion-native-cli must be a boolean");
+            }
             declared_third_party_overlays(&config)?;
             let native_member_abstentions = config
                 .get("companion-native-member-abstentions")
@@ -754,6 +757,15 @@ impl Runtime {
             names.retain(|name| declared.contains(name));
         }
         Ok(names)
+    }
+
+    pub fn prefers_native_cli(&self) -> bool {
+        self.use_site_fields
+            && !self.plugins.is_empty()
+            && self
+                .plugins
+                .iter()
+                .all(|plugin| plugin.config["companion-native-cli"] == true)
     }
 
     pub fn attach_project(&mut self, project: Arc<Project>, config: Value) {
@@ -3482,6 +3494,34 @@ def dynamic(request):
                 assert_eq!(actual["access"]["type-expr"]["expression"], annotation);
             }
         }
+        std::fs::remove_dir_all(directory)?;
+        Ok(())
+    }
+
+    #[test]
+    fn native_cli_requires_native_fields_unanimous_opt_in_and_boolean_config() -> Result<()> {
+        let directory =
+            std::env::temp_dir().join(format!("ty-native-cli-config-{}", std::process::id()));
+        std::fs::create_dir_all(&directory)?;
+        let artifact = directory.join("plugin.py");
+        std::fs::write(&artifact, "# Overlay-only plugin.\n")?;
+        let mut paths = Vec::new();
+        for id in ["one", "two"] {
+            let manifest = directory.join(format!("{id}.json"));
+            std::fs::write(&manifest,json!({"id":id,"name":id,"version":"0","protocol-version":{"major":0,"minor":9},"ty-compatibility":{"requirement":">=0.89.0"},"runtime":{"kind":"monty","artifact":"plugin.py"},"capabilities":{"stub-overlays":true},"default-config":{"companion-native-fields":true,"companion-native-cli":true}}).to_string())?;
+            paths.push((manifest, artifact.clone(), json!({})));
+        }
+        let mut runtime = Runtime::from_plugins(&paths)?;
+        assert_eq!(runtime.prefers_native_cli(), runtime.use_site_fields);
+        runtime.use_site_fields = false;
+        assert!(!runtime.prefers_native_cli());
+        paths[1].2 = json!({"companion-native-cli":false});
+        assert!(!Runtime::from_plugins(&paths)?.prefers_native_cli());
+        paths[1].2 = json!({"companion-native-cli":null});
+        assert!(!Runtime::from_plugins(&paths)?.prefers_native_cli());
+        paths[1].2 = json!({"companion-native-cli":"yes"});
+        assert!(Runtime::from_plugins(&paths).is_err());
+        assert!(!Runtime::from_plugins(&[])?.prefers_native_cli());
         std::fs::remove_dir_all(directory)?;
         Ok(())
     }

@@ -106,10 +106,9 @@ def invoke(args, backend, command, label):
     stopped = None
     monitor_error = None
     load = os.getloadavg()
-    with (
-        (folder / "stdout.json").open("wb") as stdout,
-        (folder / "stderr.log").open("wb") as stderr,
-    ):
+    with contextlib.ExitStack() as streams:
+        stdout = streams.enter_context((folder / "stdout.json").open("wb"))
+        stderr = streams.enter_context((folder / "stderr.log").open("wb"))
         started = time.perf_counter()
         process = subprocess.Popen(
             command,

@@ -56,19 +56,25 @@ manifest's `default-config`. They describe the plugin's requirements; they do
 not change the external checker's version or configuration interfaces.
 
 - `companion-native-fields = true` delegates ordinary fields to official ty.
-  The default activates only when every registered plugin opts in. Explicit
-  environment overrides retain either strategy.
+    The default activates only when every registered plugin opts in. Explicit
+    environment overrides retain either strategy.
 - `companion-parallel-calls = true` permits bounded prefetch of independent
-  literal-argument hooks on fresh Monty snapshots. Responses enter the ordinary
-  cache under their complete request keys. Changed arguments, contexts or indexes
-  use the normal execution path, and speculative host failures are retried there.
+    literal-argument hooks on fresh Monty snapshots. Responses enter the ordinary
+    cache under their complete request keys. Changed arguments, contexts or indexes
+    use the normal execution path, and speculative host failures are retried there.
+- `companion-native-cli = true` prefers an overlapping official CLI check when
+    every plugin selects it and ordinary fields use native typing. Temporary
+    partial overlays retain changed provider declarations. Native diagnostics
+    are reused only when the final projections, selected paths, source revisions,
+    import probes and checker configuration still match. Inferred-type queries
+    and mismatched inputs use the existing checker transport.
 - `companion-third-party-overlays = ["django"]` declares top-level overlay
-  modules that the plugin author guarantees are third-party packages throughout
-  its supported checker and Python versions. The companion can omit the separate
-  stdlib precedence probe for these names only when every registered plugin
-  agrees. Names must be ASCII Python module identifiers. Undeclared modules and
-  every custom typeshed retain resolution through official ty. This declaration
-  does not remove overlay files from the checker or change source selection.
+    modules that the plugin author guarantees are third-party packages throughout
+    its supported checker and Python versions. The companion can omit the separate
+    stdlib precedence probe for these names only when every registered plugin
+    agrees. Names must be ASCII Python module identifiers. Undeclared modules and
+    every custom typeshed retain resolution through official ty. This declaration
+    does not remove overlay files from the checker or change source selection.
 
 These options retain per-request Monty resource limits and plugin index isolation.
 CLI memory projection and provider borrowing apply only to eligible fresh checks;

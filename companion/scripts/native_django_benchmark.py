@@ -19,7 +19,7 @@ from types import SimpleNamespace
 
 from compare_checkers import invoke, source_hash
 
-DJANGO_COMMIT = "621e91939bea2fd78f555fc53072e7c925e6dcef"
+DJANGO_COMMIT = "a5243bb1ce298ad3844d49ba3418ca4fa3b55475"
 SCRIPTS = Path(__file__).resolve().parent
 
 
@@ -253,6 +253,7 @@ def main() -> int:
             current["benchmark_exit"] = result.returncode
             current["performance_gate"] = benchmark["performance_gate"]
             phases = collections.defaultdict(list)
+            native_cli_reuses = 0
             for row in benchmark["records"]:
                 if (
                     row["backend"] != "companion"
@@ -264,7 +265,11 @@ def main() -> int:
                 if args.production_defaults:
                     assert "companion native fields: true" in stderr
                     assert "companion borrowed overlay: true" in stderr
-                    assert "companion native warmup initialize:" in stderr
+                    assert (
+                        "companion native warmup initialize:" in stderr
+                        or "companion native cli check:" in stderr
+                    )
+                native_cli_reuses += "companion native cli reuse: true" in stderr
                 for phase_name, seconds in re.findall(
                     r"companion phase (\S+): ([\d.]+)s",
                     stderr,
@@ -272,6 +277,7 @@ def main() -> int:
                     sample[phase_name] += float(seconds)
                 for phase_name, seconds in sample.items():
                     phases[phase_name].append(seconds)
+            current["native_cli_reuse_positive_samples"] = native_cli_reuses
             current["phase_medians_seconds"] = {
                 name: statistics.median(samples)
                 for name, samples in sorted(phases.items())

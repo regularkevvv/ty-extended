@@ -192,15 +192,40 @@ pub struct SourceSnapshot {
     pub revision: Option<FileRevision>,
 }
 
-fn read_snapshot(path: &Path) -> Result<(String, Option<FileRevision>)> {
+pub(crate) fn read_snapshot(path: &Path) -> Result<(String, Option<FileRevision>)> {
     use std::io::Read as _;
     let mut file = std::fs::File::open(path).with_context(|| format!("read {}", path.display()))?;
-    let before = file.metadata().ok().as_ref().and_then(file_revision);
-    let mut text = String::new();
-    file.read_to_string(&mut text)
-        .with_context(|| format!("read {}", path.display()))?;
+    let metadata = file.metadata().ok();
+    let before = metadata.as_ref().and_then(file_revision);
+    let text = if let Some(metadata) = metadata {
+        read_text_with_size(&mut file, metadata.len())
+    } else {
+        let mut text = String::new();
+        file.read_to_string(&mut text).map(|_| text)
+    }
+    .with_context(|| format!("read {}", path.display()))?;
     let after = file.metadata().ok().as_ref().and_then(file_revision);
     Ok((text, before.filter(|revision| Some(*revision) == after)))
+}
+
+// File::read_to_string queries metadata and the stream position to reserve
+// capacity. The snapshot already has the size and starts at offset zero.
+// A bounded Read adapter avoids those redundant syscalls while still reading
+// a file that grows, including UTF-8 split across the original size boundary.
+fn read_text_with_size(reader: &mut impl std::io::Read, size: u64) -> std::io::Result<String> {
+    use std::io::Read as _;
+    let limit = size.saturating_add(1);
+    let mut bytes = Vec::new();
+    reader.by_ref().take(limit).read_to_end(&mut bytes)?;
+    if bytes.len() as u64 == limit {
+        reader.read_to_end(&mut bytes)?;
+    }
+    String::from_utf8(bytes).map_err(|_| {
+        std::io::Error::new(
+            std::io::ErrorKind::InvalidData,
+            "stream did not contain valid UTF-8",
+        )
+    })
 }
 
 fn import_targets(name: &str, module: &Module) -> BTreeSet<String> {
@@ -538,6 +563,7 @@ impl Project {
             .unwrap_or(&self.root);
         module_name(root, path)
     }
+    #[cfg(test)]
     fn find_source_module(&self, name: &str) -> Option<PathBuf> {
         self.source_roots
             .iter()
@@ -981,6 +1007,7 @@ impl Project {
         // Keep this local so newly created modules and changed source roots are
         // resolved normally on the next update.
         let mut resolved = BTreeSet::new();
+        let mut directories = std::collections::HashMap::new();
         loop {
             let mut additions = BTreeMap::new();
             for module in self.modules.values() {
@@ -989,7 +1016,9 @@ impl Project {
                     loop {
                         if !self.modules.contains_key(candidate)
                             && resolved.insert(candidate.to_owned())
-                            && let Some(path) = self.find_source_module(candidate)
+                            && let Some(path) = self.source_roots.iter().find_map(|root| {
+                                find_module_with_directories(root, candidate, &mut directories)
+                            })
                         {
                             additions.insert(candidate.to_owned(), path);
                         }
@@ -2447,6 +2476,53 @@ fn find_module(root: &Path, name: &str) -> Option<PathBuf> {
     .find(|p| p.is_file())
 }
 
+// A class re-export such as package.part.Item is not a filesystem module
+// when package/part is absent as a directory. Remember observed directory
+// identities for this loading wave, including absent ancestors, rather than
+// repeating four failing metadata probes for every exported class.
+fn find_module_with_directories(
+    root: &Path,
+    name: &str,
+    directories: &mut std::collections::HashMap<PathBuf, bool>,
+) -> Option<PathBuf> {
+    fn directory_exists(
+        path: &Path,
+        directories: &mut std::collections::HashMap<PathBuf, bool>,
+    ) -> bool {
+        let mut unobserved = Vec::new();
+        for ancestor in path.ancestors() {
+            if let Some(exists) = directories.get(ancestor) {
+                if !exists {
+                    return false;
+                }
+                break;
+            }
+            unobserved.push(ancestor);
+        }
+        for ancestor in unobserved.into_iter().rev() {
+            let exists = ancestor.is_dir();
+            directories.insert(ancestor.to_owned(), exists);
+            if !exists {
+                return false;
+            }
+        }
+        true
+    }
+    let base = root.join(name.replace('.', "/"));
+    [
+        base.with_extension("pyi"),
+        base.with_extension("py"),
+        base.join("__init__.pyi"),
+        base.join("__init__.py"),
+    ]
+    .into_iter()
+    .find(|path| {
+        path.parent()
+            .is_some_and(|parent| directory_exists(parent, directories))
+            && path.is_file()
+    })
+}
+
 fn relative_import(module: &str, is_package: bool, level: u32, target: Option<&str>) -> String {
     if level == 0 {
         return target.unwrap_or("").to_owned();
@@ -3168,6 +3244,107 @@ mod tests {
                 );
             }
         }
+        Ok(())
+    }
+
+    #[test]
+    fn known_size_reads_preserve_utf8_growth_short_reads_and_io_errors() -> Result<()> {
+        use std::io::{Cursor, Read};
+        let text = "\u{feff}héllo 🌍\n";
+        for hint in 0..=text.len() + 10 {
+            assert_eq!(
+                read_text_with_size(&mut Cursor::new(text.as_bytes()), hint as u64)?,
+                text
+            );
+        }
+        assert_eq!(
+            read_text_with_size(&mut Cursor::new(text.as_bytes()), u64::MAX)?,
+            text
+        );
+        assert_eq!(read_text_with_size(&mut Cursor::new([]), 0)?, "");
+        assert_eq!(
+            read_text_with_size(&mut Cursor::new([0xff]), 0)
+                .unwrap_err()
+                .kind(),
+            std::io::ErrorKind::InvalidData
+        );
+        struct Short(Cursor<Vec<u8>>);
+        impl Read for Short {
+            fn read(&mut self, buffer: &mut [u8]) -> std::io::Result<usize> {
+                let count = buffer.len().min(1);
+                self.0.read(&mut buffer[..count])
+            }
+        }
+        assert_eq!(
+            read_text_with_size(&mut Short(Cursor::new(text.as_bytes().to_vec())), 3)?,
+            text
+        );
+        struct Fail;
+        impl Read for Fail {
+            fn read(&mut self, _: &mut [u8]) -> std::io::Result<usize> {
+                Err(std::io::Error::new(
+                    std::io::ErrorKind::PermissionDenied,
+                    "denied",
+                ))
+            }
+        }
+        assert_eq!(
+            read_text_with_size(&mut Fail, 0).unwrap_err().kind(),
+            std::io::ErrorKind::PermissionDenied
+        );
+        Ok(())
+    }
+
+    #[test]
+    fn cached_module_directory_probes_match_direct_lookup_and_refresh() -> Result<()> {
+        let source = Fixture::new(&[
+            ("plain.py", "class Row: pass\n"),
+            ("plain/Child.py", "class Nested: pass\n"),
+            ("priority.py", "class Wrong: pass\n"),
+            ("priority.pyi", "class Selected: ...\n"),
+            ("package/__init__.py", "class Wrong: pass\n"),
+            ("package/__init__.pyi", "class Selected: ...\n"),
+            ("namespace/child.py", "class Child: pass\n"),
+            ("class_exports.py", "class Row: pass\n"),
+        ]);
+        let mut directories = std::collections::HashMap::new();
+        let mut names = vec![
+            "plain".to_owned(),
+            "plain.Child".into(),
+            "priority".into(),
+            "package".into(),
+            "namespace".into(),
+            "namespace.child".into(),
+            "missing.child".into(),
+        ];
+        names.extend((0..1000).map(|i| format!("class_exports.Item{i}")));
+        for name in names {
+            assert_eq!(
+                find_module_with_directories(&source.0, &name, &mut directories),
+                find_module(&source.0, &name),
+                "{name}"
+            );
+        }
+        assert!(!directories[&source.0.join("class_exports")]);
+        std::fs::write(source.0.join("created.py"), "value: int = 1\n")?;
+        assert_eq!(
+            find_module_with_directories(
+                &source.0,
+                "created",
+                &mut std::collections::HashMap::new()
+            ),
+            find_module(&source.0, "created")
+        );
+        std::fs::create_dir_all(source.0.join("missing"))?;
+        std::fs::write(source.0.join("missing/child.py"), "value: int = 1\n")?;
+        assert_eq!(
+            find_module_with_directories(
+                &source.0,
+                "missing.child",
+                &mut std::collections::HashMap::new()
+            ),
+            find_module(&source.0, "missing.child")
+        );
         Ok(())
     }
 

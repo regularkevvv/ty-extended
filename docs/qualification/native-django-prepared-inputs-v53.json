@@ -1,0 +1,175 @@
+{
+  "status": "correctness-qualified-performance-pending",
+  "release_accepted": false,
+  "method": "Prepare strongly identified source and directory inputs on a background thread during plugin indexing. Reuse precomputed compacted native paths; retain exact final input, revision, provider and diagnostic checks. Use bounded parallel revision validation.",
+  "semantic_checker": "Unchanged external official Astral Ty 0.0.101",
+  "source_sha256": {
+    "companion/src/project_config.rs": "3a5c5005ae9ada881e5c31020d782379aeaa3214825eb6654a646cdab95bdade",
+    "companion/src/flow.rs": "d6d879a0293f7ea07d5da2a1005c93b7b0f07a7a4044948e57a8591d93f5d306",
+    "companion/src/runtime.rs": "ce0bcf6ac98d85a92a106898b5adff444930bd9073e9a33dee747429a3897d8f",
+    "companion/src/native_rules.rs": "45a10fdebaec5c6307c75d287d97ef3c85701fe21c4ad915c6c79162db196184",
+    "companion/src/static_project.rs": "b57a33c3065aed0caea78b3c7dcdf85fc6f3cef0ffd950585fdcd9d15f68fd1e",
+    "companion/src/editor_options.rs": "6c3d5540fdea2956a9ed179fb2291f087456a48cf744647063bdd11a3f775d46",
+    "companion/src/cli_edits.rs": "01543f2a5d63f7a66545923b6ccd25e06161b6e3fd9b2936d09073768902c444",
+    "companion/src/project_check.rs": "b4929695f7df387291343547204447f515dddbf3753127457647f09634b224ac",
+    "companion/src/project.rs": "d8017537a58c714dc2478a1ce2db80efe11e29c8f1342933d855fd9516455a9c",
+    "companion/src/checker.rs": "4cb129fef5bf83671852080f618a0068f0b119bf2258abe4fe855e45c75d9687",
+    "companion/src/verify.rs": "e7708860ec0bd32cdfb8d6a171a53b2c12d5a67703f5a5b4322fa72d1592603d",
+    "companion/src/type_snapshot.rs": "0c018b699a8d140782e3813a5606d188c27b392400d1796ab839d73002eba813",
+    "companion/src/mapping.rs": "f92e4155bff39e8d47bed7b19a81e418a200fda3892eaebff485b1ea278bb761",
+    "companion/src/main.rs": "889627d345b64c595b0e5880e825b068f00008e5744ad52577a4c6933d6a668a",
+    "companion/src/parallel.rs": "ea1b52946ab12fca3cdf9788be063f737ea8a0ab91203565b475f5daf3e314fe",
+    "companion/src/notebook.rs": "0bbd10d569d77019c19b7b76e7d2259c93afaaccc7f18c089e6478f3491cd24f",
+    "companion/src/lsp_mapping.rs": "2a3d7cc63f066bc25db11d680819124e3ff609448d2f27ab93b15d877bfc48fb",
+    "companion/src/lsp_server.rs": "f6a49b11f82ef55a8028d78253fb210844135b9c93e7777074dab3c6f846676a",
+    "companion/src/native_warmup.rs": "08a9e6bd722adfc152cb2dd1b4f9c2b552ee31db7c8d55cc24b96a317c698688",
+    "companion/src/lower.rs": "df0249023e8c7f88eff2eb49ca2d0ee64aba682ebc5b244c230435acccb136d4",
+    "companion/src/type_render.rs": "d4f62ea50e5fa320e862ae635e8bf90329211324963a8d92bea21cf6b9533111",
+    "companion/src/model.rs": "8bb5f959e83a06c65603dda8b389a58a5854ae1d47d57b53d7abf3b2e6afe65e",
+    "companion/src/cli.rs": "c5da2dcd032e87084e8c80a160642c6c2ee615020a3f9bd4e4eb7cbb450be52f",
+    "ruff/crates/ty_plugin_host/src/monty.rs": "3ecf94981aef4e841d1e7a32c27c00907263fceb82e5adeee93dcd63ad632a3b",
+    "ruff/crates/ty_plugin_host/tests/monty.rs": "3ee1f9e8e9f6591603ce89f283c787c6bf3fecd818aab12650b893881dca136e"
+  },
+  "companion_qualification": {
+    "passed": true,
+    "regular_tests_per_field_mode": 259,
+    "additional_tests_per_field_mode": 3,
+    "sdk_cli_suite_invocations": 36,
+    "individual_sdk_cli_test_executions": 44,
+    "format_and_clippy_passed": true,
+    "cargo_clean_exit": 0
+  },
+  "django_qualification": {
+    "steps": [
+      {
+        "step": "corpus",
+        "exit": 0,
+        "seconds": 1.0924755409359932
+      },
+      {
+        "step": "multi-app",
+        "exit": 0,
+        "seconds": 0.2972680419916287
+      },
+      {
+        "step": "sdk-fields",
+        "exit": 0,
+        "seconds": 0.3352905419887975
+      },
+      {
+        "step": "monty-types",
+        "exit": 0,
+        "seconds": 0.34156745800282806
+      },
+      {
+        "step": "python-units",
+        "exit": 1,
+        "seconds": 4.2343411250039935
+      },
+      {
+        "step": "django-runtime",
+        "exit": 0,
+        "seconds": 0.705000082962215
+      },
+      {
+        "step": "querydict-0",
+        "exit": 0,
+        "seconds": 3.50099837500602
+      },
+      {
+        "step": "querydict-1",
+        "exit": 0,
+        "seconds": 2.065001916955225
+      },
+      {
+        "step": "primary",
+        "exit": 0,
+        "seconds": 0.6376407910138369
+      },
+      {
+        "step": "source-example",
+        "exit": 0,
+        "seconds": 3.2074789999751374
+      }
+    ],
+    "binary_sha256": "fb1dea829ae5029ec4c330dc64dad83cdba01d37e976efe09ec7bd31caa502ec",
+    "focus_receipt": "pending optimized paired comparison",
+    "passed": true
+  },
+  "real_django_structural_probe": {
+    "passed": true,
+    "scope": "Structural probe only, not performance acceptance",
+    "runs": [
+      {
+        "diagnostics": [],
+        "native_cli_reused": false,
+        "monty_executions": 202,
+        "monty_cache_hits": 399,
+        "oracle_rounds": 1,
+        "native_call_returns": 100,
+        "seconds": 0.149521375,
+        "phases": {
+          "class_projection": 0.000100334,
+          "diagnostic_mapping": 0.001479708,
+          "external_resolution": 0.0013275,
+          "final_check": 0.00044975,
+          "final_render": 0.000214292,
+          "flow_and_render": 0.000608292,
+          "function_summaries": 6.4584e-05,
+          "hook_responses": 0.003702375,
+          "import_preflight": 0.000936417,
+          "initial_lowering": 0.012923041,
+          "native_cli_prepare": 8.0125e-05,
+          "oracle_check": 0.011416541,
+          "project_index": 0.023128583,
+          "source_maps": 0.002177,
+          "source_scan": 6.1958e-05,
+          "virtual_declarations": 0.001028083,
+          "warmup_flow": 0.08905275,
+          "warmup_join": 0.00065975
+        },
+        "enabled": false
+      },
+      {
+        "diagnostics": [],
+        "native_cli_reused": true,
+        "monty_executions": 202,
+        "monty_cache_hits": 399,
+        "oracle_rounds": 1,
+        "native_call_returns": 100,
+        "seconds": 0.143944792,
+        "phases": {
+          "class_projection": 9.3709e-05,
+          "diagnostic_mapping": 0.001479458,
+          "external_resolution": 0.001013584,
+          "final_check": 0.000434583,
+          "final_render": 0.000185334,
+          "flow_and_render": 0.093587125,
+          "function_summaries": 4.3791e-05,
+          "hook_responses": 0.003575625,
+          "import_preflight": 0.000929792,
+          "initial_lowering": 0.013044166,
+          "native_cli_prepare": 0.002056792,
+          "oracle_check": 0.003374166,
+          "project_index": 0.020322209,
+          "source_maps": 0.00281,
+          "source_scan": 4.5625e-05,
+          "virtual_declarations": 0.000810166
+        },
+        "enabled": true
+      }
+    ],
+    "same_diagnostics": true,
+    "fast_path_engaged": true,
+    "same_hook_execution_count": true,
+    "source_and_provider_preserved": true
+  },
+  "known_release_blocker": "The official-contract receipt test remains stale. Its single failure is allowed only in this interim source qualification; release acceptance is false.",
+  "performance_gate": {
+    "max_ty_ratio": 3,
+    "all_five_workload_medians_and_every_pair_required": true,
+    "mypy_ceiling_required": true,
+    "passed": false,
+    "reason": "Optimized production matrix pending."
+  }
+}
