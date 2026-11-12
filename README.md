@@ -48,9 +48,10 @@ ty timings, correctness controls and the limits of each comparison.
 The [unreleased companion trial](docs/performance.md#current-native-comparison)
 checks all five workload shapes against official Ty 0.0.101 with `django-types`.
 **The required 3-times ceiling still fails**, so no release is accepted. The
-latest completed local candidate takes 0.108–0.718 seconds across the five
-shapes. Single-module stress passes at 2.29 times median and 2.62 times worst
-pair; the other four shapes fail the strict paired-repeat gate. All five remain
+latest completed local candidate takes 0.105–0.713 seconds across the five
+shapes. Small and single-module stress pass locally; the other three shapes fail
+the strict paired-repeat gate. Complete isolated Linux and macOS matrices also
+fail the ceiling. All five remain
 faster than MyPy. Correctness controls and source/provider preservation pass;
 further loading and selection changes are under qualification. See the complete
 results and remaining gates in the performance documentation.

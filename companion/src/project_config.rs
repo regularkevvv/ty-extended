@@ -273,9 +273,8 @@ impl Selection {
         if !self.respect_ignore {
             return std::collections::BTreeSet::new();
         }
-        let mut all = std::collections::BTreeSet::new();
-        let mut visible = std::collections::BTreeSet::new();
-        for (respect, paths) in [(false, &mut all), (true, &mut visible)] {
+        let scan = |respect| {
+            let mut paths = std::collections::BTreeSet::new();
             let mut walker = ignore::WalkBuilder::new(root);
             walker
                 .hidden(false)
@@ -302,7 +301,18 @@ impl Selection {
                     paths.insert(entry.into_path());
                 }
             }
-        }
+            paths
+        };
+        // The two scans are independent. Keep the same walkers, rule flags,
+        // pruning and error handling, then compare their complete file sets.
+        let (all, visible) = std::thread::scope(|scope| {
+            let all = scope.spawn(|| scan(false));
+            let visible = scan(true);
+            (
+                all.join().expect("unfiltered ignore scan panicked"),
+                visible,
+            )
+        });
         all.difference(&visible).cloned().collect()
     }
 }

@@ -1,0 +1,206 @@
+{
+  "status": "Source-qualified candidate; optimized five-workload performance pending. No merge or release accepted.",
+  "official_ty": "0.0.101",
+  "django_commit": "61b09660c403bea5e58f7b7a56e66f14b5c84f44",
+  "ruff_commit": "03b2ebfde0653f5295a325c2b6ce0e96b47b0a00",
+  "implementation": [
+    "Run the two independent ignore-discovery walks concurrently while retaining their existing inputs, pruning and set difference.",
+    "Offer opted-in project-index calls the existing bounded read-only lookup capability over typed, normalized class summaries. Snapshot scope follows each plugin input filter; duplicate identities or a class over 64 KiB disable this bridge.",
+    "Require an explicit successful plugin marker before retaining the snapshot. Restore prior indexes on failure and include retained snapshots in generation comparison and semantic-cache invalidation.",
+    "Django private index format 2 combines plain-model traits and deferred fields, expands reverse-manager annotations on access and uses class references for at least 512 declarations. Existing hosts and general model cases retain their ordinary representation."
+  ],
+  "qualification": {
+    "passed": true,
+    "steps": 98,
+    "regular_rust_tests_per_field_mode": 268,
+    "additional_tests_per_field_mode": 3,
+    "sdk_cli_invocations": 36,
+    "sdk_cli_individual_test_executions": 44,
+    "clippy": true,
+    "source_sha256": {
+      "companion/src/project_config.rs": "b404ee4e3427c60af4261698a500454c3c7c2194f86a93bbf24f4be71fc16617",
+      "companion/src/flow.rs": "d6d879a0293f7ea07d5da2a1005c93b7b0f07a7a4044948e57a8591d93f5d306",
+      "companion/src/runtime.rs": "aa976e6dc4db66ccbccf6c68b51b6a884bfb4168f570404be2d6e4b86e55dcae",
+      "companion/src/native_rules.rs": "45a10fdebaec5c6307c75d287d97ef3c85701fe21c4ad915c6c79162db196184",
+      "companion/src/static_project.rs": "b57a33c3065aed0caea78b3c7dcdf85fc6f3cef0ffd950585fdcd9d15f68fd1e",
+      "companion/src/editor_options.rs": "6c3d5540fdea2956a9ed179fb2291f087456a48cf744647063bdd11a3f775d46",
+      "companion/src/cli_edits.rs": "01543f2a5d63f7a66545923b6ccd25e06161b6e3fd9b2936d09073768902c444",
+      "companion/src/project_check.rs": "fba615ab2e3e083d962478b483e2ea307c427f83f39915d5eb26ab85a76bde2b",
+      "companion/src/project.rs": "0e109c4e91bd9757395fb2dff629ebd567744e1d395e2b1270d9b0d3e973a59a",
+      "companion/src/checker.rs": "4cb129fef5bf83671852080f618a0068f0b119bf2258abe4fe855e45c75d9687",
+      "companion/src/verify.rs": "e7708860ec0bd32cdfb8d6a171a53b2c12d5a67703f5a5b4322fa72d1592603d",
+      "companion/src/type_snapshot.rs": "0c018b699a8d140782e3813a5606d188c27b392400d1796ab839d73002eba813",
+      "companion/src/mapping.rs": "f92e4155bff39e8d47bed7b19a81e418a200fda3892eaebff485b1ea278bb761",
+      "companion/src/main.rs": "889627d345b64c595b0e5880e825b068f00008e5744ad52577a4c6933d6a668a",
+      "companion/src/parallel.rs": "ea1b52946ab12fca3cdf9788be063f737ea8a0ab91203565b475f5daf3e314fe",
+      "companion/src/notebook.rs": "0bbd10d569d77019c19b7b76e7d2259c93afaaccc7f18c089e6478f3491cd24f",
+      "companion/src/lsp_mapping.rs": "2a3d7cc63f066bc25db11d680819124e3ff609448d2f27ab93b15d877bfc48fb",
+      "companion/src/lsp_server.rs": "f6a49b11f82ef55a8028d78253fb210844135b9c93e7777074dab3c6f846676a",
+      "companion/src/native_warmup.rs": "08a9e6bd722adfc152cb2dd1b4f9c2b552ee31db7c8d55cc24b96a317c698688",
+      "companion/src/lower.rs": "df0249023e8c7f88eff2eb49ca2d0ee64aba682ebc5b244c230435acccb136d4",
+      "companion/src/type_render.rs": "d4f62ea50e5fa320e862ae635e8bf90329211324963a8d92bea21cf6b9533111",
+      "companion/src/model.rs": "8bb5f959e83a06c65603dda8b389a58a5854ae1d47d57b53d7abf3b2e6afe65e",
+      "companion/src/cli.rs": "28f9456cd46a1a2bbf5640b500a2921a38c7b13e18687b1f6d2345a8a0e26bf2",
+      "ruff/crates/ty_plugin_host/src/monty.rs": "297dbe3457a47dd315659154a64f0d5210e731df98a3adf9d81cd48fe7301da5",
+      "ruff/crates/ty_plugin_host/tests/monty.rs": "88e474f60dfc7bcb57d2763fb328522dfb3e208cb9495e3e00c6e45c563d6d61",
+      "ruff/crates/ty_plugin_host/src/lib.rs": "9f4c6b83459fec687cf979798d71a48b1a3f733b862dc130a88ddb766afae0da",
+      "ruff/crates/ty_plugin_host/python/ty_plugin_sdk.py": "59d9c4cc97eaf85b1ce9c178551d1c64a024bd82e2d675fd0a7dd051cb2bd527",
+      "python/ty_extended/plugin_sdk.py": "b34661a7b88baef806f744a946c6030c2e1b95cdbf09856096cd48e8dfef53b2"
+    },
+    "cargo_clean": {
+      "step": "clean",
+      "exit": 0,
+      "seconds": 1.011271458119154
+    },
+    "optimized_build": {
+      "passed": true,
+      "source_sha256": {
+        "companion/src/project_config.rs": "b404ee4e3427c60af4261698a500454c3c7c2194f86a93bbf24f4be71fc16617",
+        "companion/src/flow.rs": "d6d879a0293f7ea07d5da2a1005c93b7b0f07a7a4044948e57a8591d93f5d306",
+        "companion/src/runtime.rs": "aa976e6dc4db66ccbccf6c68b51b6a884bfb4168f570404be2d6e4b86e55dcae",
+        "companion/src/native_rules.rs": "45a10fdebaec5c6307c75d287d97ef3c85701fe21c4ad915c6c79162db196184",
+        "companion/src/static_project.rs": "b57a33c3065aed0caea78b3c7dcdf85fc6f3cef0ffd950585fdcd9d15f68fd1e",
+        "companion/src/editor_options.rs": "6c3d5540fdea2956a9ed179fb2291f087456a48cf744647063bdd11a3f775d46",
+        "companion/src/cli_edits.rs": "01543f2a5d63f7a66545923b6ccd25e06161b6e3fd9b2936d09073768902c444",
+        "companion/src/project_check.rs": "fba615ab2e3e083d962478b483e2ea307c427f83f39915d5eb26ab85a76bde2b",
+        "companion/src/project.rs": "0e109c4e91bd9757395fb2dff629ebd567744e1d395e2b1270d9b0d3e973a59a",
+        "companion/src/checker.rs": "4cb129fef5bf83671852080f618a0068f0b119bf2258abe4fe855e45c75d9687",
+        "companion/src/verify.rs": "e7708860ec0bd32cdfb8d6a171a53b2c12d5a67703f5a5b4322fa72d1592603d",
+        "companion/src/type_snapshot.rs": "0c018b699a8d140782e3813a5606d188c27b392400d1796ab839d73002eba813",
+        "companion/src/mapping.rs": "f92e4155bff39e8d47bed7b19a81e418a200fda3892eaebff485b1ea278bb761",
+        "companion/src/main.rs": "889627d345b64c595b0e5880e825b068f00008e5744ad52577a4c6933d6a668a",
+        "companion/src/parallel.rs": "ea1b52946ab12fca3cdf9788be063f737ea8a0ab91203565b475f5daf3e314fe",
+        "companion/src/notebook.rs": "0bbd10d569d77019c19b7b76e7d2259c93afaaccc7f18c089e6478f3491cd24f",
+        "companion/src/lsp_mapping.rs": "2a3d7cc63f066bc25db11d680819124e3ff609448d2f27ab93b15d877bfc48fb",
+        "companion/src/lsp_server.rs": "f6a49b11f82ef55a8028d78253fb210844135b9c93e7777074dab3c6f846676a",
+        "companion/src/native_warmup.rs": "08a9e6bd722adfc152cb2dd1b4f9c2b552ee31db7c8d55cc24b96a317c698688",
+        "companion/src/lower.rs": "df0249023e8c7f88eff2eb49ca2d0ee64aba682ebc5b244c230435acccb136d4",
+        "companion/src/type_render.rs": "d4f62ea50e5fa320e862ae635e8bf90329211324963a8d92bea21cf6b9533111",
+        "companion/src/model.rs": "8bb5f959e83a06c65603dda8b389a58a5854ae1d47d57b53d7abf3b2e6afe65e",
+        "companion/src/cli.rs": "28f9456cd46a1a2bbf5640b500a2921a38c7b13e18687b1f6d2345a8a0e26bf2",
+        "companion/Cargo.toml": "653ef6daf3361d7fae4a52ed9cd0cf4de759fec415826b5187fd3f0d7f79242f",
+        "companion/Cargo.lock": "eaf023965ad420554ee2cf1bbad518663c35e54afb1021906d8f771995d5a93a",
+        "ruff/Cargo.toml": "3f28d07151882edb32c533f811e751e67bf72def529310fd16735dfedb1eb8ec",
+        "ruff/Cargo.lock": "4ef44a620a722a5e4bd25aa78394393998bca8289bfbc3590fe5e7acfcf43c20",
+        "ruff/crates/ty_plugin_host/Cargo.toml": "dd9336df6d25ee0a02f5c5b51010f63781c936c4da817e7f4fba7e8c4669d4e3",
+        "ruff/crates/ty_plugin_host/src/lib.rs": "9f4c6b83459fec687cf979798d71a48b1a3f733b862dc130a88ddb766afae0da",
+        "ruff/crates/ty_plugin_host/src/monty.rs": "297dbe3457a47dd315659154a64f0d5210e731df98a3adf9d81cd48fe7301da5",
+        "ruff/crates/ty_plugin_host/python/ty_plugin_sdk.py": "59d9c4cc97eaf85b1ce9c178551d1c64a024bd82e2d675fd0a7dd051cb2bd527",
+        "python/ty_extended/plugin_sdk.py": "b34661a7b88baef806f744a946c6030c2e1b95cdbf09856096cd48e8dfef53b2"
+      },
+      "ruff_commit": "03b2ebfde0653f5295a325c2b6ce0e96b47b0a00",
+      "build_exit": 0,
+      "build_seconds": 408.49968987493776,
+      "stopped": [],
+      "binary_sha256": "1115e86f2b1c0c53f3a8788674436c361c463cdaee352498b844c6ec2ace2a1f",
+      "clean_exit": 0,
+      "clean_seconds": 0.4058589590713382
+    },
+    "host_integration_tests": 23,
+    "host_library_tests": 1,
+    "host_clippy": true,
+    "host_hooks": true,
+    "generated_files_reproduce_without_changes": true
+  },
+  "behavior_comparison": {
+    "passed": true,
+    "scope": "CPython behavior and immutable-lookup simulation, not Monty performance acceptance. Full deferred requests, all reverse hooks, 200 ordinary call responses per case, and the expanded complete response are compared.",
+    "rows": [
+      {
+        "case": "ordinary",
+        "classes": 2501,
+        "deferred_requests_equal": true,
+        "reverse_hook_responses_equal": 2500,
+        "ordinary_call_responses_equal": 200,
+        "old_response_bytes": 1204292,
+        "new_response_bytes": 706750,
+        "normalized_response_sha256": "fcf49fadf92020b9d53e8a39a818f6c01576e07be4332329383e390e97fa3b0a",
+        "host_snapshot_preserved": true
+      },
+      {
+        "case": "reverse-shadow",
+        "classes": 2501,
+        "deferred_requests_equal": true,
+        "reverse_hook_responses_equal": 2500,
+        "ordinary_call_responses_equal": 200,
+        "old_response_bytes": 1081792,
+        "new_response_bytes": 584250,
+        "normalized_response_sha256": "bd48437544b4913838a067eac4d4334c9e5cf4b1f7fd478820594db0d931a970",
+        "host_snapshot_preserved": true
+      },
+      {
+        "case": "query-override",
+        "classes": 2501,
+        "deferred_requests_equal": true,
+        "reverse_hook_responses_equal": 2500,
+        "ordinary_call_responses_equal": 200,
+        "old_response_bytes": 1324292,
+        "new_response_bytes": 826750,
+        "normalized_response_sha256": "04f2556d0fd50a754842f85d6189984d0a74fee2547010d9aa41705d6d6e9094",
+        "host_snapshot_preserved": true
+      },
+      {
+        "case": "reverse-order",
+        "classes": 2501,
+        "deferred_requests_equal": true,
+        "reverse_hook_responses_equal": 2500,
+        "ordinary_call_responses_equal": 200,
+        "old_response_bytes": 1204292,
+        "new_response_bytes": 706750,
+        "normalized_response_sha256": "fcf49fadf92020b9d53e8a39a818f6c01576e07be4332329383e390e97fa3b0a",
+        "host_snapshot_preserved": true
+      }
+    ],
+    "seconds": 5.008948208997026,
+    "old_django_sha256": "c3822e0695debbd86815735734fad7ad000561832a1cfcf5f10eb48a148fd5eb",
+    "new_django_sha256": "65ab1899205a366081d91be45fa37a59bf7b34689d87de44d87ae82a377463a0"
+  },
+  "large_real_monty_probe": {
+    "passed": true,
+    "scope": "Structural probe only, not performance acceptance. Enabled run uses a transparent exec launcher to record the exact native arguments; it forwards to the unchanged official binary.",
+    "official_binary_sha256": "da235b70057edcd504b03e6378b44c4a7173dfdc3021bf58c605540bd62022dd",
+    "bootstrap_probe_written": [
+      false,
+      true
+    ],
+    "early_native_probe_checked": true,
+    "same_diagnostics": true,
+    "fast_path_engaged": true,
+    "same_hook_execution_count": true,
+    "one_additional_early_project_index": true,
+    "batch_requests_verified": true,
+    "source_and_provider_preserved": true
+  },
+  "larger_django_example": {
+    "passed": true,
+    "modes": [
+      "disk",
+      "memory"
+    ],
+    "positive_diagnostics_per_mode": 0,
+    "negative_diagnostics_per_mode": 9,
+    "source_preserved": true,
+    "temporary_project_cleaned": true
+  },
+  "django_python_units": {
+    "passed": false,
+    "total": 69,
+    "passing": 68,
+    "failures": [
+      "test_current_evidence_passes: official-contract receipt is stale after source changes"
+    ]
+  },
+  "django_static_types": {
+    "passed": true,
+    "annotated_functions": 100,
+    "sdk_declarations": 46,
+    "invalid_controls_rejected": 7
+  },
+  "remaining_gates": [
+    "Complete optimized local and isolated Linux/macOS five-shape matrices; median and every paired repeat at most 3 times identical bare Ty and at most MyPy.",
+    "Full current Django corpus, official-contract receipt, checker version groups, editor and installed-artifact qualification.",
+    "Pending Django relation and default-row-selection fixes, full CI and release artifact checks.",
+    "Only after both projects are released and verified: reproduce the latest Django issue comment and respond."
+  ],
+  "acceptance": false
+}

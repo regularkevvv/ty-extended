@@ -93,6 +93,7 @@ jobs:
           cargo +1.98.0 test --locked --release --manifest-path companion/Cargo.toml --bin ty-extended unique_import_resolution_preserves_waves_precedence_and_new_modules -- --test-threads=1
           cargo +1.98.0 test --locked --release --manifest-path companion/Cargo.toml --bin ty-extended third_party_overlay_declarations_require_all_plugins_and_valid_names -- --test-threads=1
           cargo +1.98.0 test --locked --release --manifest-path companion/Cargo.toml --bin ty-extended stateless_prefetched_batches_preserve_serial_keys_failures_and_revisions -- --test-threads=1
+          cargo +1.98.0 test --locked --release --manifest-path companion/Cargo.toml --bin ty-extended source_class_lookups_preserve_snapshots_scopes_fallbacks_and_generations -- --test-threads=1
           cargo +1.98.0 test --locked --release --manifest-path companion/Cargo.toml --bin ty-extended one_shot_cli_discards_only_unused_clean_state -- --test-threads=1
           cargo +1.98.0 test --locked --release --manifest-path companion/Cargo.toml --bin ty-extended native_cli_attempts_do_not_reuse_discarded_provider_patches -- --test-threads=1
           cargo +1.98.0 test --locked --release --manifest-path companion/Cargo.toml --bin ty-extended early_native_reuse_requires_observed_selected_source_snapshots -- --test-threads=1

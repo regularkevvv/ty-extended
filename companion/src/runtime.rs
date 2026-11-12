@@ -78,6 +78,31 @@ struct Registration {
 
 type RequestKey = [u8; 32];
 
+const SOURCE_CLASS_INDEX: &str = "__ty_companion_source_classes__";
+
+fn source_class_snapshot(request: &PluginRequest) -> Result<Option<Value>> {
+    let PluginRequest::BuildProjectIndex(request) = request else {
+        return Ok(None);
+    };
+    let mut classes = serde_json::Map::new();
+    for class in &request.classes {
+        // Normalize through the same typed serialization that the guest sees.
+        // A conservative per-class bound retains the legacy route for large
+        // declarations, well below the existing lookup response limit.
+        let value = serde_json::to_value(class)?;
+        if serde_json::to_vec(&value)?.len() > 64 * 1024 {
+            return Ok(None);
+        }
+        let Some(name) = value["qualified-name"].as_str().map(str::to_owned) else {
+            return Ok(None);
+        };
+        if classes.insert(name, value).is_some() {
+            return Ok(None);
+        }
+    }
+    Ok(Some(json!({"available":true,"classes":classes})))
+}
+
 fn type_key(
     qualified: bool,
     expression: &str,
@@ -567,6 +592,15 @@ impl Runtime {
                 ensure!(
                     value.is_boolean(),
                     "companion-stateless-call-batches must be a boolean"
+                );
+            }
+            if let Some(value) = config
+                .get("companion-source-class-lookups")
+                .filter(|value| !value.is_null())
+            {
+                ensure!(
+                    value.is_boolean() || value.as_u64().is_some(),
+                    "companion-source-class-lookups must be a boolean or a nonnegative minimum class count"
                 );
             }
             declared_third_party_overlays(&config)?;
@@ -2461,6 +2495,58 @@ impl Runtime {
         self.execute_project_inner("build-project-index", payload, false)
     }
 
+    fn execute_project_with_source_snapshot(
+        &mut self,
+        owner: usize,
+        payload: Value,
+        retain: bool,
+    ) -> Result<(Value, Option<Value>)> {
+        let id = self.plugins[owner].id.clone();
+        let key = retain
+            .then(|| request_key(&("project", &id, &payload)))
+            .transpose()?;
+        let request = if retain {
+            decode_request(payload).context("invalid plugin request")?
+        } else {
+            serde_json::from_value::<ty_plugin_protocol::BuildProjectIndexRequest>(payload)
+                .map(PluginRequest::BuildProjectIndex)
+                .context("invalid plugin request")?
+        };
+        let snapshot = source_class_snapshot(&request)?;
+        let provided = snapshot.is_some();
+        let previous = snapshot.map(|snapshot| {
+            self.plugins[owner]
+                .index
+                .replace(json!({SOURCE_CLASS_INDEX:snapshot}))
+        });
+        let result = if let Some(cached) = key.as_ref().and_then(|key| self.cache.get(key)).cloned()
+        {
+            self.hits += 1;
+            Ok(cached)
+        } else {
+            self.run_request(
+                &id,
+                "build-project-index",
+                &request,
+                provided.then_some(owner),
+            )
+        };
+        // Restore before observing any error or comparing generations. A build
+        // failure must never leave its temporary lookup index installed.
+        let supplied = if let Some(previous) = previous {
+            let supplied = self.plugins[owner].index.take();
+            self.plugins[owner].index = previous;
+            supplied.and_then(|mut value| value.as_object_mut()?.remove(SOURCE_CLASS_INDEX))
+        } else {
+            None
+        };
+        let response = result?;
+        if let Some(key) = key {
+            self.cache.insert(key, &response);
+        }
+        Ok((response, supplied))
+    }
+
     fn execute_project_inner(
         &mut self,
         kind: &str,
@@ -2559,8 +2645,21 @@ impl Runtime {
                     input_start.elapsed().as_secs_f64()
                 );
             }
-            let mut response = if retain_index_response {
-                self.dispatch(&id, request)?
+            let source_lookup = kind == "build-project-index"
+                && {
+                    let policy = &self.plugins[index].config["companion-source-class-lookups"];
+                    policy == true
+                        || policy.as_u64().is_some_and(|minimum| {
+                            request["classes"]
+                                .as_array()
+                                .is_some_and(|classes| classes.len() as u64 >= minimum)
+                        })
+                }
+                && self.plugins[index].manifest["capabilities"]["project-index-lookup"] == true;
+            let (mut response, source_snapshot) = if source_lookup {
+                self.execute_project_with_source_snapshot(index, request, retain_index_response)?
+            } else if retain_index_response {
+                (self.dispatch(&id, request)?, None)
             } else {
                 let decode_start = Instant::now();
                 // This disposable request comes from the companion's typed
@@ -2578,7 +2677,7 @@ impl Runtime {
                         decode_start.elapsed().as_secs_f64()
                     );
                 }
-                self.run_request(&id, kind, &request, None)?
+                (self.run_request(&id, kind, &request, None)?, None)
             };
             if response["kind"] == "project-index" && !settings_diagnostics.is_empty() {
                 // Native project-index diagnostics belong to the successful
@@ -2594,7 +2693,7 @@ impl Runtime {
                 response["diagnostics"] = json!(diagnostics);
             }
             if kind == "build-project-index" {
-                let (next_index, next_classes) = if retain_index_response {
+                let (mut next_index, next_classes) = if retain_index_response {
                     (
                         response.get("plugin-index").cloned(),
                         response["class-indexes"]
@@ -2616,6 +2715,12 @@ impl Runtime {
                     };
                     (index, classes)
                 };
+                if let Some(snapshot) = source_snapshot
+                    && let Some(object) = next_index.as_mut().and_then(Value::as_object_mut)
+                    && object.get(SOURCE_CLASS_INDEX) == Some(&json!({"use":true}))
+                {
+                    object.insert(SOURCE_CLASS_INDEX.to_owned(), snapshot);
+                }
                 if self.plugins[index].index != next_index
                     || self.plugins[index].class_indexes != next_classes
                 {
@@ -3614,6 +3719,174 @@ def state(request):
             "bool"
         );
         std::fs::remove_dir_all(directory)?;
+        Ok(())
+    }
+
+    #[test]
+    fn source_class_lookups_preserve_snapshots_scopes_fallbacks_and_generations() -> Result<()> {
+        let directory =
+            std::env::temp_dir().join(format!("ty-source-class-lookups-{}", std::process::id()));
+        struct Cleanup(std::path::PathBuf);
+        impl Drop for Cleanup {
+            fn drop(&mut self) {
+                let _ = std::fs::remove_dir_all(&self.0);
+            }
+        }
+        std::fs::create_dir_all(&directory)?;
+        let directory = Cleanup(directory.canonicalize()?);
+        let source_path = directory.0.join("demo.py");
+        std::fs::write(&source_path, "class Row:\n    one: str = 'café😀'\n")?;
+        let artifact = directory.0.join("plugin.py");
+        std::fs::write(
+            &artifact,
+            r#"
+@on_project_index
+def index(request):
+    available = project_index_value(request, ['__ty_companion_source_classes__', 'available'], False)
+    data = {'label': request['context']['config']['label'], 'ready': available}
+    if available:
+        expected = request['classes'][0]
+        name = expected['qualified-name']
+        actual = project_index_value(request, ['__ty_companion_source_classes__', 'classes', name])
+        assert actual == expected
+        actual['qualified-name'] = 'mutated'
+        assert project_index_value(request, ['__ty_companion_source_classes__', 'classes', name]) == expected
+        data['__ty_companion_source_classes__'] = {'use': True}
+    return project_index(data)
+@on_call_return
+def returns(request):
+    assert project_index_value(request, ['label']) == request['context']['config']['label']
+    source = project_index_value(request, ['__ty_companion_source_classes__', 'classes', 'demo.Row'])
+    if source is None:
+        return call_return_patch(type_annotation('bool'))
+    return call_return_patch(type_annotation('str' if source['fields'][0]['name'] == 'one' else 'bytes'))
+"#,
+        )?;
+        let mut paths = Vec::new();
+        for (id, source) in [("a", false), ("b", true)] {
+            let manifest = directory.0.join(format!("{id}.json"));
+            std::fs::write(&manifest, json!({"id":id,"name":id,"version":"0","protocol-version":{"major":0,"minor":9},"ty-compatibility":{"requirement":">=0.89.0"},"runtime":{"kind":"monty","artifact":"plugin.py"},"capabilities":{"project-index":true,"project-index-lookup":true,"call-return":true},"claims":{"functions":[{"qualified-name":"demo.make"}]}}).to_string())?;
+            paths.push((manifest, artifact.clone(), json!({"label":id,"companion-source-class-lookups":true,"companion-project-inputs":{"class-source":source}})));
+        }
+        let mut runtime = Runtime::from_plugins(&paths)?;
+        runtime.use_site_fields = true;
+        let project = Project::load(
+            &directory.0,
+            std::slice::from_ref(&source_path),
+            &runtime.manifest,
+            json!({}),
+        )?;
+        let original = project.build_request();
+        let hook = json!({"kind":"adjust-call-return","context":{"module":"demo","file-path":source_path,"python-version":"3.13","platform":"linux","config":{}},"callee":{"expression":"demo.make","mode":"expression"},"arguments":[]});
+        for retain in [false, true] {
+            for field in ["one", "two"] {
+                let mut request = original.clone();
+                request["classes"][0]["fields"][0]["name"] = json!(field);
+                if retain {
+                    runtime.execute_project("build-project-index", request.clone())?;
+                } else {
+                    runtime.execute_ephemeral_project_index(request.clone())?;
+                }
+                let generations = runtime
+                    .plugins
+                    .iter()
+                    .map(|plugin| plugin.index_generation)
+                    .collect::<Vec<_>>();
+                for owner in 0..2 {
+                    let index = runtime.plugins[owner]
+                        .index
+                        .as_ref()
+                        .context("source index")?;
+                    assert_eq!(index["label"], if owner == 0 { "a" } else { "b" });
+                    let class = &index[SOURCE_CLASS_INDEX]["classes"]["demo.Row"];
+                    assert_eq!(class.get("source").is_some(), owner == 1);
+                    assert_eq!(
+                        runtime.dispatch_semantic(owner, {
+                            let mut payload = hook.clone();
+                            payload["context"]["config"] = runtime.plugins[owner].config.clone();
+                            payload
+                        })?["return-type"]["expression"],
+                        if field == "one" { "str" } else { "bytes" }
+                    );
+                }
+                if retain {
+                    runtime.execute_project("build-project-index", request)?;
+                } else {
+                    runtime.execute_ephemeral_project_index(request)?;
+                }
+                assert_eq!(
+                    runtime
+                        .plugins
+                        .iter()
+                        .map(|plugin| plugin.index_generation)
+                        .collect::<Vec<_>>(),
+                    generations
+                );
+            }
+        }
+        for fallback in [
+            "disabled",
+            "minimum-count",
+            "missing-capability",
+            "oversized",
+            "duplicate",
+        ] {
+            let mut path = paths[0].clone();
+            let mut request = original.clone();
+            if fallback == "disabled" {
+                path.2["companion-source-class-lookups"] = json!(false);
+            }
+            if fallback == "minimum-count" {
+                path.2["companion-source-class-lookups"] = json!(512);
+            }
+            if fallback == "missing-capability" {
+                let mut manifest: Value = serde_json::from_slice(&std::fs::read(&path.0)?)?;
+                manifest["capabilities"]["project-index-lookup"] = json!(false);
+                let target = directory.0.join("no-lookup.json");
+                std::fs::write(&target, manifest.to_string())?;
+                path.0 = target;
+            }
+            if fallback == "oversized" {
+                request["classes"][0]["fields"][0]["name"] = json!("x".repeat(70_000));
+            }
+            if fallback == "duplicate" {
+                let class = request["classes"][0].clone();
+                request["classes"].as_array_mut().unwrap().push(class);
+            }
+            let mut runtime = Runtime::from_plugins(&[path])?;
+            runtime.use_site_fields = true;
+            runtime.execute_ephemeral_project_index(request)?;
+            assert_eq!(
+                runtime.plugins[0].index.as_ref().unwrap()["ready"],
+                false,
+                "{fallback}"
+            );
+            assert!(
+                runtime.plugins[0]
+                    .index
+                    .as_ref()
+                    .unwrap()
+                    .get(SOURCE_CLASS_INDEX)
+                    .is_none()
+            );
+            assert_eq!(
+                runtime.dispatch_semantic(0, {
+                    let mut payload = hook.clone();
+                    payload["context"]["config"] = runtime.plugins[0].config.clone();
+                    payload
+                })?["return-type"]["expression"],
+                "bool"
+            );
+        }
+        let mut path = paths[0].clone();
+        path.2["companion-source-class-lookups"] = json!("wrong");
+        assert!(
+            Runtime::from_plugins(&[path])
+                .err()
+                .context("invalid flag")?
+                .to_string()
+                .contains("must be a boolean")
+        );
         Ok(())
     }
 

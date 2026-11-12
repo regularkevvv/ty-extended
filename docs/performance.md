@@ -30,28 +30,41 @@ meeting the current performance and correctness requirements together.
 
 ## Current native comparison
 
-The [latest completed local candidate](qualification/native-django-before-source-load-v57c.json)
-**fails four of the five workload gates**. Five rotated fresh-process repeats use
-unchanged official Ty 0.0.101, production defaults, and the same positive
-assertions and error controls. Correctness, source/provider preservation and
-environment cleanup pass. No isolated matrix was dispatched for this rejected
-source.
+The [latest completed candidate](qualification/native-django-fused-snapshots-v58.json)
+**fails three of the five local workload gates**. Five rotated fresh-process
+repeats use unchanged official Ty 0.0.101, production defaults, and the same
+positive assertions and error controls. Correctness, source/provider preservation
+and environment cleanup pass.
 
 | Workload           | Companion median | Bare Ty median | Median ratio | Worst paired ratio |
 | ------------------ | ---------------: | -------------: | -----------: | -----------------: |
-| small              |          0.108 s |        0.039 s |        2.75× |              3.14× |
-| distributed        |          0.193 s |        0.068 s |        2.86× |              3.14× |
-| many-files         |          0.518 s |        0.166 s |        3.13× |              3.64× |
-| stress             |          0.702 s |        0.307 s |        2.29× |              2.62× |
-| distributed-stress |          0.718 s |        0.199 s |        3.61× |              3.68× |
+| small              |          0.105 s |        0.039 s |        2.71× |              2.91× |
+| distributed        |          0.190 s |        0.068 s |        2.79× |              3.11× |
+| many-files         |          0.512 s |        0.161 s |        3.18× |              3.31× |
+| stress             |          0.692 s |        0.312 s |        2.22× |              2.37× |
+| distributed-stress |          0.713 s |        0.202 s |        3.53× |              3.66× |
 
-All five medians remain below one second and below MyPy. The companion matches
-20/20 focused contracts, MyPy 19/20, and bare Ty 8/20. These results do not meet
-the release requirement: both the median and every paired repeat must be at
-most 3×. Full Rust, SDK and Django qualification passes except for the stale
-official-contract receipt, which remains an explicit failing release gate.
-Further loading and selection changes and fallback regressions are under
-qualification.
+The complete isolated Linux and macOS matrices also fail: four workload gates
+fail on Linux and two on macOS. Distributed-stress median/worst ratios are
+3.67×/3.94× on Linux and 3.54×/3.88× on macOS. These separate runner series do not
+isolate a speedup from one implementation change. Every workload remains faster
+than MyPy; correctness, source/provider preservation and cleanup pass.
+
+All five local medians remain below one second. The companion matches 20/20
+focused contracts, MyPy 19/20, and bare Ty 8/20. These results do not meet the
+release requirement: both the median and every paired repeat must be at most
+3×. The stale Django official-contract receipt also remains an explicit failing
+release gate.
+
+The subsequent source-qualified candidate overlaps the two independent ignore
+walks and lets an opted-in plugin retain bounded immutable class summaries in
+the host. Django's private plain-model index combines traits and deferred data,
+constructs reverse-manager annotations on access and uses host class references
+only above its configured threshold. Four independent behavior comparisons
+preserve 10,004 reconstructed class requests, 10,000 reverse-member responses
+and 800 ordinary call responses; the representative response falls from
+1,204,292 to 706,750 bytes. These are correctness and payload measurements,
+not performance acceptance. The complete optimized matrix remains pending.
 
 The preceding [bounded-batch candidate](qualification/native-django-stateless-batches-v56.json)
 also fails four local workload gates, with medians of 0.129–0.750 seconds and
