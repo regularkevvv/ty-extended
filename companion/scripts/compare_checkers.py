@@ -252,7 +252,10 @@ def prepare(args):
         '[plugins.plugin.config]\ndjango-settings-module="settings"\n'
     )
     if getattr(args, "native_django", False):
-        config += 'companion-native-call-returns=["get"]\n'
+        config += (
+            'companion-native-call-returns=["get"]\n'
+            'companion-call-signature-methods=["from_queryset"]\n'
+        )
     (args.output / "companion.toml").write_text(config)
     (args.output / "mypy.ini").write_text(
         f"[mypy]\nplugins=mypy_django_plugin.main\npython_version={args.python_version}\n[mypy.plugins.django-stubs]\ndjango_settings_module=settings\n"
@@ -368,6 +371,7 @@ def main():
             TY_COMPANION_NATIVE_FIELDS="1",
             TY_COMPANION_MEMORY_PROJECTION="1",
             TY_COMPANION_NATIVE_WARMUP="1",
+            TY_COMPANION_BORROW_OVERLAYS="1",
         )
     if not (
         args.files >= 5

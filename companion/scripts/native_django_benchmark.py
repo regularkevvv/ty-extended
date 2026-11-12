@@ -33,6 +33,17 @@ def environment(path: Path, packages: list[str]) -> Path:
     return python
 
 
+def provider_state(path: Path) -> dict:
+    return {
+        file.relative_to(path).as_posix(): {
+            "sha256": hashlib.sha256(file.read_bytes()).hexdigest(),
+            "mtime_ns": file.stat().st_mtime_ns,
+        }
+        for file in sorted(path.rglob("*"))
+        if file.is_file()
+    }
+
+
 def focus(output: Path, benchmark: dict) -> dict:
     project = output / "project"
     path = project / "filler00001.py"
@@ -127,6 +138,7 @@ def main() -> int:
         TY_COMPANION_NATIVE_FIELDS="1",
         TY_COMPANION_MEMORY_PROJECTION="1",
         TY_COMPANION_NATIVE_WARMUP="1",
+        TY_COMPANION_BORROW_OVERLAYS="1",
     )
     report = {
         "passed": False,
@@ -154,6 +166,9 @@ def main() -> int:
             ["git", "-C", source, "rev-parse", "HEAD"], text=True
         ).strip()
         assert actual == DJANGO_COMMIT
+        provider = source / "python/django_ty/stubs"
+        provider_before = provider_state(provider)
+        report["provider_snapshot_before"] = provider_before
         candidate = environment(
             environments[0],
             [
@@ -205,6 +220,8 @@ def main() -> int:
         report["benchmark_exit"] = result.returncode
         report["performance_gate"] = benchmark["performance_gate"]
         report["focus"] = focus(target, benchmark)
+        report["provider_preserved"] = provider_state(provider) == provider_before
+        assert report["provider_preserved"], "Provider source bytes or mtimes changed"
         report["passed"] = (
             result.returncode == 0 and benchmark["performance_gate"]["passed"]
         )

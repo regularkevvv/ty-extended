@@ -49,14 +49,15 @@ temporary projections are removed after each run, and both Cargo targets were
 cleaned before timing. These are local shared-machine measurements with warm
 filesystem caches permitted.
 
-The candidate handles native diagnostic renames introduced in Ty 0.0.100.
+The earlier candidate handles native diagnostic renames introduced in Ty 0.0.100.
 Internal classification recognizes both spellings while CLI and editor output
 retain the official checker's raw rule IDs. Full Rust tests and SDK/CLI suites
 pass against 0.0.101. The expanded source matrix passes every release from
 0.0.84 through 0.0.101, including all 236 regular Rust tests in each mode,
 172 Django cases, SDK/API controls and eight primary-key cases in each mode.
 These results establish neither installed-artifact acceptance nor release
-readiness.
+readiness. Later performance prototypes below have only been qualified against
+0.0.101; they still require a fresh version matrix.
 
 Two later experiments also fail the release limit. The
 [fused Django index receipt](qualification/native-django-fused-v31b.json)
@@ -106,6 +107,92 @@ controls. Isolated macOS measures **1.512 seconds** against **0.452 seconds**,
 or **3.34 times**, with a largest paired ratio of 5.09. All three runs fail the
 strict performance gate. Both CI jobs preserve their correctness evidence and
 confirm cleanup of their temporary Python environments.
+
+The [index ownership experiment](qualification/native-django-index-ownership-v37.json)
+lets a fresh memory CLI check consume opaque project and class indexes directly.
+It avoids retaining a response cache and returning duplicate indexes that this
+single check never reads. Editors, persistent sessions and explicit project
+artifacts keep their existing behavior. One- and two-plugin tests preserve class
+scopes, opaque data, virtual namespaces and subsequent revisions.
+
+Five rotated local repeats measure **1.180 seconds** against the preceding
+companion's **1.218 seconds**, a 3.1% improvement in the same comparison. Native
+Ty measures **0.329 seconds** and MyPy **7.084 seconds**. The companion is still
+**3.59 times** native Ty, with a largest paired ratio of 4.04, so the gate fails.
+All 100 assertions, both controls and 20 companion focus cases pass. This source
+also passes 240 regular Rust tests plus three additional tests in each mode,
+36 compiled SDK/CLI suite runs and all 172 Django corpus cases. Build targets
+were cleaned before timing; all 28 observations meet the declared admission
+limits. The broader editor/version matrices remain prerequisites for release.
+
+The [parallel summary experiment](qualification/native-django-summary-parallel-v38.json)
+preserves sequential merge order while computing independent class summaries
+on multiple workers. It measures **1.245 seconds** against the preceding
+companion's **1.277 seconds** and native Ty's **0.370 seconds**. Its median
+ratio is **3.37**, and its largest paired ratio is **4.06**: the gate fails.
+
+The [collection experiment](qualification/native-django-native-collections-v39.json)
+shares immutable native inputs with the worker, uses hash maps for lookup-only
+data and builds ordered file collections in bulk. It measures **1.115 seconds**
+against the preceding companion's **1.173 seconds**, native Ty's **0.294 seconds**
+and MyPy's **7.000 seconds**. The 5.0% paired companion improvement still leaves
+a **3.79** median ratio and **3.93** largest paired ratio, so the gate fails.
+Each experiment preserves all 100 assertions, both error controls and 20
+companion focus cases. Both pass 241 regular Rust tests and three additional
+tests in each mode, 36 SDK/CLI suite runs and the 172 Django corpus cases;
+their build targets were cleaned before timing. Ratios from different benchmark
+sessions must not be interpreted as a controlled comparison between prototypes.
+
+The [borrowed overlay experiment](qualification/native-django-borrowed-overlays-v40d.json)
+avoids copying eligible provider files, reuses canonical source paths from the
+fresh CLI snapshot, and honors explicit signature-method selection. It measures
+**0.995 seconds** against the preceding companion's **1.168 seconds**, native
+Ty's **0.327 seconds** and MyPy's **7.157 seconds**. All 100 assertions, both
+controls and 20 companion focus cases pass, but the **3.05** median ratio and
+**3.28** largest paired ratio still fail the strict gate. The largest positive
+sample is 1.024 seconds, so the separate one-second goal also fails.
+
+This source passes 243 regular Rust tests plus three additional tests in each
+mode, 72 SDK/CLI suite runs, the 172 Django corpus cases and the runtime/example
+checks. Its new provider regression caught stale imported types during native
+warmup; cross-workspace invalidation fixes that failure while preserving provider
+bytes and timestamps. Both Cargo targets and the temporary SDK target were
+cleaned. The current Django relation bug, full-conformance receipt, broader
+editor checks, version sweep and installed-artifact acceptance remain open.
+
+The [direct warmup experiment](qualification/native-django-direct-warmup-v41.json)
+skips buffer preparation and report mapping for the discarded initial check.
+It preserves complete synchronization and mapping for the real check. In its
+own paired run it measures **1.099 seconds**, against **1.129 seconds** for the
+preceding companion, **0.402 seconds** for native Ty and **7.229 seconds** for
+MyPy. Its **2.73** median ratio passes, but the **3.18** largest paired ratio
+fails, so this experiment is also rejected. Absolute times across these shared
+machine sessions are not a controlled comparison between prototypes.
+
+All 100 assertions, both error controls and 20 companion focus cases pass.
+The receipt retains 28 accepted observations and one rejected host-load sample.
+All provider-file bytes and modification times remain unchanged. This source
+passes 244 regular Rust tests and three additional tests in each mode, 72
+SDK/CLI suite runs and the same Django qualification, with build targets cleaned
+before timing. The known correctness and broader qualification gaps remain.
+
+The [early warmup and path-compaction experiment](qualification/native-django-early-warmup-v42.json)
+measures **0.974 seconds** against **1.045 seconds** for its preceding companion,
+**0.306 seconds** for native Ty and **7.036 seconds** for MyPy. Its **3.18** median
+ratio and **3.30** largest paired ratio fail the gate. All 100 assertions, both
+controls and 20 companion focus cases pass; the report preserves 28 accepted
+observations and one rejected host-load observation. It passes 246 regular Rust
+tests and three additional tests in each mode, plus 72 SDK/CLI suite runs.
+
+The [discovery-catalog candidate](qualification/native-django-discovery-catalog-v43.json)
+also reuses the identity of ordinary entries found below canonical directories.
+Both snapshot readers retain full resolution for symlinks. Its reference test
+compares discovered paths, bytes and revisions with the previous loader,
+including internal and external symlinks. It passes 247 regular Rust tests and
+three additional tests in each mode, 72 SDK/CLI suite runs and the Django source
+qualification. Optimized and test builds have matching source hashes and were
+cleaned. Local timing and isolated Linux/macOS acceptance are pending; no
+performance or release acceptance is claimed for this candidate.
 
 The manual `Companion` workflow's `native_performance_only` input runs the
 identical 7,082-file, 2,501-model comparison on isolated Linux and macOS runners.

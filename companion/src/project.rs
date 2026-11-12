@@ -378,6 +378,7 @@ impl Project {
     pub fn preload_sources(
         root: &Path,
         paths: &[PathBuf],
+        canonical: Option<&std::collections::HashSet<PathBuf>>,
     ) -> Option<BTreeMap<PathBuf, SourceSnapshot>> {
         let snapshots = crate::parallel::map_ordered(
             paths,
@@ -388,9 +389,12 @@ impl Project {
                 } else {
                     root.join(input)
                 };
-                let path = path
-                    .canonicalize()
-                    .with_context(|| format!("source file {}", path.display()))?;
+                let path = if canonical.is_some_and(|known| known.contains(&path)) {
+                    path
+                } else {
+                    path.canonicalize()
+                        .with_context(|| format!("source file {}", path.display()))?
+                };
                 let (text, revision) = read_snapshot(&path)?;
                 Ok((
                     input.clone(),
@@ -1000,6 +1004,17 @@ impl Project {
     }
 
     fn rebuild(&mut self) -> Result<()> {
+        self.rebuild_with_workers(crate::parallel::workers(
+            self.modules.len()
+                + self
+                    .modules
+                    .values()
+                    .map(|module| module.suite.len())
+                    .sum::<usize>(),
+        ))
+    }
+
+    fn rebuild_with_workers(&mut self, workers: usize) -> Result<()> {
         self.classes = Arc::default();
         self.hierarchy = Arc::default();
         self.assignments = Arc::default();
@@ -1017,8 +1032,62 @@ impl Project {
         let mut classes = BTreeMap::new();
         let mut assignments = vec![];
         let mut functions = vec![];
+        if workers <= 1 {
+            for (name, module) in self.modules.iter() {
+                self.summarize_body(name, module, &module.suite, &mut classes, &mut assignments)?;
+            }
+        } else {
+            // Summaries read the complete registered-name snapshot above.
+            // Class bodies in the same large module are independent too.
+            let call_assignments_only = self.call_assignments_only;
+            let work: Vec<_> = self
+                .modules
+                .iter()
+                .flat_map(|(name, module)| {
+                    module
+                        .suite
+                        .iter()
+                        .filter(move |statement| match statement {
+                            Stmt::ClassDef(_) | Stmt::If(_) => true,
+                            Stmt::Assign(assignment) => {
+                                !module.external
+                                    && (!call_assignments_only
+                                        || matches!(assignment.value.as_ref(), Expr::Call(_)))
+                            }
+                            Stmt::AnnAssign(assignment) => {
+                                !module.external
+                                    && (!call_assignments_only
+                                        || assignment.value.as_ref().is_some_and(|value| {
+                                            matches!(value.as_ref(), Expr::Call(_))
+                                        }))
+                            }
+                            _ => false,
+                        })
+                        .map(move |statement| (name, module, statement))
+                })
+                .collect();
+            let summaries =
+                crate::parallel::map_ordered(&work, workers, |(name, module, statement)| {
+                    let mut classes = BTreeMap::new();
+                    let mut assignments = Vec::new();
+                    self.summarize_body(
+                        name,
+                        module,
+                        std::slice::from_ref(*statement),
+                        &mut classes,
+                        &mut assignments,
+                    )
+                    .map(|()| (classes, assignments))
+                })?;
+            // Merge in original module/statement order: duplicate declarations,
+            // assignment order and the first failure retain sequential behavior.
+            for summary in summaries {
+                let (next_classes, next_assignments) = summary?;
+                classes.extend(next_classes);
+                assignments.extend(next_assignments);
+            }
+        }
         for (name, module) in self.modules.iter() {
-            self.summarize_body(name, module, &module.suite, &mut classes, &mut assignments)?;
             functions.extend(self.summarize_functions(name, module));
         }
         self.classes = Arc::new(classes);
@@ -3032,6 +3101,61 @@ mod tests {
     }
 
     #[test]
+    fn parallel_summaries_preserve_sequential_requests_and_declarations() -> Result<()> {
+        let mut text = String::from(
+            "from typing import TYPE_CHECKING\nfrom helper import Alias\nclass Forward(Parent): pass\nclass Parent: pass\nvalue = 1\ncreated = Alias()\nannotated: int = 2\ncalled: Alias = Alias()\n",
+        );
+        for index in 0..200 {
+            text.push_str(&format!("class C{index:03}(Parent):\n    field: Alias = Alias()\n    class Nested:\n        field: Forward\n    def method(self, value: Alias) -> Forward: ...\n"));
+        }
+        text.push_str("if TYPE_CHECKING:\n    class Selected(Forward): pass\nelse:\n    class Unselected: pass\nif unknown:\n    class Duplicate:\n        first: int\n    branch = Alias()\nelse:\n    class Duplicate:\n        second: str\n    branch = 2\ndef module_function(value: Alias) -> Parent: ...\nwhile False:\n    def loop_function(): ...\n");
+        let source = Fixture::new(&[
+            ("models.py", &text),
+            ("helper.py", "class Alias: pass\n"),
+            ("settings.py", "VALUE = 1\nFORWARD = 'models.Parent'\n"),
+        ]);
+        let external = Fixture::new(&[(
+            "dependency.pyi",
+            "class External:\n    value: str\nEXTERNAL = 1\n",
+        )]);
+        let mut base = source.project(
+            json!({"claims":{"settings":[{"module":"settings"}]}}),
+            json!({}),
+        );
+        base.add_module("dependency", &external.0.join("dependency.pyi"), true)?;
+        for call_only in [false, true] {
+            let mut sequential = base.clone();
+            sequential.call_assignments_only = call_only;
+            sequential.rebuild_with_workers(1)?;
+            let expected = sequential.build_request();
+            assert!(sequential.classes.contains_key("models.Forward"));
+            assert!(sequential.classes.contains_key("models.Selected"));
+            assert!(!sequential.classes.contains_key("models.Unselected"));
+            assert!(sequential.classes.contains_key("models.C199.Nested"));
+            assert_eq!(
+                sequential.classes["models.Duplicate"]["fields"][0]["name"],
+                "second"
+            );
+            for workers in [0, 2, 4, 8] {
+                let mut parallel = base.clone();
+                parallel.call_assignments_only = call_only;
+                parallel.rebuild_with_workers(workers)?;
+                assert_eq!(parallel.build_request(), expected);
+                assert_eq!(parallel.classes, sequential.classes);
+                assert_eq!(
+                    parallel.renderer_module_names(),
+                    sequential.renderer_module_names()
+                );
+                assert_eq!(
+                    parallel.renderer_virtual_class_names(),
+                    sequential.renderer_virtual_class_names()
+                );
+            }
+        }
+        Ok(())
+    }
+
+    #[test]
     fn parallel_initial_sources_preserve_precedence_summaries_and_parse_errors() -> Result<()> {
         let source = Fixture::new(&[
             ("base.py", "class Parent: pass\n"),
@@ -3091,7 +3215,8 @@ mod tests {
             assert_eq!(parallel.modules.len(), 134);
         }
 
-        let snapshots = Project::preload_sources(&source.0, &paths).context("snapshot preload")?;
+        let snapshots =
+            Project::preload_sources(&source.0, &paths, None).context("snapshot preload")?;
         for workers in [1, 8] {
             let mut preloaded = empty.clone();
             preloaded.capture_original_revisions = true;
@@ -3117,11 +3242,11 @@ mod tests {
         }
         assert!(first.to_string().contains("first.py"));
         let mixed_errors = [PathBuf::from("first.py"), PathBuf::from("missing.py")];
-        assert!(Project::preload_sources(&source.0, &mixed_errors).is_none());
+        assert!(Project::preload_sources(&source.0, &mixed_errors, None).is_none());
         let mixed = strict.load_initial_sources(&mixed_errors, 8).unwrap_err();
         assert_eq!(mixed.to_string(), first.to_string());
         let duplicates = [PathBuf::from("base.py"), PathBuf::from("base.py")];
-        assert!(Project::preload_sources(&source.0, &duplicates).is_none());
+        assert!(Project::preload_sources(&source.0, &duplicates, None).is_none());
 
         Ok(())
     }

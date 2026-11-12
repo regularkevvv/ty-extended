@@ -26,7 +26,7 @@ features, rather than every upstream version number.
 
 ## Qualified versions
 
-The [unreleased native Django candidate](qualification/native-django-latest-v28.json)
+The [earlier native Django candidate](qualification/native-django-latest-v28.json)
 passes its expanded source suite against every Ty release from **0.0.84 through
 0.0.101**. The same companion executable passes 236 regular Rust tests and three
 additional integration tests in each projection mode on each version, 172 Django
@@ -34,7 +34,9 @@ corpus cases, SDK field and native API controls, and eight custom-primary-key
 cases in each mode. Internal classification handles renamed native diagnostic
 rules while consumer output preserves the official rule IDs. This source sweep
 does not qualify installed wheels or extend the published release's ledger. The
-candidate also fails its required 3-times native performance ceiling.
+candidate also fails its required 3-times native performance ceiling. Subsequent
+performance prototypes have only been qualified against 0.0.101 and require a
+new full version sweep before release.
 
 The [0.89.0 CI-wheel ledger](qualification/compatibility-0.89.0.json) records
 one unchanged installed executable against **every official ty release from

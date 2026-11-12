@@ -30,9 +30,10 @@ Updating official ty within a compatible group does not require a companion rele
 See [the compatibility policy and evidence](docs/compatibility.md) for the tested
 versions, dependency range and checks for future releases.
 
-The unreleased candidate also passes its expanded source suite against all 18
+An earlier unreleased candidate passes its expanded source suite against all 18
 releases through **0.0.101**, including compatibility fixes for diagnostic renames
-in 0.0.100. This does not extend the published 0.89.0 artifact's qualification.
+in 0.0.100. Later performance prototypes still require that version sweep.
+This does not extend the published 0.89.0 artifact's qualification.
 
 ## Performance
 
@@ -44,12 +45,12 @@ MyPy median ceiling. See
 [the reproducible benchmarks](docs/performance.md) for all samples, bare official
 ty timings, correctness controls and the limits of each comparison.
 
-The [unreleased native Django candidate](docs/performance.md#current-native-comparison)
-measures **1.626 seconds**, versus **6.680 seconds** for MyPy and **0.286 seconds**
+The latest completed [unreleased native Django trial](docs/performance.md#current-native-comparison)
+measures **0.974 seconds**, versus **7.036 seconds** for MyPy and **0.306 seconds**
 for official Ty 0.0.101 with `django-types`. All pass the same fixture's 100
 assertions and both error controls. The companion passes all 20 additional
-focused ORM cases; native Ty passes eight. At **5.68 times** native Ty, the
-candidate fails the required **3-times ceiling**. Performance, installed-artifact
+focused ORM cases; native Ty passes eight. Its median is **3.18 times** native Ty,
+but its worst paired repeat is **3.30 times**, failing the required **3-times ceiling**. Performance, installed-artifact
 and release qualification remain open; the published results above remain the
 release baseline.
 

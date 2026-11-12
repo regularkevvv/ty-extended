@@ -60,25 +60,49 @@ fn files(root: &Path, out: &mut Vec<PathBuf>) -> Result<()> {
     copyable_files(root, out, false)
 }
 fn copyable_files(root: &Path, out: &mut Vec<PathBuf>, metadata: bool) -> Result<()> {
+    collect_files(root, out, metadata, None)
+}
+fn snapshot_files(
+    root: &Path,
+    out: &mut Vec<PathBuf>,
+    known: &mut std::collections::HashSet<PathBuf>,
+) -> Result<()> {
+    // Callers supply canonical directories. Recursion never follows directory
+    // symlinks, so ordinary entries retain that identity; file symlinks keep
+    // the full canonicalization path in both snapshot readers.
+    collect_files(root, out, false, Some(known))
+}
+fn collect_files(
+    root: &Path,
+    out: &mut Vec<PathBuf>,
+    metadata: bool,
+    mut known: Option<&mut std::collections::HashSet<PathBuf>>,
+) -> Result<()> {
     for entry in std::fs::read_dir(root)? {
         let entry = entry?;
         let path = entry.path();
         let name = entry.file_name();
         let name = name.to_string_lossy();
-        if entry.file_type()?.is_dir() {
+        let kind = entry.file_type()?;
+        if kind.is_dir() {
             if !name.starts_with('.')
                 && !matches!(
                     name.as_ref(),
                     "target" | "dist" | "__pycache__" | "node_modules"
                 )
             {
-                copyable_files(&path, out, metadata)?;
+                collect_files(&path, out, metadata, known.as_deref_mut())?;
             }
         } else if path
             .extension()
             .is_some_and(|x| x == "py" || x == "pyi" || x == "ipynb")
             || metadata && path.file_name().is_some_and(|name| name == "py.typed")
         {
+            if kind.is_file()
+                && let Some(known) = known.as_deref_mut()
+            {
+                known.insert(path.clone());
+            }
             out.push(path);
         }
     }
@@ -386,7 +410,11 @@ fn projected_stub_path(
     roots: &[PathBuf],
     resolved: &BTreeMap<PathBuf, PathBuf>,
     original: &Path,
+    borrowed: Option<&Path>,
 ) -> Result<PathBuf> {
+    if borrowed.is_some_and(|root| original.starts_with(root)) {
+        return Ok(original.to_owned());
+    }
     if let Some(relative) = resolved.get(original) {
         return Ok(stubs.join(relative));
     }
@@ -461,12 +489,12 @@ pub(crate) fn compact_check_paths(
     root: &Path,
     selected: &BTreeSet<PathBuf>,
 ) -> Result<Vec<PathBuf>> {
-    fn visit(path: &Path, remaining: &mut BTreeSet<PathBuf>) -> Result<(bool, Vec<PathBuf>)> {
-        if !remaining
-            .range(path.to_owned()..)
-            .next()
-            .is_some_and(|candidate| candidate.starts_with(path))
-        {
+    fn visit(
+        path: &Path,
+        remaining: &mut std::collections::HashSet<PathBuf>,
+        ancestors: &std::collections::HashSet<&Path>,
+    ) -> Result<(bool, Vec<PathBuf>)> {
+        if !remaining.contains(path) && !ancestors.contains(path) {
             return Ok((false, Vec::new()));
         }
         let metadata = std::fs::symlink_metadata(path)?;
@@ -484,7 +512,7 @@ pub(crate) fn compact_check_paths(
         let mut complete = true;
         let mut paths = Vec::new();
         for entry in std::fs::read_dir(path)? {
-            let (included, children) = visit(&entry?.path(), remaining)?;
+            let (included, children) = visit(&entry?.path(), remaining, ancestors)?;
             complete &= included;
             paths.extend(children);
         }
@@ -500,8 +528,12 @@ pub(crate) fn compact_check_paths(
             });
         Ok((complete && traversable, paths))
     }
-    let mut remaining = selected.clone();
-    let (_, mut paths) = visit(root, &mut remaining)?;
+    let ancestors = selected
+        .iter()
+        .flat_map(|path| path.ancestors().skip(1))
+        .collect::<std::collections::HashSet<_>>();
+    let mut remaining = selected.iter().cloned().collect();
+    let (_, mut paths) = visit(root, &mut remaining, &ancestors)?;
     paths.extend(remaining);
     paths.sort();
     Ok(paths)
@@ -929,7 +961,16 @@ fn selected_paths(
     selection: &project_config::Selection,
     ignored: &BTreeSet<PathBuf>,
     overlays: &BTreeMap<PathBuf, String>,
+    canonical_snapshot: bool,
 ) -> Result<BTreeSet<PathBuf>> {
+    let known_canonical = canonical_snapshot.then(|| {
+        project
+            .modules
+            .values()
+            .filter(|module| !module.external)
+            .map(|module| module.source.path.as_str())
+            .collect::<std::collections::HashSet<_>>()
+    });
     let selected: Vec<PathBuf> = if let Some(path) = options.get("files") {
         let names: Vec<String> = serde_json::from_slice(&std::fs::read(path)?)?;
         let mut paths = Vec::new();
@@ -955,10 +996,26 @@ fn selected_paths(
             .map(|m| PathBuf::from(&m.source.path))
             .collect()
     };
+    let mut canonical_reuses = 0;
     let selected: BTreeSet<_> = selected
         .into_iter()
-        .map(|p| if p.exists() { p.canonicalize() } else { Ok(p) })
+        .map(|p| {
+            if known_canonical
+                .as_ref()
+                .is_some_and(|known| p.to_str().is_some_and(|text| known.contains(text)))
+            {
+                canonical_reuses += 1;
+                Ok(p)
+            } else if p.exists() {
+                p.canonicalize()
+            } else {
+                Ok(p)
+            }
+        })
         .collect::<std::io::Result<_>>()?;
+    if std::env::var_os("TY_COMPANION_TRACE_PHASES").is_some() {
+        eprintln!("companion selected-path canonical reuses: {canonical_reuses}");
+    }
     Ok(selected)
 }
 
@@ -995,6 +1052,7 @@ pub struct Session {
     stubs: PathBuf,
     stub_roots: Vec<PathBuf>,
     overlay_files: BTreeSet<PathBuf>,
+    borrowed_overlay: Option<PathBuf>,
     options: BTreeMap<String, String>,
     mode: String,
     runtime: Runtime,
@@ -1077,6 +1135,7 @@ impl Session {
             "generated output must be outside original project"
         );
         let mut source_paths = Vec::new();
+        let mut canonical_sources = std::collections::HashSet::new();
         let memory_requested = !cfg!(windows)
             && options
                 .get("memory-projection")
@@ -1085,7 +1144,7 @@ impl Session {
             && checker.is_none()
             && project_config::supports_memory_projection(&root, options)?;
         if memory_requested {
-            files(&root, &mut source_paths)?;
+            snapshot_files(&root, &mut source_paths, &mut canonical_sources)?;
         }
         let memory_projection = memory_requested
             && !root.to_string_lossy().contains('\\')
@@ -1120,7 +1179,7 @@ impl Session {
         } else {
             json!({})
         };
-        let checker_config = project_config::load(&root, &view, &stubs, options)?;
+        let mut checker_config = project_config::load(&root, &view, &stubs, options)?;
         let checker_config_path = out.join("checker.toml");
         write(&checker_config_path, &checker_config.text)?;
         phase(
@@ -1131,7 +1190,39 @@ impl Session {
         let mut runtime = Runtime::from_plugins(&checker_config.plugins)?;
         phase(&mut startup_phases, "startup_runtime", &mut startup_tick);
         let stdlib = stdlib_overlay_modules(&checker_config, options, &out)?;
-        let overlay_files = copy_overlays(&checker_config.stub_roots, &stubs, &stdlib)?;
+        let borrow_requested = options.get("borrow-overlays").map_or_else(
+            || std::env::var_os("TY_COMPANION_BORROW_OVERLAYS").is_some_and(|v| v == "1"),
+            |value| value == "true",
+        );
+        let borrowed_overlay = (borrow_requested
+            && memory_projection
+            && options.get("public-cli").is_some_and(|v| v == "true")
+            && checker_config.stub_roots.len() == 1
+            && stdlib.is_empty()
+            && !checker_config.stub_roots[0].starts_with(&out)
+            && !out.starts_with(&checker_config.stub_roots[0])
+            && checker_config.source_roots.iter().all(|source_root| {
+                !source_root.starts_with(&checker_config.stub_roots[0])
+                    && !checker_config.stub_roots[0].starts_with(source_root)
+            })
+            && checker_config.stub_roots[0]
+                .to_str()
+                .is_some_and(|s| !s.contains('\\')))
+        .then(|| checker_config.stub_roots[0].clone());
+        let overlay_files = if let Some(provider) = &borrowed_overlay {
+            // No package is copied into the support directory. Native imports
+            // keep the complete provider tree and patches use its original URI.
+            let mut document: toml::Value = toml::from_str(&checker_config.text)?;
+            let extras = document["environment"]["extra-paths"]
+                .as_array_mut()
+                .context("native overlay extra paths")?;
+            extras.push(toml::Value::String(provider.to_string_lossy().into_owned()));
+            checker_config.text = toml::to_string(&document)?;
+            write(&checker_config_path, &checker_config.text)?;
+            BTreeSet::new()
+        } else {
+            copy_overlays(&checker_config.stub_roots, &stubs, &stdlib)?
+        };
         phase(&mut startup_phases, "startup_overlays", &mut startup_tick);
         runtime.python_version = checker_config.python_version;
         runtime.platform = checker_config.platform;
@@ -1152,7 +1243,8 @@ impl Session {
             .map(|path| path.canonicalize())
             .collect::<std::io::Result<Vec<_>>>()?;
         for path in &explicit_paths {
-            if path.is_dir() {
+            if path.is_dir() && (!memory_projection || path != &root) {
+                // Memory discovery already resolved ignore rules for this root.
                 ignored.extend(checker_config.selection.ignored_paths_under(path));
             }
             if !path.is_dir() {
@@ -1161,7 +1253,13 @@ impl Session {
         }
         for path in &explicit_paths {
             if path.is_dir() {
-                files(path, &mut source_paths)?;
+                if !memory_projection || path != &root {
+                    if memory_projection {
+                        snapshot_files(path, &mut source_paths, &mut canonical_sources)?;
+                    } else {
+                        files(path, &mut source_paths)?;
+                    }
+                }
             } else {
                 source_paths.push(path.clone());
             }
@@ -1201,33 +1299,37 @@ impl Session {
             .filter_map(std::result::Result::transpose)
             .collect::<std::io::Result<Vec<_>>>()?;
         phase(&mut startup_phases, "startup_selection", &mut startup_tick);
-        // Opt-in while the concurrent path is qualified. Original bytes are
-        // read once and shared with both parsers; editors keep normal loading.
+        // Opt-in while the concurrent path is qualified. Snapshot loading and
+        // native disk warmup overlap; the real check still synchronizes the
+        // loaded immutable source text. Editors retain normal loading.
         let warmup_requested = options.get("native-warmup").is_some_and(|v| v == "true")
             || std::env::var_os("TY_COMPANION_NATIVE_WARMUP").is_some_and(|v| v == "1");
-        let preloaded = (warmup_requested
+        let preload_requested = warmup_requested
             && memory_projection
             && !checker_config.plugins.is_empty()
-            && options.get("public-cli").is_some_and(|v| v == "true"))
-        .then(|| Project::preload_sources(&root, &source_paths))
-        .flatten();
-        let native_warmup = if let Some(sources) = preloaded.as_ref().filter(|sources| {
-            !sources.is_empty()
-                && sources
-                    .values()
-                    .all(|source| source.path.starts_with(&root))
-        }) {
+            && options.get("public-cli").is_some_and(|v| v == "true");
+        let canonical_sources = Arc::new(canonical_sources);
+        let native_warmup = if preload_requested
+            && !source_paths.is_empty()
+            && source_paths.iter().all(|path| path.starts_with(&root))
+        {
             crate::native_warmup::NativeWarmup::start(
                 Path::new(required("ty")?),
                 &root,
                 &out,
                 &checker_config_path,
-                sources,
+                source_paths.clone(),
+                borrowed_overlay.iter().cloned().collect(),
+                Arc::clone(&canonical_sources),
             )
             .ok()
         } else {
             None
         };
+        let preloaded = preload_requested
+            .then(|| Project::preload_sources(&root, &source_paths, Some(&canonical_sources)))
+            .flatten()
+            .map(Arc::new);
         let mut base_project = Project::load_selected(
             &root,
             &source_paths,
@@ -1249,7 +1351,7 @@ impl Session {
                     && options
                         .get("public-cli")
                         .is_some_and(|value| value == "true"),
-                preloaded: preloaded.as_ref(),
+                preloaded: preloaded.as_deref(),
             },
         )?;
         base_project.add_source_paths(explicit_paths.clone());
@@ -1298,6 +1400,7 @@ impl Session {
             stubs,
             stub_roots: checker_config.stub_roots,
             overlay_files,
+            borrowed_overlay,
             options: options.clone(),
             mode: mode.into(),
             runtime,
@@ -1359,8 +1462,20 @@ impl Session {
         }
         if let Some(warmup) = self.native_warmup.take() {
             match warmup.finish() {
-                Ok((checker, seeds)) if reuse => {
-                    self.native_warmup_seeds = seeds;
+                Ok(mut checker) if reuse => {
+                    self.native_warmup_seeds = checker.seed_original_sources(
+                        self.base_project
+                            .modules
+                            .values()
+                            .filter(|module| !module.external)
+                            .map(|module| {
+                                (
+                                    Path::new(&module.source.path),
+                                    module.source.text.as_str(),
+                                    module.original_revision,
+                                )
+                            }),
+                    );
                     self.server = Some(checker);
                     self.native_warmup_reused = true;
                 }
@@ -1566,6 +1681,8 @@ impl Session {
     }
 
     fn reload_dependencies(&mut self) -> Result<()> {
+        // Persistent/reconfigured checks restore the ordinary copied view.
+        self.borrowed_overlay = None;
         let config = project_config::load(&self.root, &self.view, &self.stubs, &self.options)?;
         let stdlib = stdlib_overlay_modules(&config, &self.options, &self.out)?;
         if !self.stub_roots.is_empty() || !config.stub_roots.is_empty() {
@@ -1655,9 +1772,14 @@ impl Session {
             .map(|m| PathBuf::from(&m.source.path))
             .collect();
         for removed in previous.difference(&current) {
-            let generated =
-                projected_stub_path(&self.stubs, &self.stub_roots, &self.resolved_paths, removed)?;
-            if generated.exists() {
+            let generated = projected_stub_path(
+                &self.stubs,
+                &self.stub_roots,
+                &self.resolved_paths,
+                removed,
+                self.borrowed_overlay.as_deref(),
+            )?;
+            if generated.starts_with(&self.out) && generated.exists() {
                 std::fs::remove_file(generated)?;
             }
         }
@@ -1921,6 +2043,7 @@ impl Session {
             &self.selection,
             &self.ignored,
             overlays,
+            false,
         )?;
         let mut documents = Vec::new();
         let mut sources = BTreeMap::new();
@@ -1934,6 +2057,7 @@ impl Session {
                     &self.stub_roots,
                     &self.resolved_paths,
                     Path::new(&module.source.path),
+                    self.borrowed_overlay.as_deref(),
                 )?
             } else {
                 projected_source_path(&self.root, &self.view, Path::new(&module.source.path))
@@ -2240,7 +2364,10 @@ impl Session {
         let view = self.view.clone();
         let stubs = self.stubs.clone();
         let stub_roots = self.stub_roots.clone();
+        let borrowed_overlay = self.borrowed_overlay.clone();
         let config = self.config.clone();
+        let index_trace = std::env::var_os("TY_COMPANION_TRACE_PHASES").is_some();
+        let index_select_start = Instant::now();
         let mut project = self.base_project.clone();
         let selected = selected_paths(
             &project,
@@ -2249,11 +2376,14 @@ impl Session {
             &self.selection,
             &self.ignored,
             overlays,
+            frozen_cli_snapshot,
         )?;
+        let selected_lookup: std::collections::HashSet<_> =
+            selected.iter().map(PathBuf::as_path).collect();
         self.runtime.selected_virtual_scope = project
             .modules
             .values()
-            .filter(|module| selected.contains(Path::new(&module.source.path)))
+            .filter(|module| selected_lookup.contains(Path::new(&module.source.path)))
             .filter(|module| module.source.protocol_module.is_none())
             .filter(|module| {
                 self.index_files
@@ -2269,21 +2399,45 @@ impl Session {
                     .unwrap_or(&module.source.module)
                     .to_owned()
             });
+        if index_trace {
+            eprintln!(
+                "companion index selection: {:.6}s",
+                index_select_start.elapsed().as_secs_f64()
+            );
+        }
         let index = {
+            let attach_start = Instant::now();
             let runtime = &mut self.runtime;
             runtime.clear_project_patches();
             runtime.set_project_contributions(Vec::new());
             runtime.attach_project(Arc::new(project.clone()), config.clone());
+            if index_trace {
+                eprintln!(
+                    "companion index attach: {:.6}s",
+                    attach_start.elapsed().as_secs_f64()
+                );
+            }
+            let request_start = Instant::now();
             let mut request = project.build_request_for_files(self.index_files.as_ref());
             request["context"]["python-version"] = json!(runtime.python_version);
             request["context"]["platform"] = json!(runtime.platform);
+            if index_trace {
+                eprintln!(
+                    "companion index request: {:.6}s",
+                    request_start.elapsed().as_secs_f64()
+                );
+            }
             if !self.options.contains_key("ephemeral-evidence") {
                 write(
                     &out.join("project-request.json"),
                     &serde_json::to_string_pretty(&request)?,
                 )?;
             }
-            runtime.execute_project("build-project-index", request)?
+            if frozen_cli_snapshot && self.options.contains_key("ephemeral-evidence") {
+                runtime.execute_ephemeral_project_index(request)?
+            } else {
+                runtime.execute_project("build-project-index", request)?
+            }
         };
         phase(&mut phases, "project_index", &mut phase_started);
         // No projected dependency is written until the raw native request has
@@ -2492,7 +2646,7 @@ impl Session {
         runtime.annotation_candidates.clear();
         runtime.attach_project(Arc::new(project.clone()), runtime.config.clone());
         let mut previous = std::mem::take(&mut self.cached_units);
-        let mut units = BTreeMap::new();
+        let mut units = Vec::with_capacity(project.modules.len());
         for (name, module) in project.modules.iter() {
             if module.external && !external_targets.contains(name) {
                 continue;
@@ -2509,6 +2663,7 @@ impl Session {
                         &stub_roots,
                         &self.resolved_paths,
                         Path::new(&module.source.path),
+                        borrowed_overlay.as_deref(),
                     )?
                 }
             } else {
@@ -2528,7 +2683,7 @@ impl Session {
                 }
                 cached.selected = selected.contains(Path::new(&module.source.path));
                 cached.dirty = false;
-                units.insert(path, cached);
+                units.push((path, cached));
                 continue;
             }
             let observations = runtime.protocol_observations();
@@ -2557,7 +2712,7 @@ impl Session {
             let rendered = passthrough
                 .then(|| render(&module.source, &crate::mapping::Edits::default()))
                 .transpose()?;
-            units.insert(
+            units.push((
                 path.clone(),
                 File {
                     source: module.source.clone(),
@@ -2582,8 +2737,11 @@ impl Session {
                     pass: None,
                     reads_protocol_aliases: runtime.protocol_observations() != observations,
                 },
-            );
+            ));
         }
+        // Bulk construction sorts once and retains the last duplicate, like
+        // ordered insertion, without walking long path prefixes for every item.
+        let mut units: BTreeMap<_, _> = units.into_iter().collect();
         // An installed package retains its original resolution location. Only
         // the checker's in-memory document is changed, never dependency files.
         let mut source_cache_seeds = 0;
@@ -2595,9 +2753,13 @@ impl Session {
                 .map(|(path, unit)| (path.clone(), unit.source.text.clone()))
                 .collect();
             if reused_native_warmup
-                && units
-                    .keys()
-                    .any(|path| !path.starts_with(&root) && !path.starts_with(&out))
+                && units.keys().any(|path| {
+                    !path.starts_with(&root)
+                        && !path.starts_with(&out)
+                        && !borrowed_overlay
+                            .as_ref()
+                            .is_some_and(|provider| path.starts_with(provider))
+                })
             {
                 // Late installed-package contributions may require additional
                 // workspace roots. Keep their existing fresh initialization.
@@ -2605,13 +2767,16 @@ impl Session {
                 self.native_warmup_reused = false;
             }
             if !reused_native_warmup {
-                *server = Some(crate::checker::ProjectChecker::new_with_memory_projection(
-                    Path::new(required("ty")?),
-                    &root,
-                    &out,
-                    &checker_config_path,
-                    &sources,
-                )?);
+                *server = Some(
+                    crate::checker::ProjectChecker::new_with_memory_projection_roots(
+                        Path::new(required("ty")?),
+                        &root,
+                        &out,
+                        &checker_config_path,
+                        &sources,
+                        &borrowed_overlay.iter().cloned().collect::<Vec<_>>(),
+                    )?,
+                );
             }
             if frozen_cli_snapshot && reused_native_warmup {
                 source_cache_seeds = self.native_warmup_seeds;
@@ -3545,6 +3710,7 @@ impl Session {
         let mut result = json!({"diagnostics":diagnostics,"suppressed_generated":suppressed,"implementation":"rust","plugin_runtime":"embedded-monty","project":root,"checker":binary,"checker_mode":mode,"configuration":self.config_source,"revision":self.revisions,"external_resolution_requests":self.external_resolution_requests,"projection_rounds":rounds,"oracle_rounds":oracle_queries,"monty_executions":runtime.executions,"monty_cache_hits":runtime.hits,"monty_seconds":runtime.execution_time.as_secs_f64(),"seconds":started.elapsed().as_secs_f64()});
         result["memory_projection"] = json!(self.memory_projection);
         result["native_warmup_reused"] = json!(reused_native_warmup);
+        result["borrowed_overlay"] = json!(borrowed_overlay);
         result["reused_native_check"] = json!(reused_native_check);
         result["passthrough_units"] = json!(units.values().filter(|unit| unit.passthrough).count());
         result["early_call_returns"] = json!(
@@ -3636,6 +3802,7 @@ impl Session {
                 &stub_roots,
                 &self.resolved_paths,
                 Path::new(&module.source.path),
+                borrowed_overlay.as_deref(),
             )?;
             if !document_paths.contains(&projected) {
                 let path = if self
@@ -3707,6 +3874,356 @@ pub fn run(input: &Path, options: &BTreeMap<String, String>) -> Result<Value> {
 
 #[cfg(test)]
 mod tests {
+    #[cfg(unix)]
+    #[test]
+    fn discovery_catalog_preserves_paths_sources_and_symlink_resolution() -> anyhow::Result<()> {
+        use super::*;
+        struct Cleanup(PathBuf);
+        impl Drop for Cleanup {
+            fn drop(&mut self) {
+                let _ = std::fs::remove_dir_all(&self.0);
+            }
+        }
+        let directory =
+            std::env::temp_dir().join(format!("ty-discovery-catalog-{}", std::process::id()));
+        std::fs::create_dir_all(&directory)?;
+        let directory = Cleanup(directory.canonicalize()?);
+        let root = directory.0.join("project");
+        for relative in [
+            "main.py",
+            "pkg/__init__.py",
+            "pkg/real.pyi",
+            ".hidden/skip.py",
+            "dist/skip.py",
+        ] {
+            write(&root.join(relative), "value: int = 1\n")?;
+        }
+        let outside = directory.0.join("outside.py");
+        write(&outside, "value: str = 'external'\n")?;
+        let alias = root.join("alias.py");
+        let external = root.join("external.py");
+        std::os::unix::fs::symlink(root.join("pkg/real.pyi"), &alias)?;
+        std::os::unix::fs::symlink(&outside, &external)?;
+        std::os::unix::fs::symlink(root.join("pkg"), root.join("linked-directory"))?;
+        let mut original = Vec::new();
+        files(&root, &mut original)?;
+        let mut selected = Vec::new();
+        let mut known = std::collections::HashSet::new();
+        snapshot_files(&root, &mut selected, &mut known)?;
+        original.sort();
+        selected.sort();
+        assert_eq!(selected, original);
+        assert!(!known.contains(&alias));
+        assert!(!known.contains(&external));
+        assert!(known.contains(&root.join("main.py")));
+        for path in &known {
+            assert_eq!(path.canonicalize()?, *path);
+        }
+        let before =
+            Project::preload_sources(&root, &selected, None).context("reference snapshot")?;
+        let after =
+            Project::preload_sources(&root, &selected, Some(&known)).context("catalog snapshot")?;
+        assert_eq!(before.len(), after.len());
+        for (name, expected) in before {
+            let actual = &after[&name];
+            assert_eq!(actual.path, expected.path);
+            assert_eq!(actual.text, expected.text);
+            assert_eq!(actual.revision, expected.revision);
+        }
+        Ok(())
+    }
+
+    #[test]
+    fn hash_compact_paths_match_ordered_reference_for_selections_and_symlinks() -> anyhow::Result<()>
+    {
+        use super::*;
+        fn ordered_reference(root: &Path, selected: &BTreeSet<PathBuf>) -> Result<Vec<PathBuf>> {
+            fn visit(
+                path: &Path,
+                remaining: &mut BTreeSet<PathBuf>,
+            ) -> Result<(bool, Vec<PathBuf>)> {
+                if !remaining
+                    .range(path.to_owned()..)
+                    .next()
+                    .is_some_and(|candidate| candidate.starts_with(path))
+                {
+                    return Ok((false, Vec::new()));
+                }
+                let metadata = std::fs::symlink_metadata(path)?;
+                if !metadata.is_dir() {
+                    let included = remaining.remove(path);
+                    let discoverable = metadata.is_file()
+                        && path
+                            .extension()
+                            .is_some_and(|extension| extension == "py" || extension == "pyi");
+                    return Ok((
+                        included && discoverable,
+                        if included { vec![path.into()] } else { vec![] },
+                    ));
+                }
+                let mut complete = true;
+                let mut paths = Vec::new();
+                for entry in std::fs::read_dir(path)? {
+                    let (included, children) = visit(&entry?.path(), remaining)?;
+                    complete &= included;
+                    paths.extend(children);
+                }
+                if complete && !paths.is_empty() {
+                    paths = vec![path.into()];
+                }
+                let traversable =
+                    path.file_name()
+                        .and_then(|name| name.to_str())
+                        .is_none_or(|name| {
+                            !name.starts_with('.')
+                                && !project_config::DEFAULT_EXCLUDED_DIRECTORIES.contains(&name)
+                        });
+                Ok((complete && traversable, paths))
+            }
+            let mut remaining = selected.clone();
+            let (_, mut paths) = visit(root, &mut remaining)?;
+            paths.extend(remaining);
+            paths.sort();
+            Ok(paths)
+        }
+        let directory =
+            std::env::temp_dir().join(format!("ty-compact-paths-{}", std::process::id()));
+        let root = directory.join("project");
+        let result = (|| -> anyhow::Result<()> {
+            for relative in [
+                "a.py",
+                "b.pyi",
+                "pkg/a.py",
+                "pkg/not_py.txt",
+                ".hidden/a.py",
+                "target/a.py",
+                "pkg/child/c.py",
+            ] {
+                write(&root.join(relative), "value = 1\n")?;
+            }
+            let outside = directory.join("outside.py");
+            write(&outside, "value = 2\n")?;
+            #[cfg(unix)]
+            std::os::unix::fs::symlink(&outside, root.join("alias.py"))?;
+            #[cfg(not(unix))]
+            write(&root.join("alias.py"), "value = 2\n")?;
+            let mut inputs = [
+                "a.py",
+                "b.pyi",
+                "pkg/a.py",
+                "pkg/not_py.txt",
+                ".hidden/a.py",
+                "target/a.py",
+                "pkg/child/c.py",
+                "alias.py",
+                "missing.py",
+            ]
+            .map(|relative| root.join(relative))
+            .to_vec();
+            inputs.push(outside);
+            for mask in 0..(1u32 << inputs.len()) {
+                let selected = inputs
+                    .iter()
+                    .enumerate()
+                    .filter(|(index, _)| mask & (1 << index) != 0)
+                    .map(|(_, path)| path.clone())
+                    .collect();
+                assert_eq!(
+                    compact_check_paths(&root, &selected)?,
+                    ordered_reference(&root, &selected)?,
+                    "selection {mask}"
+                );
+            }
+            for selected in [
+                BTreeSet::from([root.clone()]),
+                BTreeSet::from([root.join("pkg"), root.join("pkg/a.py")]),
+            ] {
+                assert_eq!(
+                    compact_check_paths(&root, &selected)?,
+                    ordered_reference(&root, &selected)?
+                );
+            }
+            Ok(())
+        })();
+        if directory.exists() {
+            std::fs::remove_dir_all(directory)?;
+        }
+        result
+    }
+    #[cfg(unix)]
+    #[test]
+    fn borrowed_overlay_preserves_provider_bytes_native_errors_and_reload_fallback()
+    -> anyhow::Result<()> {
+        use super::*;
+        let Ok(binary) = std::env::var("TY_COMPANION_TEST_OFFICIAL") else {
+            return Ok(());
+        };
+        struct Temporary(PathBuf);
+        impl Drop for Temporary {
+            fn drop(&mut self) {
+                let _ = std::fs::remove_dir_all(&self.0);
+            }
+        }
+        let nonce = std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)?
+            .as_nanos();
+        let directory = std::env::temp_dir().join(format!(
+            "ty-borrowed-overlay-{}-{nonce}",
+            std::process::id()
+        ));
+        std::fs::create_dir_all(&directory)?;
+        let directory = Temporary(directory.canonicalize()?);
+        let root = directory.0.join("project");
+        let provider = directory.0.join("provider");
+        write(
+            &root.join("main.py"),
+            "from typing import assert_type\nfrom api import Item\nfrom api.extra import value\nassert_type(value, bytes)\nvalid: str = Item().value\ninvalid: int = Item().value\nnative_error: int = 'wrong'\n",
+        )?;
+        for (relative, text) in [
+            ("api/__init__.pyi", "class Item:\n    value: int\n"),
+            ("api/extra.pyi", "value: bytes\n"),
+            ("api/py.typed", "partial\n"),
+        ] {
+            let path = provider.join(relative);
+            write(&path, text)?;
+            let mut permissions = path.metadata()?.permissions();
+            permissions.set_readonly(true);
+            std::fs::set_permissions(&path, permissions)?;
+        }
+        let provider = provider.canonicalize()?;
+        let files = [
+            provider.join("api/__init__.pyi"),
+            provider.join("api/extra.pyi"),
+            provider.join("api/py.typed"),
+        ];
+        let originals = files
+            .iter()
+            .map(|path| Ok((std::fs::read(path)?, path.metadata()?.modified()?)))
+            .collect::<anyhow::Result<Vec<_>>>()?;
+        let manifest = directory.0.join("plugin.json");
+        let artifact = directory.0.join("plugin.py");
+        write(&manifest,&json!({"id":"test.borrowed","name":"Borrowed","version":"0","protocol-version":{"major":0,"minor":9},"ty-compatibility":{"requirement":">=0.89.0"},"runtime":{"kind":"monty","artifact":"plugin.py"},"capabilities":{"project-index":true,"class-transform":true,"instance-member":true,"stub-overlays":true},"claims":{"modules":[{"name":"api","recursive":true}],"classes":[{"kind":"exact","qualified-name":"api.Item"}],"attributes":[{"kind":"exact","scope":"instance","owner-qualified-name":"api.Item","attribute-name":"value"}]}}).to_string())?;
+        write(
+            &artifact,
+            "@on_project_index\ndef index(request):\n    return project_index(contributions=[contribution({}, instance_target('api.Item'), member_contribution(member('value', type_annotation('str'), mode='replace-existing')), 'api.Item.value')])\n",
+        )?;
+        let mut expected = None;
+        let mut expected_raw_lines = None;
+        for (case, borrow, warm, reload) in [
+            ("copy", false, false, false),
+            ("copy-warm", false, true, false),
+            ("borrow", true, false, false),
+            ("borrow-warm", true, true, false),
+            ("reload", true, true, true),
+        ] {
+            let out = directory.0.join(case);
+            let options = BTreeMap::from([
+                ("out".into(), out.to_string_lossy().into_owned()),
+                ("ty".into(), binary.clone()),
+                ("manifest".into(), manifest.to_string_lossy().into_owned()),
+                ("plugin".into(), artifact.to_string_lossy().into_owned()),
+                ("stubs".into(), provider.to_string_lossy().into_owned()),
+                ("checker-mode".into(), "push".into()),
+                ("memory-projection".into(), "true".into()),
+                ("public-cli".into(), "true".into()),
+                ("native-warmup".into(), warm.to_string()),
+                ("borrow-overlays".into(), borrow.to_string()),
+            ]);
+            let mut session = Session::new(&root, &options)?;
+            assert_eq!(
+                session.borrowed_overlay.as_ref(),
+                borrow.then_some(&provider)
+            );
+            assert_eq!(session.stubs.join("api/__init__.pyi").exists(), !borrow);
+            if reload {
+                session.invalidate();
+            }
+            let result = session.check(&BTreeMap::new())?;
+            if reload {
+                assert!(session.borrowed_overlay.is_none());
+                assert!(session.stubs.join("api/__init__.pyi").is_file());
+            }
+            let diagnostics = result["diagnostics"].clone();
+            assert_eq!(
+                diagnostics.as_array().unwrap().len(),
+                2,
+                "{case}: {result:#}"
+            );
+            let lines = diagnostics
+                .as_array()
+                .unwrap()
+                .iter()
+                .map(|d| {
+                    d["location"]["positions"]["begin"]["line"]
+                        .as_u64()
+                        .unwrap()
+                })
+                .collect::<BTreeSet<_>>();
+            assert_eq!(lines, BTreeSet::from([6, 7]), "{case}: {result:#}");
+            if let Some(expected) = &expected {
+                assert_eq!(&diagnostics, expected, "{case}");
+            } else {
+                expected = Some(diagnostics);
+            }
+            let native_sources: BTreeMap<_, _> = session
+                .documents
+                .iter()
+                .map(|document| (document.path.clone(), document.rendered.text.clone()))
+                .collect();
+            let raw = session
+                .server
+                .as_mut()
+                .context("native checker")?
+                .check_workspace(&native_sources, &[root.join("main.py")])?;
+            assert_eq!(raw.len(), 2, "workspace {case}: {raw:#?}");
+            let raw_lines = raw
+                .iter()
+                .map(|d| {
+                    d["location"]["positions"]["begin"]["line"]
+                        .as_u64()
+                        .unwrap()
+                })
+                .collect::<BTreeSet<_>>();
+            if let Some(expected) = &expected_raw_lines {
+                assert_eq!(&raw_lines, expected, "workspace {case}");
+            } else {
+                expected_raw_lines = Some(raw_lines);
+            }
+            drop(session);
+            std::fs::remove_dir_all(&out)?;
+            for (path, (bytes, modified)) in files.iter().zip(&originals) {
+                assert_eq!(&std::fs::read(path)?, bytes);
+                assert_eq!(&path.metadata()?.modified()?, modified);
+            }
+        }
+        // A provider containing a standard-library shadow keeps filtering and copying.
+        write(&provider.join("json/__init__.pyi"), "poison: int\n")?;
+        let options = BTreeMap::from([
+            (
+                "out".into(),
+                directory
+                    .0
+                    .join("stdlib-fallback")
+                    .to_string_lossy()
+                    .into_owned(),
+            ),
+            ("ty".into(), binary),
+            ("manifest".into(), manifest.to_string_lossy().into_owned()),
+            ("plugin".into(), artifact.to_string_lossy().into_owned()),
+            ("stubs".into(), provider.to_string_lossy().into_owned()),
+            ("checker-mode".into(), "push".into()),
+            ("memory-projection".into(), "true".into()),
+            ("public-cli".into(), "true".into()),
+            ("borrow-overlays".into(), "true".into()),
+        ]);
+        let mut session = Session::new(&root, &options)?;
+        assert!(session.borrowed_overlay.is_none());
+        assert!(!session.stubs.join("json").exists());
+        let result = session.check(&BTreeMap::new())?;
+        assert_eq!(Some(&result["diagnostics"]), expected.as_ref());
+        drop(session);
+        Ok(())
+    }
     fn native_rule(diagnostic: &serde_json::Value) -> &str {
         crate::native_rules::semantic_id(diagnostic["check_name"].as_str().unwrap())
     }

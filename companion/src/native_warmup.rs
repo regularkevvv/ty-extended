@@ -1,17 +1,19 @@
 //! Overlap a disposable native check with immutable source and plugin indexing.
 //! Its diagnostics are discarded. The ordinary synchronized check still runs.
 use std::{
-    collections::BTreeMap,
+    collections::{BTreeMap, HashSet},
     path::{Path, PathBuf},
+    sync::Arc,
     thread::JoinHandle,
+    time::Instant,
 };
 
-use anyhow::{Result, anyhow};
+use anyhow::{Context, Result, anyhow, ensure};
 
-use crate::{checker::ProjectChecker, project::SourceSnapshot};
+use crate::checker::ProjectChecker;
 
 pub struct NativeWarmup {
-    thread: Option<JoinHandle<Result<(ProjectChecker, usize)>>>,
+    thread: Option<JoinHandle<Result<ProjectChecker>>>,
 }
 
 impl NativeWarmup {
@@ -20,16 +22,10 @@ impl NativeWarmup {
         original: &Path,
         out: &Path,
         config: &Path,
-        snapshots: &BTreeMap<PathBuf, SourceSnapshot>,
+        paths: Vec<PathBuf>,
+        extra_roots: Vec<PathBuf>,
+        canonical_sources: Arc<HashSet<PathBuf>>,
     ) -> Result<Self> {
-        let sources: BTreeMap<_, _> = snapshots
-            .values()
-            .map(|source| (source.path.clone(), source.text.clone()))
-            .collect();
-        let revisions: BTreeMap<_, _> = snapshots
-            .values()
-            .map(|source| (source.path.clone(), source.revision))
-            .collect();
         let binary = binary.to_owned();
         let original = original.to_owned();
         let out = out.to_owned();
@@ -37,26 +33,64 @@ impl NativeWarmup {
         let thread = std::thread::Builder::new()
             .name("native-check-warmup".into())
             .spawn(move || {
-                let mut checker = ProjectChecker::new_with_memory_projection(
-                    &binary, &original, &out, &config, &sources,
+                let tracing = std::env::var_os("TY_COMPANION_TRACE_PHASES").is_some();
+                let mut tick = Instant::now();
+                let mut trace = |name| {
+                    if tracing {
+                        eprintln!(
+                            "companion native warmup {name}: {:.6}s",
+                            tick.elapsed().as_secs_f64()
+                        );
+                    }
+                    tick = Instant::now();
+                };
+                // Only paths are needed for discarded disk warmup. Source
+                // snapshots load concurrently and seed the cache when joined.
+                let canonical = crate::parallel::map_ordered(
+                    &paths,
+                    crate::parallel::workers(paths.len()),
+                    |path| {
+                        if canonical_sources.contains(path) {
+                            Ok(path.clone())
+                        } else {
+                            path.canonicalize()
+                        }
+                    },
                 )?;
-                let seeds = checker.seed_original_sources(
-                    sources
-                        .iter()
-                        .map(|(path, text)| (path.as_path(), text.as_str(), revisions[path])),
+                let sources: BTreeMap<_, _> = canonical
+                    .into_iter()
+                    .map(|path| path.map(|path| (path, String::new())))
+                    .collect::<std::io::Result<_>>()?;
+                ensure!(
+                    sources.keys().all(|path| path.starts_with(&original)),
+                    "warmup source outside original project"
                 );
-                let paths = sources.keys().cloned().collect::<Vec<_>>();
+                let first = sources
+                    .keys()
+                    .next()
+                    .context("empty warmup source catalog")?;
+                trace("input_maps");
+                let mut checker = ProjectChecker::new_with_memory_projection_roots(
+                    &binary,
+                    &original,
+                    &out,
+                    &config,
+                    &sources,
+                    &extra_roots,
+                )?;
+                trace("initialize");
                 // Raw diagnostics never become companion evidence. A later
                 // request checks every final projection after synchronization.
-                let _ = checker.check_workspace(&sources, &paths)?;
-                Ok((checker, seeds))
+                checker.warm_original_workspace(first)?;
+                trace("native_check");
+                Ok(checker)
             })?;
         Ok(Self {
             thread: Some(thread),
         })
     }
 
-    pub fn finish(mut self) -> Result<(ProjectChecker, usize)> {
+    pub fn finish(mut self) -> Result<ProjectChecker> {
         self.thread
             .take()
             .unwrap()
@@ -72,5 +106,55 @@ impl Drop for NativeWarmup {
         if let Some(thread) = self.thread.take() {
             let _ = thread.join();
         }
+    }
+}
+
+#[cfg(all(test, unix))]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn source_catalog_rejects_escaping_symlinks_before_native_initialization() -> Result<()> {
+        let directory =
+            std::env::temp_dir().join(format!("ty-warmup-catalog-{}", std::process::id()));
+        let root = directory.join("project");
+        let out = directory.join("generated");
+        std::fs::create_dir_all(&root)?;
+        std::fs::create_dir_all(&out)?;
+        let result = (|| -> Result<()> {
+            let root = root.canonicalize()?;
+            let outside = directory.join("outside.py");
+            std::fs::write(&outside, "value: int = 1\n")?;
+            let outside = outside.canonicalize()?;
+            let alias = root.join("alias.py");
+            std::os::unix::fs::symlink(&outside, &alias)?;
+            let config = directory.join("checker.toml");
+            std::fs::write(&config, "[environment]\npython-version='3.13'\n")?;
+            for paths in [vec![alias], vec![outside], Vec::new()] {
+                let warmup = NativeWarmup::start(
+                    &directory.join("not-a-checker"),
+                    &root,
+                    &out,
+                    &config,
+                    paths.clone(),
+                    Vec::new(),
+                    Arc::default(),
+                )?;
+                let error = warmup
+                    .finish()
+                    .err()
+                    .context("catalog unexpectedly accepted")?;
+                assert!(error.to_string().contains(if paths.is_empty() {
+                    "empty warmup source catalog"
+                } else {
+                    "outside original project"
+                }));
+                assert!(!out.join("checker-workspace.toml").exists());
+                assert!(!out.join("checker-server.stderr.log").exists());
+            }
+            Ok(())
+        })();
+        std::fs::remove_dir_all(&directory)?;
+        result
     }
 }

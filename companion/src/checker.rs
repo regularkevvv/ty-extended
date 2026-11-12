@@ -4,7 +4,7 @@
 //! persistent path reuses one public LSP session and one virtual document across
 //! oracle rounds; it does not link or patch the checker.
 use std::{
-    collections::{BTreeMap, BTreeSet},
+    collections::{BTreeMap, BTreeSet, HashMap},
     fs::{self, File},
     io::{BufRead, BufReader, Write},
     path::{Path, PathBuf},
@@ -158,6 +158,7 @@ pub struct ProjectChecker {
     documents: BTreeMap<PathBuf, (String, i32, String)>,
     notebooks: BTreeMap<PathBuf, String>,
     external_sources: BTreeSet<PathBuf>,
+    memory_dependency_roots: Vec<PathBuf>,
     disk_sources: BTreeMap<PathBuf, ([u8; 32], SystemTime)>,
     retired_disk_revisions: BTreeMap<PathBuf, SystemTime>,
     disk_directories: BTreeMap<PathBuf, SystemTime>,
@@ -167,7 +168,7 @@ pub struct ProjectChecker {
     memory_projection: bool,
     memory_probe_prefix: Option<PathBuf>,
     #[cfg(unix)]
-    original_sources: BTreeMap<PathBuf, (crate::model::FileRevision, String)>,
+    original_sources: HashMap<PathBuf, (crate::model::FileRevision, String)>,
     original_source_reads: usize,
 }
 
@@ -256,11 +257,23 @@ impl ProjectChecker {
         config: &Path,
         sources: &BTreeMap<PathBuf, String>,
     ) -> Result<Self> {
+        Self::new_with_memory_projection_roots(binary, original, out, config, sources, &[])
+    }
+
+    pub fn new_with_memory_projection_roots(
+        binary: &Path,
+        original: &Path,
+        out: &Path,
+        config: &Path,
+        sources: &BTreeMap<PathBuf, String>,
+        extra_roots: &[PathBuf],
+    ) -> Result<Self> {
         use sha2::{Digest, Sha256};
         let identity = format!("{:x}", Sha256::digest(out.to_string_lossy().as_bytes()));
         let probe_prefix = original.join(format!("_ty_companion_probe_{}_", &identity[..24]));
         let config = write_workspace_config(original, out, config, sources, Some(&probe_prefix))?;
         let mut roots = vec![original.to_owned(), out.to_owned()];
+        roots.extend(extra_roots.iter().cloned());
         for path in sources.keys() {
             if !roots.iter().any(|root| projection_contains(root, path)) {
                 roots.push(path.parent().context("source parent")?.to_owned());
@@ -283,6 +296,10 @@ impl ProjectChecker {
         );
         checker.memory_projection = true;
         checker.memory_probe_prefix = Some(probe_prefix);
+        checker.memory_dependency_roots = roots
+            .into_iter()
+            .filter(|root| root != original && root != out)
+            .collect();
         Ok(checker)
     }
 
@@ -370,6 +387,7 @@ impl ProjectChecker {
             documents: BTreeMap::new(),
             notebooks: BTreeMap::new(),
             external_sources: BTreeSet::new(),
+            memory_dependency_roots: Vec::new(),
             disk_sources: BTreeMap::new(),
             retired_disk_revisions: BTreeMap::new(),
             disk_directories: BTreeMap::new(),
@@ -379,7 +397,7 @@ impl ProjectChecker {
             memory_projection: false,
             memory_probe_prefix: None,
             #[cfg(unix)]
-            original_sources: BTreeMap::new(),
+            original_sources: HashMap::new(),
             original_source_reads: 0,
         }
     }
@@ -433,6 +451,7 @@ impl ProjectChecker {
             documents: BTreeMap::new(),
             notebooks: BTreeMap::new(),
             external_sources: BTreeSet::new(),
+            memory_dependency_roots: Vec::new(),
             disk_sources: BTreeMap::new(),
             retired_disk_revisions: BTreeMap::new(),
             disk_directories: BTreeMap::new(),
@@ -442,7 +461,7 @@ impl ProjectChecker {
             memory_projection: false,
             memory_probe_prefix: None,
             #[cfg(unix)]
-            original_sources: BTreeMap::new(),
+            original_sources: HashMap::new(),
             original_source_reads: 0,
         })
     }
@@ -503,6 +522,13 @@ impl ProjectChecker {
     pub fn sync_documents(&mut self, sources: &BTreeMap<PathBuf, String>) -> Result<()> {
         self.sync_documents_deferred(sources, &BTreeSet::new())
     }
+    fn imported_from_another_workspace(&self, path: &Path) -> bool {
+        self.external_sources.contains(path)
+            || self
+                .memory_dependency_roots
+                .iter()
+                .any(|root| projection_contains(root, path))
+    }
     fn sync_documents_deferred(
         &mut self,
         sources: &BTreeMap<PathBuf, String>,
@@ -519,7 +545,7 @@ impl ProjectChecker {
             .collect();
         let mut changed_external = removed
             .iter()
-            .filter(|path| self.external_sources.contains(*path))
+            .filter(|path| self.imported_from_another_workspace(path))
             .map(|path| {
                 file_uri(path).map(|uri| json!({"uri":uri,"type":if path.exists() {2} else {3}}))
             })
@@ -540,7 +566,7 @@ impl ProjectChecker {
             sources
                 .iter()
                 .filter(|(path, source)| {
-                    self.external_sources.contains(*path)
+                    self.imported_from_another_workspace(path)
                         && self
                             .documents
                             .get(*path)
@@ -995,6 +1021,26 @@ impl ProjectChecker {
                 == Some(&Value::Bool(true))
     }
 
+    /// Warm a fresh native database from its ordinary disk inputs. This request
+    /// produces no companion evidence: the final check still synchronizes every
+    /// projection and maps its own diagnostics. Avoid preparing unchanged memory
+    /// buffers or normalizing reports that the warmup must discard.
+    pub fn warm_original_workspace(&mut self, first: &Path) -> Result<()> {
+        ensure!(
+            self.memory_projection
+                && self.supports_workspace_diagnostics()
+                && self.documents.is_empty()
+                && self.disk_sources.is_empty(),
+            "original workspace warmup requires a fresh memory checker"
+        );
+        let reports = self.server.request(
+            "workspace/diagnostic",
+            json!({"previousResultIds":[{"uri":file_uri(first)?,"value":"companion-full-check"}]}),
+        )?;
+        ensure!(reports["items"].is_array(), "workspace diagnostic reports");
+        Ok(())
+    }
+
     /// A later edit may introduce a notebook or an externally located patch.
     /// Restore the general transport before changing workspace membership;
     /// its queries must not inherit the internal source-selection restriction.
@@ -1052,7 +1098,9 @@ impl ProjectChecker {
                 "previousResultIds":[{"uri":first_uri,"value":"companion-full-check"}]
             }),
         )?;
-        let mut selected = BTreeMap::new();
+        // Reports retain native order; this map is only an identity lookup.
+        // Avoid ordered comparisons of the shared workspace path prefix.
+        let mut selected = HashMap::with_capacity(paths.len());
         for path in paths {
             let native = if let Some((uri, _, _)) = self.documents.get(path) {
                 crate::lsp_mapping::decode_file_uri(uri)?
@@ -2145,9 +2193,20 @@ mod tests {
     #[test]
     #[cfg(not(windows))]
     fn warmed_memory_updates_match_fresh_native_diagnostics() -> Result<()> {
+        warmed_updates_match_fresh(false)
+    }
+
+    #[test]
+    #[cfg(not(windows))]
+    fn raw_workspace_warmup_preserves_fresh_diagnostics_without_preparing_buffers() -> Result<()> {
+        warmed_updates_match_fresh(true)
+    }
+
+    #[cfg(not(windows))]
+    fn warmed_updates_match_fresh(raw: bool) -> Result<()> {
         let binary = std::env::var("TY_COMPANION_TEST_OFFICIAL")?;
         let directory =
-            std::env::temp_dir().join(format!("ty-warmed-native-{}", std::process::id()));
+            std::env::temp_dir().join(format!("ty-warmed-native-{}-{raw}", std::process::id()));
         let project = directory.join("original");
         let out = directory.join("generated");
         let stubs = out.join("stubs");
@@ -2183,11 +2242,18 @@ mod tests {
                 &config,
                 &sources,
             )?;
-            assert!(
-                !warm
-                    .check_workspace(&sources, std::slice::from_ref(&consumer))?
-                    .is_empty()
-            );
+            if raw {
+                warm.warm_original_workspace(&consumer)?;
+                assert!(warm.documents.is_empty());
+                assert!(warm.disk_sources.is_empty());
+                assert_eq!(warm.original_source_reads(), 0);
+            } else {
+                assert!(
+                    !warm
+                        .check_workspace(&sources, std::slice::from_ref(&consumer))?
+                        .is_empty()
+                );
+            }
             let normalize = |values: &[Value]| {
                 let mut values = values.iter().map(|d| json!({"code":d["check_name"],"description":d["description"],"severity":d["severity"],"positions":d["location"]["positions"]})).collect::<Vec<_>>();
                 values.sort_by_key(Value::to_string);
