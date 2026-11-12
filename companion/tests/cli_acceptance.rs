@@ -5,6 +5,67 @@ use std::{fs, path::Path, process::Command};
 
 #[test]
 #[ignore = "requires TY_COMPANION_TEST_OFFICIAL"]
+fn automatic_memory_selection_preserves_explicit_hidden_notebooks() -> Result<()> {
+    let official = std::env::var("TY_COMPANION_TEST_OFFICIAL")?;
+    let root = std::env::temp_dir().join(format!("ty-explicit-notebook-{}", std::process::id()));
+    fs::create_dir_all(root.join(".hidden"))?;
+    let root = root.canonicalize()?;
+    let notebook = root.join(".hidden/check.ipynb");
+    let bytes = serde_json::to_vec(
+        &json!({"cells":[{"cell_type":"code","execution_count":null,"metadata":{},"outputs":[],"source":["wrong: int = 'text'\n"]}],"metadata":{"language_info":{"name":"python","version":"3.13"}},"nbformat":4,"nbformat_minor":2}),
+    )?;
+    fs::write(&notebook, &bytes)?;
+    let modified = fs::metadata(&notebook)?.modified()?;
+    fs::write(
+        root.join("ty.toml"),
+        "[environment]\npython-version='3.13'\n[plugins]\nenabled=false\n",
+    )?;
+    for path in [&notebook, &root.join(".hidden")] {
+        for memory in [None, Some("0")] {
+            let mut command = Command::new(env!("CARGO_BIN_EXE_ty-extended"));
+            command
+                .args(["check", "--ty", &official, "--output-format", "gitlab"])
+                .arg(path)
+                .current_dir(&root)
+                .env("TY_UV", "0")
+                .env_remove("TY_CONFIG_FILE")
+                .env_remove("TY_OUTPUT_FORMAT")
+                .env_remove("TY_COMPANION_MEMORY_PROJECTION");
+            if let Some(memory) = memory {
+                command.env("TY_COMPANION_MEMORY_PROJECTION", memory);
+            }
+            let output = command.output()?;
+            let stderr = String::from_utf8(output.stderr)?;
+            ensure!(output.status.code() == Some(1), "{stderr}");
+            let diagnostics: Value = serde_json::from_slice(&output.stdout).context(stderr)?;
+            ensure!(
+                diagnostics.as_array().is_some_and(
+                    |items| items.len() == 1 && items[0]["check_name"] == "invalid-assignment"
+                ),
+                "{diagnostics:#}"
+            );
+            ensure!(
+                Path::new(
+                    diagnostics[0]["location"]["path"]
+                        .as_str()
+                        .context("diagnostic path")?
+                )
+                .canonicalize()?
+                    == notebook,
+                "{diagnostics:#}"
+            );
+            ensure!(
+                fs::read(&notebook)? == bytes && fs::metadata(&notebook)?.modified()? == modified,
+                "original notebook changed"
+            );
+        }
+    }
+    fs::remove_dir_all(root)?;
+    Ok(())
+}
+
+#[test]
+#[ignore = "requires TY_COMPANION_TEST_OFFICIAL"]
 fn manifest_native_strategy_works_without_experimental_environment_flags() -> Result<()> {
     let official = std::env::var("TY_COMPANION_TEST_OFFICIAL")?;
     let temporary = std::env::temp_dir().canonicalize()?;

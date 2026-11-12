@@ -1134,6 +1134,20 @@ impl Session {
             !out.starts_with(&root),
             "generated output must be outside original project"
         );
+        // Include explicit selections in transport eligibility. A notebook in
+        // a hidden directory is absent from root discovery but still needs the
+        // existing disk projection. Retain path errors for their original
+        // position after configuration validation.
+        let explicit_paths: Result<Vec<PathBuf>> = (|| {
+            Ok(options
+                .get("explicit-files")
+                .map(|s| serde_json::from_str::<Vec<PathBuf>>(s))
+                .transpose()?
+                .unwrap_or_default()
+                .into_iter()
+                .map(|path| path.canonicalize())
+                .collect::<std::io::Result<Vec<_>>>()?)
+        })();
         let mut source_paths = Vec::new();
         let mut canonical_sources = std::collections::HashSet::new();
         let memory_requested = !cfg!(windows)
@@ -1142,9 +1156,23 @@ impl Session {
                 .is_some_and(|v| v == "true")
             && !options.contains_key("lsp-capabilities")
             && checker.is_none()
+            && explicit_paths.is_ok()
             && project_config::supports_memory_projection(&root, options)?;
         if memory_requested {
             snapshot_files(&root, &mut source_paths, &mut canonical_sources)?;
+            if let Ok(paths) = &explicit_paths {
+                for path in paths {
+                    if path == &root {
+                        continue;
+                    }
+                    if path.is_dir() {
+                        snapshot_files(path, &mut source_paths, &mut canonical_sources)?;
+                    } else {
+                        source_paths.push(path.clone());
+                        canonical_sources.insert(path.clone());
+                    }
+                }
+            }
         }
         let memory_projection = memory_requested
             && !root.to_string_lossy().contains('\\')
@@ -1243,14 +1271,7 @@ impl Session {
         let mut ignored = checker_config.selection.ignored_paths();
         let force_exclude = options.get("force-exclude").is_some_and(|v| v == "true");
         let mut explicit_files = BTreeSet::new();
-        let explicit_paths = options
-            .get("explicit-files")
-            .map(|s| serde_json::from_str::<Vec<PathBuf>>(s))
-            .transpose()?
-            .unwrap_or_default()
-            .into_iter()
-            .map(|path| path.canonicalize())
-            .collect::<std::io::Result<Vec<_>>>()?;
+        let explicit_paths = explicit_paths?;
         for path in &explicit_paths {
             if path.is_dir() && (!memory_projection || path != &root) {
                 // Memory discovery already resolved ignore rules for this root.
@@ -1260,28 +1281,17 @@ impl Session {
                 explicit_files.insert(path.clone());
             }
         }
-        for path in &explicit_paths {
-            if path.is_dir() {
-                if !memory_projection || path != &root {
-                    if memory_projection {
-                        snapshot_files(path, &mut source_paths, &mut canonical_sources)?;
-                    } else {
-                        files(path, &mut source_paths)?;
-                    }
+        if !memory_projection {
+            for path in &explicit_paths {
+                if path.is_dir() {
+                    files(path, &mut source_paths)?;
+                } else {
+                    source_paths.push(path.clone());
                 }
-            } else {
-                source_paths.push(path.clone());
             }
         }
         source_paths.sort();
         source_paths.dedup();
-        ensure!(
-            !memory_projection
-                || source_paths
-                    .iter()
-                    .all(|path| path.extension().is_none_or(|ext| ext != "ipynb")),
-            "experimental memory projection does not support explicit notebooks"
-        );
         let selected_sources = crate::parallel::map_ordered(
             &source_paths,
             crate::parallel::workers(source_paths.len()),
@@ -2808,6 +2818,7 @@ impl Session {
         let mut oracle_queries = 0;
         let mut analysis_passes = 0;
         let mut warmup_analysis_passes = 0;
+        let mut hook_prefetch_seconds = 0.0;
         let mut reused_analysis_passes = 0;
         let mut reused_final_flows = 0;
         let mut checked_projection = None;
@@ -2854,6 +2865,11 @@ impl Session {
                     }
                     unit.rendered = Some(generated);
                     continue;
+                }
+                if frozen_cli_snapshot && iteration == 0 {
+                    let started = Instant::now();
+                    runtime.prefetch_call_hooks(&unit.source, unit.analysis.calls.values())?;
+                    hook_prefetch_seconds += started.elapsed().as_secs_f64();
                 }
                 let mut inputs = ProjectionInputs::new(unit, runtime);
                 if unit.pass.as_ref().is_some_and(|pass| pass.inputs == inputs) {
@@ -3769,6 +3785,8 @@ impl Session {
         phase(&mut phases, "diagnostic_mapping", &mut phase_started);
         let mut result = json!({"diagnostics":diagnostics,"suppressed_generated":suppressed,"implementation":"rust","plugin_runtime":"embedded-monty","project":root,"checker":binary,"checker_mode":mode,"configuration":self.config_source,"revision":self.revisions,"external_resolution_requests":self.external_resolution_requests,"projection_rounds":rounds,"oracle_rounds":oracle_queries,"monty_executions":runtime.executions,"monty_cache_hits":runtime.hits,"monty_seconds":runtime.execution_time.as_secs_f64(),"seconds":started.elapsed().as_secs_f64()});
         result["memory_projection"] = json!(self.memory_projection);
+        result["monty_prefetched_executions"] = json!(runtime.prefetched_executions);
+        result["monty_prefetch_seconds"] = json!(hook_prefetch_seconds);
         result["native_warmup_reused"] = json!(reused_native_warmup);
         result["native_warmup_analysis_passes"] = json!(warmup_analysis_passes);
         result["borrowed_overlay"] = json!(borrowed_overlay);

@@ -3,14 +3,18 @@
 use anyhow::Result;
 
 pub fn workers(items: usize) -> usize {
+    // Small collections avoid thread startup.
+    if items < 128 { 1 } else { worker_limit() }
+}
+
+pub fn worker_limit() -> usize {
     let available = std::thread::available_parallelism().map_or(1, |n| n.get());
     let limit = std::env::var("TY_MAX_PARALLELISM")
         .ok()
         .and_then(|value| value.parse::<std::num::NonZeroUsize>().ok())
         .map_or(available, |n| n.get().min(available));
-    // Small collections avoid thread startup. Bound large snapshots so a
-    // companion check can coexist with the user's other work.
-    if items < 128 { 1 } else { limit.min(8) }
+    // Bound work so a companion check can coexist with the user's other work.
+    limit.min(8)
 }
 
 pub fn map_ordered<T: Sync, R: Send>(

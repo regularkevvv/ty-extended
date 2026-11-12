@@ -45,15 +45,14 @@ MyPy median ceiling. See
 [the reproducible benchmarks](docs/performance.md) for all samples, bare official
 ty timings, correctness controls and the limits of each comparison.
 
-The latest completed [unreleased native Django trial](docs/performance.md#current-native-comparison)
-passes the required **3-times ceiling on both isolated platforms**, including
-every paired repeat: Linux measures **2.86 times** median and **2.96 times** worst
-pair; macOS measures **2.61 times** median and **2.70 times** worst pair. The same
-7,082 files, 2,501 models, 100 assertions and both error controls are preserved.
-The companion passes all 20 focused ORM contracts; native Ty passes eight.
-The one-second goal is still unmet across all samples. Production activation,
-installed-artifact checks and release qualification remain open; the published
-results above remain the release baseline.
+The [unreleased production-default trial](docs/performance.md#current-native-comparison)
+now checks all five workload shapes against official Ty 0.0.101 with
+`django-types`. **The required 3-times ceiling still fails**, so no release is
+accepted. The 7,082-file/2,501-model single-module case passes locally at 2.50
+times median; isolated Linux measures 3.37 times and macOS 2.56 times. Distributing
+the same number of models across files makes native Ty faster and exposes more
+wrapper overhead. Correctness controls and provider preservation pass. See the
+full results and remaining qualification gates below.
 
 ## Monty plugins
 
@@ -63,6 +62,7 @@ No separate Python plugin interpreter or worker package is needed.
 ```toml
 # ty.toml
 [plugins]
+enabled = true
 auto-discover = true
 ```
 

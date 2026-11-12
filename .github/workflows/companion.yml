@@ -29,6 +29,28 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  plugin-host:
+    name: Monty host isolation
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      CARGO_TARGET_DIR: ${{ github.workspace }}/companion/target-host-check
+      CARGO_BUILD_JOBS: 2
+      CARGO_INCREMENTAL: 0
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+          submodules: recursive
+      - name: Install pinned Rust toolchain
+        run: rustup toolchain install 1.98.0 --profile minimal --component clippy
+      - name: Verify isolated indexed calls and clean build artifacts
+        shell: bash
+        run: |
+          trap 'cargo clean --manifest-path ruff/crates/ty_plugin_host/Cargo.toml' EXIT
+          cargo +1.98.0 test --locked --manifest-path ruff/crates/ty_plugin_host/Cargo.toml --no-default-features --features plugins-monty --lib --test monty -- --test-threads=1
+          cargo +1.98.0 clippy --locked --manifest-path ruff/crates/ty_plugin_host/Cargo.toml --no-default-features --features plugins-monty --lib --test monty -- -D warnings
+
   native-performance:
     name: Native Django performance (${{ matrix.os }})
     if: github.event_name == 'workflow_dispatch'
@@ -59,6 +81,7 @@ jobs:
           cargo +1.98.0 test --locked --release --manifest-path companion/Cargo.toml --bin ty-extended moved_response_indexes_preserve_exact_protocol_json -- --test-threads=1
           cargo +1.98.0 test --locked --release --manifest-path companion/Cargo.toml --bin ty-extended prepared_member_abstentions_preserve_routing_namespaces_and_failures -- --test-threads=1
           cargo +1.98.0 test --locked --release --manifest-path companion/Cargo.toml --bin ty-extended grouped_source_patterns_match_ordered_reference -- --test-threads=1
+          cargo +1.98.0 test --locked --release --manifest-path companion/Cargo.toml --bin ty-extended prefetched_hooks_preserve_serial_responses_keys_and_failures -- --test-threads=1
           cargo +1.98.0 build --locked --release --manifest-path companion/Cargo.toml --bin ty-extended
           cp "$CARGO_TARGET_DIR/release/ty-extended" "$RUNNER_TEMP/ty-extended-native"
       - name: Compare identical workloads and focused Django contracts

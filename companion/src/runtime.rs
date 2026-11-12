@@ -53,6 +53,7 @@ pub struct Runtime {
     projection_base_generation: u64,
     protocol_observations: Cell<u64>,
     pub executions: usize,
+    pub prefetched_executions: usize,
     pub hits: usize,
     pub execution_time: Duration,
     execution_profile: Option<BTreeMap<String, (usize, Duration)>>,
@@ -534,6 +535,15 @@ impl Runtime {
                     "companion-native-fields must be a boolean"
                 );
             }
+            if let Some(value) = config
+                .get("companion-parallel-calls")
+                .filter(|v| !v.is_null())
+            {
+                ensure!(
+                    value.is_boolean(),
+                    "companion-parallel-calls must be a boolean"
+                );
+            }
             let native_member_abstentions = config
                 .get("companion-native-member-abstentions")
                 .filter(|value| !value.is_null())
@@ -583,8 +593,8 @@ impl Runtime {
             });
             manifests.push(manifest);
         }
-        // The fork creates its semantic environment from the host's BTreeMap,
-        // so first-claim and first-field precedence are lexical plugin-id order.
+        // Preserve lexical plugin-id order for first-claim and first-field
+        // precedence across registered plugins.
         plugins.sort_by(|left, right| left.id.cmp(&right.id));
         let environment = PluginEnvironment::from_manifests(manifests)?;
         let mut manifest_value = plugins
@@ -722,6 +732,7 @@ impl Runtime {
             projection_base_generation: 0,
             protocol_observations: Cell::new(0),
             executions: 0,
+            prefetched_executions: 0,
             hits: 0,
             execution_time: Duration::ZERO,
             execution_profile: std::env::var_os("TY_COMPANION_TRACE_PHASES")
@@ -772,6 +783,126 @@ impl Runtime {
                 .plugins
                 .iter()
                 .any(|plugin| plugin.config.get("companion-early-call-returns").is_some())
+    }
+
+    /// Populate ordinary cache entries from static call inputs. Flow still
+    /// constructs each real request and uses its complete key; a changed
+    /// receiver, argument, context, or index falls back to normal execution.
+    pub fn prefetch_call_hooks<'a>(
+        &mut self,
+        source: &Source,
+        calls: impl Iterator<Item = &'a CallSite>,
+    ) -> Result<usize> {
+        if !self.use_site_fields
+            || !self
+                .plugins
+                .iter()
+                .any(|plugin| plugin.config["companion-parallel-calls"] == true)
+        {
+            return Ok(0);
+        }
+        struct Invocation {
+            owner: usize,
+            key: RequestKey,
+            kind: &'static str,
+            request: PluginRequest,
+        }
+        let mut invocations = Vec::new();
+        let mut seen = BTreeSet::new();
+        'calls: for call in calls {
+            if !call.arguments.iter().all(|arg| {
+                matches!(
+                    arg.literal["kind"].as_str(),
+                    Some("int" | "str" | "bool" | "none")
+                )
+            }) {
+                continue;
+            }
+            for (kind, speculative) in [("adjust-call-return", true), ("adjust-call-state", false)]
+            {
+                let Ok(PreparedCall::Request(payload)) =
+                    prepare_call_request(self, source, kind, call, None, None, speculative)
+                else {
+                    continue;
+                };
+                for owner in 0..self.plugins.len() {
+                    let Some(request) = self.semantic_request(owner, source, kind, &payload)?
+                    else {
+                        continue;
+                    };
+                    let plugin = &self.plugins[owner];
+                    // Calls select their first claimant even when it abstains.
+                    // Non-opted-in plugins and failures retain that exact path.
+                    if plugin.config["companion-parallel-calls"] != true
+                        || plugin.manifest["capabilities"]["project-index-lookup"] != true
+                        || plugin.index.is_none()
+                        || self.load_failures.contains_key(&plugin.id)
+                    {
+                        break;
+                    }
+                    let key = self.semantic_key(owner, &request)?;
+                    if !self.cache.entries.contains_key(&key) && seen.insert(key) {
+                        let Ok(request) = decode_request(request) else {
+                            break;
+                        };
+                        invocations.push(Invocation {
+                            owner,
+                            key,
+                            kind,
+                            request,
+                        });
+                        // Bound speculative work and retained replies even
+                        // for a module containing thousands of call sites.
+                        if invocations.len() == 256 {
+                            break 'calls;
+                        }
+                    }
+                    break;
+                }
+            }
+        }
+        if invocations.len() < 8 {
+            return Ok(0);
+        }
+        let results = {
+            let host = &self.host;
+            let plugins = &self.plugins;
+            crate::parallel::map_ordered(
+                &invocations,
+                crate::parallel::worker_limit(),
+                |invocation| {
+                    let started = Instant::now();
+                    let plugin = &plugins[invocation.owner];
+                    let result = match plugin.index.as_ref() {
+                        Some(index) => {
+                            host.execute_with_project_index(&plugin.id, &invocation.request, index)
+                        }
+                        None => host.execute(&plugin.id, &invocation.request),
+                    };
+                    (result, started.elapsed())
+                },
+            )?
+        };
+        for (invocation, (result, elapsed)) in invocations.iter().zip(results) {
+            self.execution_time += elapsed;
+            self.executions += 1;
+            self.prefetched_executions += 1;
+            if let Some(profile) = &mut self.execution_profile {
+                let entry = profile.entry(invocation.kind.to_owned()).or_default();
+                entry.0 += 1;
+                entry.1 += elapsed;
+            }
+            let response = match result {
+                Ok(ty_plugin_protocol::PluginResponse::Error(_)) => json!({"kind":"no-change"}),
+                Ok(response) => response_value(response)?,
+                // Resource contention during speculative work must not turn
+                // into an actual-call failure. The normal path retries it and
+                // preserves its own diagnostics and per-call resource limits.
+                Err(_) => continue,
+            };
+            self.cache.insert(invocation.key, &response);
+        }
+        Ok(invocations.len())
     }
 
     pub fn claims_function(&self, source: &Source, name: &str) -> bool {
@@ -2017,8 +2148,7 @@ impl Runtime {
         }
         self.executions += 1;
         let response = match result {
-            // The fork consumes only the response variant for the requested
-            // hook. An explicit protocol Error is an abstention, unlike a host
+            // An explicit protocol Error is an abstention, unlike a host
             // failure (trap, execution limit or undecodable response).
             Ok(ty_plugin_protocol::PluginResponse::Error(_)) => json!({"kind":"no-change"}),
             Ok(response) => response_value(response)?,
@@ -2855,6 +2985,11 @@ pub fn speculative_call_return(
     Ok(Some(EarlyCallReturn { response, native }))
 }
 
+enum PreparedCall {
+    Response(Value),
+    Request(Value),
+}
+
 fn call_request_with_speculation(
     runtime: &mut Runtime,
     source: &Source,
@@ -2864,6 +2999,21 @@ fn call_request_with_speculation(
     receiver: Option<&str>,
     speculative: bool,
 ) -> Result<Value> {
+    match prepare_call_request(runtime, source, kind, call, oracle, receiver, speculative)? {
+        PreparedCall::Response(response) => Ok(response),
+        PreparedCall::Request(payload) => runtime.execute(source, kind, payload),
+    }
+}
+
+fn prepare_call_request(
+    runtime: &mut Runtime,
+    source: &Source,
+    kind: &str,
+    call: &CallSite,
+    oracle: Option<&Oracle>,
+    receiver: Option<&str>,
+    speculative: bool,
+) -> Result<PreparedCall> {
     let mut callee = call.callee.clone();
     let receiver = receiver
         .or(call.flow_receiver_type.as_deref())
@@ -2923,7 +3073,7 @@ fn call_request_with_speculation(
         && summary.is_none()
         && let Some(patch) = runtime.use_site_constructor(source, &callee)
     {
-        return Ok(patch);
+        return Ok(PreparedCall::Response(patch));
     }
     // Claims inspect only the callee and nominal receiver. Avoid constructing
     // argument/return snapshots and source locations for calls no plugin can
@@ -2945,7 +3095,7 @@ fn call_request_with_speculation(
         if matches {
             if kind == "adjust-call-signature" {
                 if !runtime.selected_signature(index, source, routed)? {
-                    return Ok(json!({"kind":"no-change"}));
+                    return Ok(PreparedCall::Response(json!({"kind":"no-change"})));
                 }
                 claimed = true;
                 break;
@@ -2956,13 +3106,13 @@ fn call_request_with_speculation(
                     callee.rsplit('.').next().unwrap_or(&callee),
                 )?
             {
-                return Ok(json!({"kind":"no-change"}));
+                return Ok(PreparedCall::Response(json!({"kind":"no-change"})));
             }
             claimed = true;
         }
     }
     if !claimed {
-        return Ok(json!({"kind":"no-change"}));
+        return Ok(PreparedCall::Response(json!({"kind":"no-change"})));
     }
     let arguments: Vec<_> = call
         .arguments
@@ -2998,12 +3148,129 @@ fn call_request_with_speculation(
     if speculative {
         value["context"] = json!({"speculative":true});
     }
-    runtime.execute(source, kind, value)
+    Ok(PreparedCall::Request(value))
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn prefetched_hooks_preserve_serial_responses_keys_and_failures() -> Result<()> {
+        let directory =
+            std::env::temp_dir().join(format!("ty-prefetched-calls-{}", std::process::id()));
+        std::fs::create_dir_all(&directory)?;
+        let manifest = directory.join("plugin.json");
+        let artifact = directory.join("plugin.py");
+        let source_path = directory.join("demo.py");
+        std::fs::write(
+            &source_path,
+            "class Row: pass\nclass Manager:\n    def get(self, *, key: int) -> Row: ...\n",
+        )?;
+        std::fs::write(&manifest, json!({"id":"prefetch","name":"Prefetch","version":"0","protocol-version":{"major":0,"minor":9},"ty-compatibility":{"requirement":">=0.89.0"},"runtime":{"kind":"monty","artifact":"plugin.py"},"capabilities":{"project-index":true,"project-index-lookup":true,"call-return":true,"call-state":true},"claims":{"methods":[{"kind":"exact","class-qualified-name":"demo.Manager","method-name":"get"}]},"default-config":{"companion-native-fields":true,"companion-parallel-calls":true,"companion-early-call-returns":["get"]}}).to_string())?;
+        std::fs::write(
+            &artifact,
+            r#"
+counter = 0
+@on_project_index
+def index(request):
+    return project_index({'annotation': request['context']['root']})
+@on_call_return
+def returns(request):
+    global counter
+    counter += 1
+    assert counter == 1
+    if request['arguments'][0]['value']['value'] == -1:
+        return {'kind': 'malformed-response'}
+    return call_return_patch(type_annotation(project_index_value(request, ['annotation'])))
+@on_call_state
+def state(request):
+    return call_state_patch(result_members={'value': type_annotation(project_index_value(request, ['annotation']))}, fresh_result=True)
+"#,
+        )?;
+        let mut serial = Runtime::new(&manifest, &artifact)?;
+        let mut parallel = Runtime::new(&manifest, &artifact)?;
+        serial.use_site_fields = true;
+        parallel.use_site_fields = true;
+        let project = Arc::new(Project::load(
+            &directory,
+            std::slice::from_ref(&source_path),
+            &serial.manifest,
+            json!({}),
+        )?);
+        serial.attach_project(Arc::clone(&project), json!({}));
+        parallel.attach_project(Arc::clone(&project), json!({}));
+        let source = &project.modules["demo"].source;
+        let calls: Vec<_> = (0..16).map(|position| CallSite {
+            span: Span { start: position, end: position + 1 },
+            function: Span { start: position, end: position + 1 },
+            callee: "demo.Manager.get".into(),
+            arguments: vec![crate::model::Argument { span: Span { start: position, end: position + 1 }, name: Some("key".into()), literal: json!({"kind":"int","value": if position == 0 {-1} else {position as i64}}), kind: "keyword", inferred_type: None }],
+            receiver_span: None,
+            receiver_type: Some("demo.Manager".into()),
+            flow_receiver_type: Some("demo.Manager".into()),
+        }).collect();
+        for annotation in ["str", "bytes"] {
+            for runtime in [&mut serial, &mut parallel] {
+                runtime.execute_project("build-project-index", json!({"context":{"root":annotation,"python-version":"3.13","platform":"linux"}}))?;
+            }
+            let before = parallel.executions;
+            assert_eq!(parallel.prefetch_call_hooks(source, calls.iter())?, 32);
+            assert_eq!(parallel.executions - before, 32);
+            for call in &calls {
+                for (kind, speculative) in
+                    [("adjust-call-return", true), ("adjust-call-state", false)]
+                {
+                    let expected = call_request_with_speculation(
+                        &mut serial,
+                        source,
+                        kind,
+                        call,
+                        None,
+                        None,
+                        speculative,
+                    )?;
+                    let actual = call_request_with_speculation(
+                        &mut parallel,
+                        source,
+                        kind,
+                        call,
+                        None,
+                        None,
+                        speculative,
+                    )?;
+                    assert_eq!(actual, expected);
+                }
+            }
+            // One malformed return is retried normally; every successful
+            // prefetched request must match its real invocation's exact key.
+            assert_eq!(parallel.executions - before, 33);
+            let mut changed = calls[1].clone();
+            changed.arguments[0].literal = json!({"kind":"str","value":"changed"});
+            let before = parallel.executions;
+            assert_eq!(
+                call_request(
+                    &mut parallel,
+                    source,
+                    "adjust-call-state",
+                    &changed,
+                    None,
+                    None
+                )?,
+                call_request(
+                    &mut serial,
+                    source,
+                    "adjust-call-state",
+                    &changed,
+                    None,
+                    None
+                )?
+            );
+            assert_eq!(parallel.executions, before + 1);
+        }
+        std::fs::remove_dir_all(directory)?;
+        Ok(())
+    }
 
     #[test]
     fn signature_method_selection_preserves_first_owner_functions_constructors_and_errors()
