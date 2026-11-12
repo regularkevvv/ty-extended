@@ -63,6 +63,7 @@ struct Registration {
     id: String,
     manifest: Value,
     config: Value,
+    native_member_abstentions: Option<String>,
     index: Option<Value>,
     class_indexes: BTreeMap<String, Value>,
     index_generation: u64,
@@ -200,6 +201,27 @@ fn decode_request(mut payload: Value) -> serde_json::Result<PluginRequest> {
             serde_json::from_value(payload)
         }
     }
+}
+
+/// Move opaque author-owned JSON through the response encoder. The remaining
+/// protocol fields retain their derived serialization and omission rules.
+fn response_value(mut response: ty_plugin_protocol::PluginResponse) -> serde_json::Result<Value> {
+    let indexes = if let ty_plugin_protocol::PluginResponse::ProjectIndex(index) = &mut response {
+        Some((
+            index.plugin_index.take(),
+            std::mem::take(&mut index.class_indexes),
+        ))
+    } else {
+        None
+    };
+    let mut value = serde_json::to_value(response)?;
+    if let Some((index, classes)) = indexes {
+        value["plugin-index"] = index;
+        if !classes.is_empty() {
+            value["class-indexes"] = Value::Object(classes.into_iter().collect());
+        }
+    }
+    Ok(value)
 }
 
 #[derive(Default)]
@@ -503,6 +525,20 @@ impl Runtime {
                 .cloned()
                 .unwrap_or(json!({}));
             merge_config(&mut config, overrides);
+            let native_member_abstentions = config
+                .get("companion-native-member-abstentions")
+                .filter(|value| !value.is_null())
+                .map(|value| {
+                    let key = value.as_str().context(
+                        "companion-native-member-abstentions must name an index property",
+                    )?;
+                    ensure!(
+                        !key.is_empty(),
+                        "companion-native-member-abstentions requires a nonempty index property"
+                    );
+                    Ok::<_, anyhow::Error>(key.to_owned())
+                })
+                .transpose()?;
             match std::fs::read(plugin_path) {
                 Ok(bytes) => {
                     if let Err(error) = runner.add_plugin(&manifest.id, bytes) {
@@ -529,6 +565,7 @@ impl Runtime {
                 id: manifest.id.clone(),
                 manifest: manifest_value,
                 config,
+                native_member_abstentions,
                 index: None,
                 class_indexes: BTreeMap::new(),
                 index_generation: 0,
@@ -1720,6 +1757,33 @@ impl Runtime {
         Ok(json!({"kind":"no-change"}))
     }
 
+    fn native_member_abstains(&self, index: usize, kind: &str, request: &Value) -> bool {
+        let plugin = &self.plugins[index];
+        if kind != "resolve-instance-member"
+            || !self.use_site_fields
+            || self.load_failures.contains_key(&plugin.id)
+        {
+            return false;
+        }
+        let Some(key) = &plugin.native_member_abstentions else {
+            return false;
+        };
+        let (Some(owner), Some(member)) = (
+            request["owner"]["expression"].as_str(),
+            request["member-name"].as_str(),
+        ) else {
+            return false;
+        };
+        plugin
+            .index
+            .as_ref()
+            .and_then(|index| index.get(key))
+            .and_then(|owners| owners.get(owner))
+            .and_then(|members| members.get(member))
+            .and_then(Value::as_bool)
+            == Some(true)
+    }
+
     fn selected_signature(&self, index: usize, source: &Source, payload: &Value) -> Result<bool> {
         let plugin = &self.plugins[index];
         let key = "companion-call-signature-methods";
@@ -1937,7 +2001,7 @@ impl Runtime {
             // hook. An explicit protocol Error is an abstention, unlike a host
             // failure (trap, execution limit or undecodable response).
             Ok(ty_plugin_protocol::PluginResponse::Error(_)) => json!({"kind":"no-change"}),
-            Ok(response) => serde_json::to_value(response)?,
+            Ok(response) => response_value(response)?,
             Err(error) => hook_failure_response(id, kind, error),
         };
         Ok(response)
@@ -2364,6 +2428,10 @@ impl Runtime {
             let Some(request) = self.semantic_request(index, source, kind, &payload)? else {
                 continue;
             };
+            if self.native_member_abstains(index, kind, &request) {
+                // A member abstention still permits later claiming plugins.
+                continue;
+            }
             if kind == "adjust-call-signature"
                 && !self.selected_signature(index, source, &request)?
             {
@@ -3700,6 +3768,139 @@ def member_hook(request):
                 .iter()
                 .all(|plugin| plugin.class_indexes.is_empty())
         );
+        std::fs::remove_dir_all(directory)?;
+        Ok(())
+    }
+
+    #[test]
+    fn moved_response_indexes_preserve_exact_protocol_json() -> Result<()> {
+        for index in [
+            Value::Null,
+            json!(true),
+            json!(42),
+            json!(1.5),
+            json!("é\n"),
+            json!([]),
+            json!({"nested":[{"a/b~c":[null,false,1,"value"]}]}),
+        ] {
+            for classes in [
+                BTreeMap::new(),
+                BTreeMap::from([
+                    ("demo.Row".to_owned(), index.clone()),
+                    ("demo.Empty".to_owned(), Value::Null),
+                ]),
+            ] {
+                let response = ty_plugin_protocol::PluginResponse::ProjectIndex(
+                    ty_plugin_protocol::ProjectIndexResponse {
+                        plugin_index: index.clone(),
+                        class_indexes: classes,
+                        contributions: Vec::new(),
+                        virtual_types: Vec::new(),
+                        dependencies: Vec::new(),
+                        diagnostics: Vec::new(),
+                    },
+                );
+                let reference = serde_json::to_value(&response)?;
+                assert_eq!(response_value(response)?, reference);
+            }
+        }
+        for value in [
+            json!({"kind":"no-change"}),
+            json!({"kind":"class-patch","fields":[]}),
+            json!({"kind":"call-return-patch","return-type":typ("int")}),
+        ] {
+            let response: ty_plugin_protocol::PluginResponse = serde_json::from_value(value)?;
+            let reference = serde_json::to_value(&response)?;
+            assert_eq!(response_value(response)?, reference);
+        }
+        Ok(())
+    }
+
+    #[test]
+    fn prepared_member_abstentions_preserve_routing_namespaces_and_failures() -> Result<()> {
+        let directory = std::env::temp_dir().join(format!(
+            "ty-native-member-abstentions-{}",
+            std::process::id()
+        ));
+        std::fs::create_dir_all(&directory)?;
+        let mut paths = Vec::new();
+        for (id, result) in [("a.first", "str"), ("b.second", "int")] {
+            let manifest = directory.join(format!("{id}.json"));
+            let artifact = directory.join(format!("{id}.py"));
+            std::fs::write(
+                &artifact,
+                format!(
+                    "@on_instance_member\ndef instance(request):\n    return member_response(member(request['member-name'], type_annotation('{result}'), mode='replace-existing'))\n"
+                ),
+            )?;
+            let claims: Vec<_> = ["value", "other"].into_iter().map(|member|json!({"kind":"exact","scope":"instance","owner-qualified-name":"demo.Row","attribute-name":member})).collect();
+            std::fs::write(&manifest,json!({"id":id,"name":id,"version":"0","protocol-version":{"major":0,"minor":9},"ty-compatibility":{"requirement":">=0.89.0"},"runtime":{"kind":"monty","artifact":format!("{id}.py")},"capabilities":{"instance-member":true},"claims":{"attributes":claims},"default-config":{"companion-native-member-abstentions":"native"}}).to_string())?;
+            paths.push((manifest, artifact, json!({})));
+        }
+        let source = Source::new(String::new(), "demo.py".into(), "demo".into());
+        let request = json!({"owner":typ("demo.Row"),"member-name":"value"});
+        let declaration = json!({"native":{"demo.Row":{"value":true,"other":"true"}}});
+        let mut runtime = Runtime::from_plugins(&paths)?;
+        runtime.use_site_fields = true;
+        runtime.plugins[0].index = Some(declaration.clone());
+        assert_eq!(
+            runtime.execute(&source, "resolve-instance-member", request.clone())?["access"]["type-expr"]
+                ["expression"],
+            "int"
+        );
+        assert_eq!(
+            runtime.executions, 1,
+            "only the later plugin should execute"
+        );
+        assert_eq!(
+            runtime.execute(
+                &source,
+                "resolve-instance-member",
+                json!({"owner":typ("demo.Row"),"member-name":"other"})
+            )?["access"]["type-expr"]["expression"],
+            "str"
+        );
+        assert!(!runtime.native_member_abstains(0, "resolve-class-member", &request));
+        assert!(!runtime.native_member_abstains(0, "adjust-call-state", &request));
+        runtime.use_site_fields = false;
+        assert_eq!(
+            runtime.execute(&source, "resolve-instance-member", request.clone())?["access"]["type-expr"]
+                ["expression"],
+            "str"
+        );
+        runtime.use_site_fields = true;
+        runtime.plugins[0].index = None;
+        assert!(!runtime.native_member_abstains(0, "resolve-instance-member", &request));
+
+        let mut isolated = Runtime::from_plugins(&paths[..1])?;
+        isolated.use_site_fields = true;
+        isolated.plugins[0].index = Some(declaration);
+        isolated.plugins[0]
+            .virtual_names
+            .insert("demo.Row".into(), "_ty_plugin_test.Row".into());
+        isolated.plugins[0]
+            .inverse_virtual_names
+            .insert("_ty_plugin_test.Row".into(), "demo.Row".into());
+        assert_eq!(
+            isolated.execute(
+                &source,
+                "resolve-instance-member",
+                json!({"owner":typ("_ty_plugin_test.Row"),"member-name":"value"})
+            )?["kind"],
+            "no-change"
+        );
+        assert_eq!(isolated.executions, 0);
+        isolated.load_failures.insert(
+            "a.first".into(),
+            ("broken artifact".into(), "reload".into()),
+        );
+        assert!(!isolated.native_member_abstains(0, "resolve-instance-member", &request));
+        isolated.execute(&source, "resolve-instance-member", request)?;
+        for invalid in [json!(false), json!([]), json!("")] {
+            let mut malformed = paths[..1].to_vec();
+            malformed[0].2 = json!({"companion-native-member-abstentions":invalid});
+            assert!(Runtime::from_plugins(&malformed).is_err());
+        }
         std::fs::remove_dir_all(directory)?;
         Ok(())
     }

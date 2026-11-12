@@ -1726,6 +1726,7 @@ impl Project {
                         && in_checked_file(&m.source.path)
                 })
             })
+            .cloned()
             .collect();
         let notebook_paths: BTreeSet<_> = self
             .modules
@@ -1743,15 +1744,23 @@ impl Project {
             .assignments
             .iter()
             .filter(in_regular_module)
+            .cloned()
             .collect::<Vec<_>>();
         let functions = self
             .functions
             .iter()
             .map(|function| &function.summary)
             .filter(in_regular_module)
+            .cloned()
             .collect::<Vec<_>>();
-        json!({"kind":"build-project-index","context":{"root":"","python-version":"3.13","platform":std::env::consts::OS.replace("macos","darwin"),"config":self.config},
-            "classes":classes,"settings":self.settings.as_ref(),"assignments":assignments,"functions":functions})
+        // These are already JSON trees. Serializing them through json! creates
+        // every map entry again; clone once and move the owned arrays instead.
+        let mut request = json!({"kind":"build-project-index","context":{"root":"","python-version":"3.13","platform":std::env::consts::OS.replace("macos","darwin"),"config":self.config}});
+        request["classes"] = Value::Array(classes);
+        request["settings"] = Value::Array(self.settings.as_ref().clone());
+        request["assignments"] = Value::Array(assignments);
+        request["functions"] = Value::Array(functions);
+        request
     }
 
     #[cfg(test)]
