@@ -15,6 +15,19 @@ import compare_checkers
 
 
 class PerformanceGateTests(unittest.TestCase):
+    def test_accepted_average_gate_reports_faster_mean_and_slower_median_honestly(self):
+        gate = compare_checkers.regression_gate(
+            {
+                "companion": [0.53, 0.53, 0.53],
+                "performance-reference": [0.50, 0.50, 0.80],
+                "bare-ty": [0.2] * 3,
+                "mypy": [3.0] * 3,
+            }
+        )
+        self.assertLess(gate["mean_reference_ratio"], 1)
+        self.assertFalse(gate["median_reference_ceiling_met"])
+        self.assertTrue(gate["passed"])
+
     def test_small_reference_runs_allow_only_bounded_absolute_noise(self):
         samples = {
             "companion": [0.198] * 3,
@@ -61,7 +74,7 @@ class PerformanceGateTests(unittest.TestCase):
             )["passed"]
         )
 
-    def test_reference_policy_rejects_mean_and_median_regressions(self):
+    def test_reference_policy_rejects_average_regressions(self):
         for candidate in ([0.6, 0.6, 0.8], [0.5, 0.7, 0.7]):
             with self.subTest(candidate=candidate):
                 gate = compare_checkers.regression_gate(

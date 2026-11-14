@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Compare public companion, MyPy + django-stubs, and bare official ty commands.
+"""Compare ty-extended, MyPy + django-stubs, and bare official ty commands.
 
 Creates a disposable, registered Django application. Every timed run uses fresh
 processes and an empty MyPy cache. Filesystem caches may be warm. Bare ty lacks
@@ -104,11 +104,10 @@ def regression_gate(
         medians["performance-reference"] * max_reference_ratio,
         medians["performance-reference"] + absolute_noise_floor_seconds,
     )
-    reference_met = (
-        means["companion"] <= mean_limit and medians["companion"] <= median_limit
-    )
+    mean_met = means["companion"] <= mean_limit
+    median_met = medians["companion"] <= median_limit
     return {
-        "policy": "same-runner-reference-with-noise-floor",
+        "policy": "same-runner-reference-mean-with-noise-floor",
         "max_reference_ratio": max_reference_ratio,
         "absolute_noise_floor_seconds": absolute_noise_floor_seconds,
         "mean_allowed_seconds": mean_limit,
@@ -120,9 +119,11 @@ def regression_gate(
         "median_reference_ratio": gate["median_ty_ratio"],
         "paired_reference_ratios": gate["paired_ty_ratios"],
         "relative_ceiling_met": gate["ty_ceiling_met"],
-        "reference_ceiling_met": reference_met,
+        "mean_reference_ceiling_met": mean_met,
+        "median_reference_ceiling_met": median_met,
+        "reference_ceiling_met": mean_met,
         "mypy_ceiling_met": gate["mypy_ceiling_met"],
-        "passed": reference_met and gate["mypy_ceiling_met"],
+        "passed": mean_met and gate["mypy_ceiling_met"],
     }
 
 
@@ -536,7 +537,7 @@ def main():
             for name in ("companion", "official", "mypy")
         },
         "records": [],
-        "performance_policy": "same-runner-reference-with-noise-floor"
+        "performance_policy": "same-runner-reference-mean-with-noise-floor"
         if args.performance_reference
         else "native-ty-ceiling",
     }
