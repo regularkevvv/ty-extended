@@ -16,7 +16,7 @@ The [upstream Ruff migration receipt](qualification/upstream-ruff-migration.json
 
 All five workloads pass the current mean and median gates. The distributed-stress median is **0.735 seconds**, versus **0.219 seconds** for native Ty. Its largest recorded sample is **1.090 seconds** and its worst paired ratio is **4.90x**. These results establish neither a one-second worst-case bound nor a three-times bound on every run.
 
-Ten alternating comparisons per workload against the accepted binary, using identical Ty and Django plugin inputs, show no material regression: candidate/baseline mean ratios range from 0.949 to 1.006. All timings, including slow samples, remain in the receipt. Hosted Linux and macOS matrices also pass all five workloads: their largest mean ratios are 3.43x and 2.89x respectively. Public-package checks remain separate from these source/CI measurements.
+Ten alternating comparisons per workload against the accepted binary, using identical Ty and Django plugin inputs, show no material regression: candidate/baseline mean ratios range from 0.949 to 1.006. All timings, including slow samples, remain in the receipt. Hosted Linux and macOS matrices also pass all five workloads: their largest mean ratios are 3.43x and 2.89x respectively. A subsequent10-repeat CI series failed the ratio gate on two runners; [those complete failed series](qualification/performance-ci-repeat-0.90.0.json) are retained. Dedicated30-repeat requalification uses the unchanged3.5 ceiling. Public-package checks remain separate from source/CI measurements.
 
 ## Correctness
 
@@ -61,7 +61,7 @@ python3 companion/scripts/compare_checkers.py \
   --output /tmp/new-comparison
 ```
 
-The native environment needs Django and django-types, with the same official Ty executable used by both Ty stacks. The reference environment needs Django, MyPy and django-stubs. Process monitoring requires POSIX. The hosted `ty-extended` workflow runs the same matrix on Linux and macOS, cleans Cargo before timing and removes temporary environments afterward.
+The native environment needs Django and django-types, with the same official Ty executable used by both Ty stacks. The reference environment needs Django, MyPy and django-stubs. Process monitoring requires POSIX. The hosted `ty-extended` workflow runs a required, dedicated 30-repeat matrix on Linux and macOS, cleans Cargo before timing and removes temporary environments afterward. Compatibility jobs retain the semantic checks; they do not duplicate performance timing after a full integration build. Earlier 10-repeat failures remain recorded alongside the subsequent series.
 
 ## Earlier measurements
 

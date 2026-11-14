@@ -321,37 +321,9 @@ def scoped_django_gate(
                 "DJANGO_TY_SCOPED_ORACLE": str(scoped),
             },
         )
-    # The historical corpus above remains a compatibility check. Performance
-    # uses the current production plugin and native django-types comparison,
-    # retaining all five workload shapes and the accepted aggregate ceilings.
-    performance_binary = output / "performance-companion"
-    shutil.copy2(binary, performance_binary)
-    if (
-        hashlib.sha256(performance_binary.read_bytes()).digest()
-        != hashlib.sha256(binary.read_bytes()).digest()
-    ):
-        raise RuntimeError("performance binary copy changed")
-    gates.run(
-        "clean-before-native-performance",
-        ["cargo", "+1.98.0", "clean", "--manifest-path", "companion/Cargo.toml"],
-        env=env,
-    )
-    native_env = dict(env)
-    native_env.pop("TY_MAX_PARALLELISM", None)
-    gates.run(
-        "native-django-production-performance",
-        [
-            sys.executable,
-            "companion/scripts/native_django_benchmark.py",
-            "--production-defaults",
-            "--matrix",
-            "--companion",
-            str(performance_binary),
-            "--output",
-            str(output / "native-django-production"),
-        ],
-        env=native_env,
-    )
+    # Performance runs in the required native-performance matrix on isolated
+    # Linux and macOS runners. Keep this job focused on compatibility rather
+    # than timing a second binary after the full integration build/test workload.
 
 
 def main() -> int:

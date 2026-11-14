@@ -1,5 +1,5 @@
 {
-  "status": "All local and hosted migration gates passed; release publication and public-artifact acceptance pending.",
+  "status": "Local and earlier hosted gates passed. Final10-repeat timing series failed on two runners; dedicated30-repeat qualification pending. No release published.",
   "version": "0.90.0",
   "official_ty": "0.0.104",
   "django_commit": "9deb4ee8321cbe49f8dc82eefceba5c276ef2980",
@@ -746,5 +746,6 @@
         }
       }
     }
-  }
+  },
+  "subsequent_timing_failures": "performance-ci-repeat-0.90.0.json"
 }
