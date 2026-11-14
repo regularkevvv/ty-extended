@@ -150,7 +150,7 @@ ty-extended adapter even when existing checking workflows remain compatible.
 
 ## Plugin compatibility
 
-ty-extended 0.90.0 embeds Monty **1.5.0**. The SDK and host tests execute with
+ty-extended 0.90.0 embeds Monty **1.6.0**. The SDK and host tests execute with
 the runtime selected by ty-extended lockfile, including sandbox and execution
 limit controls. Plugin users do not install a separate Monty interpreter or
 Python worker.

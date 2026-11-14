@@ -17,8 +17,8 @@ ty_plugin_host = { path = "crates/ty_plugin_host", default-features = false }
 ty_plugin_protocol = { version = "0.0.12", path = "crates/ty_plugin_protocol" }
 ty_plugin_sdk = { version = "0.0.12", path = "crates/ty_plugin_sdk" }
 ty_plugin_examples = { path = "crates/ty_plugin_examples" }
-monty = { version = "=1.5.0", default-features = false }
-monty-types = { version = "=1.5.0", default-features = false }
+monty = { version = "=1.6.0", default-features = false }
+monty-types = { version = "=1.6.0", default-features = false }
 serde = { version = "1.0.197", default-features = false, features = ["derive", "std"] }
 serde_json = { version = "1.0.113", default-features = false, features = ["std"] }
 thiserror = { version = "2.0.0", default-features = false, features = ["std"] }
