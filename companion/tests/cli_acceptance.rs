@@ -153,15 +153,15 @@ fn manifest_native_strategy_works_without_experimental_environment_flags() -> Re
             "{diagnostics:#}: {stderr}"
         );
         ensure!(
-            stderr.contains(&format!("companion native fields: {native}")),
+            stderr.contains(&format!("ty-extended native fields: {native}")),
             "{stderr}"
         );
         ensure!(
-            stderr.contains("companion native warmup initialize:") == warm,
+            stderr.contains("ty-extended native warmup initialize:") == warm,
             "{stderr}"
         );
         ensure!(
-            stderr.contains(&format!("companion borrowed overlay: {borrowed}")),
+            stderr.contains(&format!("ty-extended borrowed overlay: {borrowed}")),
             "{stderr}"
         );
         ensure!(
