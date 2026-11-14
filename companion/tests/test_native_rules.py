@@ -81,6 +81,8 @@ class NativeRuleTests(unittest.TestCase):
         for code in [
             "invalid-typed-dict-key",
             "missing-typed-dict-key",
+            "invalid-implicit-return",
+            "invalid-generator-return-type",
             "plugin-configuration",
             "future-rule",
             42,

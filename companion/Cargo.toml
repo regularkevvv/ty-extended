@@ -1,6 +1,6 @@
 [package]
 name = "ty-extended"
-version = "0.89.0"
+version = "0.90.0"
 edition = "2024"
 rust-version = "1.98"
 description = "Extend Ty type checker with plugins."

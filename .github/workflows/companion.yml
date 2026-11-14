@@ -85,7 +85,7 @@ jobs:
           }
           trap cleanup EXIT
           python -m venv "$native_guard_environment"
-          "$native_guard_environment/bin/python" -m pip install --disable-pip-version-check --no-cache-dir ty==0.0.101
+          "$native_guard_environment/bin/python" -m pip install --disable-pip-version-check --no-cache-dir ty==0.0.104
           export TY_COMPANION_TEST_OFFICIAL="$native_guard_environment/bin/ty"
           cargo +1.98.0 test --locked --release --manifest-path companion/Cargo.toml --bin ty-extended moved_response_indexes_preserve_exact_protocol_json -- --test-threads=1
           cargo +1.98.0 test --locked --release --manifest-path companion/Cargo.toml --bin ty-extended prepared_member_abstentions_preserve_routing_namespaces_and_failures -- --test-threads=1

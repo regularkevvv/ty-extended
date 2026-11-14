@@ -19,7 +19,7 @@ from types import SimpleNamespace
 
 from compare_checkers import invoke, source_hash
 
-DJANGO_COMMIT = "b25f41c5b3063682e7e1789170ceb6423140a58a"
+DJANGO_COMMIT = "9deb4ee8321cbe49f8dc82eefceba5c276ef2980"
 SCRIPTS = Path(__file__).resolve().parent
 
 
@@ -189,7 +189,7 @@ def main() -> int:
             environments[0],
             [
                 "Django==6.1.3",
-                "ty==0.0.101",
+                "ty==0.0.104",
                 "typing-extensions>=4.11",
                 "types-PyYAML>=6.0.12",
             ],

@@ -4,7 +4,7 @@
 owns plugin discovery, Monty execution, project summaries, analysis copies and source
 maps. Astral's checker owns Python type checking and its language server.
 
-ty-extended does not link ty's semantic engine, Salsa or Wasmtime. It uses parser,
+ty-extended does not link ty's semantic engine, Salsa or Wasmtime. It uses parsing
 and notebook libraries published by upstream Ruff, pinned as Cargo dependencies.
 Our plugin host, protocol and SDK crates live in this repository. These build
 dependencies do not pin the separately installed checker.

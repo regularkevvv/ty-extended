@@ -2406,7 +2406,7 @@ dependencies = [
 
 [[package]]
 name = "ty-extended"
-version = "0.89.0"
+version = "0.90.0"
 dependencies = [
  "anyhow",
  "ctrlc",
@@ -2454,7 +2454,7 @@ dependencies = [
 
 [[package]]
 name = "ty_plugin_protocol"
-version = "0.0.11"
+version = "0.0.12"
 dependencies = [
  "insta",
  "serde",
@@ -2463,7 +2463,7 @@ dependencies = [
 
 [[package]]
 name = "ty_plugin_sdk"
-version = "0.0.11"
+version = "0.0.12"
 dependencies = [
  "serde_json",
  "thiserror",

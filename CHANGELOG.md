@@ -9,11 +9,30 @@ Entries below 0.74.0 say "extension" where they now would say "plugin"; the term
 
 ## Unreleased
 
+## 0.90.0
+
+- Add plugin support around unchanged official Ty, with plugins written in the Python subset supported by Monty.
+
+- Own the plugin host, protocol and SDK in this repository. Use published upstream Ruff crates and remove the fork submodule.
+
+- Delegate ordinary Django typing to official Ty and reduce repeated parsing, copying and plugin work.
+
+- Preserve the accepted performance baseline across all five local workloads; record ten-repeat comparisons against Ty 0.0.104 and MyPy.
+
+- Preserve projection mode during function inference and import resolution so borrowed provider files remain unchanged.
+
+- Keep ty-extended and official Ty versions independent, and update packaging and release automation for standalone source builds.
+
 - Preserve fully qualified imported class identities in generic member hooks, including same-named models in different modules and local shadowing.
+
 - Share repeated concrete descriptor bases while retaining each field's distinct class identity.
+
 - Reuse native workspace diagnostics for eligible projections and add an experimental sparse memory projection for fresh CLI checks. Preserve original bytes, timestamps and file selection.
+
 - Synchronize every projected buffer before pull diagnostics, including imported peers. Preserve explicit-file rich diagnostics in paths containing spaces, brackets or Unicode, and retain disk projection for per-file rule overrides.
+
 - Combine import, nominal schema and type-query preflights into one native synchronization, retaining validation and restart behavior when a declaration cannot be used.
+
 - Record fresh-process comparisons with the published companion, MyPy and bare official ty; the one-second target remains unmet.
 
 ## 0.89.0

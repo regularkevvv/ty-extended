@@ -17,7 +17,7 @@ ENV PATH="$HOME/.venv/bin:$PATH"
 
 FROM build-tools AS build
 
-# The companion uses pinned parser/host sources, without building the checker.
+# ty-extended uses upstream parser libraries and its own plugin host, without building the checker.
 WORKDIR $HOME/app
 
 # Install rust
@@ -46,14 +46,14 @@ RUN cargo zigbuild --locked --manifest-path companion/Cargo.toml --bin ty-extend
     && cargo clean --manifest-path companion/Cargo.toml \
     && mkdir -m 1777 /runtime-tmp
 
-# Bundle an unchanged official checker. Its version is independent of the companion.
+# Bundle an unchanged official checker. Its version is independent of ty-extended.
 RUN case "$TARGETPLATFORM" in \
-    "linux/arm64") checksum=1aeb90425e934914f437f30ec7de6f5a55352aa858628903adb08a24a852191e ;; \
-    "linux/amd64") checksum=cae79385c6db78ecb62ff113edd02d8b79536849beb9771f43a5a68e1df7ca21 ;; \
+    "linux/arm64") checksum=ac977d7a642ef33776656dbc88ea1e08dc13b5419e97aec534bc2ab0973dd81f ;; \
+    "linux/amd64") checksum=c1ea30ce33070c1e021b65682020c1a02826f2e405b0359ccc53f9d8745aab27 ;; \
     *) exit 1 ;; \
     esac \
     && target=$(cat rust_target.txt) \
-    && curl --proto '=https' --tlsv1.2 -LsSf "https://github.com/astral-sh/ty/releases/download/0.0.99/ty-${target}.tar.gz" -o /tmp/official-ty.tar.gz \
+    && curl --proto '=https' --tlsv1.2 -LsSf "https://github.com/astral-sh/ty/releases/download/0.0.104/ty-${target}.tar.gz" -o /tmp/official-ty.tar.gz \
     && echo "${checksum}  /tmp/official-ty.tar.gz" | sha256sum -c - \
     && tar -xzf /tmp/official-ty.tar.gz -C /tmp \
     && cp "/tmp/ty-${target}/ty" /ty \

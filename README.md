@@ -50,7 +50,10 @@ The accepted optimization baseline averages **0.776 seconds** across 30 runs of
 **7.451 seconds** for MyPy. The comparison uses the same official Ty executable,
 100 type assertions, and ordinary Python and ORM error controls.
 
-The migration to upstream Ruff crates is being qualified against that baseline.
+The upstream Ruff crate migration passes all five local workload gates, with
+means of **0.105–0.789 seconds** on official Ty 0.0.104. Alternating comparisons
+with the accepted binary show no material regression. Hosted CI and the full
+version sweep remain release gates.
 See [performance evidence](docs/performance.md#current-native-comparison) for
 all samples, the five workload shapes, and the remaining release checks.
 
