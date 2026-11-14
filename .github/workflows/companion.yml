@@ -1,4 +1,4 @@
-name: Companion
+name: ty-extended
 
 permissions:
   contents: read
@@ -7,13 +7,17 @@ on:
   pull_request:
     paths:
       - companion/**
-      - ruff
+      - crates/**
+      - Cargo.toml
+      - Cargo.lock
       - .github/workflows/companion.yml
   push:
     branches: [main]
     paths:
       - companion/**
-      - ruff
+      - crates/**
+      - Cargo.toml
+      - Cargo.lock
       - .github/workflows/companion.yml
   workflow_dispatch:
     inputs:
@@ -41,19 +45,17 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
-          submodules: recursive
       - name: Install pinned Rust toolchain
         run: rustup toolchain install 1.98.0 --profile minimal --component clippy
       - name: Verify isolated indexed calls and clean build artifacts
         shell: bash
         run: |
-          trap 'cargo clean --manifest-path ruff/crates/ty_plugin_host/Cargo.toml' EXIT
-          cargo +1.98.0 test --locked --manifest-path ruff/crates/ty_plugin_host/Cargo.toml --no-default-features --features plugins-monty --lib --test monty -- --test-threads=1
-          cargo +1.98.0 clippy --locked --manifest-path ruff/crates/ty_plugin_host/Cargo.toml --no-default-features --features plugins-monty --lib --test monty -- -D warnings
+          trap 'cargo clean --manifest-path crates/ty_plugin_host/Cargo.toml' EXIT
+          cargo +1.98.0 test --locked --manifest-path crates/ty_plugin_host/Cargo.toml --no-default-features --features plugins-monty --lib --test monty -- --test-threads=1
+          cargo +1.98.0 clippy --locked --manifest-path crates/ty_plugin_host/Cargo.toml --no-default-features --features plugins-monty --lib --test monty -- -D warnings
 
   native-performance:
     name: Native Django performance (${{ matrix.os }})
-    if: github.event_name == 'workflow_dispatch'
     strategy:
       fail-fast: false
       matrix:
@@ -68,7 +70,6 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
-          submodules: recursive
       - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
         with:
           python-version: "3.13"
@@ -141,7 +142,6 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
-          submodules: recursive
       - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
         with:
           python-version: "3.13"

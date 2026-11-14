@@ -1,12 +1,13 @@
-# Monty companion runtime
+# Plugin runtime
 
-`ty-extended` is a frontend around an unchanged official ty process. The companion
+`ty-extended` is a frontend around an unchanged official ty process. ty-extended
 owns plugin discovery, Monty execution, project summaries, analysis copies and source
 maps. Astral's checker owns Python type checking and its language server.
 
-The companion does not link ty's semantic engine, Salsa or Wasmtime. It uses parser,
-notebook, protocol and plugin-host crates pinned by the `ruff` submodule. Keeping
-those source dependencies pinned does not pin the separately installed checker.
+ty-extended does not link ty's semantic engine, Salsa or Wasmtime. It uses parser,
+and notebook libraries published by upstream Ruff, pinned as Cargo dependencies.
+Our plugin host, protocol and SDK crates live in this repository. These build
+dependencies do not pin the separately installed checker.
 
 | Component                                 | Responsibility                                               |
 | ----------------------------------------- | ------------------------------------------------------------ |
@@ -44,12 +45,12 @@ manifest-path = "ty-plugin.json"
 
 Monty plugins receive serialized project information and return declarative patches.
 They have no filesystem, environment or network access. Source is summarized
-statically; the companion does not import or execute a project's Python code.
+statically; ty-extended does not import or execute a project's Python code.
 Protocol validation and runtime limits still apply. In-process memory isolation
 is not a process sandbox; see the resource-limit implementation and validation
-boundaries in [companion status](https://github.com/regularkevvv/ty-extended/blob/main/companion/STATUS.md).
+boundaries in [ty-extended status](https://github.com/regularkevvv/ty-extended/blob/main/companion/STATUS.md).
 
-## Companion execution profiles
+## ty-extended execution profiles
 
 The unreleased native Django profile selects these host options through the
 manifest's `default-config`. They describe the plugin's requirements; they do
@@ -107,7 +108,7 @@ not change the external checker's version or configuration interfaces.
     exceeded the guest savings.
 - `companion-third-party-overlays = ["django"]` declares top-level overlay
     modules that the plugin author guarantees are third-party packages throughout
-    its supported checker and Python versions. The companion can omit the separate
+    its supported checker and Python versions. ty-extended can omit the separate
     stdlib precedence probe for these names only when every registered plugin
     agrees. Names must be ASCII Python module identifiers. Undeclared modules and
     every custom typeshed retain resolution through official ty. This declaration

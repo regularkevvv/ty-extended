@@ -478,7 +478,7 @@ fn editor_options(options: &BTreeMap<String, String>) -> Result<serde_json::Valu
     ))
 }
 
-/// The checked-in schema supplies serialization shape, not filesystem or glob
+/// The owned editor-options contract supplies serialization shape, not filesystem or glob
 /// semantics; those remain the native checker's responsibility.
 fn editor_schema() -> Result<&'static serde_json::Value> {
     static SCHEMA: std::sync::OnceLock<std::result::Result<serde_json::Value, String>> =
@@ -486,13 +486,13 @@ fn editor_schema() -> Result<&'static serde_json::Value> {
     SCHEMA
         .get_or_init(|| {
             let schema: serde_json::Value =
-                serde_json::from_str(include_str!("../../ruff/ty.schema.json"))
+                serde_json::from_str(include_str!("editor-options.schema.json"))
                     .map_err(|error| error.to_string())?;
             audit_editor_schema(&schema, &schema).map_err(|error| error.to_string())?;
             Ok(schema)
         })
         .as_ref()
-        .map_err(|error| anyhow::anyhow!("unsupported pinned ty configuration schema: {error}"))
+        .map_err(|error| anyhow::anyhow!("unsupported editor options contract: {error}"))
 }
 
 fn audit_editor_schema(schema: &serde_json::Value, root: &serde_json::Value) -> Result<()> {
@@ -1196,7 +1196,7 @@ fn plugin_registrations(
             .unwrap_or("wasm");
         ensure!(
             runtime == "monty",
-            "Plugin `{id}` uses {runtime}; this companion requires a Monty artifact and runtime='monty'"
+            "Plugin `{id}` uses {runtime}; ty-extended requires a Monty artifact and runtime='monty'"
         );
         if let Some(overlay) = &overlay
             && !overlay.is_dir()
@@ -1428,7 +1428,7 @@ fn plugin_registrations(
                 .and_then(Value::as_str)
                 .unwrap_or("in-process")
                 == "in-process",
-            "This companion embeds Monty; plugins.monty-mode=worker is not supported. Select in-process. Worker execution belongs to historical checker-based releases."
+            "ty-extended embeds Monty; plugins.monty-mode=worker is not supported. Select in-process. Worker execution belongs to historical checker-based releases."
         );
     }
     // Manifest host validation is atomic upstream: a malformed environment

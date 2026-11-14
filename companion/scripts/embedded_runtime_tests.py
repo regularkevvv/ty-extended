@@ -22,14 +22,14 @@ def main() -> None:
     output = args.output.resolve()
     output.mkdir(parents=True, exist_ok=False)
     root = Path(__file__).resolve().parents[2]
-    source = root / "ruff"
+    source = root
     packages = (
         "ty_plugin_protocol",
         "ty_plugin_sdk",
         "ty_plugin_examples",
         "ty_plugin_host",
     )
-    locked = tomllib.loads((root / "companion/Cargo.lock").read_text())
+    locked = tomllib.loads((root / "Cargo.lock").read_text())
     version = next(p["version"] for p in locked["package"] if p["name"] == "monty")
     workspace = output / "workspace"
     workspace.mkdir()
@@ -43,7 +43,7 @@ def main() -> None:
                     path.read_bytes()
                 ).hexdigest()
     manifest = (source / "Cargo.toml").read_text()
-    for package in ("monty", "monty-types", "monty-pool"):
+    for package in ("monty", "monty-types"):
         manifest, count = re.subn(
             rf'(?m)^({package} = \{{ version = ")\S+?(".*)$',
             rf"\g<1>={version}\2",
@@ -51,9 +51,12 @@ def main() -> None:
         )
         if count != 1:
             raise RuntimeError(f"Expected one {package} workspace dependency")
+    manifest = manifest.replace(
+        'members = ["companion", "crates/*"]', 'members = ["crates/*"]'
+    ).replace('default-members = ["companion"]\n', "")
     manifest += '\n[profile.runtime-tests]\ninherits = "dev"\ndebug = 0\n'
     (workspace / "Cargo.toml").write_text(manifest)
-    shutil.copy2(root / "companion/Cargo.lock", workspace / "Cargo.lock")
+    shutil.copy2(root / "Cargo.lock", workspace / "Cargo.lock")
     env = {
         **os.environ,
         "CARGO_TARGET_DIR": str(output / "target"),

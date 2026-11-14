@@ -2558,10 +2558,12 @@ impl Session {
             }
             sources.insert(probe.clone(), text);
             if self.server.is_none() {
-                self.server = Some(crate::checker::ProjectChecker::new(
+                self.server = Some(projection_checker(
                     Path::new(self.options.get("ty").context("missing --ty")?),
-                    &self.out,
+                    &self.view,
                     &self.checker_config_path,
+                    &sources,
+                    self.memory_projection,
                 )?);
             }
             self.register_checker_notebooks()?;
@@ -2928,10 +2930,12 @@ impl Session {
             sources.insert(path, module.source.text.clone());
         }
         if self.server.is_none() {
-            self.server = Some(crate::checker::ProjectChecker::new(
+            self.server = Some(projection_checker(
                 Path::new(self.options.get("ty").context("missing --ty")?),
-                &self.out,
+                &self.view,
                 &self.checker_config_path,
+                &sources,
+                self.memory_projection,
             )?);
         }
         self.register_checker_notebooks()?;
@@ -6081,6 +6085,17 @@ mod tests {
     #[test]
     fn borrowed_overlay_preserves_provider_bytes_native_errors_and_reload_fallback()
     -> anyhow::Result<()> {
+        borrowed_overlay_case(false)
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn borrowed_overlay_preserves_provider_after_function_index_inference() -> anyhow::Result<()> {
+        borrowed_overlay_case(true)
+    }
+
+    #[cfg(unix)]
+    fn borrowed_overlay_case(infer_functions: bool) -> anyhow::Result<()> {
         use super::*;
         let Ok(binary) = std::env::var("TY_COMPANION_TEST_OFFICIAL") else {
             return Ok(());
@@ -6106,6 +6121,14 @@ mod tests {
             &root.join("main.py"),
             "from typing import assert_type\nfrom api import Item\nfrom api.extra import value\nassert_type(value, bytes)\nvalid: str = Item().value\ninvalid: int = Item().value\nnative_error: int = 'wrong'\n",
         )?;
+        if infer_functions {
+            let path = root.join("main.py");
+            let source = std::fs::read_to_string(&path)?;
+            write(
+                &path,
+                &format!("{source}\ndef inferred_item():\n    return Item()\n"),
+            )?;
+        }
         for (relative, text) in [
             ("api/__init__.pyi", "class Item:\n    value: int\n"),
             ("api/extra.pyi", "value: bytes\n"),
@@ -6170,7 +6193,7 @@ mod tests {
                 assert!(session.borrowed_overlay.is_none());
                 assert!(session.stubs.join("api/__init__.pyi").is_file());
             }
-            if warm && !reload {
+            if warm && !reload && !infer_functions {
                 assert_eq!(result["native_warmup_reused"], true, "{case}: {result:#}");
                 assert!(
                     result["native_warmup_analysis_passes"].as_u64().unwrap() > 0,

@@ -1,0 +1,101 @@
+[workspace]
+members = ["companion", "crates/*"]
+default-members = ["companion"]
+resolver = "3"
+
+[workspace.package]
+edition = "2024"
+rust-version = "1.98"
+homepage = "https://github.com/regularkevvv/ty-extended"
+documentation = "https://regularkevvv.github.io/ty-extended/"
+repository = "https://github.com/regularkevvv/ty-extended"
+authors = ["Kevin Castro <hola@kev.pe>"]
+license = "MIT"
+
+[workspace.dependencies]
+ty_plugin_host = { path = "crates/ty_plugin_host", default-features = false }
+ty_plugin_protocol = { version = "0.0.11", path = "crates/ty_plugin_protocol" }
+ty_plugin_sdk = { version = "0.0.11", path = "crates/ty_plugin_sdk" }
+ty_plugin_examples = { path = "crates/ty_plugin_examples" }
+monty = { version = "=1.5.0", default-features = false }
+monty-types = { version = "=1.5.0", default-features = false }
+serde = { version = "1.0.197", default-features = false, features = ["derive", "std"] }
+serde_json = { version = "1.0.113", default-features = false, features = ["std"] }
+thiserror = { version = "2.0.0", default-features = false, features = ["std"] }
+tempfile = { version = "3.9.0", default-features = false, features = ["getrandom"] }
+insta = { version = "1.35.1", default-features = false, features = ["colors"] }
+tracing = { version = "0.1.40", default-features = false, features = ["attributes", "std"] }
+
+[workspace.lints.rust]
+unsafe_code = "warn"
+unreachable_pub = "warn"
+unexpected_cfgs = { level = "warn", check-cfg = [
+    "cfg(fuzzing)",
+    "cfg(codspeed)",
+] }
+
+[workspace.lints.clippy]
+pedantic = { level = "warn", priority = -2 }
+# Enabled at the crate level
+disallowed_methods = "allow"
+# Allowed pedantic lints
+assert_is_empty = "allow"
+char_lit_as_u8 = "allow"
+collapsible_else_if = "allow"
+collapsible_if = "allow"
+implicit_hasher = "allow"
+map_unwrap_or = "allow"
+match_same_arms = "allow"
+missing_errors_doc = "allow"
+missing_panics_doc = "allow"
+module_name_repetitions = "allow"
+must_use_candidate = "allow"
+# Our formatting macros share names with std macros but use square brackets.
+nonstandard_macro_braces = "allow"
+similar_names = "allow"
+single_match_else = "allow"
+too_many_lines = "allow"
+collapsible_match = "allow"  # Not always an improvement in readability, quite opinionated
+needless_continue = "allow" # An explicit continue can be more readable, especially if the alternative is an empty block.
+unnecessary_debug_formatting = "allow" # too many instances, the display also doesn't quote the path which is often desired in logs where we use them the most often.
+# Without the hashes we run into a `rustfmt` bug in some snapshot tests, see #13250
+needless_raw_string_hashes = "allow"
+# Disallowed restriction lints
+ignore_without_reason = "allow" # Too many existing instances, and there's no auto fix.
+iter_over_hash_type = "warn"
+print_stdout = "warn"
+print_stderr = "warn"
+dbg_macro = "warn"
+empty_drop = "warn"
+empty_structs_with_brackets = "warn"
+exit = "warn"
+get_unwrap = "warn"
+rc_buffer = "warn"
+rc_mutex = "warn"
+rest_pat_in_fully_bound_structs = "warn"
+# nursery rules
+redundant_clone = "warn"
+debug_assert_with_mut_call = "warn"
+unused_peekable = "warn"
+# This lint sometimes flags code whose `if` and `else`
+# bodies could be flipped when a `!` operator is removed.
+# While perhaps sometimes a good idea, it is also often
+# not a good idea due to other factors impacting
+# readability. For example, if flipping the bodies results
+# in the `if` being an order of magnitude bigger than the
+# `else`, then some might consider that harder to read.
+if_not_else = "allow"
+
+[profile.release]
+lto = "fat"
+codegen-units = 16
+strip = true
+
+[profile.dev]
+debug = 0
+
+[profile.iteration]
+inherits = "release"
+opt-level = 1
+lto = false
+codegen-units = 256

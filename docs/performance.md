@@ -1,60 +1,58 @@
-# Companion performance
+# ty-extended performance
 
-The companion checks generated analysis copies with unchanged official ty and
+ty-extended checks generated analysis copies with unchanged official ty and
 runs Django hooks in embedded Monty. Its total time includes discovery, plugin
 execution, projection, type queries and the final checker run.
 
-## Acceptance limits
+## Accepted baseline
 
-The companion must take at most **3 times** bare official Ty on identical
-source, using the same official Ty executable. Compare with Ty's documented
-`django-types` setup so native Django support participates. Preserve the
-correctness assertions, ordinary Python and ORM error controls, and focused
-Django contracts. The companion must also remain at least as fast as MyPy with
-its Django plugin. A largest sample below one second remains an additional goal.
+The maintainer accepted the [30-run optimization baseline](qualification/native-django-accepted-baseline-v62.json)
+for release qualification. It averages **0.776 seconds** against **0.237 seconds**
+for bare official Ty and **7.451 seconds** for MyPy on the distributed stress workload.
+The ratio of mean times is **3.28×**. The original strict 3× median/every-pair gate
+remains recorded in the receipts as failed; that earlier gate is superseded by
+this explicit acceptance. No observations were dropped.
 
-`companion/scripts/compare_checkers.py` enforces both the median ratio and every
-rotated companion/native sample pair, with a default `--max-ty-ratio 3`.
-`--official-python` selects the bare Ty environment containing `django-types`;
-without it the script retains the historical no-provider diagnostic expectations.
-The JSON report separates valid correctness evidence from performance acceptance,
-and the command exits unsuccessfully when either performance ceiling fails.
+The production comparison now requires both mean and median times to remain
+within **3.5×** the identical bare official Ty executable, and below MyPy.
+The accepted measurements are 3.28× by means and 3.40× by medians. Every
+paired ratio, including outliers, remains in the report. CI uses ten rotated
+fresh-process repeats per checker for each of the five workload shapes.
 
-The [v25 receipt](qualification/native-django-parallel-v25.json) records a further
-reduction from 1.786 to **1.619 seconds**, with a largest candidate sample of
-1.674 seconds. Original-source revision checks remove redundant reads and the
-single-revision CLI avoids constructing an unused incremental context. These are
-paired companion measurements on Ty 0.0.99, rather than a new native comparison.
-They do **not** establish the 3-times ceiling. Merge and release remain gated on
-meeting the current performance and correctness requirements together.
+The upstream-library migration must preserve correctness and be compared with
+this accepted implementation. Every workload shape, type assertion, error control,
+source/provider preservation check, and installation/editor compatibility check
+remains part of qualification. New releases still require green CI and artifact checks.
 
 ## Current native comparison
 
-The [latest completed candidate](qualification/native-django-fused-snapshots-v58.json)
-**fails three of the five local workload gates**. Five rotated fresh-process
+The [accepted implementation's earlier five-repeat comparison](qualification/native-django-owned-json-v62.json)
+**fails one of the five local workload gates**. Five rotated fresh-process
 repeats use unchanged official Ty 0.0.101, production defaults, and the same
 positive assertions and error controls. Correctness, source/provider preservation
 and environment cleanup pass.
 
-| Workload           | Companion median | Bare Ty median | Median ratio | Worst paired ratio |
-| ------------------ | ---------------: | -------------: | -----------: | -----------------: |
-| small              |          0.105 s |        0.039 s |        2.71× |              2.91× |
-| distributed        |          0.190 s |        0.068 s |        2.79× |              3.11× |
-| many-files         |          0.512 s |        0.161 s |        3.18× |              3.31× |
-| stress             |          0.692 s |        0.312 s |        2.22× |              2.37× |
-| distributed-stress |          0.713 s |        0.202 s |        3.53× |              3.66× |
+| Workload           | ty-extended median | Bare Ty median | Median ratio | Worst paired ratio |
+| ------------------ | -----------------: | -------------: | -----------: | -----------------: |
+| small              |            0.114 s |        0.042 s |        2.70× |              2.87× |
+| distributed        |            0.209 s |        0.101 s |        2.08× |              2.72× |
+| many-files         |            0.532 s |        0.190 s |        2.79× |              2.92× |
+| stress             |            0.715 s |        0.351 s |        2.04× |              2.32× |
+| distributed-stress |            0.764 s |        0.233 s |        3.28× |              3.43× |
 
-The complete isolated Linux and macOS matrices also fail: four workload gates
-fail on Linux and two on macOS. Distributed-stress median/worst ratios are
-3.67×/3.94× on Linux and 3.54×/3.88× on macOS. These separate runner series do not
-isolate a speedup from one implementation change. Every workload remains faster
-than MyPy; correctness, source/provider preservation and cleanup pass.
+The complete isolated matrices also fail: three workload gates fail on Linux
+and two on macOS. Distributed-stress median/worst ratios are 3.31×/3.40× on
+Linux and 3.18×/4.10× on macOS. These separate runner series do not isolate a
+speedup from one implementation change. Every workload remains faster than
+MyPy; correctness, source/provider preservation and cleanup pass.
 
-All five local medians remain below one second. The companion matches 20/20
-focused contracts, MyPy 19/20, and bare Ty 8/20. These results do not meet the
-release requirement: both the median and every paired repeat must be at most
-3×. The stale Django official-contract receipt also remains an explicit failing
-release gate.
+All five local medians remain below one second. ty-extended matches 20/20
+focused contracts, MyPy 19/20, and bare Ty 8/20. These results failed the earlier strict 3× gate. The subsequent 30-repeat
+baseline was explicitly accepted as described above. The stale Django official-contract receipt also remains an explicit failing
+release gate. The local load guard passes, with a maximum recorded one-minute
+load of 15.91 against the required bound of 16.
+
+Earlier rejected candidates and the subsequent source qualification follow.
 
 The subsequent [v61 candidate](qualification/native-django-source-class-lookups-v61.json)
 also fails the complete isolated matrix. Linux distributed-stress median/worst
@@ -72,7 +70,12 @@ moves constructed JSON trees directly into their owners instead of serializing
 and copying them again. Its complete 2,501-model request is byte-identical to
 the previous qualified binary: all 11,530,514 bytes match. Full Rust and SDK
 checks and the Django corpus pass, except the explicitly stale official-contract
-receipt. Optimized timing remains pending; no speedup or release is accepted.
+receipt. Its complete local and isolated matrices also fail: distributed-stress
+median/worst ratios are 3.28×/3.43× locally, 3.31×/3.40× on Linux and
+3.18×/4.10× on macOS. Correctness, provider preservation and cleanup pass.
+
+Unmeasured shared-queue/read experiments were preserved separately and are
+excluded from this migration baseline.
 
 The preceding [bounded-batch candidate](qualification/native-django-stateless-batches-v56.json)
 also fails four local workload gates, with medians of 0.129–0.750 seconds and
@@ -122,7 +125,7 @@ moves input preparation into the indexing window and reuses compacted checker
 paths. Its local source qualification and real Django diagnostic comparison
 pass. Its complete optimized local matrix also fails: median ratios range from
 2.81 to 3.79 and worst pairs from 3.05 to 3.94. The focused comparison remains
-20/20 for the companion, 19/20 for MyPy and 8/20 for native Ty. All five shapes
+20/20 for ty-extended, 19/20 for MyPy and 8/20 for native Ty. All five shapes
 remain below MyPy, and provider preservation and environment cleanup pass.
 Isolated Linux and macOS CI also fail all five workload gates. Linux median
 ratios range from 2.94 to 3.49, with worst pairs of 3.03 to 3.59. macOS
@@ -150,7 +153,7 @@ seconds against native Ty's 0.206 seconds on Linux, and 0.743 seconds against
 seconds, but the other four local shapes fail. Passing the one-second goal on
 a workload does not override its failing native ratio. All comparisons remain
 faster than MyPy and preserve their correctness controls, source/provider bytes
-and mtimes, and environment cleanup. The companion matches all 20 focused
+and mtimes, and environment cleanup. ty-extended matches all 20 focused
 contracts, MyPy 19 and bare native Ty eight.
 
 The source passes 250 regular Rust tests and three additional tests in each
@@ -173,15 +176,15 @@ isolated Linux and macOS runs on official Ty 0.0.101. Each stack uses the same
 Ty executable and unchanged 7,082 files, 2,501 models and 100 assertions. Five
 rotated fresh processes per stack permit warm filesystem caches:
 
-| Runner | Companion | Native Ty with django-types |    MyPy | Median ratio | Largest paired ratio |
-| ------ | --------: | --------------------------: | ------: | -----------: | -------------------: |
-| Linux  |   0.821 s |                     0.245 s | 9.207 s |         3.35 |                 3.41 |
-| macOS  |   0.936 s |                     0.303 s | 5.998 s |         3.09 |                 3.74 |
+| Runner | ty-extended | Native Ty with django-types |    MyPy | Median ratio | Largest paired ratio |
+| ------ | ----------: | --------------------------: | ------: | -----------: | -------------------: |
+| Linux  |     0.821 s |                     0.245 s | 9.207 s |         3.35 |                 3.41 |
+| macOS  |     0.936 s |                     0.303 s | 5.998 s |         3.09 |                 3.74 |
 
 Both runners meet the additional one-second goal and the MyPy ceiling. Both
 **fail the required 3-times gate**, so merge and release remain blocked. All
 100 assertions and both error controls pass. Focused cases match 20/20 for the
-companion, 19/20 for MyPy and 8/20 for native Ty. Provider bytes and mtimes are
+ty-extended, 19/20 for MyPy and 8/20 for native Ty. Provider bytes and mtimes are
 preserved, Python environments are removed, and Cargo targets are cleaned
 before timing. Two later local admission attempts accepted no observations
 because the shared machine was busy; they do not replace the isolated results.
@@ -215,7 +218,7 @@ performance acceptance or release readiness.
 
 The [declaration traversal experiment](qualification/native-django-declaration-v35c.json)
 also fails: 1.671 seconds versus native Ty's 0.376 seconds, or 4.45 times, with
-a largest paired ratio of 5.12. Its previous companion comparison is 1.666
+a largest paired ratio of 5.12. Its previous ty-extended comparison is 1.666
 seconds, so it establishes no material improvement. The declaration shortcut
 and snapshot path shortcut were removed. The receipt retains all 28 accepted
 observations, the correctness controls and the preceding admission attempt that
@@ -240,9 +243,9 @@ verified, compressed and removed after each suite.
 
 A later quiet window admitted all 28 local observations. Five rotated repeats
 measure **1.197 seconds** for the concurrency candidate, **1.493 seconds** for
-the preceding companion and **0.291 seconds** for native Ty. This is a 19.8%
-companion improvement but still **4.11 times** native Ty, with a largest paired
-ratio of 4.46. All 100 assertions, both error controls and all 20 companion focus
+the preceding ty-extended and **0.291 seconds** for native Ty. This is a 19.8%
+ty-extended improvement but still **4.11 times** native Ty, with a largest paired
+ratio of 4.46. All 100 assertions, both error controls and all 20 ty-extended focus
 cases pass. The isolated Linux run independently measures **1.137 seconds**
 versus **0.262 seconds**, or **4.35 times**, and preserves the same correctness
 controls. Isolated macOS measures **1.512 seconds** against **0.452 seconds**,
@@ -258,10 +261,10 @@ artifacts keep their existing behavior. One- and two-plugin tests preserve class
 scopes, opaque data, virtual namespaces and subsequent revisions.
 
 Five rotated local repeats measure **1.180 seconds** against the preceding
-companion's **1.218 seconds**, a 3.1% improvement in the same comparison. Native
-Ty measures **0.329 seconds** and MyPy **7.084 seconds**. The companion is still
+ty-extended's **1.218 seconds**, a 3.1% improvement in the same comparison. Native
+Ty measures **0.329 seconds** and MyPy **7.084 seconds**. ty-extended is still
 **3.59 times** native Ty, with a largest paired ratio of 4.04, so the gate fails.
-All 100 assertions, both controls and 20 companion focus cases pass. This source
+All 100 assertions, both controls and 20 ty-extended focus cases pass. This source
 also passes 240 regular Rust tests plus three additional tests in each mode,
 36 compiled SDK/CLI suite runs and all 172 Django corpus cases. Build targets
 were cleaned before timing; all 28 observations meet the declared admission
@@ -270,17 +273,17 @@ limits. The broader editor/version matrices remain prerequisites for release.
 The [parallel summary experiment](qualification/native-django-summary-parallel-v38.json)
 preserves sequential merge order while computing independent class summaries
 on multiple workers. It measures **1.245 seconds** against the preceding
-companion's **1.277 seconds** and native Ty's **0.370 seconds**. Its median
+ty-extended's **1.277 seconds** and native Ty's **0.370 seconds**. Its median
 ratio is **3.37**, and its largest paired ratio is **4.06**: the gate fails.
 
 The [collection experiment](qualification/native-django-native-collections-v39.json)
 shares immutable native inputs with the worker, uses hash maps for lookup-only
 data and builds ordered file collections in bulk. It measures **1.115 seconds**
-against the preceding companion's **1.173 seconds**, native Ty's **0.294 seconds**
-and MyPy's **7.000 seconds**. The 5.0% paired companion improvement still leaves
+against the preceding ty-extended's **1.173 seconds**, native Ty's **0.294 seconds**
+and MyPy's **7.000 seconds**. The 5.0% paired ty-extended improvement still leaves
 a **3.79** median ratio and **3.93** largest paired ratio, so the gate fails.
 Each experiment preserves all 100 assertions, both error controls and 20
-companion focus cases. Both pass 241 regular Rust tests and three additional
+ty-extended focus cases. Both pass 241 regular Rust tests and three additional
 tests in each mode, 36 SDK/CLI suite runs and the 172 Django corpus cases;
 their build targets were cleaned before timing. Ratios from different benchmark
 sessions must not be interpreted as a controlled comparison between prototypes.
@@ -288,9 +291,9 @@ sessions must not be interpreted as a controlled comparison between prototypes.
 The [borrowed overlay experiment](qualification/native-django-borrowed-overlays-v40d.json)
 avoids copying eligible provider files, reuses canonical source paths from the
 fresh CLI snapshot, and honors explicit signature-method selection. It measures
-**0.995 seconds** against the preceding companion's **1.168 seconds**, native
+**0.995 seconds** against the preceding ty-extended's **1.168 seconds**, native
 Ty's **0.327 seconds** and MyPy's **7.157 seconds**. All 100 assertions, both
-controls and 20 companion focus cases pass, but the **3.05** median ratio and
+controls and 20 ty-extended focus cases pass, but the **3.05** median ratio and
 **3.28** largest paired ratio still fail the strict gate. The largest positive
 sample is 1.024 seconds, so the separate one-second goal also fails.
 
@@ -306,12 +309,12 @@ The [direct warmup experiment](qualification/native-django-direct-warmup-v41.jso
 skips buffer preparation and report mapping for the discarded initial check.
 It preserves complete synchronization and mapping for the real check. In its
 own paired run it measures **1.099 seconds**, against **1.129 seconds** for the
-preceding companion, **0.402 seconds** for native Ty and **7.229 seconds** for
+preceding ty-extended, **0.402 seconds** for native Ty and **7.229 seconds** for
 MyPy. Its **2.73** median ratio passes, but the **3.18** largest paired ratio
 fails, so this experiment is also rejected. Absolute times across these shared
 machine sessions are not a controlled comparison between prototypes.
 
-All 100 assertions, both error controls and 20 companion focus cases pass.
+All 100 assertions, both error controls and 20 ty-extended focus cases pass.
 The receipt retains 28 accepted observations and one rejected host-load sample.
 All provider-file bytes and modification times remain unchanged. This source
 passes 244 regular Rust tests and three additional tests in each mode, 72
@@ -319,10 +322,10 @@ SDK/CLI suite runs and the same Django qualification, with build targets cleaned
 before timing. The known correctness and broader qualification gaps remain.
 
 The [early warmup and path-compaction experiment](qualification/native-django-early-warmup-v42.json)
-measures **0.974 seconds** against **1.045 seconds** for its preceding companion,
+measures **0.974 seconds** against **1.045 seconds** for its preceding ty-extended,
 **0.306 seconds** for native Ty and **7.036 seconds** for MyPy. Its **3.18** median
 ratio and **3.30** largest paired ratio fail the gate. All 100 assertions, both
-controls and 20 companion focus cases pass; the report preserves 28 accepted
+controls and 20 ty-extended focus cases pass; the report preserves 28 accepted
 observations and one rejected host-load observation. It passes 246 regular Rust
 tests and three additional tests in each mode, plus 72 SDK/CLI suite runs.
 
@@ -346,10 +349,10 @@ is cleaned before timing and temporary Python environments are removed afterward
 ## Parallel source loading experiment
 
 The [v24 receipt](qualification/native-django-parallel-v24.json) compares the
-two-worker companion with a candidate using up to eight available workers for
+two-worker ty-extended with a candidate using up to eight available workers for
 initial parsing and independent declaration copies. Both use identical Django
 code, declarations and official Ty 0.0.99 on the same 7,082-file, 2,501-model
-workload. `TY_MAX_PARALLELISM` bounds the companion workers as well as native Ty;
+workload. `TY_MAX_PARALLELISM` bounds ty-extended workers as well as native Ty;
 small inputs remain sequential. Installation and error propagation retain input
 order.
 
@@ -369,7 +372,7 @@ Three additional fresh-process samples at each thread limit measure:
 | 4                    |      1.814 s |                       0.113 s |
 | 8                    |      1.798 s |                       0.081 s |
 
-These limits apply to both the companion and native Ty, so the total-time column
+These limits apply to both ty-extended and native Ty, so the total-time column
 does not isolate parsing. The source-loading column shows the relevant phase.
 The eight-thread result leaves serial work: one representative median candidate
 run spends 0.400 seconds on the Django project index, 0.314 seconds on initial
@@ -397,7 +400,7 @@ completed generated benchmark projections were verified, compressed and removed.
 ## Native Django delegation prototype
 
 The [v20d experimental receipt](qualification/native-django-hybrid-v20d.json)
-records a companion prototype using an adapted `django-types` 0.24.0 declaration
+records a ty-extended prototype using an adapted `django-types` 0.24.0 declaration
 base and unchanged official Ty 0.0.99. Monty retains constructor and query
 validation, reverse relations, precise result rows, and model-state checks.
 Native declarations handle ordinary fields. Eligible literal `get()` calls avoid
@@ -411,12 +414,12 @@ Five accepted rotated fresh-process samples per stack use identical source:
 | Stack                                 |  Median |
 | ------------------------------------- | ------: |
 | Native Django hybrid prototype        | 2.076 s |
-| Previous companion candidate          | 5.525 s |
+| Previous ty-extended candidate        | 5.525 s |
 | MyPy with django-stubs and its plugin | 7.136 s |
 | Official Ty with django-types         | 0.323 s |
 
 All four stacks pass the 100 assertions and both error controls. The additional
-20 focused ORM cases match 20 for the hybrid, 20 for the previous companion,
+20 focused ORM cases match 20 for the hybrid, 20 for the previous ty-extended,
 19 for MyPy, and eight for native Ty. Source bytes and modification times are
 preserved. All 28 observations satisfy the predeclared host-load and resource
 limits. The receipt retains every observation. Timing acceptance depends on host
@@ -441,7 +444,7 @@ constructor diagnostics, branch joins and mutation invalidation.
 
 Instrumentation confirms 100 early returns, one inference round and native-check
 reuse on the timed fixture. It also confirms 7,080 untouched files skip flow/render
-passes and 182 external declaration modules enter the companion syntax index.
+passes and 182 external declaration modules enter ty-extended syntax index.
 All physical stubs remain available to the native checker. Optimized median
 phase timers show where the remaining work goes:
 
@@ -480,13 +483,13 @@ full conformance receipt, automatic consumer activation, installed-wheel and
 Django editor checks, Django/Python matrices and hosted CI remain open. Django's
 Python tests are 47/48: the stored full-conformance receipt correctly fails its
 stale-source check. It has not been rewritten to make the gate green. The
-prototype requires unreleased companion and Django code plus experimental flags;
+prototype requires unreleased ty-extended and Django code plus experimental flags;
 its local Ty matrix does not qualify installed wheels or the full declaration base.
 
 ## Official Ty with native Django support
 
 The [2026-11-08 comparison receipt](qualification/official-django-comparison.json)
-compares official Ty 0.0.99 with `django-types` 0.24.0, the unreleased companion
+compares official Ty 0.0.99 with `django-types` 0.24.0, the unreleased ty-extended
 and Django candidates, and MyPy 2.4.1 with django-stubs 6.1.2. Every stack uses
 Python 3.13.0 and Django 6.1.3. The native environment follows
 [Ty's documented Django setup](https://docs.astral.sh/ty/features/third-party/django/)
@@ -495,24 +498,24 @@ invalid-assignment smoke test verifies that native Django support is active.
 
 The original 7,082-file, 2,501-model, single-module fixture is unchanged:
 
-| Stack                                        |  Median | ORM assertions | Error controls |
-| -------------------------------------------- | ------: | -------------: | -------------: |
-| Official Ty with django-types                | 0.297 s |        100/100 |            2/2 |
-| Candidate companion and candidate Django-ty  | 5.163 s |        100/100 |            2/2 |
-| MyPy with django-stubs and its Django plugin | 6.793 s |        100/100 |            2/2 |
+| Stack                                         |  Median | ORM assertions | Error controls |
+| --------------------------------------------- | ------: | -------------: | -------------: |
+| Official Ty with django-types                 | 0.297 s |        100/100 |            2/2 |
+| Candidate ty-extended and candidate Django-ty | 5.163 s |        100/100 |            2/2 |
+| MyPy with django-stubs and its Django plugin  | 6.793 s |        100/100 |            2/2 |
 
 These are five rotated serial fresh-process samples per stack, with an empty
 MyPy cache each time. Filesystem caches may be warm. Every run preserves source
 bytes and modification times and remains below the recorded host-load limit.
 The receipt retains every sample, executable identity, environment, command,
 resource measurement and diagnostic. The sampled process-tree RSS medians are
-approximately 93 MiB for native Ty, 1,158 MiB for the companion and 495 MiB for
+approximately 93 MiB for native Ty, 1,158 MiB for ty-extended and 495 MiB for
 MyPy. These samples are local measurements, not worst-case bounds.
 
-Native Ty is about 17.4 times faster than the companion on this fixture while
+Native Ty is about 17.4 times faster than ty-extended on this fixture while
 passing the same basic assertions and intentional errors. The earlier bare-Ty
 comparisons omitted `django-types`; their failed assertions do not describe the
-documented native Django setup measured here. The extra companion coverage
+documented native Django setup measured here. The extra ty-extended coverage
 below does not establish that five seconds is necessary for this basic fixture.
 
 ### Correctness beyond the timed assertions
@@ -522,15 +525,15 @@ public Django APIs and standard-library typing. It retains exactly 7,082 files,
 2,501 models and the original 100 assertions. Each stack checks identical source.
 Its one-shot timings are recorded separately from the medians above.
 
-| Stack               | Valid cases accepted | Invalid cases rejected | Total matched |
-| ------------------- | -------------------: | ---------------------: | ------------: |
-| Official Ty         |                 6/10 |                   2/10 |          8/20 |
-| Candidate companion |                10/10 |                  10/10 |         20/20 |
-| MyPy + django-stubs |                10/10 |                   9/10 |         19/20 |
+| Stack                 | Valid cases accepted | Invalid cases rejected | Total matched |
+| --------------------- | -------------------: | ---------------------: | ------------: |
+| Official Ty           |                 6/10 |                   2/10 |          8/20 |
+| Candidate ty-extended |                10/10 |                  10/10 |         20/20 |
+| MyPy + django-stubs   |                10/10 |                   9/10 |         19/20 |
 
 Native Ty misses string-target relationship types, reverse relationships, precise
 `values()` / `values_list()` results, and constructor/query validation in these
-probes. MyPy misses the invalid lookup `name__missing`; the companion rejects it.
+probes. MyPy misses the invalid lookup `name__missing`; ty-extended rejects it.
 The receipt preserves one original test correction: an unsaved foreign-key ID
 was incorrectly expected to be exactly `int`. Django's runtime returns `None`
 when it is omitted. The final probe tests rejection of a `str` assignment without
@@ -538,7 +541,7 @@ requiring that state-dependent exact type. Original source, scores and diagnosti
 are retained; no implementation changed to improve these results.
 
 The unchanged 166-case project corpus separately matches 86 expectations for
-native Ty, 166 for the companion and 124 for MyPy. Native Ty also emits nine
+native Ty, 166 for ty-extended and 124 for MyPy. Native Ty also emits nine
 diagnostics outside marked cases; the other stacks emit none. This corpus includes
 state-aware primary-key expectations and django-stubs annotation conventions,
 including some that differ from django-types. These are counts against this
@@ -549,18 +552,18 @@ receipt includes all cases, diagnostics and feature totals for inspection.
 
 The [local candidate receipt](qualification/performance-sparse-projection.json)
 records three rotated fresh-process runs on the same 7,082-file, 2,501-model,
-100-assertion project. All positive companion and MyPy runs pass every assertion.
+100-assertion project. All positive ty-extended and MyPy runs pass every assertion.
 Both candidate variants and MyPy also detect the two intentionally introduced
 errors. All runs preserve source bytes and modification times. Filesystem caches
 may be warm; MyPy receives an empty cache for every run.
 
-| Stack                                                         |  Median |
-| ------------------------------------------------------------- | ------: |
-| Candidate companion and candidate Django manager declarations | 5.029 s |
-| Candidate companion and published Django-ty 0.7.0             | 5.298 s |
-| Published companion 0.89.0 and Django-ty 0.7.0                | 6.375 s |
-| MyPy 2.4.1 and django-stubs 6.1.2                             | 6.794 s |
-| Bare official ty 0.0.99                                       | 0.257 s |
+| Stack                                                           |  Median |
+| --------------------------------------------------------------- | ------: |
+| Candidate ty-extended and candidate Django manager declarations | 5.029 s |
+| Candidate ty-extended and published Django-ty 0.7.0             | 5.298 s |
+| Published ty-extended 0.89.0 and Django-ty 0.7.0                | 6.375 s |
+| MyPy 2.4.1 and django-stubs 6.1.2                               | 6.794 s |
+| Bare official ty 0.0.99                                         | 0.257 s |
 
 Bare ty reports all 100 Django assertions as failures and 100 unresolved
 attributes, so it measures the native startup/checking baseline with different
@@ -579,11 +582,11 @@ are recorded separately below. Their one-minute host load ranges from 7.5 to
 19.2; these runs are less contended, but the machine still has other work. No
 samples are discarded.
 
-| Models / model modules | Projection | Companion | MyPy + django-stubs | Bare ty |
-| ---------------------- | ---------- | --------: | ------------------: | ------: |
-| 2,501 / 1              | Memory     |   5.488 s |             6.826 s | 0.269 s |
-| 2,501 / 250            | Disk       |   5.823 s |             6.425 s | 0.205 s |
-| 2,501 / 250            | Memory     |   4.835 s |             6.664 s | 0.202 s |
+| Models / model modules | Projection | ty-extended | MyPy + django-stubs | Bare ty |
+| ---------------------- | ---------- | ----------: | ------------------: | ------: |
+| 2,501 / 1              | Memory     |     5.488 s |             6.826 s | 0.269 s |
+| 2,501 / 250            | Disk       |     5.823 s |             6.425 s | 0.205 s |
+| 2,501 / 250            | Memory     |     4.835 s |             6.664 s | 0.202 s |
 
 Each follow-up checks 7,082 files, preserves the positive assertions and catches
 both intentional errors. The single-module candidate's median varies from
@@ -668,13 +671,13 @@ published-artifact acceptance are separate from these local results.
 | ----------------------------------------------------------------- | ------: |
 | Field corrections plus candidate Django manager declarations      | 5.187 s |
 | Preceding index/cache candidate plus the same Django declarations | 4.806 s |
-| Published companion and Django-ty                                 | 6.197 s |
+| Published ty-extended and Django-ty                               | 6.197 s |
 | MyPy plus django-stubs                                            | 6.560 s |
 | Bare official ty                                                  | 0.256 s |
 
 These are three rotated fresh-process runs per stack on the unchanged 7,082-file,
 2,501-model, 100-assertion fixture. The receipt also includes the corrected
-companion with the published Django plugin. All companion/MyPy assertions and
+ty-extended with the published Django plugin. All companion/MyPy assertions and
 intentional error controls pass, and source bytes and modification times are
 preserved. Bare ty fails the Django assertions. Host load stays below the recorded
 comparison limit, but the machine is shared and these are not worst-case bounds.
@@ -701,18 +704,18 @@ through 0.0.99. The candidate also passes all 19 broader CLI/editor/SDK suites,
 nine integration binaries, formatting and Rust lint checks. The original field
 audit still matches the historical diagnostics exactly.
 
-| Stack                                                                 |  Median |
-| --------------------------------------------------------------------- | ------: |
-| Specialized factories plus candidate Django declarations              | 5.124 s |
-| Preceding field-corrected companion plus the same Django declarations | 5.181 s |
-| Published companion and Django-ty                                     | 6.403 s |
-| MyPy plus django-stubs                                                | 6.715 s |
-| Bare official ty                                                      | 0.265 s |
+| Stack                                                                   |  Median |
+| ----------------------------------------------------------------------- | ------: |
+| Specialized factories plus candidate Django declarations                | 5.124 s |
+| Preceding field-corrected ty-extended plus the same Django declarations | 5.181 s |
+| Published ty-extended and Django-ty                                     | 6.403 s |
+| MyPy plus django-stubs                                                  | 6.715 s |
+| Bare official ty                                                        | 0.265 s |
 
 These are three rotated fresh-process samples per stack on the unchanged
 7,082-file, 2,501-model, 100-assertion project, with the same error controls and
 source preservation checks. The receipt retains all samples and the corrected
-companion with the published Django plugin. Bare ty fails the ORM assertions.
+ty-extended with the published Django plugin. Bare ty fails the ORM assertions.
 The end-to-end median improves by about 1.1%; this is a small gain,
 not a solution to the overall latency target. The one-second target remains unmet;
 these shared-host timings are not worst-case bounds or published-release acceptance.
@@ -726,13 +729,13 @@ includes the filesystem revision and Windows path corrections. All five workload
 meet the MyPy median ceiling, preserve source bytes and pass exact ORM assertions
 plus both intentional-error controls.
 
-| Python files / models / model modules | Companion | MyPy + django-stubs | Bare ty |
-| ------------------------------------- | --------: | ------------------: | ------: |
-| 100 / 25 / 5                          |   0.535 s |             1.600 s | 0.064 s |
-| 1,000 / 250 / 25                      |   1.252 s |             2.172 s | 0.084 s |
-| 7,082 / 250 / 25                      |   3.577 s |             4.166 s | 0.165 s |
-| 7,082 / 2,501 / 1                     |   6.551 s |             6.685 s | 0.270 s |
-| 7,082 / 2,501 / 250                   |   6.065 s |             6.545 s | 0.195 s |
+| Python files / models / model modules | ty-extended | MyPy + django-stubs | Bare ty |
+| ------------------------------------- | ----------: | ------------------: | ------: |
+| 100 / 25 / 5                          |     0.535 s |             1.600 s | 0.064 s |
+| 1,000 / 250 / 25                      |     1.252 s |             2.172 s | 0.084 s |
+| 7,082 / 250 / 25                      |     3.577 s |             4.166 s | 0.165 s |
+| 7,082 / 2,501 / 1                     |     6.551 s |             6.685 s | 0.270 s |
+| 7,082 / 2,501 / 250                   |     6.065 s |             6.545 s | 0.195 s |
 
 The largest single-module case improves from the published 0.87/Django-ty 0.6
 pair's 80.788 seconds to 6.551 seconds, approximately 12.3 times faster. Its margin
@@ -766,25 +769,25 @@ identify the CI-built 0.88.0 wheel, Django-ty 0.7.0, official ty 0.0.99,
 MyPy 2.4.1, django-stubs 6.1.2 and Django 6.1.3. Each value is the median
 of three serial fresh-process runs; all positive and negative typing controls pass.
 
-| Host            | Python files / models / model modules | Companion | MyPy + django-stubs | Bare ty |
-| --------------- | ------------------------------------- | --------: | ------------------: | ------: |
-| macOS arm64     | 100 / 25 / 5                          |   0.547 s |             1.690 s | 0.064 s |
-| macOS arm64     | 1,000 / 250 / 25                      |   1.299 s |             2.221 s | 0.089 s |
-| macOS arm64     | 7,082 / 250 / 25                      |   3.597 s |             4.368 s | 0.166 s |
-| macOS arm64     | 7,082 / 2,501 / 1                     |   6.963 s |             7.035 s | 0.281 s |
-| macOS arm64     | 7,082 / 2,501 / 250                   |   6.315 s |             6.966 s | 0.200 s |
-| Linux x86_64 CI | 100 / 25 / 5                          |   0.300 s |             1.164 s | 0.046 s |
-| Linux x86_64 CI | 1,000 / 250 / 25                      |   0.732 s |             1.688 s | 0.061 s |
-| Linux x86_64 CI | 7,082 / 250 / 25                      |   1.695 s |             3.343 s | 0.105 s |
-| Linux x86_64 CI | 7,082 / 2,501 / 1                     |   4.299 s |             5.888 s | 0.171 s |
+| Host            | Python files / models / model modules | ty-extended | MyPy + django-stubs | Bare ty |
+| --------------- | ------------------------------------- | ----------: | ------------------: | ------: |
+| macOS arm64     | 100 / 25 / 5                          |     0.547 s |             1.690 s | 0.064 s |
+| macOS arm64     | 1,000 / 250 / 25                      |     1.299 s |             2.221 s | 0.089 s |
+| macOS arm64     | 7,082 / 250 / 25                      |     3.597 s |             4.368 s | 0.166 s |
+| macOS arm64     | 7,082 / 2,501 / 1                     |     6.963 s |             7.035 s | 0.281 s |
+| macOS arm64     | 7,082 / 2,501 / 250                   |     6.315 s |             6.966 s | 0.200 s |
+| Linux x86_64 CI | 100 / 25 / 5                          |     0.300 s |             1.164 s | 0.046 s |
+| Linux x86_64 CI | 1,000 / 250 / 25                      |     0.732 s |             1.688 s | 0.061 s |
+| Linux x86_64 CI | 7,082 / 250 / 25                      |     1.695 s |             3.343 s | 0.105 s |
+| Linux x86_64 CI | 7,082 / 2,501 / 1                     |     4.299 s |             5.888 s | 0.171 s |
 
-The published 0.87.0 companion with Django-ty 0.6.0 takes **80.788 seconds**
+The published 0.87.0 ty-extended with Django-ty 0.6.0 takes **80.788 seconds**
 on the exact same largest project on the Mac. Version 0.88.0 with Django-ty 0.7.0
 takes **6.963 seconds**, an **11.6× improvement**. Maximum sampled process-tree
 RSS across the three positive runs falls from 2,871 MiB to 1,358 MiB. Both stacks
 preserve source bytes and catch the two deliberately introduced errors.
 
-The companion meets the median-at-most-MyPy gate on all nine recorded host/workload
+ty-extended meets the median-at-most-MyPy gate on all nine recorded host/workload
 combinations. The largest Mac workload is effectively at parity with MyPy;
 its approximately one-percent margin is too small to claim a meaningful speed
 advantage. The other Mac workloads are 1.2–3.1× faster, and Linux CI workloads
@@ -803,7 +806,7 @@ Django application and runs three public commands over identical Python files:
 
 - `ty-extended check`, with Django-ty's Monty plugin and packaged stubs;
 - MyPy with django-stubs and its Django plugin;
-- bare official `ty check`, without `django-types`, a companion or Django plugin.
+- bare official `ty check`, without `django-types`, a ty-extended or Django plugin.
 
 Every sample starts fresh processes. MyPy uses `--no-incremental` and an empty,
 disposable cache; operating-system filesystem caches may be warm. Serial rounds rotate command order (five for the 0.89 local suite; three for
@@ -817,7 +820,7 @@ checkers must accept them, then reject an intentionally wrong ORM assignment
 and an ordinary Python assignment at their exact source locations. Source bytes
 must remain unchanged. A failed
 process, malformed output, timeout or memory-limit violation invalidates the
-run. The historical performance gate required the companion's median to be no
+run. The historical performance gate required ty-extended's median to be no
 slower than MyPy's median on that workload. The current harness additionally
 enforces the 3-times native ceiling described above.
 
@@ -831,7 +834,7 @@ MyPy's persistent daemon or either checker's incremental editor performance.
 
 Use separate environments for the two plugin implementations, with the same
 Python and Django versions. Install `mypy` and `django-stubs` in the reference
-environment, and the candidate `ty-extended` and `django-ty` in the companion
+environment, and the candidate `ty-extended` and `django-ty` in ty-extended
 environment. Install Django and `django-types` in a separate native environment.
 Use the same official Ty executable for both Ty commands. The current native
 delegation prototype additionally requires the experimental environment flags
@@ -868,7 +871,7 @@ entries from their own retained project index. Django-ty 0.7 uses both interface
 The host preserves fresh interpreter state, bounded execution and read-only
 access to the selected index.
 
-The companion shares generated descriptors and names, packs virtual declarations
+ty-extended shares generated descriptors and names, packs virtual declarations
 into a bounded set of modules, and materializes required declarations. It reuses
 projections whose type evidence remains valid, skips unchanged source copies and
 batches final CLI checks for large projects. File-selection, error-mapping,

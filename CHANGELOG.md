@@ -1,6 +1,6 @@
 # Changelog
 
-Current releases are Monty companions for unchanged official ty. Companion versions
+Current releases add plugin support to unchanged official ty. ty-extended versions
 are independent of official ty starting with 0.87.0. Earlier releases shipped a
 modified checker; their published notes remain unchanged.
 

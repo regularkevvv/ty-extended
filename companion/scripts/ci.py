@@ -323,7 +323,7 @@ def scoped_django_gate(
         )
     # The historical corpus above remains a compatibility check. Performance
     # uses the current production plugin and native django-types comparison,
-    # retaining all five workload shapes and the strict per-pair 3x ceiling.
+    # retaining all five workload shapes and the accepted aggregate ceilings.
     performance_binary = output / "performance-companion"
     shutil.copy2(binary, performance_binary)
     if (

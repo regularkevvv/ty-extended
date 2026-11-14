@@ -1,0 +1,134 @@
+{
+  "completed": true,
+  "repeats": 30,
+  "admission": [
+    {
+      "time": 1794641018.057081,
+      "load": [
+        6.306640625,
+        7.10009765625,
+        16.0791015625
+      ]
+    },
+    {
+      "time": 1794641023.060342,
+      "load": [
+        6.04150390625,
+        7.03173828125,
+        16.00244140625
+      ]
+    },
+    {
+      "time": 1794641028.064944,
+      "load": [
+        6.6787109375,
+        7.14697265625,
+        15.990234375
+      ]
+    },
+    {
+      "time": 1794641033.070378,
+      "load": [
+        6.6240234375,
+        7.1279296875,
+        15.931640625
+      ]
+    }
+  ],
+  "completed_build_target_cleaned": true,
+  "benchmark_exit": 1,
+  "source_bytes_and_mtimes_preserved": true,
+  "provider_bytes_and_mtimes_preserved": true,
+  "summary": {
+    "companion": {
+      "count": 30,
+      "mean": 0.7755899082791681,
+      "median": 0.7607992289122194,
+      "stdev": 0.1157468173758132,
+      "min": 0.6530602918937802,
+      "max": 1.0951092920731753
+    },
+    "bare-ty": {
+      "count": 30,
+      "mean": 0.23675864019120732,
+      "median": 0.2239595624851063,
+      "stdev": 0.048382742490623264,
+      "min": 0.18934183288365602,
+      "max": 0.36574695887975395
+    },
+    "mypy": {
+      "count": 30,
+      "mean": 7.450910081978266,
+      "median": 7.149822438135743,
+      "stdev": 0.701393162777779,
+      "min": 6.80984374997206,
+      "max": 9.906509708147496
+    }
+  },
+  "ratio_of_means": 3.275867388209352,
+  "mean_paired_ratio": 3.3492331911542546,
+  "pairs_at_or_below_3": 6,
+  "performance_gate": {
+    "max_ty_ratio": 3.0,
+    "median_ty_ratio": 3.3970383781349542,
+    "paired_ty_ratios": [
+      3.9839513907756103,
+      3.143133749762913,
+      3.3107176018938214,
+      3.466755310660936,
+      3.331310050502846,
+      3.584736193589212,
+      3.2441525373689712,
+      3.496449429981957,
+      3.3359607370471305,
+      3.440213834207929,
+      4.026315506840499,
+      2.6605174975857726,
+      3.6189317450409764,
+      5.596653392654757,
+      3.388900264358871,
+      3.0833751350491023,
+      3.6818831132439445,
+      2.4965209333333127,
+      2.715131228273217,
+      2.5080720037913076,
+      3.25203006930459,
+      3.320403200072589,
+      3.733792772906904,
+      2.658777525018288,
+      3.698904608176772,
+      2.558895934878085,
+      3.3633836013349034,
+      3.0822355478811847,
+      3.605934655541416,
+      3.0889561635498186
+    ],
+    "max_paired_ty_ratio": 5.596653392654757,
+    "ty_ceiling_met": false,
+    "mypy_ceiling_met": true,
+    "one_second_goal_met": false,
+    "passed": false
+  },
+  "max_recorded_load": 14.02587890625,
+  "all_recorded_loads_below_16": true,
+  "correctness_passed": true,
+  "temporary_environments_cleaned": true,
+  "free_disk_GiB_after": 19.171009063720703,
+  "project_archive_verified": true,
+  "project_archive_files": 7082,
+  "generated_project_cleaned": true,
+  "free_disk_GiB_after_archive_cleanup": 19.18792724609375,
+  "mean_three_x_target_seconds": 0.710275920573622,
+  "mean_gap_to_three_x_seconds": 0.06531398770554608,
+  "status": "Performance baseline accepted by maintainer; dependency migration still requires requalification.",
+  "companion_sha256": "588fb5135ae1e702731c48efb814efdf31c7f3085783f7faa9b583874c9297ce",
+  "official_ty": "0.0.101",
+  "official_ty_sha256": "da235b70057edcd504b03e6378b44c4a7173dfdc3021bf58c605540bd62022dd",
+  "django_commit": "b25f41c5b3063682e7e1789170ceb6423140a58a",
+  "workload": {
+    "files": 7082,
+    "models": 2501,
+    "model_modules": 250,
+    "type_assertions": 100
+  }
+}

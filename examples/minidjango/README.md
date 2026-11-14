@@ -15,7 +15,7 @@ The project under check lives once in `shared/` (`minidjango.py`,
 `minidjango_settings.py`, `models.py`, `app.py`); both runtime directories
 symlink to it, so the sources cannot drift. Only the plugin implementation,
 its manifest, and `pyproject.toml` differ. The monty plugin is a port of the
-reference `MiniDjangoPlugin` in `ruff/crates/ty_plugin_examples`.
+reference `MiniDjangoPlugin` in `crates/ty_plugin_examples`.
 
 ## What the plugin does
 

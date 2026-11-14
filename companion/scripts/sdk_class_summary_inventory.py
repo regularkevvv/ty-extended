@@ -7,9 +7,7 @@ import argparse
 import hashlib
 import json
 import os
-import re
 import subprocess
-import textwrap
 from pathlib import Path
 
 from plugin_configuration_differential import diagnostics
@@ -85,16 +83,13 @@ def main():
     for name in ("companion", "official", "fork", "output"):
         setattr(args, name, getattr(args, name).resolve())
     args.output.mkdir(parents=True)
-    original = (
-        Path(__file__).resolve().parents[2]
-        / "ruff/crates/ty_python_semantic/src/types/class/static_literal.rs"
-    )
-    raw = original.read_text(encoding="utf-8")
+    original = Path(__file__).resolve().parents[1] / "tests/fixtures/sdk_contracts.json"
+    catalog = json.loads(original.read_text(encoding="utf-8"))["cases"]
     report = {
         "passed": False,
         "artifact": str(args.companion),
         "sha256": digest(args.companion),
-        "original_source_sha256": digest(original),
+        "fixture_catalog_sha256": digest(original),
         "source_sha256": digest(Path(__file__)),
         "fork_sha256": digest(args.fork),
         "official_sha256": digest(args.official),
@@ -105,9 +100,7 @@ def main():
             (154, "plugin_class_summary_includes_django_like_assignment_calls"),
             (155, "plugin_class_summary_includes_nested_meta_constants_and_source"),
         ]:
-            match = re.search(r"fn " + name + r'\(\).*?r#"(.*?)"#', raw, re.S)
-            assert match
-            text = textwrap.dedent(match[1]).strip() + "\n"
+            text = catalog["summaries"][name]
             case = args.output / str(number)
             root = case / "project"
             root.mkdir(parents=True)

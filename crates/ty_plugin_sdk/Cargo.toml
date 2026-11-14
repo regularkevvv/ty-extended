@@ -1,0 +1,23 @@
+[package]
+name = "ty_plugin_sdk"
+version = "0.0.11"
+edition.workspace = true
+rust-version = "1.96"
+homepage = "https://github.com/regularkevvv/ty-extended"
+documentation = "https://docs.rs/ty_plugin_sdk"
+repository = "https://github.com/regularkevvv/ty-extended"
+authors = ["Kevin Castro <hola@kev.pe>"]
+license.workspace = true
+description = "Authoring SDK for ty semantic plugins."
+readme = "README.md"
+keywords = ["ty", "typing", "plugins"]
+categories = ["development-tools"]
+
+[dependencies]
+ty_plugin_protocol = { workspace = true }
+
+serde_json = { workspace = true }
+thiserror = { workspace = true }
+
+[lints]
+workspace = true

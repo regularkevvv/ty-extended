@@ -113,13 +113,14 @@ def main() -> int:
     args = parser.parse_args()
     args.output.mkdir(parents=True)
     repo = Path(__file__).resolve().parents[2]
-    original = repo / "ruff/crates/ty_python_semantic/src/types/object_state.rs"
-    records, cases = fixtures(original.read_text(encoding="utf-8"))
+    original = repo / "companion/tests/fixtures/sdk_contracts.json"
+    catalog = json.loads(original.read_text())["cases"]["state"]
+    records, cases = catalog["records"], catalog["cases"]
     environment = {**os.environ, "TY_UV": "0", "TY_MAX_PARALLELISM": "1"}
     result = {
         "passed": False,
-        "original_source": str(original),
-        "original_source_sha256": digest(original),
+        "fixture_catalog": str(original),
+        "fixture_catalog_sha256": digest(original),
         "binaries": {
             name: {
                 "path": str(getattr(args, name)),

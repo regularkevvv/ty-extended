@@ -1,11 +1,11 @@
 # Author a Monty plugin
 
-The companion executes Python plugins in embedded Monty. The serialized protocol
+ty-extended executes Python plugins in embedded Monty. The serialized protocol
 and ambient SDK cover class/member patches, call signatures and return types,
 object state, project indexes, dependencies, mutation diagnostics and stub overlays.
 See [runtime behavior](plugin-runtime.md) and the [compatibility policy](compatibility.md).
 
-The protocol version is validated by the host. Declare required companion versions
+The protocol version is validated by the host. Declare required ty-extended versions
 in your Python package dependencies. The legacy `ty-compatibility` manifest field
 is retained for format compatibility; it does not select the official checker.
 
@@ -118,7 +118,7 @@ trusted = true
 
 Plugin artifacts live outside the checked source tree, so exclude them:
 `[tool.ty.src] exclude = [".ty"]`. A runnable project with this layout is at
-`examples/monty/`. Historical WASM examples are outside the companion runtime.
+`examples/monty/`. Historical WASM examples are outside ty-extended runtime.
 
 ### Imports and editor support
 
@@ -215,7 +215,7 @@ or error per item, in request order. Results must be independent of item order
 and batch boundaries. Module state is shared within a batch and starts fresh
 for the next invocation; do not let one item's mutations affect another result.
 
-The companion batches only claimed classes with explicit class-specific indexes.
+ty-extended batches only claimed classes with explicit class-specific indexes.
 It limits a batch to 128 classes and 1 MiB of serialized requests; the ordinary
 execution and response-size limits still apply. Oversized or unlisted classes use
 individual hooks. An unavailable, invalid or wrong-length batch response also
@@ -229,11 +229,11 @@ enable class transforms. The Python SDK provides `on_class_batch` and
 
 ## Test and publish
 
-Run the plugin through the installed companion in CLI and editor sessions. Check
+Run the plugin through the installed ty-extended in CLI and editor sessions. Check
 positive and negative cases, plugin discovery from a built wheel, original source
 locations, and the supported checker versions. Package the Monty source, manifest
 and any stub overlays together; no WASM build is needed.
 
-Declare companion requirements in package dependencies and the protocol version
+Declare ty-extended requirements in package dependencies and the protocol version
 in the manifest. New protocol features require a compatible host. The protocol
 and SDK remain pre-1.0 and independently versioned.

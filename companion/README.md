@@ -1,4 +1,4 @@
-# Rust companion
+# Rust ty-extended
 
 A Rust frontend that runs semantic plugins in embedded Monty and delegates type
 checking to a separately installed, unchanged official `ty` executable. It writes
@@ -23,7 +23,7 @@ A Python environment can still be selected for checking a project's dependencies
 
 ```mermaid
 flowchart LR
-    client[CLI or editor] <--> wrapper[Rust companion]
+    client[CLI or editor] <--> wrapper[ty-extended]
     wrapper <--> monty[Monty plugins]
     wrapper <-->|Analysis copies and LSP| ty[Official ty process]
     wrapper -->|Original paths and positions| client

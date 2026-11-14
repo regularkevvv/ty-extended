@@ -36,11 +36,10 @@ RUN rustup target add $(cat rust_target.txt)
 
 # Build only the companion. Keep path-dependency workspace manifests intact.
 ENV CARGO_BUILD_JOBS=2 CARGO_INCREMENTAL=0
-COPY ruff/crates ruff/crates
-COPY ruff/Cargo.toml ruff/Cargo.toml
-COPY ruff/Cargo.lock ruff/Cargo.lock
-COPY ruff/ty.schema.json ruff/ty.schema.json
-COPY companion/Cargo.toml companion/Cargo.lock companion/
+COPY Cargo.toml Cargo.lock ./
+COPY .cargo .cargo
+COPY crates crates
+COPY companion/Cargo.toml companion/
 COPY companion/src companion/src
 RUN cargo zigbuild --locked --manifest-path companion/Cargo.toml --bin ty-extended --target $(cat rust_target.txt) --release \
     && cp companion/target/$(cat rust_target.txt)/release/ty-extended /ty-extended \

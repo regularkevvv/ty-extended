@@ -39,7 +39,7 @@ repo_name: ty-extended
 site_author: Kevin Castro
 site_url: https://regularkevvv.github.io/ty-extended/
 site_dir: site/ty
-site_description: ty-extended is a Monty plugin companion for official ty.
+site_description: Extend Ty type checker with plugins.
 markdown_extensions:
   - admonition
   - pymdownx.details
@@ -66,8 +66,9 @@ plugins:
       timezone: UTC # It can only be in UTC unless the ISO time can include timezone.
   - llmstxt:
       markdown_description: |
-        ty-extended is a Monty plugin companion for unchanged official ty.
-        It runs Monty plugins and maps analysis results through public CLI and LSP interfaces.
+        Extend Ty type checker with plugins.
+        Plugins use the Python subset supported by Monty.
+        It runs plugins and maps analysis results through public CLI and LSP interfaces.
 
         ty-extended provides `ty-extended check` and `ty-extended server` around a separately installed official ty.
 

@@ -1,7 +1,9 @@
 # ty-extended
 
-A Monty plugin companion for unchanged official ty. The companion owns plugin
-execution and translates source locations; Astral's checker owns type checking.
+Extend [Ty](https://github.com/astral-sh/ty) type checker with plugins.
+Plugins use the Python subset supported by Monty.
+ty-extended runs plugins and translates source locations; the separately installed,
+unchanged official ty performs type checking.
 
 ```shell
 uv add --dev ty-extended
@@ -9,12 +11,12 @@ uv run ty-extended check
 ```
 
 `ty-extended server` starts the plugin-aware editor server. `ty` remains Astral's
-command. The companion has independent releases and supports groups of ty versions;
+command. ty-extended has independent releases and supports groups of ty versions;
 see [compatibility](compatibility.md) for the tested range and upgrade policy.
 
 - [Installation and migration](installation.md)
 - [Editor setup](editors.md)
-- [Monty plugin authoring](plugin-authoring.md)
+- [Plugin authoring](plugin-authoring.md)
 - [Runtime behavior](plugin-runtime.md)
 - [FAQ](faq.md)
 - [Publishing](release-publishing.md)

@@ -3,7 +3,7 @@ name = "ty-extended"
 version = "0.89.0"
 requires-python = ">=3.8"
 dependencies = ["ty>=0.0.84,<0.1"]
-description = "A Monty plugin companion for unchanged official ty."
+description = "Extend Ty type checker with plugins. Write plugins in the Python subset supported by Monty."
 readme = "README.md"
 authors = [{ name = "Kevin Castro", email = "hola@kev.pe" }]
 keywords = ["ty", "typing", "analysis", "check", "plugins"]
@@ -63,7 +63,8 @@ cache-keys = [
     { file = "pyproject.toml" },
     { file = "dist-workspace.toml" },
     { file = "companion/Cargo.toml" },
-    { file = "companion/Cargo.lock" },
+    { file = "Cargo.toml" },
+    { file = "Cargo.lock" },
     { file = "**/*.rs" },
 ]
 
@@ -73,7 +74,7 @@ docs = {requires-python = ">=3.12"}
 docker = {requires-python = ">=3.12"}
 
 [tool.ruff]
-extend-exclude = ["ruff"]
+extend-exclude = ["python/ty_extended/plugin_sdk.py", "crates/ty_plugin_host/python/ty_plugin_sdk.py"]
 per-file-target-version = { "scripts/**" = "py313" }
 
 [tool.ruff.lint]
@@ -112,7 +113,10 @@ python-source = "python"
 strip = true
 include = [
     { path = "build_backend.py", format = "sdist" },
-    { path = "ruff/ty.schema.json", format = "sdist" },
+    { path = "Cargo.toml", format = "sdist" },
+    { path = "Cargo.lock", format = "sdist" },
+    { path = "crates/**", format = "sdist" },
+    { path = ".cargo/config.toml", format = "sdist" },
     { path = "rust-toolchain.toml", format = "sdist" },
     { path = "companion/rust-toolchain.toml", format = "sdist" },
     { path = "dist-workspace.toml", format = [

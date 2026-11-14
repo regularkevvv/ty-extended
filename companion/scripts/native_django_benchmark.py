@@ -134,10 +134,13 @@ def main() -> int:
     parser.add_argument("--companion", required=True, type=Path)
     parser.add_argument("--output", required=True, type=Path)
     parser.add_argument("--production-defaults", action="store_true")
+    parser.add_argument("--repeats", type=int, default=10)
     parser.add_argument(
         "--matrix", action="store_true", help="Run all five existing workload shapes"
     )
     args = parser.parse_args()
+    if args.repeats < 1:
+        parser.error("--repeats must be positive")
     args.output.mkdir(parents=True, exist_ok=False)
     output = args.output.resolve()
     flags = (
@@ -234,11 +237,12 @@ def main() -> int:
                 "--queries",
                 str(queries),
                 "--repeats",
-                "5",
+                str(args.repeats),
                 "--threads",
                 "0",
                 "--max-ty-ratio",
-                "3",
+                "3.5",
+                "--aggregate-ratios",
                 "--production-defaults"
                 if args.production_defaults
                 else "--native-django",

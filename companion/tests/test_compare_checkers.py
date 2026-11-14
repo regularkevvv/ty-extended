@@ -37,6 +37,26 @@ class PerformanceGateTests(unittest.TestCase):
         self.assertTrue(gate["ty_ceiling_met"])
         self.assertFalse(gate["passed"])
 
+    def test_accepted_aggregate_policy_retains_and_reports_slow_pairs(self):
+        gate = compare_checkers.performance_gate(
+            {"companion": [0.6, 0.6, 1.2], "bare-ty": [0.3] * 3, "mypy": [5] * 3},
+            3.5,
+            aggregate_ratios=True,
+        )
+        self.assertTrue(gate["passed"])
+        self.assertEqual(gate["paired_ty_ratios"], [2, 2, 4])
+        self.assertEqual(gate["max_paired_ty_ratio"], 4)
+
+    def test_fast_median_cannot_hide_excessive_mean_under_aggregate_policy(self):
+        gate = compare_checkers.performance_gate(
+            {"companion": [0.6, 0.6, 4.0], "bare-ty": [0.3] * 3, "mypy": [5] * 3},
+            3.5,
+            aggregate_ratios=True,
+        )
+        self.assertEqual(gate["median_ty_ratio"], 2)
+        self.assertGreater(gate["mean_ty_ratio"], 3.5)
+        self.assertFalse(gate["passed"])
+
     def test_incomplete_or_invalid_observations_cannot_pass(self):
         for samples in (
             {"companion": [], "bare-ty": [], "mypy": []},

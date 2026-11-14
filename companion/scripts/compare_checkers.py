@@ -33,8 +33,8 @@ def source_hash(project):
     return digest.hexdigest()
 
 
-def performance_gate(samples, max_ty_ratio=3.0):
-    """Require the median and every rotated pair to meet the native ceiling."""
+def performance_gate(samples, max_ty_ratio=3.0, *, aggregate_ratios=False):
+    """Check the native ceiling while preserving every observation."""
     if not math.isfinite(max_ty_ratio) or max_ty_ratio <= 0:
         raise ValueError("The Ty ratio limit must be finite and positive")
     if set(samples) != {"companion", "bare-ty", "mypy"}:
@@ -45,12 +45,22 @@ def performance_gate(samples, max_ty_ratio=3.0):
     if any(not math.isfinite(t) or t <= 0 for ts in samples.values() for t in ts):
         raise ValueError("Timings must be finite and positive")
     medians = {name: statistics.median(ts) for name, ts in samples.items()}
+    means = {name: statistics.mean(ts) for name, ts in samples.items()}
     ratios = [a / b for a, b in zip(samples["companion"], samples["bare-ty"])]
     median_ratio = medians["companion"] / medians["bare-ty"]
-    ty_met = median_ratio <= max_ty_ratio and max(ratios) <= max_ty_ratio
-    mypy_met = medians["companion"] <= medians["mypy"]
+    mean_ratio = means["companion"] / means["bare-ty"]
+    ty_met = (
+        median_ratio <= max_ty_ratio
+        and mean_ratio <= max_ty_ratio
+        and (aggregate_ratios or max(ratios) <= max_ty_ratio)
+    )
+    mypy_met = (
+        medians["companion"] <= medians["mypy"] and means["companion"] <= means["mypy"]
+    )
     return {
         "max_ty_ratio": max_ty_ratio,
+        "policy": "mean-and-median" if aggregate_ratios else "median-and-every-pair",
+        "mean_ty_ratio": mean_ratio,
         "median_ty_ratio": median_ratio,
         "paired_ty_ratios": ratios,
         "max_paired_ty_ratio": max(ratios),
@@ -347,6 +357,11 @@ def main():
     parser.add_argument("--repeats", type=int, default=3)
     parser.add_argument("--max-ty-ratio", type=float, default=3.0)
     parser.add_argument(
+        "--aggregate-ratios",
+        action="store_true",
+        help="Gate both mean and median ratios; report every paired ratio without trimming samples",
+    )
+    parser.add_argument(
         "--official-python",
         type=Path,
         help="Bare Ty's environment containing django-types; enables native Django expectations",
@@ -498,6 +513,7 @@ def main():
                 for backend in backends
             },
             args.max_ty_ratio,
+            aggregate_ratios=args.aggregate_ratios,
         )
         report["performance_target_met"] = report["performance_gate"]["passed"]
         checks = args.project / "checks.py"

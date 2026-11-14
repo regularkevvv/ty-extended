@@ -14,10 +14,14 @@ fn multiple_plugins_keep_precedence_config_and_virtual_types() -> Result<()> {
     let output = std::env::var_os("TY_COMPANION_MULTI_OUTPUT")
         .map(PathBuf::from)
         .unwrap_or_else(|| {
-            std::env::temp_dir()
-                .canonicalize()
-                .unwrap()
-                .join(format!("native-sdk-multi-{}", std::process::id()))
+            std::env::temp_dir().canonicalize().unwrap().join(format!(
+                "native-sdk-multi-{}-{}",
+                std::process::id(),
+                std::time::SystemTime::now()
+                    .duration_since(std::time::UNIX_EPOCH)
+                    .unwrap()
+                    .as_nanos()
+            ))
         });
     let root = output.join("project");
     let stubs = output.join("stubs");
