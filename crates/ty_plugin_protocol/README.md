@@ -13,8 +13,8 @@ diagnostics, and type expressions can therefore be serialized independently of t
 Rust protocol tooling and native regression implementations can depend on
 [`ty_plugin_sdk`](https://crates.io/crates/ty_plugin_sdk), which re-exports this crate as
 `ty_plugin_sdk::protocol` and adds the `Plugin` trait, `ManifestBuilder`, typed patch helpers,
-dispatch, and legacy WASM exports. Current companion plugins use the bundled
-Python `ty_extended.plugin_sdk` and execute in Monty. The companion delegates
+dispatch, and legacy WASM exports. Current plugins use the bundled
+Python `ty_extended.plugin_sdk` and execute in Monty. ty-extended delegates
 checking to unchanged official ty; it is not a checker fork.
 
 Depend on `ty_plugin_protocol` directly when implementing a host, validating manifests, inspecting
@@ -24,7 +24,7 @@ wire messages, or building protocol tooling.
 
 ```toml
 [dependencies]
-ty_plugin_protocol = "0.0.11"
+ty_plugin_protocol = "0.0.12"
 ```
 
 ## Protocol Model
@@ -88,7 +88,7 @@ permission to use unsupported behavior. Always negotiate the version before disp
 ```
 
 Native tooling can use `ty_plugin_sdk::ManifestBuilder` to keep claims and
-capability flags aligned. Python companion plugins use the bundled
+capability flags aligned. Python ty-extended plugins use the bundled
 `ty_extended.plugin_sdk` manifest helpers.
 
 See the [plugin authoring
@@ -151,7 +151,7 @@ items within a batch share that invocation. Keep the ordinary class hook: hosts
 can use it for unlisted classes, oversized requests, or a batch that abstains or
 returns an invalid response. A malformed batch must not commit partial results.
 
-The companion batches only claimed classes with explicit `class-indexes`, limits
+The ty-extended batches only claimed classes with explicit `class-indexes`, limits
 each batch to 128 items and 1 MiB of request JSON, and retains the existing Monty
 execution and response limits. Cached item responses retain the individual
 request's plugin identity, index revision, source context, and class summary.

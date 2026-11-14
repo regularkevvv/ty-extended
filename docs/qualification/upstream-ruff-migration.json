@@ -1,5 +1,5 @@
 {
-  "status": "Local qualification passed; hosted CI, version sweep and release qualification pending.",
+  "status": "All local and hosted migration gates passed; release publication and public-artifact acceptance pending.",
   "version": "0.90.0",
   "official_ty": "0.0.104",
   "django_commit": "9deb4ee8321cbe49f8dc82eefceba5c276ef2980",
@@ -8,10 +8,10 @@
     "version": "0.90.0",
     "qualified_runtime_matches": true,
     "build_exit": 0,
-    "seconds": 341.1968991670292,
-    "wheel": "/private/tmp/ty-companion-subsecond-work/native-hybrid/build-wheel-upstream-ruff/wheels/ty_extended-0.90.0-py3-none-macosx_11_0_arm64.whl",
-    "wheel_sha256": "1fb95b132e22f0ee74509df30beb56f9813382563af67852de72940a3182c08b",
-    "binary_sha256": "65ae05a6a67d9cb5c0c221506549ddbd8359ccf591d37004706e32ac0c3d3a30",
+    "seconds": 375.35104049998336,
+    "wheel": "/private/tmp/ty-companion-subsecond-work/native-hybrid/build-wheel-upstream-ruff-r2/wheels/ty_extended-0.90.0-py3-none-macosx_11_0_arm64.whl",
+    "wheel_sha256": "0f32839c5a88144ecba5cdc66b87d8649611a60352e3c2b72d24948881a27522",
+    "binary_sha256": "57cb933bcdec42521c88566a57596130a6bebd69e77b87b8c0d15c69868dedcc",
     "clean_exit": 0
   },
   "direct_ruff_dependencies": {
@@ -29,7 +29,8 @@
   "rust_sdk_qualification": {
     "passed": true,
     "steps": 43,
-    "source_results": "qualify-upstream-ruff-r2/results.json"
+    "source_results": "qualify-upstream-ruff-r4/results.json",
+    "official_ty": "0.0.104"
   },
   "editor_contract_equivalence": {
     "passed": true,
@@ -458,5 +459,292 @@
   },
   "provider_preserved": true,
   "temporary_environments_cleaned": true,
-  "max_recorded_load": 10.79931640625
+  "max_recorded_load": 10.79931640625,
+  "version_sweep": {
+    "passed": true,
+    "complete": true,
+    "scope": "One exact optimized local macOS wheel executable; hosted CI and published artifact checks recorded separately.",
+    "ty_extended": "0.90.0",
+    "wheel_sha256": "0f32839c5a88144ecba5cdc66b87d8649611a60352e3c2b72d24948881a27522",
+    "binary_sha256": "57cb933bcdec42521c88566a57596130a6bebd69e77b87b8c0d15c69868dedcc",
+    "total_versions": 21,
+    "total_gates": 378
+  },
+  "hosted_ci": {
+    "passed": true,
+    "source_commit": "27470c62755f766417e24bf6dc7f54a849b3233c",
+    "url": "https://github.com/regularkevvv/ty-extended/actions/runs/43583434106",
+    "platforms": {
+      "linux": {
+        "passed": true,
+        "workloads": {
+          "small": {
+            "passed": true,
+            "performance_gate": {
+              "max_ty_ratio": 3.5,
+              "policy": "mean-and-median",
+              "mean_ty_ratio": 2.821768487110433,
+              "median_ty_ratio": 2.8157840998161214,
+              "paired_ty_ratios": [
+                4.094210253705987,
+                3.063092300663922,
+                2.8746838683131672,
+                2.620403002101232,
+                2.6033668878658793,
+                2.4578947798644277,
+                3.0548784632334964,
+                2.7919896411790375,
+                2.2855925293754877,
+                2.5765962344710207
+              ],
+              "max_paired_ty_ratio": 4.094210253705987,
+              "ty_ceiling_met": true,
+              "mypy_ceiling_met": true,
+              "one_second_goal_met": true,
+              "passed": true
+            }
+          },
+          "distributed": {
+            "passed": true,
+            "performance_gate": {
+              "max_ty_ratio": 3.5,
+              "policy": "mean-and-median",
+              "mean_ty_ratio": 2.9615963753864394,
+              "median_ty_ratio": 2.9487754893052442,
+              "paired_ty_ratios": [
+                2.932445079789979,
+                3.0484231799061376,
+                2.90139423287279,
+                2.918602981123173,
+                2.8903126620421795,
+                2.9920064301234914,
+                2.999692675667117,
+                2.9714054830618495,
+                3.0150436163699514,
+                2.94624474711939
+              ],
+              "max_paired_ty_ratio": 3.0484231799061376,
+              "ty_ceiling_met": true,
+              "mypy_ceiling_met": true,
+              "one_second_goal_met": true,
+              "passed": true
+            }
+          },
+          "many-files": {
+            "passed": true,
+            "performance_gate": {
+              "max_ty_ratio": 3.5,
+              "policy": "mean-and-median",
+              "mean_ty_ratio": 3.046170415505213,
+              "median_ty_ratio": 3.0444704403176956,
+              "paired_ty_ratios": [
+                2.9286896490682386,
+                3.0440533157046907,
+                3.02966752369403,
+                3.1180229778369677,
+                3.0169215760397514,
+                3.027172438462606,
+                3.080350226715076,
+                3.0992546590213332,
+                3.0113390891390486,
+                3.117130157403445
+              ],
+              "max_paired_ty_ratio": 3.1180229778369677,
+              "ty_ceiling_met": true,
+              "mypy_ceiling_met": true,
+              "one_second_goal_met": true,
+              "passed": true
+            }
+          },
+          "stress": {
+            "passed": true,
+            "performance_gate": {
+              "max_ty_ratio": 3.5,
+              "policy": "mean-and-median",
+              "mean_ty_ratio": 2.435689217122323,
+              "median_ty_ratio": 2.4084940486598314,
+              "paired_ty_ratios": [
+                2.4411627953163317,
+                2.5240851312831483,
+                2.569059307418377,
+                2.4760586050825157,
+                2.3433678658254293,
+                2.325860030910008,
+                2.459288930095416,
+                2.365718112011028,
+                2.5229603243557306,
+                2.3518160401632375
+              ],
+              "max_paired_ty_ratio": 2.569059307418377,
+              "ty_ceiling_met": true,
+              "mypy_ceiling_met": true,
+              "one_second_goal_met": true,
+              "passed": true
+            }
+          },
+          "distributed-stress": {
+            "passed": true,
+            "performance_gate": {
+              "max_ty_ratio": 3.5,
+              "policy": "mean-and-median",
+              "mean_ty_ratio": 3.4268590352040698,
+              "median_ty_ratio": 3.4296395540231086,
+              "paired_ty_ratios": [
+                3.2693803524784335,
+                3.4158672133639287,
+                3.4432566796872375,
+                3.407398039277692,
+                3.463579479166183,
+                3.463362392779727,
+                3.4651654831314938,
+                3.3939604589846613,
+                3.441847627995857,
+                3.51267338115115
+              ],
+              "max_paired_ty_ratio": 3.51267338115115,
+              "ty_ceiling_met": true,
+              "mypy_ceiling_met": true,
+              "one_second_goal_met": true,
+              "passed": true
+            }
+          }
+        }
+      },
+      "macos": {
+        "passed": true,
+        "workloads": {
+          "small": {
+            "passed": true,
+            "performance_gate": {
+              "max_ty_ratio": 3.5,
+              "policy": "mean-and-median",
+              "mean_ty_ratio": 1.9609229133804853,
+              "median_ty_ratio": 2.1247685862622663,
+              "paired_ty_ratios": [
+                1.8331104979594137,
+                2.1856559855598494,
+                2.6094012582647483,
+                1.6259375563963183,
+                1.7211735372643024,
+                2.024979333084548,
+                1.125574070765401,
+                2.533150448064426,
+                2.81543982249399,
+                1.5524568032148298
+              ],
+              "max_paired_ty_ratio": 2.81543982249399,
+              "ty_ceiling_met": true,
+              "mypy_ceiling_met": true,
+              "one_second_goal_met": true,
+              "passed": true
+            }
+          },
+          "distributed": {
+            "passed": true,
+            "performance_gate": {
+              "max_ty_ratio": 3.5,
+              "policy": "mean-and-median",
+              "mean_ty_ratio": 2.504822558189552,
+              "median_ty_ratio": 2.2049611837200778,
+              "paired_ty_ratios": [
+                2.151372719154706,
+                1.9639631378997173,
+                3.480793212624836,
+                2.3369076556955317,
+                2.8382808714193146,
+                2.6019850385059784,
+                1.8475837743063246,
+                2.7302963406093967,
+                3.24036792709635,
+                2.633429526430369
+              ],
+              "max_paired_ty_ratio": 3.480793212624836,
+              "ty_ceiling_met": true,
+              "mypy_ceiling_met": true,
+              "one_second_goal_met": true,
+              "passed": true
+            }
+          },
+          "many-files": {
+            "passed": true,
+            "performance_gate": {
+              "max_ty_ratio": 3.5,
+              "policy": "mean-and-median",
+              "mean_ty_ratio": 2.723469499508986,
+              "median_ty_ratio": 2.8351756508934858,
+              "paired_ty_ratios": [
+                2.7995878688535827,
+                2.043622786992558,
+                2.578084728487098,
+                2.9396014568828437,
+                2.550797876851446,
+                3.229932919287909,
+                2.9431057055441325,
+                2.3002666330350015,
+                3.1926124720484936,
+                2.9107368757283028
+              ],
+              "max_paired_ty_ratio": 3.229932919287909,
+              "ty_ceiling_met": true,
+              "mypy_ceiling_met": true,
+              "one_second_goal_met": true,
+              "passed": true
+            }
+          },
+          "stress": {
+            "passed": true,
+            "performance_gate": {
+              "max_ty_ratio": 3.5,
+              "policy": "mean-and-median",
+              "mean_ty_ratio": 2.2821399930239106,
+              "median_ty_ratio": 2.3433821169146367,
+              "paired_ty_ratios": [
+                2.448441317196656,
+                2.024558958201921,
+                2.0619008245633803,
+                1.7942006321767598,
+                1.4749157408530653,
+                2.3297879694950914,
+                3.340866838832859,
+                2.7245531106033676,
+                2.6798700932010844,
+                2.425464552220116
+              ],
+              "max_paired_ty_ratio": 3.340866838832859,
+              "ty_ceiling_met": true,
+              "mypy_ceiling_met": true,
+              "one_second_goal_met": true,
+              "passed": true
+            }
+          },
+          "distributed-stress": {
+            "passed": true,
+            "performance_gate": {
+              "max_ty_ratio": 3.5,
+              "policy": "mean-and-median",
+              "mean_ty_ratio": 2.891599385831187,
+              "median_ty_ratio": 2.910933822117524,
+              "paired_ty_ratios": [
+                3.0018378920005397,
+                3.450643350446015,
+                2.8656416062802914,
+                2.75098141817402,
+                2.8260252016082386,
+                2.995162833974341,
+                2.2296474135832933,
+                2.818189412660836,
+                3.1795942428761346,
+                2.9606841816678404
+              ],
+              "max_paired_ty_ratio": 3.450643350446015,
+              "ty_ceiling_met": true,
+              "mypy_ceiling_met": true,
+              "one_second_goal_met": true,
+              "passed": true
+            }
+          }
+        }
+      }
+    }
+  }
 }

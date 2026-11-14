@@ -23,17 +23,17 @@ Configure your editor to start `ty-extended server` for plugin support.
 
 ## Official ty compatibility
 
-ty-extended versions are independent of official ty starting with 0.87.0. The same
-0.89.0 CI binary has passed the complete compatibility suite against **every ty release
-from 0.0.84 through 0.0.99** (16 releases), including Django CLI and editor checks.
-Updating official ty within a compatible group does not require a ty-extended release.
-See [the compatibility policy and evidence](docs/compatibility.md) for the tested
-versions, dependency range and checks for future releases.
+ty-extended versions are independent of official Ty starting with 0.87.0. The
+[0.90.0 qualification](docs/qualification/compatibility-0.90.0.json) records one
+unchanged optimized executable against **every Ty release from 0.0.84 through
+0.0.104**: **378 passing CLI, editor, notebook and SDK gates**. Platform CI also
+passes on Linux, macOS and Windows.
 
-An earlier unreleased candidate passes its expanded source suite against all 18
-releases through **0.0.101**, including compatibility fixes for diagnostic renames
-in 0.0.100. Later performance prototypes still require that version sweep.
-This does not extend the published 0.89.0 artifact's qualification.
+Updating official Ty within a compatible group does not require a ty-extended
+release. The dependency range is `ty>=0.0.84,<0.1`; future releases within it need
+compatibility checks before being described as tested. See [the policy and
+evidence](docs/compatibility.md). Published-package acceptance is recorded
+separately from source and CI qualification.
 
 ## Performance
 
@@ -52,8 +52,7 @@ The accepted optimization baseline averages **0.776 seconds** across 30 runs of
 
 The upstream Ruff crate migration passes all five local workload gates, with
 means of **0.105–0.789 seconds** on official Ty 0.0.104. Alternating comparisons
-with the accepted binary show no material regression. Hosted CI and the full
-version sweep remain release gates.
+with the accepted binary show no material regression. Hosted Linux and macOS matrices also pass all five shapes. Publication and public-artifact acceptance remain separate gates.
 See [performance evidence](docs/performance.md#current-native-comparison) for
 all samples, the five workload shapes, and the remaining release checks.
 

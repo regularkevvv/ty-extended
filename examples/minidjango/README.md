@@ -1,8 +1,8 @@
-# Mini-Django Monty companion example
+# Mini-Django plugin example
 
-The `monty/` implementation runs with the current `ty-extended` companion.
+The `monty/` implementation runs with the current `ty-extended`.
 The `wasm/` implementation is retained as a historical reference for versions
-through 0.86.x; the companion supports embedded Monty.
+through 0.86.x; ty-extended supports embedded Monty.
 
 |            | `monty/`                          | `wasm/`                                              |
 | ---------- | --------------------------------- | ---------------------------------------------------- |

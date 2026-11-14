@@ -1,9 +1,10 @@
 # Version compatibility
 
-ty-extended and official ty are installed as separate distributions. The
-ty-extended uses public CLI and LSP interfaces; it does not link ty's semantic
-engine or build a modified checker. The `ruff` submodule pins source dependencies
-for parsing, notebook handling and the plugin host, independently of official ty.
+ty-extended and official ty are installed as separate distributions. ty-extended uses public CLI and LSP interfaces; it does not link Ty's semantic
+engine or build a modified checker. Five published Ruff crates provide parsing,
+text positions, notebook handling and diagnostics. Their registry versions are
+pinned in Cargo.lock; the plugin host, protocol and SDK live in this repository.
+There is no fork submodule or vendored Ruff source.
 
 ## Version policy
 
@@ -26,6 +27,21 @@ features, rather than every upstream version number.
 
 ## Qualified versions
 
+The [0.90.0 ledger](qualification/compatibility-0.90.0.json) records one unchanged
+optimized wheel executable against **all 21 official Ty releases from 0.0.84
+through 0.0.104**. Every release passes all 18 CLI, editor, notebook, plugin and SDK
+gates: **378 passing gates**. Native rule identities normalize documented pure
+renames for internal classification and historical comparisons; consumer output
+preserves official diagnostic IDs. Newly split implicit-return and generator
+rules retain their distinct identities.
+
+The independent workspace also passes all hosted runtime gates on Linux, macOS
+and Windows, nine wheel/source packaging jobs, both Docker architectures and both
+five-workload performance matrices. [The migration receipt](qualification/upstream-ruff-migration.json)
+keeps this evidence separate from subsequent public-package acceptance.
+
+### Earlier qualification
+
 The [earlier native Django candidate](qualification/native-django-latest-v28.json)
 passes its expanded source suite against every Ty release from **0.0.84 through
 0.0.101**. The same ty-extended executable passes 236 regular Rust tests and three
@@ -34,9 +50,8 @@ corpus cases, SDK field and native API controls, and eight custom-primary-key
 cases in each mode. Internal classification handles renamed native diagnostic
 rules while consumer output preserves the official rule IDs. This source sweep
 does not qualify installed wheels or extend the published release's ledger. The
-candidate also fails its required 3-times native performance ceiling. Subsequent
-performance prototypes have only been qualified against 0.0.101 and require a
-new full version sweep before release.
+candidate also fails its required 3-times native performance ceiling. That receipt predates the accepted performance implementation and the current
+0.90.0 qualification; it is retained as historical evidence.
 
 The [0.89.0 CI-wheel ledger](qualification/compatibility-0.89.0.json) records
 one unchanged installed executable against **every official ty release from
@@ -135,7 +150,7 @@ ty-extended adapter even when existing checking workflows remain compatible.
 
 ## Plugin compatibility
 
-ty-extended 0.89.0 embeds Monty **1.5.0**. The SDK and host tests execute with
+ty-extended 0.90.0 embeds Monty **1.5.0**. The SDK and host tests execute with
 the runtime selected by ty-extended lockfile, including sandbox and execution
 limit controls. Plugin users do not install a separate Monty interpreter or
 Python worker.

@@ -11,6 +11,10 @@ Entries below 0.74.0 say "extension" where they now would say "plugin"; the term
 
 ## 0.90.0
 
+- Qualify one optimized executable against every official Ty release from 0.0.84 through 0.0.104: 378 passing compatibility gates.
+
+- Publish protocol and Rust SDK 0.0.12 from the independent workspace.
+
 - Add plugin support around unchanged official Ty, with plugins written in the Python subset supported by Monty.
 
 - Own the plugin host, protocol and SDK in this repository. Use published upstream Ruff crates and remove the fork submodule.

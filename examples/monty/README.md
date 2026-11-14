@@ -1,6 +1,6 @@
 # Monty plugin example
 
-A minimal end-to-end [companion plugin](../../docs/plugin-authoring.md) written in Python and
+A minimal end-to-end [plugin](../../docs/plugin-authoring.md) written in Python and
 executed inside the embedded [Monty](https://github.com/pydantic/monty) sandbox —
 no Rust toolchain required.
 
@@ -19,10 +19,10 @@ pyproject.toml         # enables plugins and registers the artifact
 
 `example.issue_token` is left unannotated, so without a plugin its return type is
 `Unknown`. The manifest in `tokens.plugin.json` claims
-`example.issue_token` for the `call-return` capability; when the companion checks the call
+`example.issue_token` for the `call-return` capability; when ty-extended checks the call
 in `app.py`, it dispatches an `adjust-call-return` request to the plugin. The
 plugin answers with a patch whose `return-type` is the annotation
-`example.Token`, and the companion projects it for official ty.
+`example.Token`, and ty-extended projects it for official ty.
 
 ## Running it
 
@@ -56,6 +56,6 @@ info[revealed-type]: Revealed type
 - The manifest's `runtime.kind` must be `"monty"` and `runtime.artifact` names
     the plugin file; `path` in `pyproject.toml` points at that file and
     `manifest-path` at the JSON manifest.
-- `trusted = true` is required for the companion to execute local plugin artifacts.
+- `trusted = true` is required for ty-extended to execute local plugin artifacts.
 - Plugin files are excluded under `[tool.ty.src]` because ambient SDK names do
     not resolve outside the sandbox.

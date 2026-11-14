@@ -6,10 +6,10 @@
 Typed protocol helpers and native regression tests for
 [ty-extended](https://github.com/regularkevvv/ty-extended) semantic plugins.
 
-Current ty-extended releases are Monty companions for unchanged official ty.
+Current ty-extended releases extend unchanged official Ty with Python plugins.
 Their plugins are Python source using `ty_extended.plugin_sdk`; the Rust SDK
 provides typed protocol tooling and independent native test implementations.
-The companion does not load Rust libraries or WASM modules.
+ty-extended does not load Rust libraries or WASM modules.
 
 Use this crate to declare what a plugin owns, implement typed semantic hooks and return
 declarative patches. It re-exports all wire
@@ -23,7 +23,7 @@ The host sends a serialized request for a manifest claim; the plugin returns a s
 that the host validates and applies.
 
 ```text
-companion -> typed protocol request -> Monty hook -> declarative patch -> companion
+ty-extended -> typed protocol request -> Monty hook -> declarative patch -> ty-extended
 ```
 
 A native `Plugin` implementation can act as a regression oracle for the corresponding Monty hooks.
@@ -42,7 +42,7 @@ edition = "2024"
 crate-type = ["rlib"]
 
 [dependencies]
-ty_plugin_sdk = "0.0.11"
+ty_plugin_sdk = "0.0.12"
 ```
 
 Implement `Plugin` and claim the matching hook in the corresponding Monty manifest:
@@ -81,7 +81,7 @@ uses.
 
 `export_plugin!` and the WASM wire types remain available for hosts that implement
 that runtime and negotiate the declared protocol version. They are outside the
-current ty-extended companion. Older WASM examples and releases are documented in
+current ty-extended ty-extended. Older WASM examples and releases are documented in
 [the historical guide](https://github.com/regularkevvv/ty-extended/blob/main/docs/history/0.86/plugin-authoring.md).
 
 ## Manifests and Claims
@@ -100,9 +100,9 @@ attributes, settings, or mutations it declared. Useful builder methods include:
 - `claim_mutations` and `claim_mutations_on_subclass`;
 - `stub_overlay`, `config_schema`, and `default_config`.
 
-Declare the required companion version in the Python package dependencies. The legacy
+Declare the required ty-extended version in the Python package dependencies. The legacy
 `ty_compatibility` field remains a manifest field; it does not select official ty.
-The protocol and SDK are versioned independently from the companion and checker.
+The protocol and SDK are versioned independently from the ty-extended and checker.
 
 ## Hook Reference
 
@@ -150,7 +150,7 @@ Test the native reference and the corresponding Monty implementation together:
 1. Run the packaged Python plugin through `ty-extended check` and `ty-extended server` against fixture projects.
 
 The native reference is a development tool. Consumers install the Python plugin and
-the companion, which embeds Monty.
+the ty-extended, which embeds Monty.
 
 ## Package and Configure It
 
