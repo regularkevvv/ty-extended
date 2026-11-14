@@ -13,6 +13,7 @@ Entries below 0.74.0 say "extension" where they now would say "plugin"; the term
 
 - Own the plugin host, protocol, SDK and examples in this repository. Depend on five published Ruff crates and remove the fork submodule; no Ruff source is vendored.
 - Extend separately installed, unchanged official Ty with Python plugins supported by Monty. Keep ty-extended releases independent of official Ty versions.
+- Run Python plugins with embedded Monty 1.6.0.
 - Qualify groups of official Ty versions with one unchanged executable and complete CLI/editor/SDK gates.
 - Preserve the accepted native Django performance implementation through scoped indexes, shared type factories, lazy row construction and native inference.
 - Cancel and reap speculative checker processes when their results cannot be reused. Validate accepted results against source, configuration, directory and probe changes after checking.
