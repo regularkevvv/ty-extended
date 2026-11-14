@@ -1,10 +1,11 @@
 {
   "passed": true,
   "complete": true,
-  "scope": "One exact optimized local macOS wheel executable, including discarded-check cancellation; hosted and published artifact checks are separate.",
+  "scope": "Exact optimized local macOS executable; hosted platforms and published artifacts qualified separately.",
   "ty_extended": "0.90.0",
-  "wheel_sha256": "ecd4a9afbc8e257adabe627797ac3dc5a3973e76b22387341a0ebc38eb2916fa",
-  "binary_sha256": "ac49795edb327c39e9d95a427c5a2be63e1aee8c0ad9582410c27d6aa60ea496",
+  "monty": "1.6.0",
+  "wheel_sha256": "d5c052ee3e8064c99c361fb641e8ea794698a694e4846de3e59fb05f54e39b10",
+  "binary_sha256": "d2ca919cc088326676203732d9a9bc7bfc871eabb89f5a9adec007488924ff6b",
   "total_versions": 21,
   "total_gates": 378,
   "versions": [
@@ -12,9 +13,9 @@
       "version": "0.0.104",
       "passed": true,
       "gates": 18,
-      "seconds": 73.60278758313507,
+      "seconds": 74.94569729198702,
       "failed_gates": [],
-      "archive_sha256": "fcdd35bfd3b2ec88f98577adce9fdda334ff23df36a795252a27c3a956d12f7c",
+      "archive_sha256": "02804107b9ef5d821da0758632beecb1470949e808fb9331a435084656b60273",
       "checker": {
         "path": "/private/tmp/ty-companion-subsecond-work/native-hybrid/compatibility-inputs/ty-0.0.104/ty",
         "sha256": "045516afd1c9b1433069cea524363d54e38bca064474e9a5921c0870026595ed",
@@ -24,92 +25,92 @@
         {
           "name": "generic-cli",
           "passed": true,
-          "seconds": 17.10001499997452
+          "seconds": 17.555053000105545
         },
         {
           "name": "generic-lsp",
           "passed": true,
-          "seconds": 14.303737625014037
+          "seconds": 14.767082708189264
         },
         {
           "name": "generic-push",
           "passed": true,
-          "seconds": 14.175957791972905
+          "seconds": 14.500499291811138
         },
         {
           "name": "lsp_acceptance",
           "passed": true,
-          "seconds": 0.6952698330860585
+          "seconds": 0.6314035411924124
         },
         {
           "name": "lsp_configuration",
           "passed": true,
-          "seconds": 1.7692421660758555
+          "seconds": 1.750089584151283
         },
         {
           "name": "lsp_differential",
           "passed": true,
-          "seconds": 0.8773022079840302
+          "seconds": 0.8694682500790805
         },
         {
           "name": "lsp_lifecycle",
           "passed": true,
-          "seconds": 0.30477379192598164
+          "seconds": 0.3147162920795381
         },
         {
           "name": "lsp_notebook_differential",
           "passed": true,
-          "seconds": 0.5286322499159724
+          "seconds": 0.5404920000582933
         },
         {
           "name": "plugin_error_differential",
           "passed": true,
-          "seconds": 2.0736976249609143
+          "seconds": 2.0941977079492062
         },
         {
           "name": "plugin_configuration_differential",
           "passed": true,
-          "seconds": 4.4577593330759555
+          "seconds": 4.510423332918435
         },
         {
           "name": "sdk_state_inventory",
           "passed": true,
-          "seconds": 1.94792658300139
+          "seconds": 1.9953865830320865
         },
         {
           "name": "sdk_function_inventory",
           "passed": true,
-          "seconds": 1.029573833104223
+          "seconds": 1.034298042068258
         },
         {
           "name": "sdk_overlay_inventory",
           "passed": true,
-          "seconds": 1.3378511669579893
+          "seconds": 1.3682708330452442
         },
         {
           "name": "sdk_cli_inventory",
           "passed": true,
-          "seconds": 1.0882868750486523
+          "seconds": 1.0958461249247193
         },
         {
           "name": "sdk_class_inventory",
           "passed": true,
-          "seconds": 1.315593957901001
+          "seconds": 1.3327067501377314
         },
         {
           "name": "sdk_method_inventory",
           "passed": true,
-          "seconds": 2.5072081252001226
+          "seconds": 2.5111203328706324
         },
         {
           "name": "sdk_class_summary_inventory",
           "passed": true,
-          "seconds": 0.801138959126547
+          "seconds": 0.8034930408466607
         },
         {
           "name": "sdk_minidjango_inventory",
           "passed": true,
-          "seconds": 6.89440183294937
+          "seconds": 6.928700000047684
         }
       ]
     },
@@ -117,9 +118,9 @@
       "version": "0.0.84",
       "passed": true,
       "gates": 18,
-      "seconds": 78.90202854201198,
+      "seconds": 80.26454254100099,
       "failed_gates": [],
-      "archive_sha256": "9f22f73c51e7d3447d9381ef37c81640063379f2a3ae21595dde54df47572990",
+      "archive_sha256": "e859930ee8f902c16e122e21ef1854cb35512645a384b1865e65f65b5f7b81b8",
       "checker": {
         "path": "/private/tmp/ty-companion-subsecond-work/native-hybrid/compatibility-inputs/ty-0.0.84/ty",
         "sha256": "d1243725b609983ce07e2ec407f12a4d3234a215bc302fad54febd1129a7b62e",
@@ -129,92 +130,92 @@
         {
           "name": "generic-cli",
           "passed": true,
-          "seconds": 18.665428374893963
+          "seconds": 19.181909250095487
         },
         {
           "name": "generic-lsp",
           "passed": true,
-          "seconds": 15.589862624881789
+          "seconds": 15.965797750046477
         },
         {
           "name": "generic-push",
           "passed": true,
-          "seconds": 15.312377708032727
+          "seconds": 15.672867584042251
         },
         {
           "name": "lsp_acceptance",
           "passed": true,
-          "seconds": 0.6498968340456486
+          "seconds": 0.6277861669659615
         },
         {
           "name": "lsp_configuration",
           "passed": true,
-          "seconds": 1.8133664999622852
+          "seconds": 1.7937895830255002
         },
         {
           "name": "lsp_differential",
           "passed": true,
-          "seconds": 0.8723180829547346
+          "seconds": 0.8697666670195758
         },
         {
           "name": "lsp_lifecycle",
           "passed": true,
-          "seconds": 0.36365512502379715
+          "seconds": 0.37233066698536277
         },
         {
           "name": "lsp_notebook_differential",
           "passed": true,
-          "seconds": 0.5260772500187159
+          "seconds": 0.5385531671345234
         },
         {
           "name": "plugin_error_differential",
           "passed": true,
-          "seconds": 2.2190579168964177
+          "seconds": 2.255371249979362
         },
         {
           "name": "plugin_configuration_differential",
           "passed": true,
-          "seconds": 4.630724958144128
+          "seconds": 4.56754233315587
         },
         {
           "name": "sdk_state_inventory",
           "passed": true,
-          "seconds": 2.027645125053823
+          "seconds": 2.01071283291094
         },
         {
           "name": "sdk_function_inventory",
           "passed": true,
-          "seconds": 1.0691489579621702
+          "seconds": 1.0482727501075715
         },
         {
           "name": "sdk_overlay_inventory",
           "passed": true,
-          "seconds": 1.4292227909900248
+          "seconds": 1.441153041087091
         },
         {
           "name": "sdk_cli_inventory",
           "passed": true,
-          "seconds": 1.135256625013426
+          "seconds": 1.1384837909135967
         },
         {
           "name": "sdk_class_inventory",
           "passed": true,
-          "seconds": 1.3662846670486033
+          "seconds": 1.3206911250017583
         },
         {
           "name": "sdk_method_inventory",
           "passed": true,
-          "seconds": 2.5799443749710917
+          "seconds": 2.6514089999254793
         },
         {
           "name": "sdk_class_summary_inventory",
           "passed": true,
-          "seconds": 0.8453679999802262
+          "seconds": 0.8622302908916026
         },
         {
           "name": "sdk_minidjango_inventory",
           "passed": true,
-          "seconds": 7.522865458857268
+          "seconds": 7.67252799984999
         }
       ]
     },
@@ -222,9 +223,9 @@
       "version": "0.0.85",
       "passed": true,
       "gates": 18,
-      "seconds": 79.08358816686086,
+      "seconds": 80.88839604193345,
       "failed_gates": [],
-      "archive_sha256": "7d409d51037dde199cde6ed470dc2ce4a0246fdc01001d63ee6661a8eabf264f",
+      "archive_sha256": "b36e09c0181720925ea3b7a2c97750712ec93cebf8400598c5b0778f10dd8036",
       "checker": {
         "path": "/private/tmp/ty-companion-subsecond-work/native-hybrid/compatibility-inputs/ty-0.0.85/ty",
         "sha256": "0f26313e84003213a1dccfbee2acd7adb32a36b40aa67fb5f93cd8f155b61789",
@@ -234,92 +235,92 @@
         {
           "name": "generic-cli",
           "passed": true,
-          "seconds": 18.512801666976884
+          "seconds": 18.886451500002295
         },
         {
           "name": "generic-lsp",
           "passed": true,
-          "seconds": 15.837991916108876
+          "seconds": 16.23219925002195
         },
         {
           "name": "generic-push",
           "passed": true,
-          "seconds": 15.937078125076368
+          "seconds": 16.102549250004813
         },
         {
           "name": "lsp_acceptance",
           "passed": true,
-          "seconds": 0.6685258329380304
+          "seconds": 0.6419200410600752
         },
         {
           "name": "lsp_configuration",
           "passed": true,
-          "seconds": 1.6660494590178132
+          "seconds": 1.7784181670285761
         },
         {
           "name": "lsp_differential",
           "passed": true,
-          "seconds": 0.8668031659908593
+          "seconds": 0.8928086671512574
         },
         {
           "name": "lsp_lifecycle",
           "passed": true,
-          "seconds": 0.3054231251589954
+          "seconds": 0.31044058315455914
         },
         {
           "name": "lsp_notebook_differential",
           "passed": true,
-          "seconds": 0.5117325838655233
+          "seconds": 0.4882107500452548
         },
         {
           "name": "plugin_error_differential",
           "passed": true,
-          "seconds": 2.2030472920741886
+          "seconds": 2.2695793339516968
         },
         {
           "name": "plugin_configuration_differential",
           "passed": true,
-          "seconds": 4.452050999971107
+          "seconds": 4.620575874811038
         },
         {
           "name": "sdk_state_inventory",
           "passed": true,
-          "seconds": 1.9844770000781864
+          "seconds": 2.036785916890949
         },
         {
           "name": "sdk_function_inventory",
           "passed": true,
-          "seconds": 1.0317395420279354
+          "seconds": 1.142415292095393
         },
         {
           "name": "sdk_overlay_inventory",
           "passed": true,
-          "seconds": 1.3840481250081211
+          "seconds": 1.4735367498360574
         },
         {
           "name": "sdk_cli_inventory",
           "passed": true,
-          "seconds": 1.0952817918732762
+          "seconds": 1.1450736669357866
         },
         {
           "name": "sdk_class_inventory",
           "passed": true,
-          "seconds": 1.3226725407876074
+          "seconds": 1.3676842499990016
         },
         {
           "name": "sdk_method_inventory",
           "passed": true,
-          "seconds": 2.5473733751568943
+          "seconds": 2.6231839591637254
         },
         {
           "name": "sdk_class_summary_inventory",
           "passed": true,
-          "seconds": 0.8118096250109375
+          "seconds": 0.8524327501654625
         },
         {
           "name": "sdk_minidjango_inventory",
           "passed": true,
-          "seconds": 7.652777665993199
+          "seconds": 7.741253917105496
         }
       ]
     },
@@ -327,9 +328,9 @@
       "version": "0.0.86",
       "passed": true,
       "gates": 18,
-      "seconds": 80.03519954183139,
+      "seconds": 80.83455462497659,
       "failed_gates": [],
-      "archive_sha256": "d89fc5270d6a6bd0233bda6b3cd568399ee6dcfce244829d6684cacc6527b747",
+      "archive_sha256": "7e297c3eb51bb114f077f5b6e5149f7faef0f14c2e4912e25861d92f54cee80c",
       "checker": {
         "path": "/private/tmp/ty-companion-subsecond-work/native-hybrid/compatibility-inputs/ty-0.0.86/ty",
         "sha256": "d6cd23ef6b3bdcb91dc2c67da0bc120c25668102c231ac7a9c405342a06558ef",
@@ -339,92 +340,92 @@
         {
           "name": "generic-cli",
           "passed": true,
-          "seconds": 18.530848500085995
+          "seconds": 18.86158087500371
         },
         {
           "name": "generic-lsp",
           "passed": true,
-          "seconds": 16.624316124944016
+          "seconds": 16.21835970808752
         },
         {
           "name": "generic-push",
           "passed": true,
-          "seconds": 15.65153200016357
+          "seconds": 16.121116334106773
         },
         {
           "name": "lsp_acceptance",
           "passed": true,
-          "seconds": 0.6931841250043362
+          "seconds": 0.6726246660109609
         },
         {
           "name": "lsp_configuration",
           "passed": true,
-          "seconds": 1.7128928750753403
+          "seconds": 1.7848156250547618
         },
         {
           "name": "lsp_differential",
           "passed": true,
-          "seconds": 0.8794634160585701
+          "seconds": 0.9157858330290765
         },
         {
           "name": "lsp_lifecycle",
           "passed": true,
-          "seconds": 0.35837875003926456
+          "seconds": 0.35246433410793543
         },
         {
           "name": "lsp_notebook_differential",
           "passed": true,
-          "seconds": 0.5345757920295
+          "seconds": 0.5194669589400291
         },
         {
           "name": "plugin_error_differential",
           "passed": true,
-          "seconds": 2.171440792037174
+          "seconds": 2.3007286249194294
         },
         {
           "name": "plugin_configuration_differential",
           "passed": true,
-          "seconds": 4.544252083869651
+          "seconds": 4.792998125078157
         },
         {
           "name": "sdk_state_inventory",
           "passed": true,
-          "seconds": 1.9809947500471026
+          "seconds": 1.9761890419758856
         },
         {
           "name": "sdk_function_inventory",
           "passed": true,
-          "seconds": 1.0282915839925408
+          "seconds": 1.0436027909163386
         },
         {
           "name": "sdk_overlay_inventory",
           "passed": true,
-          "seconds": 1.3582272918429226
+          "seconds": 1.420090541942045
         },
         {
           "name": "sdk_cli_inventory",
           "passed": true,
-          "seconds": 1.1463946669828147
+          "seconds": 1.073594749905169
         },
         {
           "name": "sdk_class_inventory",
           "passed": true,
-          "seconds": 1.331761582987383
+          "seconds": 1.3735146247781813
         },
         {
           "name": "sdk_method_inventory",
           "passed": true,
-          "seconds": 2.6135888751596212
+          "seconds": 2.598144416930154
         },
         {
           "name": "sdk_class_summary_inventory",
           "passed": true,
-          "seconds": 0.8754813328851014
+          "seconds": 0.8112724998500198
         },
         {
           "name": "sdk_minidjango_inventory",
           "passed": true,
-          "seconds": 7.711875957902521
+          "seconds": 7.7112852081190795
         }
       ]
     },
@@ -432,9 +433,9 @@
       "version": "0.0.87",
       "passed": true,
       "gates": 18,
-      "seconds": 79.22238162509166,
+      "seconds": 80.97716787504032,
       "failed_gates": [],
-      "archive_sha256": "94e028d721be2e3393f1d8d5eb5f5b54f77ba0b5ff542a7f07476b872098d763",
+      "archive_sha256": "e56b1542d8989a65e0fe01830c04a4d97e5ed8ed7584039910fb40a018ed6338",
       "checker": {
         "path": "/private/tmp/ty-companion-subsecond-work/native-hybrid/compatibility-inputs/ty-0.0.87/ty",
         "sha256": "753712234c90c6f5617c67802bb9703908ba791975acf8c4e5ab42cf58b2471b",
@@ -444,92 +445,92 @@
         {
           "name": "generic-cli",
           "passed": true,
-          "seconds": 19.03356529213488
+          "seconds": 19.351782665820792
         },
         {
           "name": "generic-lsp",
           "passed": true,
-          "seconds": 15.943345209117979
+          "seconds": 16.123712291009724
         },
         {
           "name": "generic-push",
           "passed": true,
-          "seconds": 15.454166417010128
+          "seconds": 15.863835917087272
         },
         {
           "name": "lsp_acceptance",
           "passed": true,
-          "seconds": 0.6553540420718491
+          "seconds": 0.6474386670161039
         },
         {
           "name": "lsp_configuration",
           "passed": true,
-          "seconds": 1.7751555419526994
+          "seconds": 1.777421624865383
         },
         {
           "name": "lsp_differential",
           "passed": true,
-          "seconds": 0.8757154589984566
+          "seconds": 0.913426750106737
         },
         {
           "name": "lsp_lifecycle",
           "passed": true,
-          "seconds": 0.3484419579617679
+          "seconds": 0.3183411250356585
         },
         {
           "name": "lsp_notebook_differential",
           "passed": true,
-          "seconds": 0.5284343750681728
+          "seconds": 0.5921774168964475
         },
         {
           "name": "plugin_error_differential",
           "passed": true,
-          "seconds": 2.158556415932253
+          "seconds": 2.238962542032823
         },
         {
           "name": "plugin_configuration_differential",
           "passed": true,
-          "seconds": 4.559267916018143
+          "seconds": 4.6356499581597745
         },
         {
           "name": "sdk_state_inventory",
           "passed": true,
-          "seconds": 1.9677987091708928
+          "seconds": 2.036268000025302
         },
         {
           "name": "sdk_function_inventory",
           "passed": true,
-          "seconds": 0.9883681249339134
+          "seconds": 1.054787667002529
         },
         {
           "name": "sdk_overlay_inventory",
           "passed": true,
-          "seconds": 1.3412924169097096
+          "seconds": 1.4293955001048744
         },
         {
           "name": "sdk_cli_inventory",
           "passed": true,
-          "seconds": 1.107035999884829
+          "seconds": 1.1507655000314116
         },
         {
           "name": "sdk_class_inventory",
           "passed": true,
-          "seconds": 1.3043219160754234
+          "seconds": 1.3204816251527518
         },
         {
           "name": "sdk_method_inventory",
           "passed": true,
-          "seconds": 2.5107669590506703
+          "seconds": 2.5867636250332
         },
         {
           "name": "sdk_class_summary_inventory",
           "passed": true,
-          "seconds": 0.8071820829063654
+          "seconds": 0.8728285417892039
         },
         {
           "name": "sdk_minidjango_inventory",
           "passed": true,
-          "seconds": 7.5575352921150625
+          "seconds": 7.771561708068475
         }
       ]
     },
@@ -537,9 +538,9 @@
       "version": "0.0.88",
       "passed": true,
       "gates": 18,
-      "seconds": 79.11839362513274,
+      "seconds": 80.88190891686827,
       "failed_gates": [],
-      "archive_sha256": "0dcb2d804996291f9bc56847390acaaf458fd0356cc678855b8c8cfee6cc2931",
+      "archive_sha256": "89d8da54fb5aab1c04404e32ab6f02ec8e4c33aa473a9693e40ff0b3b3451199",
       "checker": {
         "path": "/private/tmp/ty-companion-subsecond-work/native-hybrid/compatibility-inputs/ty-0.0.88/ty",
         "sha256": "25f30e5a627915a42cb7d6794bdc373de48988e8b7665f9c0b4270f388c33aff",
@@ -549,92 +550,92 @@
         {
           "name": "generic-cli",
           "passed": true,
-          "seconds": 18.908619708148763
+          "seconds": 19.30781895807013
         },
         {
           "name": "generic-lsp",
           "passed": true,
-          "seconds": 15.872266874881461
+          "seconds": 16.082139540929347
         },
         {
           "name": "generic-push",
           "passed": true,
-          "seconds": 15.394614625023678
+          "seconds": 15.774969291174784
         },
         {
           "name": "lsp_acceptance",
           "passed": true,
-          "seconds": 0.6999510840978473
+          "seconds": 0.7098795829806477
         },
         {
           "name": "lsp_configuration",
           "passed": true,
-          "seconds": 1.7837239999789745
+          "seconds": 1.826285250019282
         },
         {
           "name": "lsp_differential",
           "passed": true,
-          "seconds": 0.8765114159323275
+          "seconds": 0.8776845000684261
         },
         {
           "name": "lsp_lifecycle",
           "passed": true,
-          "seconds": 0.3605311659630388
+          "seconds": 0.3138047920074314
         },
         {
           "name": "lsp_notebook_differential",
           "passed": true,
-          "seconds": 0.5356335421092808
+          "seconds": 0.5214414999354631
         },
         {
           "name": "plugin_error_differential",
           "passed": true,
-          "seconds": 2.1916215419769287
+          "seconds": 2.284045249922201
         },
         {
           "name": "plugin_configuration_differential",
           "passed": true,
-          "seconds": 4.501637708162889
+          "seconds": 4.6268310830928385
         },
         {
           "name": "sdk_state_inventory",
           "passed": true,
-          "seconds": 1.9430417499970645
+          "seconds": 2.0526414590422064
         },
         {
           "name": "sdk_function_inventory",
           "passed": true,
-          "seconds": 1.0361794589553028
+          "seconds": 1.0855818330310285
         },
         {
           "name": "sdk_overlay_inventory",
           "passed": true,
-          "seconds": 1.3675812080036849
+          "seconds": 1.4372373749502003
         },
         {
           "name": "sdk_cli_inventory",
           "passed": true,
-          "seconds": 1.0942858750931919
+          "seconds": 1.0937295001931489
         },
         {
           "name": "sdk_class_inventory",
           "passed": true,
-          "seconds": 1.3536666668951511
+          "seconds": 1.3874104160349816
         },
         {
           "name": "sdk_method_inventory",
           "passed": true,
-          "seconds": 2.547332833055407
+          "seconds": 2.6306347500067204
         },
         {
           "name": "sdk_class_summary_inventory",
           "passed": true,
-          "seconds": 0.811333040939644
+          "seconds": 0.8355415840633214
         },
         {
           "name": "sdk_minidjango_inventory",
           "passed": true,
-          "seconds": 7.548458250006661
+          "seconds": 7.74961966695264
         }
       ]
     },
@@ -642,9 +643,9 @@
       "version": "0.0.89",
       "passed": true,
       "gates": 18,
-      "seconds": 78.69790162495337,
+      "seconds": 81.28330824989825,
       "failed_gates": [],
-      "archive_sha256": "fa940d3066164dfe381805ac33bdad09a28028465ae5147dc69d2abda22dd5a1",
+      "archive_sha256": "0b981f1b370635697326fb3197bd4677e04bdd4372660ecf8b577f5c26e3bc34",
       "checker": {
         "path": "/private/tmp/ty-companion-subsecond-work/native-hybrid/compatibility-inputs/ty-0.0.89/ty",
         "sha256": "b0e68d52e71079c94ba118248d16ee681606e4338a2b5543a12b3b730c16071b",
@@ -654,92 +655,92 @@
         {
           "name": "generic-cli",
           "passed": true,
-          "seconds": 18.817984875058755
+          "seconds": 19.61438766703941
         },
         {
           "name": "generic-lsp",
           "passed": true,
-          "seconds": 15.821427082875744
+          "seconds": 16.21534979203716
         },
         {
           "name": "generic-push",
           "passed": true,
-          "seconds": 15.378949666861445
+          "seconds": 15.78961612493731
         },
         {
           "name": "lsp_acceptance",
           "passed": true,
-          "seconds": 0.6985758750233799
+          "seconds": 0.6987495000939816
         },
         {
           "name": "lsp_configuration",
           "passed": true,
-          "seconds": 1.7670525831636041
+          "seconds": 1.8276509998831898
         },
         {
           "name": "lsp_differential",
           "passed": true,
-          "seconds": 0.8652233339380473
+          "seconds": 0.8850171670783311
         },
         {
           "name": "lsp_lifecycle",
           "passed": true,
-          "seconds": 0.3691252078860998
+          "seconds": 0.31570479087531567
         },
         {
           "name": "lsp_notebook_differential",
           "passed": true,
-          "seconds": 0.4812412499450147
+          "seconds": 0.522248666966334
         },
         {
           "name": "plugin_error_differential",
           "passed": true,
-          "seconds": 2.1789405420422554
+          "seconds": 2.2803799170069396
         },
         {
           "name": "plugin_configuration_differential",
           "passed": true,
-          "seconds": 4.457271917024627
+          "seconds": 4.655512708006427
         },
         {
           "name": "sdk_state_inventory",
           "passed": true,
-          "seconds": 1.967810583068058
+          "seconds": 1.9950672499835491
         },
         {
           "name": "sdk_function_inventory",
           "passed": true,
-          "seconds": 1.0204644999466836
+          "seconds": 1.0867746248841286
         },
         {
           "name": "sdk_overlay_inventory",
           "passed": true,
-          "seconds": 1.3350677909329534
+          "seconds": 1.425053708953783
         },
         {
           "name": "sdk_cli_inventory",
           "passed": true,
-          "seconds": 1.0614439581986517
+          "seconds": 1.0901161669753492
         },
         {
           "name": "sdk_class_inventory",
           "passed": true,
-          "seconds": 1.3056615837849677
+          "seconds": 1.3477597918827087
         },
         {
           "name": "sdk_method_inventory",
           "passed": true,
-          "seconds": 2.5276313330978155
+          "seconds": 2.652705959044397
         },
         {
           "name": "sdk_class_summary_inventory",
           "passed": true,
-          "seconds": 0.8018219580408186
+          "seconds": 0.8639527910854667
         },
         {
           "name": "sdk_minidjango_inventory",
           "passed": true,
-          "seconds": 7.5468675419688225
+          "seconds": 7.7219077500049025
         }
       ]
     },
@@ -747,9 +748,9 @@
       "version": "0.0.90",
       "passed": true,
       "gates": 18,
-      "seconds": 78.54753120802343,
+      "seconds": 81.4930320000276,
       "failed_gates": [],
-      "archive_sha256": "6f1fe9518941e40b0a9d8501e2e4bf684f8eaa5bcba4e4cfd9446463ad3b23ff",
+      "archive_sha256": "6e7da5161f5cffd37dda1c5f1e6ecc0637d7599e104c26a6176ce90d1c3ba535",
       "checker": {
         "path": "/private/tmp/ty-companion-subsecond-work/native-hybrid/compatibility-inputs/ty-0.0.90/ty",
         "sha256": "961e4405e9ae96dad6222cae8968a315080841f317e8b193f276da9066ac88ae",
@@ -759,92 +760,92 @@
         {
           "name": "generic-cli",
           "passed": true,
-          "seconds": 18.83591895806603
+          "seconds": 19.62552533391863
         },
         {
           "name": "generic-lsp",
           "passed": true,
-          "seconds": 15.724095084005967
+          "seconds": 16.20849558408372
         },
         {
           "name": "generic-push",
           "passed": true,
-          "seconds": 15.359417208004743
+          "seconds": 15.82387304212898
         },
         {
           "name": "lsp_acceptance",
           "passed": true,
-          "seconds": 0.6432641670107841
+          "seconds": 0.7050313330255449
         },
         {
           "name": "lsp_configuration",
           "passed": true,
-          "seconds": 1.7380405839066952
+          "seconds": 1.8306227091234177
         },
         {
           "name": "lsp_differential",
           "passed": true,
-          "seconds": 0.8653303338214755
+          "seconds": 0.8854198341723531
         },
         {
           "name": "lsp_lifecycle",
           "passed": true,
-          "seconds": 0.35370049998164177
+          "seconds": 0.37205833406187594
         },
         {
           "name": "lsp_notebook_differential",
           "passed": true,
-          "seconds": 0.5364828330930322
+          "seconds": 0.5429136669263244
         },
         {
           "name": "plugin_error_differential",
           "passed": true,
-          "seconds": 2.21156791690737
+          "seconds": 2.3193569579161704
         },
         {
           "name": "plugin_configuration_differential",
           "passed": true,
-          "seconds": 4.478964541107416
+          "seconds": 4.676036750199273
         },
         {
           "name": "sdk_state_inventory",
           "passed": true,
-          "seconds": 1.957601415924728
+          "seconds": 2.0544752918649465
         },
         {
           "name": "sdk_function_inventory",
           "passed": true,
-          "seconds": 0.9707299580331892
+          "seconds": 1.0660613749641925
         },
         {
           "name": "sdk_overlay_inventory",
           "passed": true,
-          "seconds": 1.369359333999455
+          "seconds": 1.3838654160499573
         },
         {
           "name": "sdk_cli_inventory",
           "passed": true,
-          "seconds": 1.0723420840222389
+          "seconds": 1.0967636669520289
         },
         {
           "name": "sdk_class_inventory",
           "passed": true,
-          "seconds": 1.32723533292301
+          "seconds": 1.4049398750066757
         },
         {
           "name": "sdk_method_inventory",
           "passed": true,
-          "seconds": 2.5188635420054197
+          "seconds": 2.645782458828762
         },
         {
           "name": "sdk_class_summary_inventory",
           "passed": true,
-          "seconds": 0.8336834579240531
+          "seconds": 0.803891709074378
         },
         {
           "name": "sdk_minidjango_inventory",
           "passed": true,
-          "seconds": 7.4644223330542445
+          "seconds": 7.76277770800516
         }
       ]
     },
@@ -852,9 +853,9 @@
       "version": "0.0.91",
       "passed": true,
       "gates": 18,
-      "seconds": 79.14905445813201,
+      "seconds": 80.13478404190391,
       "failed_gates": [],
-      "archive_sha256": "e9f937407477c0067b43937b63cba3bdecbc018aa12c06eb3902174a89ea4772",
+      "archive_sha256": "aefb8d8a4497ede246552aeb69dd56a197e78869e7a8fc84df1453d9924fc912",
       "checker": {
         "path": "/private/tmp/ty-companion-subsecond-work/native-hybrid/compatibility-inputs/ty-0.0.91/ty",
         "sha256": "39ab93d3aefb55f00338770e33509291569040c20111f52a2bc43abb77850459",
@@ -864,92 +865,92 @@
         {
           "name": "generic-cli",
           "passed": true,
-          "seconds": 18.396119790850207
+          "seconds": 18.94177420809865
         },
         {
           "name": "generic-lsp",
           "passed": true,
-          "seconds": 15.705547458026558
+          "seconds": 16.177124333102256
         },
         {
           "name": "generic-push",
           "passed": true,
-          "seconds": 15.5067391670309
+          "seconds": 15.72674679197371
         },
         {
           "name": "lsp_acceptance",
           "passed": true,
-          "seconds": 0.6886430408339947
+          "seconds": 0.703607042087242
         },
         {
           "name": "lsp_configuration",
           "passed": true,
-          "seconds": 1.8210169170051813
+          "seconds": 1.7858043340966105
         },
         {
           "name": "lsp_differential",
           "passed": true,
-          "seconds": 0.8552194579970092
+          "seconds": 0.8779105411376804
         },
         {
           "name": "lsp_lifecycle",
           "passed": true,
-          "seconds": 0.3503409589175135
+          "seconds": 0.36936333286575973
         },
         {
           "name": "lsp_notebook_differential",
           "passed": true,
-          "seconds": 0.49414587509818375
+          "seconds": 0.4805552498437464
         },
         {
           "name": "plugin_error_differential",
           "passed": true,
-          "seconds": 2.2287262910977006
+          "seconds": 2.1961037090513855
         },
         {
           "name": "plugin_configuration_differential",
           "passed": true,
-          "seconds": 4.74798445799388
+          "seconds": 4.592344083124772
         },
         {
           "name": "sdk_state_inventory",
           "passed": true,
-          "seconds": 2.062090582912788
+          "seconds": 2.05571037507616
         },
         {
           "name": "sdk_function_inventory",
           "passed": true,
-          "seconds": 1.0169242499396205
+          "seconds": 0.9887961251661181
         },
         {
           "name": "sdk_overlay_inventory",
           "passed": true,
-          "seconds": 1.375008833128959
+          "seconds": 1.4061867501586676
         },
         {
           "name": "sdk_cli_inventory",
           "passed": true,
-          "seconds": 1.0997506249696016
+          "seconds": 1.0919606660027057
         },
         {
           "name": "sdk_class_inventory",
           "passed": true,
-          "seconds": 1.3642565419431776
+          "seconds": 1.3562017078511417
         },
         {
           "name": "sdk_method_inventory",
           "passed": true,
-          "seconds": 2.5767365409992635
+          "seconds": 2.6025526670273393
         },
         {
           "name": "sdk_class_summary_inventory",
           "passed": true,
-          "seconds": 0.8640966669190675
+          "seconds": 0.8290759169030935
         },
         {
           "name": "sdk_minidjango_inventory",
           "passed": true,
-          "seconds": 7.696255832910538
+          "seconds": 7.671457958174869
         }
       ]
     },
@@ -957,9 +958,9 @@
       "version": "0.0.92",
       "passed": true,
       "gates": 18,
-      "seconds": 78.27863062499091,
+      "seconds": 79.20048083295114,
       "failed_gates": [],
-      "archive_sha256": "a67e9dce0c564fa126752878e7f2668ebd073aa54337d4ffa602b4278ca979cb",
+      "archive_sha256": "b5871700bbc84ea58276a714c50c2012f982047c0d310fdb5b183d768ecaaf4d",
       "checker": {
         "path": "/private/tmp/ty-companion-subsecond-work/native-hybrid/compatibility-inputs/ty-0.0.92/ty",
         "sha256": "0e51cb95b17b52821e786c3407ab4b474077391d5f7e91942d3635f8346debd5",
@@ -969,92 +970,92 @@
         {
           "name": "generic-cli",
           "passed": true,
-          "seconds": 18.316122667165473
+          "seconds": 18.797124915989116
         },
         {
           "name": "generic-lsp",
           "passed": true,
-          "seconds": 15.621092082932591
+          "seconds": 16.003329874947667
         },
         {
           "name": "generic-push",
           "passed": true,
-          "seconds": 15.439754916122183
+          "seconds": 15.604363583028316
         },
         {
           "name": "lsp_acceptance",
           "passed": true,
-          "seconds": 0.6913140842225403
+          "seconds": 0.6403811669442803
         },
         {
           "name": "lsp_configuration",
           "passed": true,
-          "seconds": 1.8234957091044635
+          "seconds": 1.7719423330854625
         },
         {
           "name": "lsp_differential",
           "passed": true,
-          "seconds": 0.8546216250397265
+          "seconds": 0.8700094160158187
         },
         {
           "name": "lsp_lifecycle",
           "passed": true,
-          "seconds": 0.31031204108148813
+          "seconds": 0.29636116698384285
         },
         {
           "name": "lsp_notebook_differential",
           "passed": true,
-          "seconds": 0.5286772919353098
+          "seconds": 0.5891164590138942
         },
         {
           "name": "plugin_error_differential",
           "passed": true,
-          "seconds": 2.2275932910852134
+          "seconds": 2.126465583918616
         },
         {
           "name": "plugin_configuration_differential",
           "passed": true,
-          "seconds": 4.4960674999747425
+          "seconds": 4.503238582983613
         },
         {
           "name": "sdk_state_inventory",
           "passed": true,
-          "seconds": 1.9885350000113249
+          "seconds": 1.9756231249775738
         },
         {
           "name": "sdk_function_inventory",
           "passed": true,
-          "seconds": 1.0356401670724154
+          "seconds": 1.016240542056039
         },
         {
           "name": "sdk_overlay_inventory",
           "passed": true,
-          "seconds": 1.3660014169290662
+          "seconds": 1.3906634580343962
         },
         {
           "name": "sdk_cli_inventory",
           "passed": true,
-          "seconds": 1.1076410000678152
+          "seconds": 1.1274194999132305
         },
         {
           "name": "sdk_class_inventory",
           "passed": true,
-          "seconds": 1.3733747920487076
+          "seconds": 1.3305423751007766
         },
         {
           "name": "sdk_method_inventory",
           "passed": true,
-          "seconds": 2.560444457922131
+          "seconds": 2.519736916059628
         },
         {
           "name": "sdk_class_summary_inventory",
           "passed": true,
-          "seconds": 0.8093101249542087
+          "seconds": 0.8115440420806408
         },
         {
           "name": "sdk_minidjango_inventory",
           "passed": true,
-          "seconds": 7.437519334023818
+          "seconds": 7.545169834047556
         }
       ]
     },
@@ -1062,9 +1063,9 @@
       "version": "0.0.93",
       "passed": true,
       "gates": 18,
-      "seconds": 78.25421670801006,
+      "seconds": 79.1839122090023,
       "failed_gates": [],
-      "archive_sha256": "774b94ebc57b2d942001f80a6e4ecd4252365bb067b2ba5a2e466508d18fa304",
+      "archive_sha256": "59131b3861bd5527c2674d886281b859fa913a6b62a7edae7efd72b94fcb81c4",
       "checker": {
         "path": "/private/tmp/ty-companion-subsecond-work/native-hybrid/compatibility-inputs/ty-0.0.93/ty",
         "sha256": "7843c73943d521e66a537f55d51fc9f350dc142e88038acd516878c08857bd03",
@@ -1074,92 +1075,92 @@
         {
           "name": "generic-cli",
           "passed": true,
-          "seconds": 18.504230958176777
+          "seconds": 18.917747833998874
         },
         {
           "name": "generic-lsp",
           "passed": true,
-          "seconds": 15.744285125052556
+          "seconds": 16.018515249947086
         },
         {
           "name": "generic-push",
           "passed": true,
-          "seconds": 15.362728375010192
+          "seconds": 15.606287375092506
         },
         {
           "name": "lsp_acceptance",
           "passed": true,
-          "seconds": 0.6458648331463337
+          "seconds": 0.6549547498580068
         },
         {
           "name": "lsp_configuration",
           "passed": true,
-          "seconds": 1.7342671249061823
+          "seconds": 1.6329631668049842
         },
         {
           "name": "lsp_differential",
           "passed": true,
-          "seconds": 0.8727194161619991
+          "seconds": 0.8735887089278549
         },
         {
           "name": "lsp_lifecycle",
           "passed": true,
-          "seconds": 0.3220762920100242
+          "seconds": 0.30489816702902317
         },
         {
           "name": "lsp_notebook_differential",
           "passed": true,
-          "seconds": 0.4846512090880424
+          "seconds": 0.5137797498609871
         },
         {
           "name": "plugin_error_differential",
           "passed": true,
-          "seconds": 2.17091575008817
+          "seconds": 2.1202112920582294
         },
         {
           "name": "plugin_configuration_differential",
           "passed": true,
-          "seconds": 4.491205041995272
+          "seconds": 4.501963041024283
         },
         {
           "name": "sdk_state_inventory",
           "passed": true,
-          "seconds": 1.9582397090271115
+          "seconds": 2.00404804199934
         },
         {
           "name": "sdk_function_inventory",
           "passed": true,
-          "seconds": 0.9736340411473066
+          "seconds": 0.9908617499750108
         },
         {
           "name": "sdk_overlay_inventory",
           "passed": true,
-          "seconds": 1.3906240409705788
+          "seconds": 1.3865122499410063
         },
         {
           "name": "sdk_cli_inventory",
           "passed": true,
-          "seconds": 1.108156458940357
+          "seconds": 1.0902570830658078
         },
         {
           "name": "sdk_class_inventory",
           "passed": true,
-          "seconds": 1.365999500034377
+          "seconds": 1.3303146660327911
         },
         {
           "name": "sdk_method_inventory",
           "passed": true,
-          "seconds": 2.5164492919575423
+          "seconds": 2.586558041861281
         },
         {
           "name": "sdk_class_summary_inventory",
           "passed": true,
-          "seconds": 0.8036987080704421
+          "seconds": 0.8119312920607626
         },
         {
           "name": "sdk_minidjango_inventory",
           "passed": true,
-          "seconds": 7.504352249903604
+          "seconds": 7.549530208110809
         }
       ]
     },
@@ -1167,9 +1168,9 @@
       "version": "0.0.94",
       "passed": true,
       "gates": 18,
-      "seconds": 78.19908633385785,
+      "seconds": 79.33183949999511,
       "failed_gates": [],
-      "archive_sha256": "63830116797db2e7cbfc719f13fc0703e28e9b10ea29f8974715909a29e3188e",
+      "archive_sha256": "ca18e295e31d22bb9c23e6cca3cda08cd733c69d2544bf7a158ba9f9b2f74897",
       "checker": {
         "path": "/private/tmp/ty-companion-subsecond-work/native-hybrid/compatibility-inputs/ty-0.0.94/ty",
         "sha256": "d331912b50c453620364533b9e74bfed71fd521aeafd0fa9e75d80bae69fc877",
@@ -1179,92 +1180,92 @@
         {
           "name": "generic-cli",
           "passed": true,
-          "seconds": 18.487562041031197
+          "seconds": 18.80932724988088
         },
         {
           "name": "generic-lsp",
           "passed": true,
-          "seconds": 15.700172666925937
+          "seconds": 16.067982707871124
         },
         {
           "name": "generic-push",
           "passed": true,
-          "seconds": 15.461966333910823
+          "seconds": 15.624572333879769
         },
         {
           "name": "lsp_acceptance",
           "passed": true,
-          "seconds": 0.6905701248906553
+          "seconds": 0.6580842921976
         },
         {
           "name": "lsp_configuration",
           "passed": true,
-          "seconds": 1.7519912079442292
+          "seconds": 1.7516513329464942
         },
         {
           "name": "lsp_differential",
           "passed": true,
-          "seconds": 0.8268475420773029
+          "seconds": 0.8591443749610335
         },
         {
           "name": "lsp_lifecycle",
           "passed": true,
-          "seconds": 0.3133607080671936
+          "seconds": 0.35369262495078146
         },
         {
           "name": "lsp_notebook_differential",
           "passed": true,
-          "seconds": 0.5200905420351774
+          "seconds": 0.5736425421200693
         },
         {
           "name": "plugin_error_differential",
           "passed": true,
-          "seconds": 2.113583750091493
+          "seconds": 2.08202258287929
         },
         {
           "name": "plugin_configuration_differential",
           "passed": true,
-          "seconds": 4.510557833127677
+          "seconds": 4.459085457958281
         },
         {
           "name": "sdk_state_inventory",
           "passed": true,
-          "seconds": 1.9695870419964194
+          "seconds": 2.0001677498221397
         },
         {
           "name": "sdk_function_inventory",
           "passed": true,
-          "seconds": 0.9651524999644607
+          "seconds": 1.027969874907285
         },
         {
           "name": "sdk_overlay_inventory",
           "passed": true,
-          "seconds": 1.330330666154623
+          "seconds": 1.3984498749487102
         },
         {
           "name": "sdk_cli_inventory",
           "passed": true,
-          "seconds": 1.1056253749411553
+          "seconds": 1.1167387920431793
         },
         {
           "name": "sdk_class_inventory",
           "passed": true,
-          "seconds": 1.3152828749734908
+          "seconds": 1.3099603748414665
         },
         {
           "name": "sdk_method_inventory",
           "passed": true,
-          "seconds": 2.5775390840135515
+          "seconds": 2.538205625023693
         },
         {
           "name": "sdk_class_summary_inventory",
           "passed": true,
-          "seconds": 0.8641946250572801
+          "seconds": 0.8811714579351246
         },
         {
           "name": "sdk_minidjango_inventory",
           "passed": true,
-          "seconds": 7.406855125213042
+          "seconds": 7.539565792074427
         }
       ]
     },
@@ -1272,9 +1273,9 @@
       "version": "0.0.95",
       "passed": true,
       "gates": 18,
-      "seconds": 78.77194979204796,
+      "seconds": 79.2790381249506,
       "failed_gates": [],
-      "archive_sha256": "71860bf59d626f564b63483eb005f6cc4ced3c21fad9619b60a644b6bf342c01",
+      "archive_sha256": "924dd68f75650325e1e3b4834996180e60daac8f1d0032e9e7cd7370b96eeb8a",
       "checker": {
         "path": "/private/tmp/ty-companion-subsecond-work/native-hybrid/compatibility-inputs/ty-0.0.95/ty",
         "sha256": "f24d522636715a348c67ac8c571cce58185ac453c9a3773529918473f4bb347c",
@@ -1284,92 +1285,92 @@
         {
           "name": "generic-cli",
           "passed": true,
-          "seconds": 18.588485582964495
+          "seconds": 18.82554000010714
         },
         {
           "name": "generic-lsp",
           "passed": true,
-          "seconds": 15.989370292052627
+          "seconds": 15.947434334084392
         },
         {
           "name": "generic-push",
           "passed": true,
-          "seconds": 15.514368958072737
+          "seconds": 15.668935375055298
         },
         {
           "name": "lsp_acceptance",
           "passed": true,
-          "seconds": 0.6512762499041855
+          "seconds": 0.6334667499177158
         },
         {
           "name": "lsp_configuration",
           "passed": true,
-          "seconds": 1.7914912500418723
+          "seconds": 1.769953333074227
         },
         {
           "name": "lsp_differential",
           "passed": true,
-          "seconds": 0.8662992920726538
+          "seconds": 0.867352332919836
         },
         {
           "name": "lsp_lifecycle",
           "passed": true,
-          "seconds": 0.3629491669125855
+          "seconds": 0.3021826248150319
         },
         {
           "name": "lsp_notebook_differential",
           "passed": true,
-          "seconds": 0.4801849590148777
+          "seconds": 0.4781404579989612
         },
         {
           "name": "plugin_error_differential",
           "passed": true,
-          "seconds": 2.158954249927774
+          "seconds": 2.1971159998793155
         },
         {
           "name": "plugin_configuration_differential",
           "passed": true,
-          "seconds": 4.535435291007161
+          "seconds": 4.517214167164639
         },
         {
           "name": "sdk_state_inventory",
           "passed": true,
-          "seconds": 1.984615958062932
+          "seconds": 1.983987582847476
         },
         {
           "name": "sdk_function_inventory",
           "passed": true,
-          "seconds": 0.9949875408783555
+          "seconds": 0.9598871250636876
         },
         {
           "name": "sdk_overlay_inventory",
           "passed": true,
-          "seconds": 1.3800158340018243
+          "seconds": 1.389632625039667
         },
         {
           "name": "sdk_cli_inventory",
           "passed": true,
-          "seconds": 1.0859382499475032
+          "seconds": 1.1172621250152588
         },
         {
           "name": "sdk_class_inventory",
           "passed": true,
-          "seconds": 1.3442295419517905
+          "seconds": 1.4029261670075357
         },
         {
           "name": "sdk_method_inventory",
           "passed": true,
-          "seconds": 2.4995259589049965
+          "seconds": 2.5678380839526653
         },
         {
           "name": "sdk_class_summary_inventory",
           "passed": true,
-          "seconds": 0.8194320409093052
+          "seconds": 0.8020679999608546
         },
         {
           "name": "sdk_minidjango_inventory",
           "passed": true,
-          "seconds": 7.434838542016223
+          "seconds": 7.563671624986455
         }
       ]
     },
@@ -1377,9 +1378,9 @@
       "version": "0.0.96",
       "passed": true,
       "gates": 18,
-      "seconds": 78.18826537486166,
+      "seconds": 78.60896595800295,
       "failed_gates": [],
-      "archive_sha256": "336c3c4431f5e58514542ee5ac6dea64b925aaf003287e1426565e7dc1e1e895",
+      "archive_sha256": "bacefc1b24dacc0b7e6972f53a1fe5f082aa31908270642a656d058963107575",
       "checker": {
         "path": "/private/tmp/ty-companion-subsecond-work/native-hybrid/compatibility-inputs/ty-0.0.96/ty",
         "sha256": "8095e81a2528ff007b6ae2eeb1376fb5524142bfa06eb588936643b4c7295822",
@@ -1389,92 +1390,92 @@
         {
           "name": "generic-cli",
           "passed": true,
-          "seconds": 18.594551041023806
+          "seconds": 18.65879733301699
         },
         {
           "name": "generic-lsp",
           "passed": true,
-          "seconds": 15.758586791111156
+          "seconds": 15.880688125034794
         },
         {
           "name": "generic-push",
           "passed": true,
-          "seconds": 15.428821166977286
+          "seconds": 15.503082333132625
         },
         {
           "name": "lsp_acceptance",
           "passed": true,
-          "seconds": 0.6932085410226136
+          "seconds": 0.6546705421060324
         },
         {
           "name": "lsp_configuration",
           "passed": true,
-          "seconds": 1.7480046250857413
+          "seconds": 1.7660232500638813
         },
         {
           "name": "lsp_differential",
           "passed": true,
-          "seconds": 0.8683292921632528
+          "seconds": 0.8869087500497699
         },
         {
           "name": "lsp_lifecycle",
           "passed": true,
-          "seconds": 0.3506220418494195
+          "seconds": 0.31466820812784135
         },
         {
           "name": "lsp_notebook_differential",
           "passed": true,
-          "seconds": 0.5389821249991655
+          "seconds": 0.531900041969493
         },
         {
           "name": "plugin_error_differential",
           "passed": true,
-          "seconds": 2.1359866249840707
+          "seconds": 2.1330428330693394
         },
         {
           "name": "plugin_configuration_differential",
           "passed": true,
-          "seconds": 4.470059375045821
+          "seconds": 4.516206792090088
         },
         {
           "name": "sdk_state_inventory",
           "passed": true,
-          "seconds": 2.0006815830711275
+          "seconds": 1.9515123751480132
         },
         {
           "name": "sdk_function_inventory",
           "passed": true,
-          "seconds": 0.9771295418031514
+          "seconds": 1.0357572920620441
         },
         {
           "name": "sdk_overlay_inventory",
           "passed": true,
-          "seconds": 1.3980230421293527
+          "seconds": 1.359649792080745
         },
         {
           "name": "sdk_cli_inventory",
           "passed": true,
-          "seconds": 1.0855423328466713
+          "seconds": 1.0826102499850094
         },
         {
           "name": "sdk_class_inventory",
           "passed": true,
-          "seconds": 1.3665531249716878
+          "seconds": 1.361600625095889
         },
         {
           "name": "sdk_method_inventory",
           "passed": true,
-          "seconds": 2.52074220799841
+          "seconds": 2.5671303749550134
         },
         {
           "name": "sdk_class_summary_inventory",
           "passed": true,
-          "seconds": 0.8107535829767585
+          "seconds": 0.8149114588741213
         },
         {
           "name": "sdk_minidjango_inventory",
           "passed": true,
-          "seconds": 7.142471750034019
+          "seconds": 7.303976750001311
         }
       ]
     },
@@ -1482,9 +1483,9 @@
       "version": "0.0.97",
       "passed": true,
       "gates": 18,
-      "seconds": 76.83218687493354,
+      "seconds": 78.63859774987213,
       "failed_gates": [],
-      "archive_sha256": "809d1df33a600fc3f4482aa18681ae25cb34e298b7a8ae609a91e0d21e2df439",
+      "archive_sha256": "5d2a33616ba60bf589f956604e5eb48de5e9b41f9d24ebe0dc618958444a7947",
       "checker": {
         "path": "/private/tmp/ty-companion-subsecond-work/native-hybrid/compatibility-inputs/ty-0.0.97/ty",
         "sha256": "87c4d1a2e504774f823af983a1ff5a57b8288fae9e7f7dc50b2ef99dc76e8029",
@@ -1494,92 +1495,92 @@
         {
           "name": "generic-cli",
           "passed": true,
-          "seconds": 18.235677500022575
+          "seconds": 18.700138790998608
         },
         {
           "name": "generic-lsp",
           "passed": true,
-          "seconds": 15.495701750041917
+          "seconds": 15.806991459103301
         },
         {
           "name": "generic-push",
           "passed": true,
-          "seconds": 15.032283583888784
+          "seconds": 15.487053791992366
         },
         {
           "name": "lsp_acceptance",
           "passed": true,
-          "seconds": 0.6331909580621868
+          "seconds": 0.7033290420658886
         },
         {
           "name": "lsp_configuration",
           "passed": true,
-          "seconds": 1.7146562919951975
+          "seconds": 1.7126718331128359
         },
         {
           "name": "lsp_differential",
           "passed": true,
-          "seconds": 0.8677986250258982
+          "seconds": 0.863225000211969
         },
         {
           "name": "lsp_lifecycle",
           "passed": true,
-          "seconds": 0.31749654095619917
+          "seconds": 0.3058394999243319
         },
         {
           "name": "lsp_notebook_differential",
           "passed": true,
-          "seconds": 0.4847135830204934
+          "seconds": 0.4866640418767929
         },
         {
           "name": "plugin_error_differential",
           "passed": true,
-          "seconds": 2.118736917153001
+          "seconds": 2.103867500089109
         },
         {
           "name": "plugin_configuration_differential",
           "passed": true,
-          "seconds": 4.360658542020246
+          "seconds": 4.533588957972825
         },
         {
           "name": "sdk_state_inventory",
           "passed": true,
-          "seconds": 1.9280572920106351
+          "seconds": 2.0197450001724064
         },
         {
           "name": "sdk_function_inventory",
           "passed": true,
-          "seconds": 0.936955374898389
+          "seconds": 0.9834992499090731
         },
         {
           "name": "sdk_overlay_inventory",
           "passed": true,
-          "seconds": 1.4025730409193784
+          "seconds": 1.343287750147283
         },
         {
           "name": "sdk_cli_inventory",
           "passed": true,
-          "seconds": 1.1077321670018137
+          "seconds": 1.1293750000186265
         },
         {
           "name": "sdk_class_inventory",
           "passed": true,
-          "seconds": 1.3367887909989804
+          "seconds": 1.3608530000783503
         },
         {
           "name": "sdk_method_inventory",
           "passed": true,
-          "seconds": 2.51037804200314
+          "seconds": 2.5961611249949783
         },
         {
           "name": "sdk_class_summary_inventory",
           "passed": true,
-          "seconds": 0.8173032500781119
+          "seconds": 0.8207866249140352
         },
         {
           "name": "sdk_minidjango_inventory",
           "passed": true,
-          "seconds": 7.2352880840189755
+          "seconds": 7.367563500069082
         }
       ]
     },
@@ -1587,9 +1588,9 @@
       "version": "0.0.98",
       "passed": true,
       "gates": 18,
-      "seconds": 76.90623145806603,
+      "seconds": 78.64366566692479,
       "failed_gates": [],
-      "archive_sha256": "7b8b28c0d88fb0cc64859e9f101ffe5d42d25cbc15fedb15bf0eec0160dcb0e8",
+      "archive_sha256": "0e17c0adb4decca3c85c437b9583787c142aea8e755801a1fe51acd63977ab17",
       "checker": {
         "path": "/private/tmp/ty-companion-subsecond-work/native-hybrid/compatibility-inputs/ty-0.0.98/ty",
         "sha256": "9ccabed16da4fca4ebb0284ca07af41131a9007563080c7537f15ebf66c18cb8",
@@ -1599,92 +1600,92 @@
         {
           "name": "generic-cli",
           "passed": true,
-          "seconds": 18.19327895808965
+          "seconds": 18.726872832980007
         },
         {
           "name": "generic-lsp",
           "passed": true,
-          "seconds": 15.42265895800665
+          "seconds": 15.80371441715397
         },
         {
           "name": "generic-push",
           "passed": true,
-          "seconds": 15.113919791998342
+          "seconds": 15.548688041977584
         },
         {
           "name": "lsp_acceptance",
           "passed": true,
-          "seconds": 0.6378161669708788
+          "seconds": 0.6560813339892775
         },
         {
           "name": "lsp_configuration",
           "passed": true,
-          "seconds": 1.6910269591026008
+          "seconds": 1.7312358329072595
         },
         {
           "name": "lsp_differential",
           "passed": true,
-          "seconds": 0.8190207921434194
+          "seconds": 0.8663022920954973
         },
         {
           "name": "lsp_lifecycle",
           "passed": true,
-          "seconds": 0.3617042498663068
+          "seconds": 0.30416416586376727
         },
         {
           "name": "lsp_notebook_differential",
           "passed": true,
-          "seconds": 0.47774337511509657
+          "seconds": 0.5362890830729157
         },
         {
           "name": "plugin_error_differential",
           "passed": true,
-          "seconds": 2.1192666669376194
+          "seconds": 2.1754609171766788
         },
         {
           "name": "plugin_configuration_differential",
           "passed": true,
-          "seconds": 4.434794750064611
+          "seconds": 4.484016040805727
         },
         {
           "name": "sdk_state_inventory",
           "passed": true,
-          "seconds": 1.9330070421565324
+          "seconds": 1.9593061660416424
         },
         {
           "name": "sdk_function_inventory",
           "passed": true,
-          "seconds": 0.9777474589645863
+          "seconds": 0.9387949169613421
         },
         {
           "name": "sdk_overlay_inventory",
           "passed": true,
-          "seconds": 1.358162125106901
+          "seconds": 1.36079137516208
         },
         {
           "name": "sdk_cli_inventory",
           "passed": true,
-          "seconds": 1.113405292155221
+          "seconds": 1.110468375030905
         },
         {
           "name": "sdk_class_inventory",
           "passed": true,
-          "seconds": 1.3378296250011772
+          "seconds": 1.3548056250438094
         },
         {
           "name": "sdk_method_inventory",
           "passed": true,
-          "seconds": 2.518157208105549
+          "seconds": 2.6277147089131176
         },
         {
           "name": "sdk_class_summary_inventory",
           "passed": true,
-          "seconds": 0.8244525408372283
+          "seconds": 0.8284518329892308
         },
         {
           "name": "sdk_minidjango_inventory",
           "passed": true,
-          "seconds": 7.281853500055149
+          "seconds": 7.3470829168800265
         }
       ]
     },
@@ -1692,9 +1693,9 @@
       "version": "0.0.99",
       "passed": true,
       "gates": 18,
-      "seconds": 74.44967000000179,
+      "seconds": 74.93687558406964,
       "failed_gates": [],
-      "archive_sha256": "d5068543f9c326a5a2741094a44f6d8ebaa9d19619a3c364d7eb9e77a9f3a1b0",
+      "archive_sha256": "32b587e187499276898c52046b62faa3cd33c6387ce3dbe0b158821b6705e80f",
       "checker": {
         "path": "/private/tmp/ty-companion-subsecond-work/native-hybrid/compatibility-inputs/ty-0.0.99/ty",
         "sha256": "34688103a83c3123d9eb0f4d85cdaa15f06ff16ce422d8a42616e6b1c885200e",
@@ -1704,92 +1705,92 @@
         {
           "name": "generic-cli",
           "passed": true,
-          "seconds": 17.406447833171114
+          "seconds": 17.652578874956816
         },
         {
           "name": "generic-lsp",
           "passed": true,
-          "seconds": 15.384471917059273
+          "seconds": 14.687782000051811
         },
         {
           "name": "generic-push",
           "passed": true,
-          "seconds": 14.091720500029624
+          "seconds": 14.38831870793365
         },
         {
           "name": "lsp_acceptance",
           "passed": true,
-          "seconds": 0.6380459999199957
+          "seconds": 0.6483119591139257
         },
         {
           "name": "lsp_configuration",
           "passed": true,
-          "seconds": 1.7329112500883639
+          "seconds": 1.715760749997571
         },
         {
           "name": "lsp_differential",
           "passed": true,
-          "seconds": 0.8168118330650032
+          "seconds": 0.8687598330434412
         },
         {
           "name": "lsp_lifecycle",
           "passed": true,
-          "seconds": 0.3009570841677487
+          "seconds": 0.3085875001270324
         },
         {
           "name": "lsp_notebook_differential",
           "passed": true,
-          "seconds": 0.4764894580002874
+          "seconds": 0.4740952090360224
         },
         {
           "name": "plugin_error_differential",
           "passed": true,
-          "seconds": 2.0594436249230057
+          "seconds": 2.1980226249434054
         },
         {
           "name": "plugin_configuration_differential",
           "passed": true,
-          "seconds": 4.367457665968686
+          "seconds": 4.508632000070065
         },
         {
           "name": "sdk_state_inventory",
           "passed": true,
-          "seconds": 1.9802559579256922
+          "seconds": 1.9997445419430733
         },
         {
           "name": "sdk_function_inventory",
           "passed": true,
-          "seconds": 0.9567452089395374
+          "seconds": 1.0570850418880582
         },
         {
           "name": "sdk_overlay_inventory",
           "passed": true,
-          "seconds": 1.359399541048333
+          "seconds": 1.3417890411801636
         },
         {
           "name": "sdk_cli_inventory",
           "passed": true,
-          "seconds": 1.1066517499275506
+          "seconds": 1.0968563330825418
         },
         {
           "name": "sdk_class_inventory",
           "passed": true,
-          "seconds": 1.3476400829385966
+          "seconds": 1.3399748329538852
         },
         {
           "name": "sdk_method_inventory",
           "passed": true,
-          "seconds": 2.452315584057942
+          "seconds": 2.556007625069469
         },
         {
           "name": "sdk_class_summary_inventory",
           "passed": true,
-          "seconds": 0.8068407499231398
+          "seconds": 0.7679916250053793
         },
         {
           "name": "sdk_minidjango_inventory",
           "passed": true,
-          "seconds": 6.872179500060156
+          "seconds": 7.04443887504749
         }
       ]
     },
@@ -1797,9 +1798,9 @@
       "version": "0.0.100",
       "passed": true,
       "gates": 18,
-      "seconds": 73.57434783317149,
+      "seconds": 74.80508662504144,
       "failed_gates": [],
-      "archive_sha256": "0a21b89088f897ecddc3242d9d07d3e895661c0074259be07a7335f37f4e2d65",
+      "archive_sha256": "9e243e47af06ea54b4c1ed453b0a31d4c49fe59f8728b1b25544463be0a84b5f",
       "checker": {
         "path": "/private/tmp/ty-companion-subsecond-work/native-hybrid/compatibility-inputs/ty-0.0.100/ty",
         "sha256": "43c2a856896a4072cefe711555ed27e3b314d68efb0fe108e6eb513f007be725",
@@ -1809,92 +1810,92 @@
         {
           "name": "generic-cli",
           "passed": true,
-          "seconds": 17.646610291907564
+          "seconds": 17.617365750018507
         },
         {
           "name": "generic-lsp",
           "passed": true,
-          "seconds": 14.29694649996236
+          "seconds": 14.568280540872365
         },
         {
           "name": "generic-push",
           "passed": true,
-          "seconds": 14.089608833892271
+          "seconds": 14.469513874966651
         },
         {
           "name": "lsp_acceptance",
           "passed": true,
-          "seconds": 0.6451370001304895
+          "seconds": 0.6762501250486821
         },
         {
           "name": "lsp_configuration",
           "passed": true,
-          "seconds": 1.6959038751665503
+          "seconds": 1.7160278749652207
         },
         {
           "name": "lsp_differential",
           "passed": true,
-          "seconds": 0.8722775829955935
+          "seconds": 0.8889550000894815
         },
         {
           "name": "lsp_lifecycle",
           "passed": true,
-          "seconds": 0.3134521250613034
+          "seconds": 0.3134906250052154
         },
         {
           "name": "lsp_notebook_differential",
           "passed": true,
-          "seconds": 0.4801168330013752
+          "seconds": 0.47523304098285735
         },
         {
           "name": "plugin_error_differential",
           "passed": true,
-          "seconds": 2.1138143751304597
+          "seconds": 2.1840680420864373
         },
         {
           "name": "plugin_configuration_differential",
           "passed": true,
-          "seconds": 4.373433375032619
+          "seconds": 4.484933833125979
         },
         {
           "name": "sdk_state_inventory",
           "passed": true,
-          "seconds": 1.946300083072856
+          "seconds": 1.9515181668102741
         },
         {
           "name": "sdk_function_inventory",
           "passed": true,
-          "seconds": 0.9679045837838203
+          "seconds": 1.0214697499759495
         },
         {
           "name": "sdk_overlay_inventory",
           "passed": true,
-          "seconds": 1.3880785410292447
+          "seconds": 1.3917939171660691
         },
         {
           "name": "sdk_cli_inventory",
           "passed": true,
-          "seconds": 1.077142917085439
+          "seconds": 1.0813776671420783
         },
         {
           "name": "sdk_class_inventory",
           "passed": true,
-          "seconds": 1.3099858339410275
+          "seconds": 1.3458767919801176
         },
         {
           "name": "sdk_method_inventory",
           "passed": true,
-          "seconds": 2.4634771670680493
+          "seconds": 2.5148413330316544
         },
         {
           "name": "sdk_class_summary_inventory",
           "passed": true,
-          "seconds": 0.7704162921290845
+          "seconds": 0.7910249999258667
         },
         {
           "name": "sdk_minidjango_inventory",
           "passed": true,
-          "seconds": 6.824289083946496
+          "seconds": 7.028203832916915
         }
       ]
     },
@@ -1902,9 +1903,9 @@
       "version": "0.0.101",
       "passed": true,
       "gates": 18,
-      "seconds": 73.35520091699436,
+      "seconds": 77.0354817500338,
       "failed_gates": [],
-      "archive_sha256": "bd8e9202f205d4e1ae95464d3ceee8837397962840b4edfffe00a7356d6ad5bd",
+      "archive_sha256": "3771d6bb0d0baee8fa268f6d8075a0f6ff5555ca81d40bf150ff17fb8cfd6147",
       "checker": {
         "path": "/private/tmp/ty-companion-subsecond-work/native-hybrid/compatibility-inputs/ty-0.0.101/ty",
         "sha256": "da235b70057edcd504b03e6378b44c4a7173dfdc3021bf58c605540bd62022dd",
@@ -1914,92 +1915,92 @@
         {
           "name": "generic-cli",
           "passed": true,
-          "seconds": 17.079679042100906
+          "seconds": 17.72275891690515
         },
         {
           "name": "generic-lsp",
           "passed": true,
-          "seconds": 14.334741667145863
+          "seconds": 15.82816195813939
         },
         {
           "name": "generic-push",
           "passed": true,
-          "seconds": 13.959301125025377
+          "seconds": 14.597360542044044
         },
         {
           "name": "lsp_acceptance",
           "passed": true,
-          "seconds": 0.6370348329655826
+          "seconds": 0.710714542074129
         },
         {
           "name": "lsp_configuration",
           "passed": true,
-          "seconds": 1.73237754101865
+          "seconds": 1.7610340830869973
         },
         {
           "name": "lsp_differential",
           "passed": true,
-          "seconds": 0.8511266249697655
+          "seconds": 0.8258876248728484
         },
         {
           "name": "lsp_lifecycle",
           "passed": true,
-          "seconds": 0.29881287505850196
+          "seconds": 0.3722785001154989
         },
         {
           "name": "lsp_notebook_differential",
           "passed": true,
-          "seconds": 0.484212625073269
+          "seconds": 0.5432720000389963
         },
         {
           "name": "plugin_error_differential",
           "passed": true,
-          "seconds": 2.110148249892518
+          "seconds": 2.1694144159555435
         },
         {
           "name": "plugin_configuration_differential",
           "passed": true,
-          "seconds": 4.3742698749993
+          "seconds": 4.577292999951169
         },
         {
           "name": "sdk_state_inventory",
           "passed": true,
-          "seconds": 2.07807575003244
+          "seconds": 2.098844083957374
         },
         {
           "name": "sdk_function_inventory",
           "passed": true,
-          "seconds": 1.0524903750047088
+          "seconds": 0.9896559580229223
         },
         {
           "name": "sdk_overlay_inventory",
           "passed": true,
-          "seconds": 1.3440303748939186
+          "seconds": 1.414817624958232
         },
         {
           "name": "sdk_cli_inventory",
           "passed": true,
-          "seconds": 1.09481529192999
+          "seconds": 1.1521701659075916
         },
         {
           "name": "sdk_class_inventory",
           "passed": true,
-          "seconds": 1.32976329093799
+          "seconds": 1.432291458826512
         },
         {
           "name": "sdk_method_inventory",
           "passed": true,
-          "seconds": 2.4567622910253704
+          "seconds": 2.544442791957408
         },
         {
           "name": "sdk_class_summary_inventory",
           "passed": true,
-          "seconds": 0.8167189999949187
+          "seconds": 0.869180291891098
         },
         {
           "name": "sdk_minidjango_inventory",
           "passed": true,
-          "seconds": 7.0048724161461
+          "seconds": 7.122170457849279
         }
       ]
     },
@@ -2007,9 +2008,9 @@
       "version": "0.0.102",
       "passed": true,
       "gates": 18,
-      "seconds": 73.23915974982083,
+      "seconds": 76.95208583399653,
       "failed_gates": [],
-      "archive_sha256": "0ab772cf390b458f830fdfca762d9d1545b2e03d3afc3d050486740b55c13b53",
+      "archive_sha256": "52825f9d45571b699f0d775c39c16d2ba94accc19bd3b8c2749940eb69c1b3f5",
       "checker": {
         "path": "/private/tmp/ty-companion-subsecond-work/native-hybrid/compatibility-inputs/ty-0.0.102/ty",
         "sha256": "eff8c8ba4af5bb769472ca2ec304aa78283db6fa15ad6a91bbdd1a764df5a099",
@@ -2019,92 +2020,92 @@
         {
           "name": "generic-cli",
           "passed": true,
-          "seconds": 16.96574283298105
+          "seconds": 17.947373083094135
         },
         {
           "name": "generic-lsp",
           "passed": true,
-          "seconds": 14.26848362502642
+          "seconds": 15.831099707866088
         },
         {
           "name": "generic-push",
           "passed": true,
-          "seconds": 14.084756499854848
+          "seconds": 14.530904083978385
         },
         {
           "name": "lsp_acceptance",
           "passed": true,
-          "seconds": 0.6429221660364419
+          "seconds": 0.701511916005984
         },
         {
           "name": "lsp_configuration",
           "passed": true,
-          "seconds": 1.6942995840217918
+          "seconds": 1.7234673330094665
         },
         {
           "name": "lsp_differential",
           "passed": true,
-          "seconds": 0.8299337499774992
+          "seconds": 0.8544844998978078
         },
         {
           "name": "lsp_lifecycle",
           "passed": true,
-          "seconds": 0.2981728750746697
+          "seconds": 0.35399954090826213
         },
         {
           "name": "lsp_notebook_differential",
           "passed": true,
-          "seconds": 0.5389932089019567
+          "seconds": 0.5314239589497447
         },
         {
           "name": "plugin_error_differential",
           "passed": true,
-          "seconds": 2.2180934578645974
+          "seconds": 2.111536541953683
         },
         {
           "name": "plugin_configuration_differential",
           "passed": true,
-          "seconds": 4.380641333060339
+          "seconds": 4.579118208028376
         },
         {
           "name": "sdk_state_inventory",
           "passed": true,
-          "seconds": 1.9509678329341114
+          "seconds": 2.056928874924779
         },
         {
           "name": "sdk_function_inventory",
           "passed": true,
-          "seconds": 0.9739874999504536
+          "seconds": 1.0320720828603953
         },
         {
           "name": "sdk_overlay_inventory",
           "passed": true,
-          "seconds": 1.4035441670566797
+          "seconds": 1.4485315419733524
         },
         {
           "name": "sdk_cli_inventory",
           "passed": true,
-          "seconds": 1.0688569168560207
+          "seconds": 1.1437550000846386
         },
         {
           "name": "sdk_class_inventory",
           "passed": true,
-          "seconds": 1.3774132498074323
+          "seconds": 1.4369738341774791
         },
         {
           "name": "sdk_method_inventory",
           "passed": true,
-          "seconds": 2.552283624885604
+          "seconds": 2.5053644999861717
         },
         {
           "name": "sdk_class_summary_inventory",
           "passed": true,
-          "seconds": 0.8223164579831064
+          "seconds": 0.842007749946788
         },
         {
           "name": "sdk_minidjango_inventory",
           "passed": true,
-          "seconds": 6.856271249940619
+          "seconds": 7.015159500064328
         }
       ]
     },
@@ -2112,9 +2113,9 @@
       "version": "0.0.103",
       "passed": true,
       "gates": 18,
-      "seconds": 72.74244966707192,
+      "seconds": 74.2295886669308,
       "failed_gates": [],
-      "archive_sha256": "e5789c880f0a80f5a940b3724d56b8041d7c8f1c71a324beacf559ff4f8c2a3c",
+      "archive_sha256": "68f86b50b891fa92f730cf633e4e9d57c8444eb475abff6879085a08b1f8f719",
       "checker": {
         "path": "/private/tmp/ty-companion-subsecond-work/native-hybrid/compatibility-inputs/ty-0.0.103/ty",
         "sha256": "d914e74919bf404324918f58dc5255dd414364afb1e16f42838f4e725ff86641",
@@ -2124,92 +2125,92 @@
         {
           "name": "generic-cli",
           "passed": true,
-          "seconds": 17.1213325841818
+          "seconds": 17.531132666161284
         },
         {
           "name": "generic-lsp",
           "passed": true,
-          "seconds": 14.462419958086684
+          "seconds": 14.629846457857639
         },
         {
           "name": "generic-push",
           "passed": true,
-          "seconds": 14.00003070780076
+          "seconds": 14.34634599997662
         },
         {
           "name": "lsp_acceptance",
           "passed": true,
-          "seconds": 0.636548874899745
+          "seconds": 0.7026882909704
         },
         {
           "name": "lsp_configuration",
           "passed": true,
-          "seconds": 1.6235251671168953
+          "seconds": 1.7467628750018775
         },
         {
           "name": "lsp_differential",
           "passed": true,
-          "seconds": 0.8739963341504335
+          "seconds": 0.8948289998807013
         },
         {
           "name": "lsp_lifecycle",
           "passed": true,
-          "seconds": 0.3208323339931667
+          "seconds": 0.32284087501466274
         },
         {
           "name": "lsp_notebook_differential",
           "passed": true,
-          "seconds": 0.4860453330911696
+          "seconds": 0.47722899983637035
         },
         {
           "name": "plugin_error_differential",
           "passed": true,
-          "seconds": 2.025539374910295
+          "seconds": 2.0646503339521587
         },
         {
           "name": "plugin_configuration_differential",
           "passed": true,
-          "seconds": 4.241264750016853
+          "seconds": 4.404433417133987
         },
         {
           "name": "sdk_state_inventory",
           "passed": true,
-          "seconds": 1.916288083884865
+          "seconds": 1.9671967499889433
         },
         {
           "name": "sdk_function_inventory",
           "passed": true,
-          "seconds": 0.9359321249648929
+          "seconds": 0.9219183751847595
         },
         {
           "name": "sdk_overlay_inventory",
           "passed": true,
-          "seconds": 1.3274169170763344
+          "seconds": 1.3771863339934498
         },
         {
           "name": "sdk_cli_inventory",
           "passed": true,
-          "seconds": 1.0885058329440653
+          "seconds": 1.0828714170493186
         },
         {
           "name": "sdk_class_inventory",
           "passed": true,
-          "seconds": 1.298122791107744
+          "seconds": 1.3207091249059886
         },
         {
           "name": "sdk_method_inventory",
           "passed": true,
-          "seconds": 2.4047353328205645
+          "seconds": 2.407815790968016
         },
         {
           "name": "sdk_class_summary_inventory",
           "passed": true,
-          "seconds": 0.7710441669914871
+          "seconds": 0.7995538751129061
         },
         {
           "name": "sdk_minidjango_inventory",
           "passed": true,
-          "seconds": 6.897200457984582
+          "seconds": 6.927862582961097
         }
       ]
     }

@@ -1,5 +1,5 @@
 {
-  "status": "Final runtime qualified:43source steps,378version gates, installed Django tests and hosted30-repeat matrices pass. Controlled30-repeat baseline comparison shows no regression. One local10-repeat ratio miss remains recorded. Public-artifact acceptance follows publication.",
+  "status": "The latest Monty 1.6 source, installed Django, all 21 official Ty versions and both hosted 30-repeat matrices pass. The final local 10-repeat median-ratio gate missed; that result and all earlier failures remain retained. Source correctness, independent controlled before/after results and required hosted 30-repeat gates are separate evidence. Public-artifact qualification follows publication.",
   "version": "0.90.0",
   "official_ty": "0.0.104",
   "django_commit": "9deb4ee8321cbe49f8dc82eefceba5c276ef2980",
@@ -1021,5 +1021,15 @@
     },
     "resolution": "The13-second one-thread case now averages2.235s; missing models import coverage triggers the validated fallback. Cancellation avoids waiting for the unusable early check. This separate fixture still exceeds the five-shape timing target; no arbitrary-project bound is claimed."
   },
-  "final_cancellation_receipt": "native-check-cancellation-0.90.0.json"
+  "final_cancellation_receipt": "native-check-cancellation-0.90.0.json",
+  "final_monty16_qualification": {
+    "passed": true,
+    "receipt": "final-0.90.0.json",
+    "binary_sha256": "d2ca919cc088326676203732d9a9bc7bfc871eabb89f5a9adec007488924ff6b",
+    "wheel_sha256": "d5c052ee3e8064c99c361fb641e8ea794698a694e4846de3e59fb05f54e39b10",
+    "source_steps": 43,
+    "version_gates": 378,
+    "hosted_commit": "7c3e9516b43016dea8a0f2396cd7fcbed742e63e",
+    "publication_acceptance": "pending"
+  }
 }

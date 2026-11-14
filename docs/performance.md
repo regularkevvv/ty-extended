@@ -4,23 +4,25 @@ ty-extended checks analysis copies with unchanged official Ty. Total time includ
 
 ## Current native comparison
 
-The [final cancellation receipt](qualification/native-check-cancellation-0.90.0.json) records ten rotated fresh-process runs per checker across five workloads on macOS arm64. Both Ty stacks use official **Ty 0.0.104** and Django **6.1.3**. The candidate uses the restored Django-ty 0.8 provider; native Ty uses **django-types 0.24.0**. MyPy **2.4.1** uses **django-stubs 6.1.2**.
+The [final qualification receipt](qualification/final-0.90.0.json) records ten rotated fresh-process runs per checker across five workloads on macOS arm64, with **Monty 1.6.0**, official **Ty 0.0.104**, Django **6.1.3**, Django-ty 0.8, native **django-types 0.24.0**, MyPy **2.4.1** and **django-stubs 6.1.2**.
 
 | Workload           | ty-extended mean | Native Ty mean | MyPy mean | Ratio of means |
 | ------------------ | ---------------: | -------------: | --------: | -------------: |
-| small              |          0.111 s |        0.039 s |   1.378 s |         2.835x |
-| distributed        |          0.201 s |        0.068 s |   1.966 s |         2.962x |
-| many-files         |          0.552 s |        0.199 s |   4.131 s |         2.780x |
-| stress             |          0.711 s |        0.339 s |   6.767 s |         2.098x |
-| distributed-stress |          0.694 s |        0.197 s |   6.547 s |         3.525x |
+| small              |          0.115 s |        0.039 s |   1.419 s |         2.963x |
+| distributed        |          0.200 s |        0.065 s |   2.010 s |         3.092x |
+| many-files         |          0.486 s |        0.169 s |   4.128 s |         2.882x |
+| stress             |          0.711 s |        0.313 s |   6.830 s |         2.270x |
+| distributed-stress |          0.717 s |        0.211 s |   6.786 s |         3.401x |
 
-The last local ten-repeat series **fails** the 3.5x gate: distributed stress is 3.525x by means and 3.519x by medians. Its 0.694-second mean is below one second and below MyPy. That failure is retained; it is not relabeled as passing.
+The local distributed-stress timing gate **fails**: **3.401x by means** and **3.568x by medians**, at **0.717 seconds** on average. Every correctness, negative and source-preservation control passes. The computed timing result remains unchanged; the controlled comparison and required hosted series below answer separate questions.
 
-A separate controlled comparison rotates the prior executable, the final executable and native Ty over the identical distributed-stress project for **30 runs each**. Means are **0.679, 0.678 and 0.212 seconds** respectively. The final/prior ratio is **0.998**; the final/native ratio is **3.192**. Medians are **0.670, 0.669 and 0.204 seconds**. This comparison shows no regression from the discarded-check fix and preserves every observation.
+A separate controlled comparison rotates the preceding and final Monty 1.6 executables and native Ty over the identical distributed-stress project for **30 runs each**. Means are **0.693, 0.688 and 0.212 seconds**; medians are **0.690, 0.676 and 0.203 seconds**. The final/preceding ratio of means is **0.993**. Every observation is retained.
 
-The dedicated [30-repeat hosted qualification](qualification/performance-ci-cancel-0.90.0.json) passes all five workloads on **both Linux and macOS**, with the same restored provider. Largest ratios of means are **3.425x** and **2.842x**; largest median ratios are **3.431x** and **2.936x**. Hosted gates require both aggregates to stay at or below 3.5x and MyPy. Earlier [failed CI series](qualification/performance-ci-repeat-0.90.0.json), the [preceding hosted series](qualification/performance-ci-30-0.90.0.json) and the local miss remain separate evidence. These are workload qualifications, not bounds for every run or project.
+The final [30-repeat hosted qualification](qualification/performance-ci-monty16-0.90.0.json) passes all five workloads on **Linux and macOS**. Linux's largest ratios are **3.443x by means** and **3.446x by medians**. macOS's largest ratios are **2.925x by means** and **2.959x by medians**. These are workload qualifications, not bounds for every individual run or project.
 
-A separate resource fixture uses 7,082 files and a standalone module with 2,501 chained models. Its installed one-thread run originally took about **12.7 seconds**. A trace showed nearly 11 seconds spent waiting for a speculative native check before rejecting its result. The fix cancels and reaps known-invalid work promptly. Three explicit Ty 0.0.104 runs now average **2.235 seconds** with one thread and **1.969 seconds** with default parallelism, versus native Ty's **0.528** and **0.406 seconds**. Rendering requires a `models` import outside the early check's coverage, so the validated second-check path remains necessary. This fixture passes correctness and resource bounds but still exceeds the timing target. An exploratory comparison that selected an older Ty from PATH is explicitly marked invalid in the receipt.
+The [preceding Monty 1.6 hosted series](qualification/performance-ci-monty16-before-0.90.0.json) failed the Linux distributed-stress gate at **3.539x by means and 3.587x by medians**. Its local series also failed at **3.561x and 3.597x**. Those failures are retained. The final source removes unused explicit-file selection preparation and a duplicate project attachment. Earlier [discarded-check results](qualification/native-check-cancellation-0.90.0.json), [failed CI series](qualification/performance-ci-repeat-0.90.0.json) and [passing preceding candidate](qualification/performance-ci-cancel-0.90.0.json) remain historical evidence.
+
+A separate resource fixture uses 7,082 files and a standalone module with 2,501 chained models. Its one-thread run originally took about **12.7 seconds**. Nearly 11 seconds were spent waiting for a speculative native check before rejecting its result; the fix cancels and reaps known-invalid work promptly. The final executable averages **2.298 seconds** with one thread, versus native Ty's **0.561 seconds**. The final executable averages **2.121 seconds** with default parallelism, versus native Ty's **0.410 seconds**. Rendering requires a `models` import outside the early check's coverage, so the validated second-check path remains necessary. This fixture passes correctness and resource bounds but exceeds the timing target. An earlier exploratory comparison selected an older Ty from PATH and is explicitly marked invalid in the migration receipt.
 
 ## Correctness
 
