@@ -42,7 +42,7 @@ The accepted optimization baseline averages **0.776 seconds** across 30 runs of
 **7.451 seconds** for MyPy. The comparison uses the same official Ty executable,
 100 type assertions, and ordinary Python and ORM error controls.
 
-The final controlled 30-run comparison averages **0.678 seconds**, versus **0.679 seconds** for the preceding executable and **0.212 seconds** for native Ty on identical inputs. Dedicated hosted matrices pass all five shapes on Linux and macOS. [The performance report](docs/performance.md) retains every observation, a narrowly failed local timing series and a slower fallback fixture. These measurements do not establish a universal worst-case bound. Published-package acceptance is recorded separately from source and CI checks.
+The final controlled 30-run comparison averages **0.688 seconds**, versus **0.693 seconds** for the preceding executable and **0.212 seconds** for native Ty on identical inputs. Dedicated hosted matrices pass all five shapes on Linux and macOS. [The performance report](docs/performance.md) retains every observation, earlier failed timing series and a slower fallback fixture. These measurements do not establish a universal worst-case bound. Published-package acceptance is recorded separately from source and CI checks.
 
 ## Plugins
 
