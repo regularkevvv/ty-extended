@@ -608,7 +608,10 @@ def main():
                     "performance_target_met",
                     "median_seconds",
                     "performance_gate",
+                    "performance_policy",
+                    "reference_performance_gate",
                 )
+                if key in report
             },
             indent=2,
         )
