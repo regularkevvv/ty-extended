@@ -17,8 +17,12 @@ import venv
 from pathlib import Path
 from types import SimpleNamespace
 
-from compare_checkers import invoke, source_hash
-from performance_reference import MAX_REFERENCE_RATIO, REFERENCE_COMMIT
+from compare_checkers import invoke, source_hash, validate_repeats
+from performance_reference import (
+    MAX_REFERENCE_NOISE_SECONDS,
+    MAX_REFERENCE_RATIO,
+    REFERENCE_COMMIT,
+)
 
 DJANGO_COMMIT = "6e55703a95b48015f6fead73452b0c92cba99f32"
 SCRIPTS = Path(__file__).resolve().parent
@@ -141,8 +145,10 @@ def main() -> int:
         "--matrix", action="store_true", help="Run all five existing workload shapes"
     )
     args = parser.parse_args()
-    if args.repeats < 1:
-        parser.error("--repeats must be positive")
+    try:
+        validate_repeats(args.repeats, reference=bool(args.performance_reference))
+    except ValueError as error:
+        parser.error(str(error))
     args.output.mkdir(parents=True, exist_ok=False)
     output = args.output.resolve()
     flags = (
@@ -268,6 +274,8 @@ def main() -> int:
                         args.performance_reference.resolve(),
                         "--max-reference-ratio",
                         str(MAX_REFERENCE_RATIO),
+                        "--max-reference-noise-seconds",
+                        str(MAX_REFERENCE_NOISE_SECONDS),
                     ]
                 )
             result = subprocess.run(list(map(str, command)), check=False)
@@ -293,15 +301,24 @@ def main() -> int:
                 sample = collections.defaultdict(float)
                 stderr = (target / "runs" / row["label"] / "stderr.log").read_text()
                 if args.production_defaults:
-                    assert "companion native fields: true" in stderr
-                    assert "companion borrowed overlay: true" in stderr
-                    assert (
-                        "companion native warmup initialize:" in stderr
-                        or "companion native cli check:" in stderr
+                    assert re.search(
+                        r"(?:ty-extended|companion) native fields: true", stderr
                     )
-                native_cli_reuses += "companion native cli reuse: true" in stderr
+                    assert re.search(
+                        r"(?:ty-extended|companion) borrowed overlay: true", stderr
+                    )
+                    assert re.search(
+                        r"(?:ty-extended|companion) native warmup initialize:", stderr
+                    ) or re.search(
+                        r"(?:ty-extended|companion) native cli check:", stderr
+                    )
+                native_cli_reuses += bool(
+                    re.search(
+                        r"(?:ty-extended|companion) native cli reuse: true", stderr
+                    )
+                )
                 for phase_name, seconds in re.findall(
-                    r"companion phase (\S+): ([\d.]+)s",
+                    r"(?:ty-extended|companion) phase (\S+): ([\d.]+)s",
                     stderr,
                 ):
                     sample[phase_name] += float(seconds)

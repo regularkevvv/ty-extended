@@ -74,7 +74,7 @@ pub(crate) fn default_checker(options: &mut BTreeMap<String, String>) -> Result<
     };
     ensure!(
         resolved != std::env::current_exe()?.canonicalize()?,
-        "--ty resolves to the companion itself; supply the official ty executable"
+        "--ty resolves to ty-extended itself; supply the official ty executable"
     );
     options.insert("ty".into(), resolved.display().to_string());
     Ok(())

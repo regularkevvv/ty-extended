@@ -43,9 +43,9 @@ compatibility gates. Those hosted results describe that earlier source revision.
 ### Earlier sparse-projection candidate
 
 The [sparse projection candidate](../docs/qualification/sparse-projection-validation.json)
-passes all 217 companion unit tests on macOS with each of the 16 official ty
+passes all 217 ty-extended unit tests on macOS with each of the 16 official ty
 releases from 0.0.84 through 0.0.99. On every version, its Django run matches the published
-companion's complete diagnostic output for 166 contract assertions over 38
+ty-extended's complete diagnostic output for 166 contract assertions over 38
 features, positive end-to-end fixtures and six negative controls. The latest
 checker also passes all 19 broader CLI/editor/SDK suites, eight Rust integration
 binaries, 50 Python harness tests and Rust/Python lint checks. These local checks
@@ -53,9 +53,9 @@ do not replace hosted CI, cross-platform qualification or installed-artifact acc
 
 The installed candidate Django wheel also passes all
 [21 Django/Python pairs](../docs/qualification/django-sparse-projection.json):
-166 contract assertions in both projection modes, exact published-companion
+166 contract assertions in both projection modes, exact published ty-extended
 diagnostics, 83 framework runtime contracts and nine QueryDict cases per pair.
-That matrix used an earlier companion candidate, identified in its receipt;
+That matrix used an earlier ty-extended candidate, identified in its receipt;
 the Django source is unchanged. It does not repeat the historical MyPy matrix
 or qualify a published artifact.
 
@@ -71,7 +71,7 @@ field-access gap above. Release acceptance remains pending.
 
 ## Version 0.89.0
 
-Companion 0.89.0 adds opt-in bounded class batching and avoids rescanning all
+ty-extended 0.89.0 adds opt-in bounded class batching and avoids rescanning all
 diagnostics for every file. Its [performance receipt](../docs/qualification/performance-0.89.0.json)
 records five local workloads below the MyPy median ceiling. The corrected local
 candidate checks the largest project in 6.551 seconds versus MyPy's 6.685 seconds,
@@ -104,8 +104,8 @@ The final published binary receives separate compatibility and performance check
 Django-ty 0.7 passes its 166-assertion and 83-runtime-contract CLI corpus across
 all 16 official ty releases from 0.0.84 through 0.0.99 with the installed 0.89 CI
 wheel. Additional qualification covers all 21 Django/Python pairs; its earlier
-companion identity remains in the ledger and the matrix is repeated against the
-public companion before the Django release. The current CI wheel also passes
+ty-extended identity remains in the ledger and the matrix is repeated against the
+public ty-extended before the Django release. The current CI wheel also passes
 Python 3.15's contracts, nine QueryDict cases and an installed editor session. See the
 [compatibility ledger](../docs/compatibility.md) for executable identities,
 the generic version sweep, editor checks, hosted CI and public-package acceptance.
@@ -113,12 +113,12 @@ Those checks are recorded separately from local candidate measurements.
 
 ## Previous 0.88.0 qualification
 
-Companion 0.88.0's [2026-11-07 ledger](evidence/compatibility-2026-11-07.json)
+ty-extended 0.88.0's [2026-11-07 ledger](evidence/compatibility-2026-11-07.json)
 records **288 passing gates** with one installed CI wheel across official ty
 0.0.84–0.0.99. Django-ty 0.7.0 passes its full 166-assertion and 83-runtime-contract
 CLI corpus on all 16 versions, plus 16 complete editor sessions with unsaved
 semantic changes and exact diagnostic spans. Python 3.8, 3.9 and 3.13 installed
-SDK/CLI/LSP checks pass. Cross-platform companion CI passes 43 Linux, 31 macOS
+SDK/CLI/LSP checks pass. Cross-platform ty-extended CI passes 43 Linux, 31 macOS
 and 31 Windows gates.
 
 The refactor retains cast metadata probes, descriptor diagnostic origins and
@@ -144,7 +144,7 @@ is a separate release check; these measurements identify the tested CI binary.
 ## Previous 0.87.0 qualification
 
 The [2026-11-06 ledger](evidence/compatibility-2026-11-06.json) records the same
-companion's 288 generic gates across official ty 0.0.84–0.0.99, 32 complete Django
+ty-extended's 288 generic gates across official ty 0.0.84–0.0.99, 32 complete Django
 checker-version runs, and 42 Django/Python matrix runs including Django 6.1.3.
 The measured wheel embeds Monty **1.5.0**. The current regression suite passes 187 Rust unit tests, three live-checker
 units, 18 integration tests and 42 Python harness tests.
@@ -164,7 +164,7 @@ executable hashes. Packaging and performance changes receive separate checks.
 The [directory-revision followup](evidence/overlay-directory-revisions-2026-11-06.json)
 also checks the actual CI wheel across all 16 checker versions. Independent
 macOS and Windows probes force a delete/recreate to share a directory timestamp:
-the legacy reference retains a stale listing, while the companion restores the
+the legacy reference retains a stale listing, while the ty-extended restores the
 partial stub overlay with both ty endpoints. The comparison fixture now gives
 structural edits distinct directory revisions, retains bounded diagnostic pulls,
 and verifies Windows definition URIs against the exact physical source. Diagnostic
@@ -173,7 +173,7 @@ and negative-control assertions remain unchanged. The collision probe runs in CI
 The [installed-wheel scalability regression](evidence/scalability-2026-11-06.json)
 checks 7,082 Python files and 2,501 related Django models with positive and negative
 typing controls. Both pass in approximately 58 seconds, with sampled combined
-companion/checker RSS below 2.8 GiB. Each run preserves source bytes and enforces
+ty-extended/checker RSS below 2.8 GiB. Each run preserves source bytes and enforces
 180-second/3-GiB test limits. These measurements qualify this generated workload;
 they are not a global memory limit or proof about an unavailable private project.
 
@@ -186,7 +186,7 @@ removing repeated per-file scans and name-map copies.
 
 The following measurements describe the earlier source and binary recorded below.
 
-The companion runs embedded Monty semantic plugins with unchanged official ty.
+The ty-extended runs embedded Monty semantic plugins with unchanged official ty.
 CLI and LSP map diagnostics, positions and edits back to original files. WASM and
 the optional Python worker are outside this build.
 
@@ -218,9 +218,9 @@ protocol decoding and metadata lifetime.
 | Django editor | 28 baseline diagnostics with exact spans; unsaved negative controls; ten comment and ten semantic revisions, preserving original files                                                                   |
 
 The original 194-test SDK inventory is fully accounted for: **75 original tests
-ran unchanged**, **90 public contracts passed through companion adapters**, and
+ran unchanged**, **90 public contracts passed through ty-extended adapters**, and
 **29 runtime/private-interface cases are explicit boundaries**. These are not
-194 executed companion tests. The ledger records differences in internal hook
+194 executed ty-extended tests. The ledger records differences in internal hook
 and index counters; public results match the accepted fixtures.
 
 Both 150-request Django protocol replays pass:
@@ -240,7 +240,7 @@ Fresh-process public `check` medians on the Django conformance project:
 | `concise` | 4.137 s | 2.045 s | 0.733 s        | 2.02×   |
 
 These are seven measured runs after two warmups, with rotating backend order.
-All 54 invocations preserve accepted output; the two companion builds have
+All 54 invocations preserve accepted output; the two ty-extended builds have
 identical stdout, stderr and exit status. Startup remains 2.79–3.07× the fork on
 this workload. Full output includes another official checker session to recover
 related diagnostic notes while preserving primary diagnostic wording.
@@ -271,7 +271,7 @@ cold-disk performance or establish a universal speed ceiling.
 The macOS arm64 executable is **15,196,128 bytes** (gzip: **6,694,058 bytes**).
 With separately installed official ty, executables total **41,532,080 bytes**,
 versus **37,518,400 bytes** for the fork. Distribution is independent; total
-installed size is larger. The companion includes Ruff parser/SDK crates and Monty,
+installed size is larger. The ty-extended includes Ruff parser/SDK crates and Monty,
 excluding ty's semantic engine, Salsa, Wasmtime and the Python worker.
 
 Two reference failures remain documented without changing expectations: fork

@@ -1382,7 +1382,7 @@ fn plugin_registrations(
                     .unwrap_or("");
                 ensure!(
                     runtime == "monty",
-                    "Installed plugin `{id}` uses {runtime}; configure its Monty manifest/artifact explicitly before using this companion"
+                    "Installed plugin `{id}` uses {runtime}; configure its Monty manifest/artifact explicitly before using ty-extended"
                 );
                 let artifact = package.join(
                     parsed

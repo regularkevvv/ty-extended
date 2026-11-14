@@ -38,7 +38,7 @@ impl NativeWarmup {
                 let mut trace = |name| {
                     if tracing {
                         eprintln!(
-                            "companion native warmup {name}: {:.6}s",
+                            "ty-extended native warmup {name}: {:.6}s",
                             tick.elapsed().as_secs_f64()
                         );
                     }
@@ -79,7 +79,7 @@ impl NativeWarmup {
                     &extra_roots,
                 )?;
                 trace("initialize");
-                // Raw diagnostics never become companion evidence. A later
+                // Raw diagnostics never become ty-extended evidence. A later
                 // request checks every final projection after synchronization.
                 checker.warm_original_workspace(first)?;
                 trace("native_check");

@@ -26,7 +26,7 @@ fn phase(phases: &mut BTreeMap<&'static str, f64>, name: &'static str, previous:
     let seconds = now.duration_since(*previous).as_secs_f64();
     *phases.entry(name).or_default() += seconds;
     if std::env::var_os("TY_COMPANION_TRACE_PHASES").is_some() {
-        eprintln!("companion phase {name}: {seconds:.3}s");
+        eprintln!("ty-extended phase {name}: {seconds:.3}s");
     }
     *previous = now;
 }
@@ -563,7 +563,7 @@ pub(crate) fn compact_check_paths(
 
 /// The CLI can check a complete disk projection in parallel without opening
 /// thousands of LSP documents. Selection has already been resolved by the
-/// companion; disable native discovery filters only for this exact file union.
+/// ty-extended; disable native discovery filters only for this exact file union.
 /// The derived configuration stays beside the original to preserve relative
 /// environment paths and per-file rule overrides.
 fn check_selected_files(
@@ -869,7 +869,7 @@ impl NativeCliProcess {
         self.stderr.read_to_end(&mut stderr)?;
         if std::env::var_os("TY_COMPANION_TRACE_PHASES").is_some() {
             eprintln!(
-                "companion native cli check: {:.6}s (elapsed through collection)",
+                "ty-extended native cli check: {:.6}s (elapsed through collection)",
                 self.started.elapsed().as_secs_f64()
             );
         }
@@ -1323,7 +1323,7 @@ impl NativeCliCheck {
                     .map(|(path, _)| path.display().to_string())
                     .collect::<Vec<_>>();
                 eprintln!(
-                    "companion native cli rejected: extras={} selection={} support={} virtual={} changed={changed:?}",
+                    "ty-extended native cli rejected: extras={} selection={} support={} virtual={} changed={changed:?}",
                     !extras_match,
                     inputs.paths != self.selected,
                     !inputs.support_sources.is_empty(),
@@ -1691,7 +1691,7 @@ fn selected_paths(
         })
         .collect::<std::io::Result<_>>()?;
     if std::env::var_os("TY_COMPANION_TRACE_PHASES").is_some() {
-        eprintln!("companion selected-path canonical reuses: {canonical_reuses}");
+        eprintln!("ty-extended selected-path canonical reuses: {canonical_reuses}");
     }
     Ok(selected)
 }
@@ -1896,7 +1896,7 @@ impl Session {
         );
         let mut runtime = Runtime::from_plugins(&checker_config.plugins)?;
         if std::env::var_os("TY_COMPANION_TRACE_PHASES").is_some() {
-            eprintln!("companion native fields: {}", runtime.use_site_fields);
+            eprintln!("ty-extended native fields: {}", runtime.use_site_fields);
         }
         phase(&mut startup_phases, "startup_runtime", &mut startup_tick);
         let stdlib = stdlib_overlay_modules(
@@ -1928,7 +1928,10 @@ impl Session {
                 .is_some_and(|s| !s.contains('\\')))
         .then(|| checker_config.stub_roots[0].clone());
         if std::env::var_os("TY_COMPANION_TRACE_PHASES").is_some() {
-            eprintln!("companion borrowed overlay: {}", borrowed_overlay.is_some());
+            eprintln!(
+                "ty-extended borrowed overlay: {}",
+                borrowed_overlay.is_some()
+            );
         }
         let overlay_files = if let Some(provider) = &borrowed_overlay {
             // No package is copied into the support directory. Native imports
@@ -3376,7 +3379,7 @@ impl Session {
             });
         if index_trace {
             eprintln!(
-                "companion index selection: {:.6}s",
+                "ty-extended index selection: {:.6}s",
                 index_select_start.elapsed().as_secs_f64()
             );
         }
@@ -3419,14 +3422,14 @@ impl Session {
             runtime.attach_project(Arc::new(project.clone()), config.clone());
             if index_trace {
                 eprintln!(
-                    "companion index attach: {:.6}s",
+                    "ty-extended index attach: {:.6}s",
                     attach_start.elapsed().as_secs_f64()
                 );
             }
             let request_start = Instant::now();
             if index_trace {
                 eprintln!(
-                    "companion index request: {:.6}s",
+                    "ty-extended index request: {:.6}s",
                     request_start.elapsed().as_secs_f64()
                 );
             }
@@ -4265,7 +4268,7 @@ impl Session {
             let all_raw = if let Some(raw) = cli_raw {
                 native_cli_reused = true;
                 if std::env::var_os("TY_COMPANION_TRACE_PHASES").is_some() {
-                    eprintln!("companion native cli reuse: true");
+                    eprintln!("ty-extended native cli reuse: true");
                 }
                 raw
             } else if let Some(inputs) = &inputs {
@@ -4697,7 +4700,7 @@ impl Session {
         {
             if std::env::var_os("TY_COMPANION_TRACE_PHASES").is_some() {
                 eprintln!(
-                    "companion transport: {}workspace diagnostics",
+                    "ty-extended transport: {}workspace diagnostics",
                     if self.memory_projection {
                         "memory projection "
                     } else {

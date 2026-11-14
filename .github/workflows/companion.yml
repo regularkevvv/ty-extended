@@ -112,7 +112,7 @@ jobs:
           cargo +1.98.0 build --locked --release --manifest-path companion/Cargo.toml --bin ty-extended
           cp "$CARGO_TARGET_DIR/release/ty-extended" "$RUNNER_TEMP/ty-extended-native"
       - name: Compare identical workloads and focused Django contracts
-        run: python companion/scripts/native_django_benchmark.py --production-defaults --matrix --repeats 30 --companion "${{ runner.temp }}/ty-extended-native" --performance-reference "${{ runner.temp }}/ty-extended-reference" --output "${{ runner.temp }}/native-django-evidence"
+        run: python companion/scripts/native_django_benchmark.py --production-defaults --matrix --repeats 32 --companion "${{ runner.temp }}/ty-extended-native" --performance-reference "${{ runner.temp }}/ty-extended-reference" --output "${{ runner.temp }}/native-django-evidence"
       - name: Preserve native Django reports
         if: always()
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
@@ -157,7 +157,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
-          name: companion-${{ matrix.os }}
+          name: compatibility-${{ matrix.os }}
           retention-days: 5
           path: |
             ${{ runner.temp }}/companion-ci-evidence/ci.json

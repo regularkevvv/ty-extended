@@ -15,6 +15,73 @@ import compare_checkers
 
 
 class PerformanceGateTests(unittest.TestCase):
+    def test_reference_comparisons_require_complete_four_round_blocks(self):
+        for repeats in (0, 1, 2, 10, 30):
+            with self.subTest(repeats=repeats), self.assertRaises(ValueError):
+                compare_checkers.validate_repeats(repeats, reference=True)
+        for repeats in (4, 8, 12, 32):
+            compare_checkers.validate_repeats(repeats, reference=True)
+        compare_checkers.validate_repeats(30, reference=False)
+
+    def test_all_32_rounds_balance_every_position_and_predecessor(self):
+        import collections
+
+        backends = ["companion", "bare-ty", "mypy", "performance-reference"]
+        orders = [compare_checkers.invocation_order(backends, i) for i in range(32)]
+        for backend in backends:
+            self.assertEqual(
+                [sum(order.index(backend) == j for order in orders) for j in range(4)],
+                [8, 8, 8, 8],
+            )
+        counts = collections.Counter(
+            (a, b) for order in orders for a, b in zip(order, order[1:])
+        )
+        self.assertEqual(len(counts), 12)
+        self.assertEqual(set(counts.values()), {8})
+
+    def test_accepted_average_gate_reports_faster_mean_and_slower_median_honestly(self):
+        gate = compare_checkers.regression_gate(
+            {
+                "companion": [0.53, 0.53, 0.53],
+                "performance-reference": [0.50, 0.50, 0.80],
+                "bare-ty": [0.2] * 3,
+                "mypy": [3.0] * 3,
+            }
+        )
+        self.assertLess(gate["mean_reference_ratio"], 1)
+        self.assertFalse(gate["median_reference_ceiling_met"])
+        self.assertTrue(gate["passed"])
+
+    def test_small_reference_runs_allow_only_bounded_absolute_noise(self):
+        samples = {
+            "companion": [0.198] * 3,
+            "performance-reference": [0.185] * 3,
+            "bare-ty": [0.085] * 3,
+            "mypy": [1.8] * 3,
+        }
+        gate = compare_checkers.regression_gate(samples)
+        self.assertTrue(gate["passed"])
+        self.assertFalse(gate["relative_ceiling_met"])
+        self.assertEqual(gate["absolute_noise_floor_seconds"], 0.02)
+        samples["companion"] = [0.210] * 3
+        self.assertFalse(compare_checkers.regression_gate(samples)["passed"])
+        samples["companion"] = [0.64] * 3
+        samples["performance-reference"] = [0.60] * 3
+        self.assertFalse(compare_checkers.regression_gate(samples)["passed"])
+
+    def test_four_backend_order_balances_positions_and_predecessors(self):
+        backends = ["companion", "bare-ty", "mypy", "performance-reference"]
+        orders = [compare_checkers.invocation_order(backends, i) for i in range(4)]
+        for backend in backends:
+            self.assertEqual(
+                sorted(order.index(backend) for order in orders), list(range(4))
+            )
+        edges = [(a, b) for order in orders for a, b in zip(order, order[1:])]
+        self.assertEqual(
+            set(edges), {(a, b) for a in backends for b in backends if a != b}
+        )
+        self.assertEqual(len(edges), 12)
+
     def test_reference_policy_reports_native_gap_without_relaxing_reference(self):
         samples = {
             "companion": [0.6] * 3,
@@ -31,7 +98,7 @@ class PerformanceGateTests(unittest.TestCase):
             )["passed"]
         )
 
-    def test_reference_policy_rejects_mean_and_median_regressions(self):
+    def test_reference_policy_rejects_average_regressions(self):
         for candidate in ([0.6, 0.6, 0.8], [0.5, 0.7, 0.7]):
             with self.subTest(candidate=candidate):
                 gate = compare_checkers.regression_gate(

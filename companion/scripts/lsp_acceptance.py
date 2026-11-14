@@ -50,9 +50,19 @@ class Client:
                         raise EOFError("server closed stdout")
                     key, value = line.decode().split(":", 1)
                     headers[key.lower()] = value.strip()
-                self.messages.put(
-                    json.loads(self.process.stdout.read(int(headers["content-length"])))
-                )
+                length = int(headers["content-length"])
+                if length < 0:
+                    raise ValueError("negative LSP content length")
+                body = bytearray()
+                while len(body) < length:
+                    chunk = self.process.stdout.read(length - len(body))
+                    if not chunk:
+                        raise EOFError(
+                            f"server closed stdout during frame body "
+                            f"({len(body)}/{length} bytes)"
+                        )
+                    body.extend(chunk)
+                self.messages.put(json.loads(body))
         except Exception as error:
             self.messages.put(error)
 

@@ -267,7 +267,7 @@ fn executable(value: &str) -> Result<PathBuf> {
     };
     ensure!(
         resolved != std::env::current_exe()?.canonicalize()?,
-        "--ty must point to official ty, not this companion executable"
+        "--ty must point to official ty, not the ty-extended executable"
     );
     Ok(resolved)
 }

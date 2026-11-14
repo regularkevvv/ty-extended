@@ -188,7 +188,7 @@ def main() -> int:
             save()
         report["passed"] = all(row["passed"] for row in report["versions"])
         if identity(args.companion) != report["companion"]:
-            raise RuntimeError("companion executable changed during qualification")
+            raise RuntimeError("ty-extended executable changed during qualification")
         if identity(args.fork) != report["fork"]:
             raise RuntimeError("reference executable changed during qualification")
         report["complete"] = set(selected) == set(GATES)
