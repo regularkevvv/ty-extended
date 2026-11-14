@@ -7,7 +7,6 @@ import argparse
 import hashlib
 import json
 import os
-import re
 import subprocess
 from pathlib import Path
 
@@ -74,16 +73,13 @@ def main() -> int:
     for name in ("companion", "official", "fork", "output"):
         setattr(args, name, getattr(args, name).resolve())
     args.output.mkdir(parents=True)
-    original = (
-        Path(__file__).resolve().parents[2]
-        / "ruff/crates/ty/tests/cli/config_option.rs"
-    )
-    raw = original.read_text(encoding="utf-8")
+    original = Path(__file__).resolve().parents[1] / "tests/fixtures/sdk_contracts.json"
+    catalog = json.loads(original.read_text(encoding="utf-8"))["cases"]
     environment = {**os.environ, "TY_UV": "0", "TY_MAX_PARALLELISM": "1"}
     report = {
         "passed": False,
-        "original_source": str(original),
-        "original_source_sha256": digest(original),
+        "fixture_catalog": str(original),
+        "fixture_catalog_sha256": digest(original),
         "adapter": "Original CLI Python source and manifests; mock runtime replaced by equivalent Monty hook responses.",
         "binaries": {
             name: {
@@ -95,14 +91,7 @@ def main() -> int:
         "cases": [],
     }
     for name, expected_codes in CASES.items():
-        block = raw.split("fn " + name + "()", 1)[1].split("assert_cmd_snapshot!", 1)[0]
-        files = {}
-        for match in re.finditer(
-            r'\(\s*"([^"\n]+)",\s*(r#"(.*?)"#|"(?:\\.|[^"\\])*")\s*,?\s*\)', block, re.S
-        ):
-            files[match[1]] = (
-                match[3] if match[2].startswith('r#"') else json.loads(match[2])
-            )
+        files = catalog["cli"][name]
         assert "test.py" in files, name
         root = args.output / name
         root.mkdir()

@@ -1,0 +1,186 @@
+{
+  "status": "Historical audit retained; all six original differences are corrected in the linked follow-up.",
+  "source": "companion class fields without explicit descriptor class-type",
+  "cases": [
+    {
+      "case": "assigned integer class access",
+      "historical": [
+        "revealed-type: Revealed type: `int`"
+      ],
+      "published": [
+        "revealed-type: Revealed type: `_ty_ext_field_32_0`"
+      ],
+      "candidate": [
+        "revealed-type: Revealed type: `_ty_ext_field_32_0`"
+      ],
+      "matches_historical": false
+    },
+    {
+      "case": "assigned integer instance access",
+      "historical": [
+        "revealed-type: Revealed type: `str`"
+      ],
+      "published": [
+        "revealed-type: Revealed type: `str`"
+      ],
+      "candidate": [
+        "revealed-type: Revealed type: `str`"
+      ],
+      "matches_historical": true
+    },
+    {
+      "case": "second assigned integer class access",
+      "historical": [
+        "revealed-type: Revealed type: `int`"
+      ],
+      "published": [
+        "revealed-type: Revealed type: `_ty_ext_field_51_0`"
+      ],
+      "candidate": [
+        "revealed-type: Revealed type: `_ty_ext_field_51_0`"
+      ],
+      "matches_historical": false
+    },
+    {
+      "case": "second assigned integer instance access",
+      "historical": [
+        "revealed-type: Revealed type: `str`"
+      ],
+      "published": [
+        "revealed-type: Revealed type: `str`"
+      ],
+      "candidate": [
+        "revealed-type: Revealed type: `str`"
+      ],
+      "matches_historical": true
+    },
+    {
+      "case": "absent field class access",
+      "historical": [
+        "revealed-type: Revealed type: `Unknown`",
+        "unresolved-attribute: Attribute `x` can only be accessed on instances, not on the class object `<class 'Absent'>` itself."
+      ],
+      "published": [
+        "revealed-type: Revealed type: `_ty_ext_field_70_0`"
+      ],
+      "candidate": [
+        "revealed-type: Revealed type: `_ty_ext_field_70_0`"
+      ],
+      "matches_historical": false
+    },
+    {
+      "case": "absent field instance access",
+      "historical": [
+        "revealed-type: Revealed type: `str`"
+      ],
+      "published": [
+        "revealed-type: Revealed type: `str`"
+      ],
+      "candidate": [
+        "revealed-type: Revealed type: `str`"
+      ],
+      "matches_historical": true
+    },
+    {
+      "case": "annotated field class access",
+      "historical": [
+        "revealed-type: Revealed type: `int`"
+      ],
+      "published": [
+        "revealed-type: Revealed type: `_ty_ext_field_93_0`"
+      ],
+      "candidate": [
+        "revealed-type: Revealed type: `_ty_ext_field_93_0`"
+      ],
+      "matches_historical": false
+    },
+    {
+      "case": "annotated field instance access",
+      "historical": [
+        "revealed-type: Revealed type: `str`"
+      ],
+      "published": [
+        "revealed-type: Revealed type: `str`"
+      ],
+      "candidate": [
+        "revealed-type: Revealed type: `str`"
+      ],
+      "matches_historical": true
+    },
+    {
+      "case": "property class access",
+      "historical": [
+        "revealed-type: Revealed type: `property`"
+      ],
+      "published": [
+        "revealed-type: Revealed type: `property`"
+      ],
+      "candidate": [
+        "revealed-type: Revealed type: `property`"
+      ],
+      "matches_historical": true
+    },
+    {
+      "case": "property instance access",
+      "historical": [
+        "revealed-type: Revealed type: `str`"
+      ],
+      "published": [
+        "revealed-type: Revealed type: `int`"
+      ],
+      "candidate": [
+        "revealed-type: Revealed type: `int`"
+      ],
+      "matches_historical": false
+    },
+    {
+      "case": "custom descriptor class access",
+      "historical": [
+        "revealed-type: Revealed type: `int`"
+      ],
+      "published": [
+        "revealed-type: Revealed type: `_ty_ext_field_285_0`"
+      ],
+      "candidate": [
+        "revealed-type: Revealed type: `_ty_ext_field_285_0`"
+      ],
+      "matches_historical": false
+    },
+    {
+      "case": "custom descriptor instance access",
+      "historical": [
+        "revealed-type: Revealed type: `str`"
+      ],
+      "published": [
+        "revealed-type: Revealed type: `str`"
+      ],
+      "candidate": [
+        "revealed-type: Revealed type: `str`"
+      ],
+      "matches_historical": true
+    }
+  ],
+  "mismatches": 6,
+  "same_in_published": true,
+  "not_introduced_by_performance_candidate": true,
+  "reproduction": {
+    "historical": "/private/tmp/ty-companion-subsecond-work/historical-reference/bin/ty",
+    "published": "/private/tmp/ty-companion-subsecond-work/environment/bin/ty-extended",
+    "candidate_sha256": "ae2288b22bb06b3a699f6a126b666f39239d29bb6e082e548ff3020076041464",
+    "files": {
+      "plugin.py": "set_manifest({'id': 'research.fields', 'name': 'Class field access parity', 'version': '0.0.1', 'protocol-version': {'major': 0, 'minor': 7}, 'ty-compatibility': {'requirement': '>=0.86.0'}, 'runtime': {'kind': 'monty', 'artifact': 'plugin.py'}, 'capabilities': {'class-transform': True}, 'claims': {'classes': [{'kind': 'exact', 'qualified-name': 'demo.A'}, {'kind': 'exact', 'qualified-name': 'demo.B'}, {'kind': 'exact', 'qualified-name': 'demo.Absent'}, {'kind': 'exact', 'qualified-name': 'demo.Declared'}, {'kind': 'exact', 'qualified-name': 'demo.Property'}, {'kind': 'exact', 'qualified-name': 'demo.DataDescriptor'}]}})\n\n@on_class_transform\ndef transform(request):\n    return class_patch(fields=[field('x', type_annotation('str'), instance_set_type=type_annotation('str'), mode='replace-existing', descriptor=member_descriptor(type_annotation('str'), instance_set_type=type_annotation('str')))])\n",
+      "plugin.plugin.json": "{\"id\": \"research.fields\", \"name\": \"Class field access parity\", \"version\": \"0.0.1\", \"protocol-version\": {\"major\": 0, \"minor\": 7}, \"ty-compatibility\": {\"requirement\": \">=0.86.0\"}, \"runtime\": {\"kind\": \"monty\", \"artifact\": \"plugin.py\"}, \"capabilities\": {\"class-transform\": true}, \"claims\": {\"classes\": [{\"kind\": \"exact\", \"qualified-name\": \"demo.A\"}, {\"kind\": \"exact\", \"qualified-name\": \"demo.B\"}, {\"kind\": \"exact\", \"qualified-name\": \"demo.Absent\"}, {\"kind\": \"exact\", \"qualified-name\": \"demo.Declared\"}, {\"kind\": \"exact\", \"qualified-name\": \"demo.Property\"}, {\"kind\": \"exact\", \"qualified-name\": \"demo.DataDescriptor\"}]}}",
+      "project/demo.py": "from typing import reveal_type\n\nclass A:\n    x = 1\nclass B:\n    x = 2\nclass Absent:\n    pass\nclass Declared:\n    x: int\nclass Property:\n    @property\n    def x(self) -> int: return 1\nclass Descriptor:\n    def __get__(self, instance: object, owner: type | None = None) -> int: return 1\nclass DataDescriptor:\n    x = Descriptor()\n\nreveal_type(A.x)\nreveal_type(A().x)\nreveal_type(B.x)\nreveal_type(B().x)\nreveal_type(Absent.x)\nreveal_type(Absent().x)\nreveal_type(Declared.x)\nreveal_type(Declared().x)\nreveal_type(Property.x)\nreveal_type(Property().x)\nreveal_type(DataDescriptor.x)\nreveal_type(DataDescriptor().x)\n",
+      "project/ty.toml": "[environment]\npython-version=\"3.13\"\n[plugins]\nenabled=true\nauto-discover=false\n[[plugins.plugin]]\nid=\"research.fields\"\nruntime=\"monty\"\ntrusted=true\npath=\"../plugin.py\"\nmanifest-path=\"../plugin.plugin.json\"\n"
+    }
+  },
+  "follow_up": {
+    "source_commit": "f7db633b0b95e3b52dd633476a65c9c11e4c3e23",
+    "receipt": "field-access-projection.json",
+    "original_cases": 12,
+    "original_mismatches_remaining": 0,
+    "expanded_assertions": 31,
+    "diagnostic_controls": 5,
+    "checker_versions": "0.0.84 through 0.0.99"
+  }
+}

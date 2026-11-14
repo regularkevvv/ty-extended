@@ -110,7 +110,7 @@ fn companion_run(
 }
 
 /// Paths and fingerprint hashes differ between processes. Require diagnostic
-/// codes and original line/scalar-column locations to agree, plus exact inferred type text
+/// semantic rule identities and original line/scalar-column locations to agree, plus exact inferred type text
 /// for reveal_type diagnostics. Non-reveal wording can name a generated helper.
 fn signature(diagnostics: &Value) -> Result<Vec<String>> {
     let mut signature = Vec::new();
@@ -121,6 +121,7 @@ fn signature(diagnostics: &Value) -> Result<Vec<String>> {
         let code = diagnostic["check_name"]
             .as_str()
             .context("diagnostic lacks check_name")?;
+        let code = crate::native_rules::semantic_id(code);
         let positions = diagnostic
             .pointer("/location/positions")
             .context("diagnostic lacks positions")?;
@@ -214,7 +215,7 @@ pub fn run(
         "checker_mode":checker_mode,
         "companion_binary":binary,"official_binary":official,"fork_binary":fork,
         "companion_binary_bytes":fs::metadata(binary)?.len(),
-        "validation":"Exact diagnostic codes and original spans, inferred reveal_type text, and exit codes on every run",
+        "validation":"Diagnostic identities (documented pure renames normalized), exact original spans, inferred reveal_type text, and exit codes on every run",
         "differentials":[], "unsupported_controls":[], "benchmarks":[]
     });
     save(out, &report)?;
@@ -456,4 +457,35 @@ pub fn run(
     Ok(
         json!({"status":"passed","checker_mode":checker_mode,"differential_cases":report["differentials"].as_array().unwrap().len(),"unsupported_controls":4,"results":out.join("results.json"),"benchmarks":report["benchmarks"].as_array().unwrap().iter().map(|v|json!({"fixture":v["fixture"],"assert_type_count":v["assert_type_count"],"companion_median_wall_seconds":v["companion_median_wall_seconds"],"fork_median_wall_seconds":v["fork_median_wall_seconds"],"ratio":v["companion_to_fork_ratio"]})).collect::<Vec<_>>()}),
     )
+}
+
+#[cfg(test)]
+mod tests {
+    use super::signature;
+    use serde_json::json;
+
+    #[test]
+    fn historical_comparison_preserves_split_rules_spans_and_raw_ids() {
+        let current = json!([{
+            "check_name": "invalid-explicit-return",
+            "location": {"positions": {"begin": {"line": 12, "column": 12}, "end": {"line": 12, "column": 27}}}
+        }]);
+        let mut historical = current.clone();
+        historical[0]["check_name"] = json!("invalid-return-type");
+        assert_eq!(
+            signature(&current).unwrap(),
+            signature(&historical).unwrap()
+        );
+        assert_eq!(current[0]["check_name"], "invalid-explicit-return");
+        for code in ["invalid-implicit-return", "invalid-generator-return-type"] {
+            let mut split = current.clone();
+            split[0]["check_name"] = json!(code);
+            assert_ne!(signature(&split).unwrap(), signature(&historical).unwrap());
+        }
+        historical[0]["location"]["positions"]["begin"]["column"] = json!(13);
+        assert_ne!(
+            signature(&current).unwrap(),
+            signature(&historical).unwrap()
+        );
+    }
 }

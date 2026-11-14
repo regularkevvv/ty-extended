@@ -4,6 +4,32 @@ use serde::{Deserialize, Serialize};
 use serde_json::{Value, json};
 use std::collections::{BTreeMap, BTreeSet};
 
+pub type FileRevision = (u64, u64, u64, i64, i64, i64, i64);
+
+/// Coarse timestamps cannot establish that loaded bytes are still current.
+pub fn file_revision(metadata: &std::fs::Metadata) -> Option<FileRevision> {
+    #[cfg(unix)]
+    {
+        use std::os::unix::fs::MetadataExt;
+        (metadata.ctime_nsec() != 0).then(|| {
+            (
+                metadata.dev(),
+                metadata.ino(),
+                metadata.len(),
+                metadata.mtime(),
+                metadata.mtime_nsec(),
+                metadata.ctime(),
+                metadata.ctime_nsec(),
+            )
+        })
+    }
+    #[cfg(not(unix))]
+    {
+        let _ = metadata;
+        None
+    }
+}
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
 pub struct Span {
     pub start: usize,
@@ -61,8 +87,12 @@ impl Source {
         json!({"line":line + 1,"column":column})
     }
     pub fn location(&self, s: Span) -> Value {
-        json!({"module":self.module,"file-path":self.path,
-            "start":self.position(s.start),"end":self.position(s.end)})
+        object([
+            ("module", self.module.as_str().into()),
+            ("file-path", self.path.as_str().into()),
+            ("start", self.position(s.start)),
+            ("end", self.position(s.end)),
+        ])
     }
     pub fn cast_name(&self) -> String {
         format!("{}cast", self.prefix)
@@ -113,6 +143,8 @@ pub struct Analysis {
     pub classes: BTreeMap<String, ClassInfo>,
     pub intrinsics: BTreeSet<String>,
     pub calls: BTreeMap<Span, CallSite>,
+    /// Explicitly opted-in hooks resolved these calls without native inputs.
+    pub early_calls: std::collections::BTreeSet<Span>,
     pub constructor_calls: BTreeMap<Span, String>,
     pub unbound_calls: BTreeSet<Span>,
     pub annotated_casts: BTreeMap<Span, Value>,
@@ -135,13 +167,25 @@ impl Analysis {
             .is_none_or(|required| required.contains(span))
     }
     pub fn needs_probes(&self) -> bool {
-        !self.calls.is_empty()
+        self.calls
+            .keys()
+            .any(|span| !self.early_calls.contains(span))
             || self
                 .expression_probes
                 .keys()
                 .any(|span| self.needs_expression_probe(span))
     }
 }
+/// Move already-built JSON values into an object without serializing them again.
+pub fn object<const N: usize>(entries: [(&str, Value); N]) -> Value {
+    Value::Object(
+        entries
+            .into_iter()
+            .map(|(key, value)| (key.to_owned(), value))
+            .collect(),
+    )
+}
+
 pub fn typ(expression: impl Into<String>) -> Value {
     json!({"expression":expression.into(),"mode":"annotation"})
 }

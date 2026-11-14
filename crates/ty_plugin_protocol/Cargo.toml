@@ -1,0 +1,24 @@
+[package]
+name = "ty_plugin_protocol"
+version = "0.0.12"
+edition.workspace = true
+rust-version = "1.96"
+homepage = "https://github.com/regularkevvv/ty-extended"
+documentation = "https://docs.rs/ty_plugin_protocol"
+repository = "https://github.com/regularkevvv/ty-extended"
+authors = ["Kevin Castro <hola@kev.pe>"]
+license.workspace = true
+description = "Stable serialized protocol types for ty semantic plugins."
+readme = "README.md"
+keywords = ["ty", "typing", "plugins"]
+categories = ["development-tools"]
+
+[dependencies]
+serde = { workspace = true }
+serde_json = { workspace = true }
+
+[dev-dependencies]
+insta = { workspace = true, features = ["json"] }
+
+[lints]
+workspace = true

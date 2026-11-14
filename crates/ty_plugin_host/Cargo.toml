@@ -1,0 +1,40 @@
+[package]
+name = "ty_plugin_host"
+version = "0.0.0"
+publish = false
+edition.workspace = true
+rust-version.workspace = true
+homepage.workspace = true
+documentation.workspace = true
+repository.workspace = true
+authors.workspace = true
+license.workspace = true
+
+[lib]
+doctest = false
+
+[dependencies]
+ty_plugin_protocol = { workspace = true }
+
+thiserror = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+
+[target.'cfg(not(target_arch = "wasm32"))'.dependencies]
+monty = { workspace = true, optional = true }
+monty-types = { workspace = true, optional = true }
+tracing = { workspace = true, optional = true }
+
+[dev-dependencies]
+ty_plugin_protocol = { workspace = true }
+ty_plugin_examples = { workspace = true }
+ty_plugin_sdk = { workspace = true }
+tempfile = { workspace = true }
+
+[features]
+default = ["mock"]
+mock = []
+plugins-monty = ["dep:monty", "dep:monty-types", "dep:tracing"]
+
+[lints]
+workspace = true

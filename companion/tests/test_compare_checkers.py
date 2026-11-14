@@ -14,6 +14,61 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "scripts"))
 import compare_checkers
 
 
+class PerformanceGateTests(unittest.TestCase):
+    def test_exact_three_times_passes_and_reports_one_second_goal_separately(self):
+        gate = compare_checkers.performance_gate(
+            {"companion": [1.5, 1.8], "bare-ty": [0.5, 0.6], "mypy": [5, 6]}
+        )
+        self.assertTrue(gate["passed"])
+        self.assertFalse(gate["one_second_goal_met"])
+
+    def test_fast_median_cannot_hide_one_pair_over_the_limit(self):
+        gate = compare_checkers.performance_gate(
+            {"companion": [0.6, 0.6, 1.2], "bare-ty": [0.3] * 3, "mypy": [5] * 3}
+        )
+        self.assertEqual(gate["median_ty_ratio"], 2)
+        self.assertEqual(gate["max_paired_ty_ratio"], 4)
+        self.assertFalse(gate["passed"])
+
+    def test_mypy_remains_an_independent_ceiling(self):
+        gate = compare_checkers.performance_gate(
+            {"companion": [0.9], "bare-ty": [0.4], "mypy": [0.8]}
+        )
+        self.assertTrue(gate["ty_ceiling_met"])
+        self.assertFalse(gate["passed"])
+
+    def test_accepted_aggregate_policy_retains_and_reports_slow_pairs(self):
+        gate = compare_checkers.performance_gate(
+            {"companion": [0.6, 0.6, 1.2], "bare-ty": [0.3] * 3, "mypy": [5] * 3},
+            3.5,
+            aggregate_ratios=True,
+        )
+        self.assertTrue(gate["passed"])
+        self.assertEqual(gate["paired_ty_ratios"], [2, 2, 4])
+        self.assertEqual(gate["max_paired_ty_ratio"], 4)
+
+    def test_fast_median_cannot_hide_excessive_mean_under_aggregate_policy(self):
+        gate = compare_checkers.performance_gate(
+            {"companion": [0.6, 0.6, 4.0], "bare-ty": [0.3] * 3, "mypy": [5] * 3},
+            3.5,
+            aggregate_ratios=True,
+        )
+        self.assertEqual(gate["median_ty_ratio"], 2)
+        self.assertGreater(gate["mean_ty_ratio"], 3.5)
+        self.assertFalse(gate["passed"])
+
+    def test_incomplete_or_invalid_observations_cannot_pass(self):
+        for samples in (
+            {"companion": [], "bare-ty": [], "mypy": []},
+            {"companion": [1], "bare-ty": [1, 2], "mypy": [1]},
+            {"companion": [1], "bare-ty": [0], "mypy": [1]},
+            {"companion": [float("nan")], "bare-ty": [1], "mypy": [1]},
+            {"companion": [1], "bare-ty": [1]},
+        ):
+            with self.subTest(samples=samples), self.assertRaises(ValueError):
+                compare_checkers.performance_gate(samples)
+
+
 @unittest.skipUnless(os.name == "posix", "requires POSIX process monitoring")
 class ComparisonTests(unittest.TestCase):
     def run_rejected(self, source, *, timeout=5, max_memory_mib=4096):

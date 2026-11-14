@@ -9,7 +9,6 @@ import json
 import os
 import re
 import subprocess
-import textwrap
 from pathlib import Path
 
 from plugin_configuration_differential import diagnostics
@@ -126,20 +125,15 @@ def main():
     for name in ("companion", "official", "fork", "output"):
         setattr(args, name, getattr(args, name).resolve())
     args.output.mkdir(parents=True)
-    original = (
-        Path(__file__).resolve().parents[2]
-        / "ruff/crates/ty_python_semantic/src/types/class/static_literal.rs"
-    )
-    raw = original.read_text(encoding="utf-8")
-    fixture = re.search(r'fn write_claim_fixture\(.*?r#"(.*?)"#', raw, re.S)
-    assert fixture
-    abcs = textwrap.dedent(fixture[1]).strip() + "\n"
+    original = Path(__file__).resolve().parents[1] / "tests/fixtures/sdk_contracts.json"
+    catalog = json.loads(original.read_text(encoding="utf-8"))["cases"]
+    abcs = catalog["methods"]
     report = {
         "passed": False,
         "artifact": str(args.companion),
         "sha256": digest(args.companion),
-        "original_source": str(original),
-        "original_source_sha256": digest(original),
+        "fixture_catalog": str(original),
+        "fixture_catalog_sha256": digest(original),
         "source_sha256": digest(Path(__file__)),
         "fork_sha256": digest(args.fork),
         "official_sha256": digest(args.official),
@@ -151,23 +145,7 @@ def main():
             case = args.output / name
             root = case / "project"
             root.mkdir(parents=True)
-            block = re.search(
-                r"fn " + name + r"\(\).*?(?=\n    #\[test\]|\Z)", raw, re.S
-            )
-            assert block, name
-            if name == "pattern_claim_executes_once_per_call_site":
-                source = (
-                    "from abcs import Sub\nsub = Sub()\n"
-                    + "\n".join(
-                        f"v{i}: int = sub.{('run_a', 'run_b', 'stop')[i % 3]}()"
-                        for i in range(200)
-                    )
-                    + "\n"
-                )
-            else:
-                strings = re.findall(r'r#"(.*?)"#', block[0], re.S)
-                assert len(strings) == 1, (name, len(strings))
-                source = textwrap.dedent(strings[0]).strip() + "\n"
+            source = catalog["method_cases"][name]
             (root / "abcs.py").write_text(abcs, encoding="utf-8")
             (root / "main.py").write_text(source, encoding="utf-8")
             config = '[environment]\npython-version="3.13"\n[plugins]\nenabled=true\nauto-discover=false\n'

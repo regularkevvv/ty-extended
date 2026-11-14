@@ -321,74 +321,9 @@ def scoped_django_gate(
                 "DJANGO_TY_SCOPED_ORACLE": str(scoped),
             },
         )
-    environments = {}
-    try:
-        for name, packages in (
-            (
-                "candidate",
-                [
-                    "Django==6.1.3",
-                    "ty==0.0.99",
-                    "typing-extensions>=4.11.0",
-                    "types-PyYAML>=6.0.12",
-                ],
-            ),
-            ("reference", ["Django==6.1.3", "mypy==2.4.1", "django-stubs==6.1.2"]),
-        ):
-            target = output / ("performance-" + name)
-            environments[name] = target
-            venv.EnvBuilder(with_pip=True).create(target)
-            run(
-                [
-                    str(target / "bin/python"),
-                    "-m",
-                    "pip",
-                    "install",
-                    "--no-cache-dir",
-                    *packages,
-                ],
-                env=env,
-            )
-        for name, files, models, modules, queries in (
-            ("small", 100, 25, 5, 25),
-            ("distributed", 1000, 250, 25, 100),
-            ("many-files", 7082, 250, 25, 100),
-            ("stress", 7082, 2501, 1, 100),
-            ("distributed-stress", 7082, 2501, 250, 100),
-        ):
-            gates.run(
-                "performance-" + name,
-                [
-                    sys.executable,
-                    "companion/scripts/compare_checkers.py",
-                    "--companion",
-                    str(binary),
-                    "--official",
-                    str(environments["candidate"] / "bin/ty"),
-                    "--python",
-                    str(environments["candidate"] / "bin/python"),
-                    "--mypy",
-                    str(environments["reference"] / "bin/mypy"),
-                    "--plugin",
-                    str(source / "python/django_ty"),
-                    "--files",
-                    str(files),
-                    "--models",
-                    str(models),
-                    "--model-modules",
-                    str(modules),
-                    "--queries",
-                    str(queries),
-                    "--repeats",
-                    "3",
-                    "--output",
-                    str(output / ("performance-" + name)),
-                ],
-                env=env,
-            )
-    finally:
-        for target in environments.values():
-            shutil.rmtree(target)
+    # Performance runs in the required native-performance matrix on isolated
+    # Linux and macOS runners. Keep this job focused on compatibility rather
+    # than timing a second binary after the full integration build/test workload.
 
 
 def main() -> int:
@@ -397,7 +332,12 @@ def main() -> int:
     args = parser.parse_args()
     args.output.mkdir(parents=True, exist_ok=False)
     output = args.output.resolve()
-    env = {**os.environ, "TY_UV": "0", "TY_MAX_PARALLELISM": "1"}
+    env = {
+        **os.environ,
+        "TY_UV": "0",
+        "TY_MAX_PARALLELISM": "1",
+        "TY_COMPANION_MEMORY_PROJECTION": "0",
+    }
     gates = Gates(output)
     gates.write()
     try:
@@ -486,6 +426,7 @@ def main() -> int:
         for test in (
             "generic_project_semantics",
             "sdk_extended_semantics",
+            "sdk_field_semantics",
             "sdk_multi_semantics",
             "sdk_snapshots",
             "sdk_virtual_semantics",
@@ -598,6 +539,39 @@ def main() -> int:
                 ],
                 env=env,
             )
+        for script in ("lsp_configuration", "sdk_cli_inventory"):
+            command = [
+                sys.executable,
+                f"companion/scripts/{script}.py",
+                "--companion",
+                str(binary),
+                "--official",
+                str(official),
+                "--output",
+                str(output / (script + "-memory")),
+            ]
+            if script == "sdk_cli_inventory":
+                command += ["--fork", str(fork)]
+            gates.run(
+                script + "-memory",
+                command,
+                env={**env, "TY_COMPANION_MEMORY_PROJECTION": "1"},
+            )
+        gates.run(
+            "cli-memory-projection",
+            [
+                *cargo,
+                "test",
+                "--locked",
+                "--manifest-path",
+                str(manifest),
+                "--test",
+                "cli_acceptance",
+                "--",
+                "--ignored",
+            ],
+            env={**env, "TY_COMPANION_MEMORY_PROJECTION": "1"},
+        )
         if sys.platform == "linux":
             django_gate(output, binary, env, gates)
             scoped_django_gate(output, binary, env, gates)

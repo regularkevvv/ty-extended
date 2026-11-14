@@ -7,9 +7,7 @@ import argparse
 import hashlib
 import json
 import os
-import re
 import subprocess
-import textwrap
 from pathlib import Path
 
 from lsp_acceptance import Client, position
@@ -563,21 +561,12 @@ def main():
         setattr(args, name, getattr(args, name).resolve())
     args.output.mkdir(parents=True)
     repo = Path(__file__).resolve().parents[2]
-    original = repo / "ruff/crates/ty_python_semantic/src/types/class/static_literal.rs"
-    rust_plugin = repo / "ruff/crates/ty_plugin_examples/src/minidjango.rs"
+    original = repo / "companion/tests/fixtures/sdk_contracts.json"
+    rust_plugin = repo / "crates/ty_plugin_examples/src/minidjango.rs"
     adapter = repo / "companion/tests/fixtures/sdk_minidjango/plugin.py"
-    raw = original.read_text(encoding="utf-8")
-    original150 = raw.split(
-        "fn minidjango_plugin_transforms_real_class_summary_through_semantic_hooks()", 1
-    )[1].split("fn minidjango_fixture_harness_runs_through_semantic_hooks()", 1)[0]
-    source150 = {
-        name: textwrap.dedent(text).strip() + "\n"
-        for name, text in re.findall(r'"/src/([^"]+)",\s*r#"(.*?)"#', original150, re.S)
-    }
-    resources = (
-        repo / "ruff/crates/ty_python_semantic/resources/plugin_fixtures/minidjango"
-    )
-    source151 = {p.name: p.read_text(encoding="utf-8") for p in resources.glob("*.py")}
+    catalog = json.loads(original.read_text(encoding="utf-8"))["cases"]
+    source150 = catalog["minidjango"]["150"]
+    source151 = catalog["minidjango"]["151"]
     assert (
         set(source150)
         == set(source151)
@@ -603,7 +592,14 @@ def main():
         "official_sha256": digest(args.official),
         "source_sha256": {
             str(p.relative_to(repo)): digest(p)
-            for p in [Path(__file__), adapter, original, rust_plugin]
+            for p in [
+                Path(__file__),
+                adapter,
+                original,
+                rust_plugin,
+                Path(__file__).with_name("plugin_configuration_differential.py"),
+                Path(__file__).with_name("native_rules.py"),
+            ]
         },
         "cases": [],
     }
@@ -723,15 +719,7 @@ def main():
             editor_contract(args, report, 152, source151)
             editor_scope_contract(args, report, source151)
         if not args.inventory_id or 153 in args.inventory_id:
-            block = raw.split(
-                "fn minidjango_project_index_invalidates_when_model_source_changes()", 1
-            )[1].split(
-                "fn plugin_class_summary_includes_django_like_assignment_calls()", 1
-            )[0]
-            states = [
-                textwrap.dedent(text).strip() + "\n"
-                for text in re.findall(r'r#"(.*?)"#', block, re.S)
-            ]
+            states = catalog["minidjango"]["states"]
             assert len(states) == 2
             editor_contract(
                 args, report, 153, {**source151, "models.py": states[0]}, states[1]

@@ -1,0 +1,239 @@
+{
+  "passed": true,
+  "pairs": [
+    {
+      "django": "5.0.14",
+      "python": "3.10",
+      "passed": true,
+      "contract_assertions_per_mode": 166,
+      "exact_released_diagnostics": true,
+      "runtime_contracts": 83,
+      "querydict_cases": 9,
+      "source_preserved": true,
+      "environment_cleaned": true
+    },
+    {
+      "django": "5.0.14",
+      "python": "3.11",
+      "passed": true,
+      "contract_assertions_per_mode": 166,
+      "exact_released_diagnostics": true,
+      "runtime_contracts": 83,
+      "querydict_cases": 9,
+      "source_preserved": true,
+      "environment_cleaned": true
+    },
+    {
+      "django": "5.0.14",
+      "python": "3.12",
+      "passed": true,
+      "contract_assertions_per_mode": 166,
+      "exact_released_diagnostics": true,
+      "runtime_contracts": 83,
+      "querydict_cases": 9,
+      "source_preserved": true,
+      "environment_cleaned": true
+    },
+    {
+      "django": "5.1.15",
+      "python": "3.10",
+      "passed": true,
+      "contract_assertions_per_mode": 166,
+      "exact_released_diagnostics": true,
+      "runtime_contracts": 83,
+      "querydict_cases": 9,
+      "source_preserved": true,
+      "environment_cleaned": true
+    },
+    {
+      "django": "5.1.15",
+      "python": "3.11",
+      "passed": true,
+      "contract_assertions_per_mode": 166,
+      "exact_released_diagnostics": true,
+      "runtime_contracts": 83,
+      "querydict_cases": 9,
+      "source_preserved": true,
+      "environment_cleaned": true
+    },
+    {
+      "django": "5.1.15",
+      "python": "3.12",
+      "passed": true,
+      "contract_assertions_per_mode": 166,
+      "exact_released_diagnostics": true,
+      "runtime_contracts": 83,
+      "querydict_cases": 9,
+      "source_preserved": true,
+      "environment_cleaned": true
+    },
+    {
+      "django": "5.1.15",
+      "python": "3.13",
+      "passed": true,
+      "contract_assertions_per_mode": 166,
+      "exact_released_diagnostics": true,
+      "runtime_contracts": 83,
+      "querydict_cases": 9,
+      "source_preserved": true,
+      "environment_cleaned": true
+    },
+    {
+      "django": "5.2.17",
+      "python": "3.10",
+      "passed": true,
+      "contract_assertions_per_mode": 166,
+      "exact_released_diagnostics": true,
+      "runtime_contracts": 83,
+      "querydict_cases": 9,
+      "source_preserved": true,
+      "environment_cleaned": true
+    },
+    {
+      "django": "5.2.17",
+      "python": "3.11",
+      "passed": true,
+      "contract_assertions_per_mode": 166,
+      "exact_released_diagnostics": true,
+      "runtime_contracts": 83,
+      "querydict_cases": 9,
+      "source_preserved": true,
+      "environment_cleaned": true
+    },
+    {
+      "django": "5.2.17",
+      "python": "3.12",
+      "passed": true,
+      "contract_assertions_per_mode": 166,
+      "exact_released_diagnostics": true,
+      "runtime_contracts": 83,
+      "querydict_cases": 9,
+      "source_preserved": true,
+      "environment_cleaned": true
+    },
+    {
+      "django": "5.2.17",
+      "python": "3.13",
+      "passed": true,
+      "contract_assertions_per_mode": 166,
+      "exact_released_diagnostics": true,
+      "runtime_contracts": 83,
+      "querydict_cases": 9,
+      "source_preserved": true,
+      "environment_cleaned": true
+    },
+    {
+      "django": "5.2.17",
+      "python": "3.14",
+      "passed": true,
+      "contract_assertions_per_mode": 166,
+      "exact_released_diagnostics": true,
+      "runtime_contracts": 83,
+      "querydict_cases": 9,
+      "source_preserved": true,
+      "environment_cleaned": true
+    },
+    {
+      "django": "6.0.8",
+      "python": "3.12",
+      "passed": true,
+      "contract_assertions_per_mode": 166,
+      "exact_released_diagnostics": true,
+      "runtime_contracts": 83,
+      "querydict_cases": 9,
+      "source_preserved": true,
+      "environment_cleaned": true
+    },
+    {
+      "django": "6.0.8",
+      "python": "3.13",
+      "passed": true,
+      "contract_assertions_per_mode": 166,
+      "exact_released_diagnostics": true,
+      "runtime_contracts": 83,
+      "querydict_cases": 9,
+      "source_preserved": true,
+      "environment_cleaned": true
+    },
+    {
+      "django": "6.0.8",
+      "python": "3.14",
+      "passed": true,
+      "contract_assertions_per_mode": 166,
+      "exact_released_diagnostics": true,
+      "runtime_contracts": 83,
+      "querydict_cases": 9,
+      "source_preserved": true,
+      "environment_cleaned": true
+    },
+    {
+      "django": "6.1.1",
+      "python": "3.12",
+      "passed": true,
+      "contract_assertions_per_mode": 166,
+      "exact_released_diagnostics": true,
+      "runtime_contracts": 83,
+      "querydict_cases": 9,
+      "source_preserved": true,
+      "environment_cleaned": true
+    },
+    {
+      "django": "6.1.1",
+      "python": "3.13",
+      "passed": true,
+      "contract_assertions_per_mode": 166,
+      "exact_released_diagnostics": true,
+      "runtime_contracts": 83,
+      "querydict_cases": 9,
+      "source_preserved": true,
+      "environment_cleaned": true
+    },
+    {
+      "django": "6.1.1",
+      "python": "3.14",
+      "passed": true,
+      "contract_assertions_per_mode": 166,
+      "exact_released_diagnostics": true,
+      "runtime_contracts": 83,
+      "querydict_cases": 9,
+      "source_preserved": true,
+      "environment_cleaned": true
+    },
+    {
+      "django": "6.1.3",
+      "python": "3.12",
+      "passed": true,
+      "contract_assertions_per_mode": 166,
+      "exact_released_diagnostics": true,
+      "runtime_contracts": 83,
+      "querydict_cases": 9,
+      "source_preserved": true,
+      "environment_cleaned": true
+    },
+    {
+      "django": "6.1.3",
+      "python": "3.13",
+      "passed": true,
+      "contract_assertions_per_mode": 166,
+      "exact_released_diagnostics": true,
+      "runtime_contracts": 83,
+      "querydict_cases": 9,
+      "source_preserved": true,
+      "environment_cleaned": true
+    },
+    {
+      "django": "6.1.3",
+      "python": "3.14",
+      "passed": true,
+      "contract_assertions_per_mode": 166,
+      "exact_released_diagnostics": true,
+      "runtime_contracts": 83,
+      "querydict_cases": 9,
+      "source_preserved": true,
+      "environment_cleaned": true
+    }
+  ],
+  "binary_sha256": "ca58d581e05ea60333c8955443511382ab317d070cc3751b2c67c7379482ded1",
+  "wheel_sha256": "215835f97e3816568ce026a5f8891d7d0f07140928ba56c5c5c5e1d3df4d92a9",
+  "qualification": "Installed candidate Django wheel with explicit development companion binary; no new MyPy comparison"
+}

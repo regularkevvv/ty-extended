@@ -273,6 +273,26 @@ pub fn project_with_return_types(
     returns: &ReturnPatches,
     raw_returns: &BTreeMap<Span, Value>,
 ) -> Result<FlowResult> {
+    if runtime.use_site_fields
+        && runtime.project.is_some()
+        && analysis.classes.is_empty()
+        && analysis.calls.is_empty()
+        && analysis.expression_probes.is_empty()
+        && analysis.annotated_casts.is_empty()
+        && analysis.metadata_probes.is_empty()
+        && returns.is_empty()
+        && raw_returns.is_empty()
+    {
+        // No plugin-observable object operation exists in this unit. Its
+        // ordinary Python diagnostics still come from the complete native check.
+        analysis.required_expression_probes = Some(BTreeSet::new());
+        return Ok(FlowResult {
+            edits: Edits::default(),
+            diagnostics: Vec::new(),
+            type_prelude: String::new(),
+            type_names: BTreeMap::new(),
+        });
+    }
     for call in analysis.calls.values_mut() {
         call.flow_receiver_type = None;
         for argument in &mut call.arguments {
@@ -522,12 +542,14 @@ impl Project<'_> {
                     return Ok(());
                 }
                 let initial = scope.clone();
+                self.narrow_member_condition(scope, &branch.test, true)?;
                 self.body(scope, &branch.body)?;
                 let left = scope.clone();
                 *scope = initial;
+                self.narrow_member_condition(scope, &branch.test, false)?;
                 self.else_clauses(scope, &branch.elif_else_clauses)?;
                 let right = scope.clone();
-                self.join(scope, left, right);
+                self.join(scope, left, right)?;
             }
             Stmt::Match(statement) if self.runtime.project.is_some() => {
                 self.expr(scope, &statement.subject)?;
@@ -543,7 +565,7 @@ impl Project<'_> {
                         // failure retains effects from evaluating the guard.
                         let failed_guard = branch.clone();
                         let failed_pattern = unmatched.clone();
-                        self.join(&mut unmatched, failed_pattern, failed_guard);
+                        self.join(&mut unmatched, failed_pattern, failed_guard)?;
                     }
                     self.body(&mut branch, &case.body)?;
                     branches.push(branch);
@@ -559,7 +581,7 @@ impl Project<'_> {
                     *scope = first;
                     for branch in branches {
                         let previous = scope.clone();
-                        self.join(scope, previous, branch);
+                        self.join(scope, previous, branch)?;
                     }
                 }
             }
@@ -586,6 +608,7 @@ impl Project<'_> {
                     let mut failed = scope.clone();
                     self.expr(&mut failed, value)?;
                 }
+                self.narrow_member_condition(scope, &assert.test, true)?;
             }
             Stmt::Try(attempt) if self.runtime.project.is_some() => {
                 let before = scope.clone();
@@ -604,7 +627,7 @@ impl Project<'_> {
                     }
                     self.body(&mut exceptional, &handler.body)?;
                     let previous = successful.clone();
-                    self.join(&mut successful, previous, exceptional);
+                    self.join(&mut successful, previous, exceptional)?;
                 }
                 *scope = successful;
                 let terminated = scope.terminated;
@@ -620,7 +643,7 @@ impl Project<'_> {
                 self.body(scope, &loop_.body)?;
                 let mut executed = scope.clone();
                 executed.terminated = false;
-                self.join(scope, initial, executed);
+                self.join(scope, initial, executed)?;
                 scope.terminated = false;
                 scope.invalidate();
                 self.loop_else(scope, &loop_.orelse)?;
@@ -632,7 +655,7 @@ impl Project<'_> {
                 self.body(scope, &loop_.body)?;
                 let mut executed = scope.clone();
                 executed.terminated = false;
-                self.join(scope, initial, executed);
+                self.join(scope, initial, executed)?;
                 scope.terminated = false;
                 scope.invalidate();
                 self.loop_else(scope, &loop_.orelse)?;
@@ -715,7 +738,7 @@ impl Project<'_> {
         let skipped = scope.clone();
         self.body(scope, suite)?;
         let executed = scope.clone();
-        self.join(scope, skipped, executed);
+        self.join(scope, skipped, executed)?;
         // The fork resets member facts at every loop boundary, including the
         // zero-iteration path. The checker still owns exact reachability.
         scope.invalidate();
@@ -783,7 +806,7 @@ impl Project<'_> {
                     *scope = first;
                     for branch in branches {
                         let previous = scope.clone();
-                        self.join(scope, previous, branch);
+                        self.join(scope, previous, branch)?;
                     }
                 }
             }
@@ -876,7 +899,7 @@ impl Project<'_> {
                         // even when flow already knows this projected type.
                         self.required_probes.insert(span(target.value.as_ref()));
                     }
-                    let setter = self
+                    let mut setter = self
                         .runtime
                         .project_patches
                         .get(class)
@@ -888,6 +911,22 @@ impl Project<'_> {
                         })
                         .and_then(|field| field.get("instance-set-type"))
                         .cloned();
+                    if setter.is_none() && self.runtime.use_site_fields {
+                        let existing = self.member_type(&owner, target.attr.as_str(), false);
+                        let response = self.runtime.resolve_member(
+                            self.source,
+                            &owner,
+                            target.attr.as_str(),
+                            false,
+                            existing.as_ref(),
+                        )?;
+                        if response["kind"] == "member-patch"
+                            && response["access"]["kind"] == "descriptor"
+                            && (response["mode"] == "replace-existing" || existing.is_none())
+                        {
+                            setter = response["access"].get("instance-set-type").cloned();
+                        }
+                    }
                     if let Some(setter) = setter {
                         // Native class-transform setters are checked on the
                         // receiver's own class before ordinary assignment.
@@ -897,7 +936,12 @@ impl Project<'_> {
                             .set_self_context(Some(self.runtime.qualified_type_expr(&owner)));
                         let setter = self.types.render(&setter)?;
                         self.types.set_self_context(previous);
-                        let helper = format!("{}setter_{}", self.source.prefix, span(target).start);
+                        let helper = format!(
+                            "{}setter_{}_{}",
+                            self.source.prefix,
+                            span(target).start,
+                            span(target).end
+                        );
                         self.runtime.set_projected_receiver(
                             format!("{}.{}", self.source.module, helper),
                             owner,
@@ -951,12 +995,14 @@ impl Project<'_> {
                     return Ok(());
                 }
                 let initial = scope.clone();
+                self.narrow_member_condition(scope, test, true)?;
                 self.body(scope, &clause.body)?;
                 let left = scope.clone();
                 *scope = initial;
+                self.narrow_member_condition(scope, test, false)?;
                 self.else_clauses(scope, rest)?;
                 let right = scope.clone();
-                self.join(scope, left, right);
+                self.join(scope, left, right)?;
             } else {
                 self.body(scope, &clause.body)?;
             }
@@ -964,14 +1010,120 @@ impl Project<'_> {
         Ok(())
     }
 
-    fn join(&mut self, scope: &mut Scope, mut left: Scope, mut right: Scope) {
+    /// Native narrowing cannot relate separate receiver-view casts. Preserve
+    /// a direct None check on a projected instance member as a scoped fact,
+    /// using the same joins and mutation invalidation as method postconditions.
+    fn narrow_member_condition(
+        &mut self,
+        scope: &mut Scope,
+        test: &Expr,
+        truthy: bool,
+    ) -> Result<()> {
+        if !self.runtime.use_site_fields {
+            return Ok(());
+        }
+        let Expr::Compare(compare) = test else {
+            return Ok(());
+        };
+        let [operator] = compare.ops.as_ref() else {
+            return Ok(());
+        };
+        let [left, right] = compare.operands.as_ref() else {
+            return Ok(());
+        };
+        let attribute = match (left, right) {
+            (Expr::Attribute(attribute), Expr::NoneLiteral(_))
+            | (Expr::NoneLiteral(_), Expr::Attribute(attribute)) => attribute,
+            _ => return Ok(()),
+        };
+        let is_none = match operator {
+            ruff_python_ast::CmpOp::Is => truthy,
+            ruff_python_ast::CmpOp::IsNot => !truthy,
+            _ => return Ok(()),
+        };
+        // Only an already evaluated, tracked receiver can carry a stable fact.
+        let Some(identity) = scope.identity(&attribute.value) else {
+            return Ok(());
+        };
+        let owner = &scope.types[&identity];
+        if matches!(
+            crate::runtime::generic_parts(owner).0,
+            "type" | "builtins.type"
+        ) {
+            return Ok(());
+        }
+        let member = attribute.attr.as_str();
+        let existing = self.member_type(owner, member, false);
+        let response =
+            self.runtime
+                .resolve_member(self.source, owner, member, false, existing.as_ref())?;
+        if response["kind"] != "member-patch"
+            || (response["mode"] != "replace-existing" && existing.is_some())
+        {
+            return Ok(());
+        }
+        let access = &response["access"];
+        let value = scope
+            .facts
+            .get(&identity)
+            .and_then(|facts| facts.get(member))
+            .or_else(|| match access["kind"].as_str() {
+                Some("value") => access.get("type-expr"),
+                Some("descriptor") => access.get("instance-get-type"),
+                _ => None,
+            });
+        let Some(value) = value else {
+            return Ok(());
+        };
+        let snapshot = value.get("snapshot").cloned().unwrap_or_else(|| {
+            crate::type_snapshot::from_annotation(
+                value["expression"].as_str().unwrap_or("object"),
+                &|_| None,
+            )
+        });
+        let Some(elements) = snapshot
+            .get("elements")
+            .and_then(Value::as_array)
+            .filter(|_| snapshot["kind"] == "union")
+        else {
+            return Ok(());
+        };
+        let none = |element: &Value| {
+            element["qualified-name"] == "types.NoneType"
+                || (element["kind"] == "expression" && element["expression"] == "None")
+        };
+        if !elements.iter().any(none) {
+            return Ok(());
+        }
+        let retained: Vec<_> = elements
+            .iter()
+            .filter(|element| none(element) == is_none)
+            .cloned()
+            .collect();
+        let narrowed = match retained.as_slice() {
+            [] => return Ok(()),
+            [single] => single.clone(),
+            _ => json!({"kind":"union","elements":retained}),
+        };
+        let mut value = value.clone();
+        value["expression"] = json!(crate::type_snapshot::qualified_expression(
+            &narrowed,
+            value["expression"].as_str().unwrap_or("object"),
+            Some(&self.source.module)
+        ));
+        value["snapshot"] = narrowed;
+        Arc::make_mut(scope.facts.entry(identity).or_default()).insert(member.to_owned(), value);
+        Ok(())
+    }
+
+    fn join(&mut self, scope: &mut Scope, mut left: Scope, mut right: Scope) -> Result<()> {
         if left.terminated {
             *scope = right;
-            return;
+            return Ok(());
         }
         if right.terminated {
             *scope = left;
-            return;
+            return Ok(());
         }
         // Different allocations on the two branches can still establish the
         // same facts and alias relationship. Pair identities, rather than
@@ -1058,11 +1210,32 @@ impl Project<'_> {
                     .flat_map(|facts| facts.keys())
                     .filter(|member| first.is_none_or(|facts| !facts.contains_key(*member))),
             ) {
-                let default = self
+                let mut default = self
                     .runtime
                     .default_member_expr(&scope.types[identity], member)
-                    .or_else(|| defaults.and_then(|fields| fields.get(member)).map(typ))
-                    .unwrap_or_else(|| typ("object"));
+                    .or_else(|| defaults.and_then(|fields| fields.get(member)).map(typ));
+                if self.runtime.use_site_fields {
+                    let owner = &scope.types[identity];
+                    let existing = self.member_type(owner, member, false);
+                    let response = self.runtime.resolve_member(
+                        self.source,
+                        owner,
+                        member,
+                        false,
+                        existing.as_ref(),
+                    )?;
+                    if response["kind"] == "member-patch"
+                        && (response["mode"] == "replace-existing" || existing.is_none())
+                    {
+                        let access = &response["access"];
+                        default = match access["kind"].as_str() {
+                            Some("value") => access.get("type-expr").cloned(),
+                            Some("descriptor") => access.get("instance-get-type").cloned(),
+                            _ => default,
+                        };
+                    }
+                }
+                let default = default.unwrap_or_else(|| typ("object"));
                 let mut types = [
                     first
                         .and_then(|facts| facts.get(member))
@@ -1095,6 +1268,7 @@ impl Project<'_> {
             }
             scope.facts.insert(*identity, Arc::new(facts));
         }
+        Ok(())
     }
 
     fn member_type(&self, owner: &str, member: &str, class_access: bool) -> Option<Value> {
@@ -1128,15 +1302,69 @@ impl Project<'_> {
         if let Some(identity) = scope.identity(expr) {
             return Some(identity);
         }
+        if self.runtime.use_site_fields {
+            let mut root = expr;
+            while let Expr::Attribute(attribute) = root {
+                root = &attribute.value;
+            }
+            if let Expr::Name(name) = root
+                && !scope.shadowed.contains(name.id.as_str())
+                && !scope.external_names.contains(name.id.as_str())
+                && let Some(project) = self.runtime.project.as_ref()
+                && project
+                    .modules
+                    .get(&self.source.module)
+                    .is_some_and(|module| module.imports.contains_key(name.id.as_str()))
+            {
+                let symbol =
+                    project.canonical_name(&self.source.module, self.source.slice(span(expr)));
+                // Module receivers cannot claim nominal instance hooks. Their
+                // imported identity needs no repeated native reveal. A local
+                // binding or an ambiguous class/module keeps the oracle path.
+                if project.modules.contains_key(&symbol) && !project.classes.contains_key(&symbol) {
+                    return None;
+                }
+            }
+        }
         let known = if let Expr::Attribute(attribute) = expr {
-            self.identity(scope, &attribute.value).and_then(|identity| {
-                let owner = &scope.types[&identity];
-                let (nominal, _) = crate::runtime::generic_parts(owner);
-                self.member_type(
-                    owner,
-                    attribute.attr.as_str(),
-                    matches!(nominal, "type" | "builtins.type"),
-                )
+            // An imported class is an attribute of a module, whose identity is
+            // deliberately not tracked as an object. Resolve that class before
+            // consulting native display strings such as `type[Record]`: those
+            // lose the module needed by a subsequent generic member patch.
+            let mut root = expr;
+            while let Expr::Attribute(attribute) = root {
+                root = &attribute.value;
+            }
+            let class = if matches!(root, Expr::Name(name) if !scope.shadowed.contains(name.id.as_str()))
+                && scope.identity(root).is_none()
+            {
+                self.runtime.project.as_ref().and_then(|project| {
+                    let symbol =
+                        project.canonical_name(&self.source.module, self.source.slice(span(expr)));
+                    project
+                        .class_summary(&symbol)
+                        .map(|_| typ(format!("type[{symbol}]")))
+                })
+            } else {
+                None
+            };
+            class.or_else(|| {
+                self.identity(scope, &attribute.value).and_then(|identity| {
+                    let owner = &scope.types[&identity];
+                    let (nominal, _) = crate::runtime::generic_parts(owner);
+                    scope
+                        .facts
+                        .get(&identity)
+                        .and_then(|facts| facts.get(attribute.attr.as_str()))
+                        .cloned()
+                        .or_else(|| {
+                            self.member_type(
+                                owner,
+                                attribute.attr.as_str(),
+                                matches!(nominal, "type" | "builtins.type"),
+                            )
+                        })
+                })
             })
         } else if matches!(expr, Expr::Name(name) if scope.shadowed.contains(name.id.as_str()))
             || matches!(expr, Expr::Call(_) if !self.analysis.calls.contains_key(&span(expr)))
@@ -1508,7 +1736,7 @@ impl Project<'_> {
             let skipped = scope.clone();
             self.boolean_values(scope, operator, rest)?;
             let executed = scope.clone();
-            self.join(scope, skipped, executed);
+            self.join(scope, skipped, executed)?;
         }
         Ok(())
     }
@@ -1528,6 +1756,7 @@ impl Project<'_> {
                 // when they need it; an unrelated import receiver does not.
                 if self.runtime.manifest["capabilities"]["class-member"] != true
                     && self.runtime.manifest["capabilities"]["instance-member"] != true
+                    && !self.runtime.has_use_site_fields()
                     && scope.identity(&attribute.value).is_none()
                 {
                     return Ok(());
@@ -1566,8 +1795,14 @@ impl Project<'_> {
                         {
                             return Ok(());
                         }
-                        let helper =
-                            format!("{}member_{}", self.source.prefix, span(attribute).start);
+                        // Nested attributes share their starting offset. Each
+                        // receiver view needs its own name and owner identity.
+                        let helper = format!(
+                            "{}member_{}_{}",
+                            self.source.prefix,
+                            span(attribute).start,
+                            span(attribute).end
+                        );
                         self.runtime.set_projected_receiver(
                             format!("{}.{}", self.source.module, helper),
                             owner.clone(),
@@ -1596,6 +1831,52 @@ impl Project<'_> {
                     }
                 }
                 if let Some(expression) = expression {
+                    if self.runtime.use_site_fields && !class_access {
+                        // A postcondition refines the value, while a member
+                        // hook can declare a field absent from native lookup.
+                        // Project that receiver too; a result cast alone leaves
+                        // the native missing-attribute diagnostic intact.
+                        let existing = self.member_type(&owner, member, false);
+                        let declared = self.runtime.resolve_member(
+                            self.source,
+                            &owner,
+                            member,
+                            false,
+                            existing.as_ref(),
+                        )?;
+                        if declared["kind"] == "member-patch"
+                            && declared["name"] == member
+                            && (declared["mode"] == "replace-existing" || existing.is_none())
+                        {
+                            let helper = format!(
+                                "{}state_member_{}_{}",
+                                self.source.prefix,
+                                span(attribute).start,
+                                span(attribute).end
+                            );
+                            self.runtime.set_projected_receiver(
+                                format!("{}.{}", self.source.module, helper),
+                                owner.clone(),
+                            );
+                            let previous_self = self
+                                .types
+                                .set_self_context(Some(self.runtime.qualified_type_expr(&owner)));
+                            let resolved = self.types.render(&expression)?;
+                            self.types.set_self_context(previous_self);
+                            let typing = self.types.typing_alias();
+                            self.types.definitions.push_str(&format!(
+                                "class {helper}({typing}.Protocol):\n    {member}: {resolved}\n"
+                            ));
+                            self.result.edits.wrap(
+                                span(attribute.value.as_ref()),
+                                format!("{}({helper}, ", self.source.cast_name()),
+                                ")".into(),
+                                None,
+                            );
+                            self.result.edits.annotate_type(span(attribute), resolved);
+                            return Ok(());
+                        }
+                    }
                     let previous_self = self
                         .types
                         .set_self_context(Some(self.runtime.qualified_type_expr(&owner)));
@@ -1639,12 +1920,14 @@ impl Project<'_> {
                     return Ok(());
                 }
                 let initial = scope.clone();
+                self.narrow_member_condition(scope, &branch.test, true)?;
                 self.expr(scope, &branch.body)?;
                 let left = scope.clone();
                 *scope = initial;
+                self.narrow_member_condition(scope, &branch.test, false)?;
                 self.expr(scope, &branch.orelse)?;
                 let right = scope.clone();
-                self.join(scope, left, right);
+                self.join(scope, left, right)?;
             }
             Expr::BinOp(operator) => {
                 self.expr(scope, &operator.left)?;
@@ -2153,6 +2436,28 @@ mod tests {
     }
 
     #[test]
+    fn native_mode_does_not_collect_unclaimed_constructors() {
+        let mut fixture = alias_fixture("class Plain: pass\nuntouched = Plain()\n");
+        fixture.runtime.use_site_fields = true;
+        fixture.analysis =
+            crate::lower::analyze(&fixture.source, &fixture.suite, &mut fixture.runtime).unwrap();
+        assert!(
+            !fixture
+                .analysis
+                .calls
+                .values()
+                .any(|call| call.callee == "demo.Plain")
+        );
+        assert!(
+            fixture
+                .analysis
+                .constructor_calls
+                .values()
+                .any(|name| name == "demo.Plain")
+        );
+    }
+
+    #[test]
     fn unclaimed_import_receivers_do_not_require_probes_without_member_hooks() {
         let mut fixture = alias_fixture(
             "import package\nclass Container:\n    value = package.field(default=package.DEFAULT)\n",
@@ -2166,6 +2471,96 @@ mod tests {
         )
         .unwrap();
         assert!(!fixture.analysis.needs_probes());
+    }
+
+    #[test]
+    fn imported_class_members_keep_generic_provenance_and_respect_shadowing() {
+        let manifest = json!({
+            "id":"native.imported-manager","name":"Imported manager","version":"0.0.0",
+            "protocol-version":{"major":0,"minor":7},
+            "ty-compatibility":{"requirement":">=0.86.0"},
+            "runtime":{"kind":"monty","artifact":"plugin.py"},
+            "capabilities":{"call-return":true},
+            "claims":{"methods":[{"kind":"exact","class-qualified-name":"library.Manager","method-name":"get"}]}
+        });
+        let text = "import left as one\nimport right as two\none.Record.objects.get()\ntwo.Record.objects.get()\ndef aliased():\n    record = one.Record\n    record.objects.get()\ndef shadowed(one: object):\n    one.Record.objects.get()\ndef assigned():\n    one = object()\n    one.Record.objects.get()\n";
+        let mut fixture = Fixture::from_parts(text.into(), manifest.clone(), "");
+        for (module, code) in [
+            (
+                "library",
+                "class Manager[T]:\n    def get(self) -> T: ...\n",
+            ),
+            ("left", "class Record: pass\n"),
+            ("right", "class Record: pass\n"),
+        ] {
+            std::fs::write(fixture.directory.join(format!("{module}.py")), code).unwrap();
+        }
+        let indexed =
+            crate::project::Project::load(&fixture.directory, &[], &manifest, json!({})).unwrap();
+        fixture.runtime.attach_project(Arc::new(indexed), json!({}));
+        for module in ["left", "right"] {
+            fixture.runtime.set_project_patch(
+                format!("{module}.Record"),
+                json!({"kind":"class-patch","class-members":[{
+                    "name":"objects","mode":"replace-existing",
+                    "access":{"kind":"value","type-expr":typ(format!("library.Manager[{module}.Record]"))}
+                }]}),
+            );
+        }
+        fixture.analysis =
+            crate::lower::analyze(&fixture.source, &fixture.suite, &mut fixture.runtime).unwrap();
+        let mut oracle = Oracle::new();
+        for expression in [
+            "one.Record",
+            "two.Record",
+            "one.Record.objects",
+            "two.Record.objects",
+        ] {
+            let start = text.find(expression).unwrap();
+            let range = Span {
+                start,
+                end: start + expression.len(),
+            };
+            oracle.insert(
+                expression_key(range),
+                if expression.ends_with("objects") {
+                    "library.Manager[Record]".into()
+                } else {
+                    "type[Record]".into()
+                },
+            );
+        }
+        project_with_oracle(
+            &fixture.source,
+            &fixture.suite,
+            &mut fixture.analysis,
+            &mut fixture.runtime,
+            Some(&oracle),
+            &ReturnPatches::new(),
+        )
+        .unwrap();
+        let receivers: Vec<_> = fixture
+            .analysis
+            .calls
+            .values()
+            .filter(|call| {
+                fixture
+                    .source
+                    .slice(call.function)
+                    .ends_with(".objects.get")
+            })
+            .map(|call| call.flow_receiver_type.as_deref())
+            .collect();
+        assert_eq!(
+            receivers,
+            [
+                Some("library.Manager[left.Record]"),
+                Some("library.Manager[right.Record]"),
+                Some("library.Manager[left.Record]"),
+                None,
+                None,
+            ]
+        );
     }
 
     #[test]

@@ -1,6 +1,6 @@
 use crate::model::{CallSite, Oracle, Source, Span, typ};
 use crate::project::Project;
-use anyhow::{Context, Result, bail};
+use anyhow::{Context, Result, bail, ensure};
 use serde_json::{Value, json};
 use sha2::{Digest, Sha256};
 use std::{
@@ -21,11 +21,16 @@ pub struct Runtime {
     load_failures: BTreeMap<String, (String, String)>,
     plugins: Vec<Registration>,
     pub manifest: Value,
+    method_names: BTreeSet<String>,
+    method_patterns: Vec<String>,
+    function_names: BTreeSet<String>,
     pub project: Option<Arc<Project>>,
     pub config: Value,
     pub python_version: String,
     pub platform: String,
     pub project_patches: BTreeMap<String, Value>,
+    deferred_field_targets: BTreeSet<String>,
+    contribution_field_targets: BTreeSet<String>,
     pub project_contributions: Vec<Value>,
     contribution_targets: BTreeMap<String, Vec<usize>>,
     unique_class_names: BTreeMap<String, Option<String>>,
@@ -37,14 +42,25 @@ pub struct Runtime {
     pub nominal_candidates: BTreeMap<String, BTreeSet<usize>>,
     pub annotation_candidates: BTreeSet<String>,
     pub context_free_arguments: BTreeSet<(String, Span)>,
+    /// Experimental projection strategy: retain native class field bindings
+    /// and apply plugin refinements at the source accesses and calls instead.
+    pub use_site_fields: bool,
+    /// Editors need declarations for completion even before a member is typed.
+    pub eager_class_fields: bool,
     cache: RequestCache,
     type_cache: RefCell<RequestCache>,
     projection_generation: u64,
     projection_base_generation: u64,
     protocol_observations: Cell<u64>,
     pub executions: usize,
+    pub prefetched_executions: usize,
     pub hits: usize,
     pub execution_time: Duration,
+    execution_profile: Option<BTreeMap<String, (usize, Duration)>>,
+    batch_dispatches: usize,
+    batch_requests: usize,
+    batch_time: Duration,
+    batched_kinds: BTreeSet<String>,
 }
 
 #[derive(Clone)]
@@ -52,6 +68,7 @@ struct Registration {
     id: String,
     manifest: Value,
     config: Value,
+    native_member_abstentions: Option<String>,
     index: Option<Value>,
     class_indexes: BTreeMap<String, Value>,
     index_generation: u64,
@@ -60,6 +77,31 @@ struct Registration {
 }
 
 type RequestKey = [u8; 32];
+
+const SOURCE_CLASS_INDEX: &str = "__ty_companion_source_classes__";
+
+fn source_class_snapshot(request: &PluginRequest) -> Result<Option<Value>> {
+    let PluginRequest::BuildProjectIndex(request) = request else {
+        return Ok(None);
+    };
+    let mut classes = serde_json::Map::new();
+    for class in &request.classes {
+        // Normalize through the same typed serialization that the guest sees.
+        // A conservative per-class bound retains the legacy route for large
+        // declarations, well below the existing lookup response limit.
+        let value = serde_json::to_value(class)?;
+        if serde_json::to_vec(&value)?.len() > 64 * 1024 {
+            return Ok(None);
+        }
+        let Some(name) = value["qualified-name"].as_str().map(str::to_owned) else {
+            return Ok(None);
+        };
+        if classes.insert(name, value).is_some() {
+            return Ok(None);
+        }
+    }
+    Ok(Some(json!({"available":true,"classes":classes})))
+}
 
 fn type_key(
     qualified: bool,
@@ -93,7 +135,14 @@ fn request_key(value: &impl serde::Serialize) -> Result<RequestKey> {
         }
     }
     let mut writer = HashWriter(Sha256::new());
-    serde_json::to_writer(&mut writer, value)?;
+    // JSON emits many tiny fragments. Hash the same byte stream in blocks,
+    // without allocating another complete serialized project summary.
+    {
+        use std::io::Write as _;
+        let mut buffered = std::io::BufWriter::new(&mut writer);
+        serde_json::to_writer(&mut buffered, value)?;
+        buffered.flush()?;
+    }
     Ok(writer.0.finalize().into())
 }
 
@@ -184,12 +233,34 @@ fn decode_request(mut payload: Value) -> serde_json::Result<PluginRequest> {
     }
 }
 
+/// Move opaque author-owned JSON through the response encoder. The remaining
+/// protocol fields retain their derived serialization and omission rules.
+fn response_value(mut response: ty_plugin_protocol::PluginResponse) -> serde_json::Result<Value> {
+    let indexes = if let ty_plugin_protocol::PluginResponse::ProjectIndex(index) = &mut response {
+        Some((
+            index.plugin_index.take(),
+            std::mem::take(&mut index.class_indexes),
+        ))
+    } else {
+        None
+    };
+    let mut value = serde_json::to_value(response)?;
+    if let Some((index, classes)) = indexes {
+        value["plugin-index"] = index;
+        if !classes.is_empty() {
+            value["class-indexes"] = Value::Object(classes.into_iter().collect());
+        }
+    }
+    Ok(value)
+}
+
 #[derive(Default)]
 struct RequestCache {
     entries: BTreeMap<RequestKey, CachedResponse>,
     oldest: BTreeSet<(u64, RequestKey)>,
     clock: u64,
     bytes: usize,
+    oversized_skips: u64,
 }
 
 struct CachedResponse {
@@ -201,6 +272,10 @@ struct CachedResponse {
 impl RequestCache {
     const MAX_ENTRIES: usize = 8192;
     const MAX_BYTES: usize = 64 * 1024 * 1024;
+    // A project index can outweigh thousands of class results. Admitting it
+    // between sequential class scans can evict every reusable class response.
+    // The response is still consumed normally; only memoization is declined.
+    const MAX_ENTRY_BYTES: usize = Self::MAX_BYTES / 4;
 
     fn clear(&mut self) {
         *self = Self::default();
@@ -231,7 +306,8 @@ impl RequestCache {
                 }
         }
         let bytes = weight(value) + std::mem::size_of::<CachedResponse>() + 128;
-        if bytes > Self::MAX_BYTES {
+        if bytes > Self::MAX_ENTRY_BYTES {
+            self.oversized_skips += 1;
             return;
         }
         if let Some(previous) = self.entries.remove(&key) {
@@ -258,7 +334,205 @@ impl RequestCache {
     }
 }
 
+/// Apply an author's explicit project-index input selection to this plugin's
+/// private request. Other plugins and the source project retain complete data.
+fn select_project_inputs(request: &mut Value, config: &Value) -> Result<()> {
+    let Some(profile) = config
+        .get("companion-project-inputs")
+        .filter(|value| !value.is_null())
+    else {
+        return Ok(());
+    };
+    let object = profile
+        .as_object()
+        .context("companion-project-inputs must be an object")?;
+    for key in object.keys() {
+        if !matches!(
+            key.as_str(),
+            "assignment-kinds"
+                | "class-source"
+                | "field-call-keywords"
+                | "field-call-argument-source"
+                | "overlay-index"
+        ) {
+            bail!("unknown companion-project-inputs option: {key}");
+        }
+    }
+    fn strings(profile: &Value, key: &str) -> Result<Option<BTreeSet<String>>> {
+        profile
+            .get(key)
+            .map(|value| {
+                value
+                    .as_array()
+                    .with_context(|| format!("{key} must be an array"))?
+                    .iter()
+                    .map(|value| {
+                        value
+                            .as_str()
+                            .map(str::to_owned)
+                            .with_context(|| format!("{key} must contain strings"))
+                    })
+                    .collect()
+            })
+            .transpose()
+    }
+    let assignment_kinds = strings(profile, "assignment-kinds")?;
+    if let Some(kinds) = &assignment_kinds {
+        for kind in kinds {
+            if !matches!(
+                kind.as_str(),
+                "call" | "literal" | "name" | "attribute" | "other"
+            ) {
+                bail!("unknown assignment kind: {kind}");
+            }
+        }
+    }
+    let keywords = strings(profile, "field-call-keywords")?;
+    if let Some(mode) = profile.get("overlay-index")
+        && !matches!(mode.as_str(), Some("complete" | "imports"))
+    {
+        bail!("overlay-index must be complete or imports");
+    }
+    let keep_source = profile
+        .get("class-source")
+        .map(|value| value.as_bool().context("class-source must be a boolean"))
+        .transpose()?
+        .unwrap_or(true);
+    let keep_argument_source = profile
+        .get("field-call-argument-source")
+        .map(|value| {
+            value
+                .as_bool()
+                .context("field-call-argument-source must be a boolean")
+        })
+        .transpose()?
+        .unwrap_or(true);
+    if let Some(kinds) = assignment_kinds
+        && let Some(assignments) = request.get_mut("assignments").and_then(Value::as_array_mut)
+    {
+        assignments.retain(|assignment| {
+            assignment
+                .pointer("/assigned-value/kind")
+                .and_then(Value::as_str)
+                .is_none_or(|kind| {
+                    // Selection must not hide malformed host input from the
+                    // typed protocol decoder.
+                    !matches!(kind, "call" | "literal" | "name" | "attribute" | "other")
+                        || kinds.contains(kind)
+                })
+        });
+    }
+    fn class_inputs(
+        class: &mut Value,
+        keep_source: bool,
+        keywords: Option<&BTreeSet<String>>,
+        keep_argument_source: bool,
+    ) {
+        if !keep_source && let Some(class) = class.as_object_mut() {
+            class.remove("source");
+        }
+        for field in class
+            .get_mut("fields")
+            .and_then(Value::as_array_mut)
+            .into_iter()
+            .flatten()
+        {
+            let Some(call) = field.get_mut("assigned-value") else {
+                continue;
+            };
+            if call["kind"] == "call"
+                && let Some(arguments) = call.get_mut("arguments").and_then(Value::as_array_mut)
+            {
+                if let Some(keywords) = keywords {
+                    arguments.retain(|argument| {
+                        argument["kind"] != "keyword"
+                            || argument["name"]
+                                .as_str()
+                                .is_none_or(|name| keywords.contains(name))
+                    });
+                }
+                if !keep_argument_source {
+                    for argument in arguments {
+                        if let Some(argument) = argument.as_object_mut() {
+                            argument.remove("source");
+                        }
+                    }
+                }
+            }
+        }
+        for nested in class
+            .get_mut("nested-classes")
+            .and_then(Value::as_array_mut)
+            .into_iter()
+            .flatten()
+        {
+            class_inputs(nested, keep_source, keywords, keep_argument_source);
+        }
+    }
+    for class in request
+        .get_mut("classes")
+        .and_then(Value::as_array_mut)
+        .into_iter()
+        .flatten()
+    {
+        class_inputs(class, keep_source, keywords.as_ref(), keep_argument_source);
+    }
+    Ok(())
+}
+
+fn early_return_method(config: &Value, method: &str) -> Result<bool> {
+    configured_return_method(config, "companion-early-call-returns", method)
+}
+
+fn configured_return_method(config: &Value, key: &str, method: &str) -> Result<bool> {
+    let Some(profile) = config.get(key) else {
+        return Ok(false);
+    };
+    let methods = profile
+        .as_array()
+        .with_context(|| format!("{key} must be an array"))?;
+    let mut selected = false;
+    for value in methods {
+        let name = value
+            .as_str()
+            .with_context(|| format!("{key} must contain method names"))?;
+        ensure!(!name.is_empty(), "{key} requires nonempty method names");
+        selected |= name == method;
+    }
+    Ok(selected)
+}
+
 impl Runtime {
+    pub fn project_call_assignments_only(&self) -> Result<bool> {
+        if !self.use_site_fields || self.plugins.is_empty() {
+            return Ok(false);
+        }
+        let mut calls_only = true;
+        for plugin in &self.plugins {
+            select_project_inputs(&mut json!({}), &plugin.config)?;
+            // Dependency hooks receive assignment summaries independently of
+            // the project-index input selector, so keep their complete input.
+            calls_only &= plugin.config["companion-project-inputs"]["assignment-kinds"]
+                == json!(["call"])
+                && plugin.manifest["capabilities"]["additional-dependencies"] != true;
+        }
+        Ok(calls_only)
+    }
+
+    pub fn sparse_overlay_index(&self) -> Result<bool> {
+        if !self.use_site_fields || self.plugins.is_empty() {
+            return Ok(false);
+        }
+        let mut sparse = true;
+        for plugin in &self.plugins {
+            // Validate every selection before indexing. One plugin requiring
+            // complete syntax keeps the shared host index complete for all.
+            select_project_inputs(&mut json!({}), &plugin.config)?;
+            sparse &= plugin.config["companion-project-inputs"]["overlay-index"] == "imports";
+        }
+        Ok(sparse)
+    }
+
     pub fn new(manifest_path: &Path, plugin_path: &Path) -> Result<Self> {
         Self::from_plugins(&[(
             manifest_path.to_path_buf(),
@@ -281,6 +555,69 @@ impl Runtime {
                 .cloned()
                 .unwrap_or(json!({}));
             merge_config(&mut config, overrides);
+            if let Some(value) = config
+                .get("companion-native-fields")
+                .filter(|v| !v.is_null())
+            {
+                ensure!(
+                    value.is_boolean(),
+                    "companion-native-fields must be a boolean"
+                );
+            }
+            if let Some(value) = config
+                .get("companion-parallel-calls")
+                .filter(|v| !v.is_null())
+            {
+                ensure!(
+                    value.is_boolean(),
+                    "companion-parallel-calls must be a boolean"
+                );
+            }
+            if let Some(value) = config.get("companion-native-cli").filter(|v| !v.is_null()) {
+                ensure!(value.is_boolean(), "companion-native-cli must be a boolean");
+            }
+            if let Some(value) = config
+                .get("companion-early-project-contributions")
+                .filter(|v| !v.is_null())
+            {
+                ensure!(
+                    value.is_boolean(),
+                    "companion-early-project-contributions must be a boolean"
+                );
+            }
+            if let Some(value) = config
+                .get("companion-stateless-call-batches")
+                .filter(|v| !v.is_null())
+            {
+                ensure!(
+                    value.is_boolean(),
+                    "companion-stateless-call-batches must be a boolean"
+                );
+            }
+            if let Some(value) = config
+                .get("companion-source-class-lookups")
+                .filter(|value| !value.is_null())
+            {
+                ensure!(
+                    value.is_boolean() || value.as_u64().is_some(),
+                    "companion-source-class-lookups must be a boolean or a nonnegative minimum class count"
+                );
+            }
+            declared_third_party_overlays(&config)?;
+            let native_member_abstentions = config
+                .get("companion-native-member-abstentions")
+                .filter(|value| !value.is_null())
+                .map(|value| {
+                    let key = value.as_str().context(
+                        "companion-native-member-abstentions must name an index property",
+                    )?;
+                    ensure!(
+                        !key.is_empty(),
+                        "companion-native-member-abstentions requires a nonempty index property"
+                    );
+                    Ok::<_, anyhow::Error>(key.to_owned())
+                })
+                .transpose()?;
             match std::fs::read(plugin_path) {
                 Ok(bytes) => {
                     if let Err(error) = runner.add_plugin(&manifest.id, bytes) {
@@ -307,6 +644,7 @@ impl Runtime {
                 id: manifest.id.clone(),
                 manifest: manifest_value,
                 config,
+                native_member_abstentions,
                 index: None,
                 class_indexes: BTreeMap::new(),
                 index_generation: 0,
@@ -315,8 +653,8 @@ impl Runtime {
             });
             manifests.push(manifest);
         }
-        // The fork creates its semantic environment from the host's BTreeMap,
-        // so first-claim and first-field precedence are lexical plugin-id order.
+        // Preserve lexical plugin-id order for first-claim and first-field
+        // precedence across registered plugins.
         plugins.sort_by(|left, right| left.id.cmp(&right.id));
         let environment = PluginEnvironment::from_manifests(manifests)?;
         let mut manifest_value = plugins
@@ -370,6 +708,48 @@ impl Runtime {
         if !settings.is_empty() {
             manifest_value["claims"]["settings"] = json!(settings);
         }
+        for plugin in &plugins {
+            early_return_method(&plugin.config, "")?;
+        }
+        let mut method_names = BTreeSet::new();
+        let mut method_patterns = Vec::new();
+        let mut function_names = BTreeSet::new();
+        for claim in manifest_value["claims"]["methods"]
+            .as_array()
+            .into_iter()
+            .flatten()
+        {
+            if let Some(name) = claim["method-name"].as_str() {
+                method_names.insert(name.to_owned());
+            }
+            if let Some(pattern) = claim["method-name-pattern"].as_str() {
+                method_patterns.push(pattern.to_owned());
+            }
+        }
+        for claim in manifest_value["claims"]["functions"]
+            .as_array()
+            .into_iter()
+            .flatten()
+        {
+            if let Some(name) = claim["qualified-name"].as_str() {
+                function_names.insert(name.to_owned());
+                if let Some((_, method)) = name.rsplit_once('.') {
+                    method_names.insert(method.to_owned());
+                }
+            }
+        }
+        // An author can select native field handling for ordinary consumers.
+        // Mixed registrations retain the general strategy unless every plugin
+        // opts in. An explicit environment value still selects either route.
+        let native_fields = std::env::var_os("TY_COMPANION_NATIVE_FIELDS").map_or_else(
+            || {
+                !plugins.is_empty()
+                    && plugins
+                        .iter()
+                        .all(|plugin| plugin.config["companion-native-fields"] == true)
+            },
+            |value| value == "1",
+        );
         Ok(Self {
             host: PluginHost::new(environment, runner),
             load_failures,
@@ -386,8 +766,13 @@ impl Runtime {
             }
             .into(),
             manifest: manifest_value,
+            method_names,
+            method_patterns,
+            function_names,
             project: None,
             project_patches: BTreeMap::new(),
+            deferred_field_targets: BTreeSet::new(),
+            contribution_field_targets: BTreeSet::new(),
             project_contributions: Vec::new(),
             contribution_targets: BTreeMap::new(),
             unique_class_names: BTreeMap::new(),
@@ -399,15 +784,56 @@ impl Runtime {
             nominal_candidates: BTreeMap::new(),
             annotation_candidates: BTreeSet::new(),
             context_free_arguments: BTreeSet::new(),
+            use_site_fields: native_fields,
+            eager_class_fields: false,
             cache: RequestCache::default(),
             type_cache: RefCell::default(),
             projection_generation: 0,
             projection_base_generation: 0,
             protocol_observations: Cell::new(0),
             executions: 0,
+            prefetched_executions: 0,
             hits: 0,
             execution_time: Duration::ZERO,
+            batch_dispatches: 0,
+            batch_requests: 0,
+            batch_time: Duration::ZERO,
+            batched_kinds: BTreeSet::new(),
+            execution_profile: std::env::var_os("TY_COMPANION_TRACE_PHASES")
+                .map(|_| BTreeMap::new()),
         })
+    }
+
+    /// Every registered plugin must agree before bypassing a native stdlib
+    /// lookup. A custom typeshed always retains the native precedence probe.
+    pub fn third_party_overlay_modules(&self) -> Result<BTreeSet<String>> {
+        let mut plugins = self.plugins.iter();
+        let Some(first) = plugins.next() else {
+            return Ok(BTreeSet::new());
+        };
+        let mut names = declared_third_party_overlays(&first.config)?;
+        for plugin in plugins {
+            let declared = declared_third_party_overlays(&plugin.config)?;
+            names.retain(|name| declared.contains(name));
+        }
+        Ok(names)
+    }
+
+    pub fn prepares_project_contributions_early(&self) -> bool {
+        self.prefers_native_cli()
+            && self
+                .plugins
+                .iter()
+                .all(|plugin| plugin.config["companion-early-project-contributions"] == true)
+    }
+
+    pub fn prefers_native_cli(&self) -> bool {
+        self.use_site_fields
+            && !self.plugins.is_empty()
+            && self
+                .plugins
+                .iter()
+                .all(|plugin| plugin.config["companion-native-cli"] == true)
     }
 
     pub fn attach_project(&mut self, project: Arc<Project>, config: Value) {
@@ -439,6 +865,197 @@ impl Runtime {
         // requests. Configuration is included in each request's cache key.
     }
 
+    pub fn claims_method_name(&self, name: &str) -> bool {
+        self.method_names.contains(name)
+            || self
+                .method_patterns
+                .iter()
+                .any(|pattern| method_name_pattern_matches(pattern, name))
+    }
+
+    pub fn early_returns_enabled(&self) -> bool {
+        self.use_site_fields
+            && self
+                .plugins
+                .iter()
+                .any(|plugin| plugin.config.get("companion-early-call-returns").is_some())
+    }
+
+    /// Populate ordinary cache entries from static call inputs. Flow still
+    /// constructs each real request and uses its complete key; a changed
+    /// receiver, argument, context, or index falls back to normal execution.
+    pub fn prefetch_call_hooks<'a>(
+        &mut self,
+        source: &Source,
+        calls: impl Iterator<Item = &'a CallSite>,
+    ) -> Result<usize> {
+        if !self.use_site_fields
+            || !self
+                .plugins
+                .iter()
+                .any(|plugin| plugin.config["companion-parallel-calls"] == true)
+        {
+            return Ok(0);
+        }
+        struct Invocation {
+            owner: usize,
+            key: RequestKey,
+            kind: &'static str,
+            request: PluginRequest,
+        }
+        let mut invocations = Vec::new();
+        let mut seen = BTreeSet::new();
+        'calls: for call in calls {
+            if !call.arguments.iter().all(|arg| {
+                matches!(
+                    arg.literal["kind"].as_str(),
+                    Some("int" | "str" | "bool" | "none")
+                )
+            }) {
+                continue;
+            }
+            for (kind, speculative) in [("adjust-call-return", true), ("adjust-call-state", false)]
+            {
+                let Ok(PreparedCall::Request(payload)) =
+                    prepare_call_request(self, source, kind, call, None, None, speculative)
+                else {
+                    continue;
+                };
+                for owner in 0..self.plugins.len() {
+                    let Some(request) = self.semantic_request(owner, source, kind, &payload)?
+                    else {
+                        continue;
+                    };
+                    let plugin = &self.plugins[owner];
+                    // Calls select their first claimant even when it abstains.
+                    // Non-opted-in plugins and failures retain that exact path.
+                    if plugin.config["companion-parallel-calls"] != true
+                        || plugin.manifest["capabilities"]["project-index-lookup"] != true
+                        || plugin.index.is_none()
+                        || self.load_failures.contains_key(&plugin.id)
+                    {
+                        break;
+                    }
+                    let key = self.semantic_key(owner, &request)?;
+                    if !self.cache.entries.contains_key(&key) && seen.insert(key) {
+                        let Ok(request) = decode_request(request) else {
+                            break;
+                        };
+                        invocations.push(Invocation {
+                            owner,
+                            key,
+                            kind,
+                            request,
+                        });
+                        // Bound speculative work and retained replies even
+                        // for a module containing thousands of call sites.
+                        if invocations.len() == 256 {
+                            break 'calls;
+                        }
+                    }
+                    break;
+                }
+            }
+        }
+        if invocations.len() < 8 {
+            return Ok(0);
+        }
+        // Only an explicit author promise permits shared module initialization.
+        // Each bounded group owns one plugin and that plugin's immutable index.
+        let mut groups = Vec::new();
+        let mut first = 0;
+        while first < invocations.len() {
+            let owner = invocations[first].owner;
+            let opted_in = self.plugins[owner].config["companion-stateless-call-batches"] == true;
+            let mut end = first + 1;
+            if opted_in {
+                while end < invocations.len() && end - first < 16 && invocations[end].owner == owner
+                {
+                    end += 1;
+                }
+            }
+            groups.push((first..end, opted_in && end - first > 1));
+            first = end;
+        }
+        let results = {
+            let host = &self.host;
+            let plugins = &self.plugins;
+            crate::parallel::map_ordered(
+                &groups,
+                crate::parallel::worker_limit(),
+                |(range, batched)| {
+                    let started = Instant::now();
+                    let plugin = &plugins[invocations[range.start].owner];
+                    let replies = if *batched {
+                        let requests = invocations[range.clone()]
+                            .iter()
+                            .map(|invocation| &invocation.request)
+                            .collect::<Vec<_>>();
+                        match host.execute_stateless_batch_with_project_index(
+                            &plugin.id,
+                            &requests,
+                            plugin.index.as_ref().expect("indexed prefetch"),
+                        ) {
+                            Ok(replies) => replies.into_iter().map(Some).collect(),
+                            Err(_) => std::iter::repeat_with(|| None).take(range.len()).collect(),
+                        }
+                    } else {
+                        let invocation = &invocations[range.start];
+                        vec![
+                            host.execute_with_project_index(
+                                &plugin.id,
+                                &invocation.request,
+                                plugin.index.as_ref().expect("indexed prefetch"),
+                            )
+                            .ok(),
+                        ]
+                    };
+                    (replies, started.elapsed())
+                },
+            )?
+        };
+        for ((range, batched), (replies, elapsed)) in groups.iter().zip(results) {
+            self.execution_time += elapsed;
+            if *batched {
+                self.batch_dispatches += 1;
+                self.batch_requests += range.len();
+                self.batch_time += elapsed;
+            }
+            for (invocation, reply) in invocations[range.clone()].iter().zip(replies) {
+                self.executions += 1;
+                self.prefetched_executions += 1;
+                if *batched {
+                    self.batched_kinds.insert(invocation.kind.to_owned());
+                }
+                if let Some(profile) = &mut self.execution_profile {
+                    let entry = profile.entry(invocation.kind.to_owned()).or_default();
+                    entry.0 += 1;
+                    // Per-handler timing is unavailable inside a shared run.
+                    // Report null plus the separate complete batch duration.
+                    if !*batched {
+                        entry.1 += elapsed;
+                    }
+                }
+                let response = match reply {
+                    Some(ty_plugin_protocol::PluginResponse::Error(_)) => {
+                        json!({"kind":"no-change"})
+                    }
+                    Some(response) => response_value(response)?,
+                    // No speculative batch failure becomes a real-call result.
+                    // The existing path retries with fresh request state.
+                    None => continue,
+                };
+                self.cache.insert(invocation.key, &response);
+            }
+        }
+        Ok(invocations.len())
+    }
+
+    pub fn claims_function(&self, source: &Source, name: &str) -> bool {
+        self.function_names
+            .contains(&self.protocol_name(source, name))
+    }
+
     /// Semantic results can depend on each plugin's opaque project index even
     /// when the merged contributions and virtual types have not changed.
     pub fn index_generations(&self) -> Vec<(String, u64)> {
@@ -446,6 +1063,38 @@ impl Runtime {
             .iter()
             .map(|plugin| (plugin.id.clone(), plugin.index_generation))
             .collect()
+    }
+
+    pub fn cache_statistics(&self) -> Value {
+        json!({
+            "entries": self.cache.entries.len(),
+            "bytes": self.cache.bytes,
+            "oversized_skips": self.cache.oversized_skips,
+            "stateless_batch_dispatches": self.batch_dispatches,
+            "stateless_batch_requests": self.batch_requests,
+            "stateless_batch_seconds": self.batch_time.as_secs_f64(),
+        })
+    }
+
+    /// Host execution attempts only; request-cache hits never enter this path.
+    pub fn execution_profile(&self) -> Value {
+        self.execution_profile
+            .as_ref()
+            .map_or(Value::Null, |profile| {
+                Value::Object(
+                    profile
+                        .iter()
+                        .map(|(kind, (executions, elapsed))| {
+                            (
+                                kind.clone(),
+                                if self.batched_kinds.contains(kind) {
+                                    json!({"executions":executions,"seconds":null,"seconds_unbatched":elapsed.as_secs_f64(),"timing":"See total stateless_batch_seconds; individual batch-handler durations are not measured."})
+                                } else { json!({"executions":executions,"seconds":elapsed.as_secs_f64()}) },
+                            )
+                        })
+                        .collect(),
+                )
+            })
     }
 
     /// Changes observable by another file during one fixed-point loop. The
@@ -492,16 +1141,37 @@ impl Runtime {
     }
 
     pub fn set_project_patch(&mut self, qualified: String, patch: Value) {
+        if patch["fields"]
+            .as_array()
+            .is_some_and(|fields| !fields.is_empty())
+            || patch.get("constructor").is_some_and(Value::is_object)
+        {
+            self.deferred_field_targets.insert(qualified.clone());
+        } else {
+            self.deferred_field_targets.remove(&qualified);
+        }
         if self.project_patches.get(&qualified) != Some(&patch) {
             self.project_patches.insert(qualified, patch);
             self.advance_projection_generation();
         }
     }
 
+    pub fn clear_project_patches(&mut self) {
+        self.project_patches.clear();
+        self.deferred_field_targets.clear();
+    }
+
     pub fn set_project_contributions(&mut self, contributions: Vec<Value>) {
         self.contribution_targets.clear();
+        self.contribution_field_targets.clear();
         for (index, contribution) in contributions.iter().enumerate() {
             if let Some(target) = contribution["target"]["qualified-name"].as_str() {
+                if matches!(
+                    contribution["patch"]["kind"].as_str(),
+                    Some("field" | "constructor")
+                ) {
+                    self.contribution_field_targets.insert(target.to_owned());
+                }
                 self.contribution_targets
                     .entry(target.to_owned())
                     .or_default()
@@ -517,6 +1187,22 @@ impl Runtime {
             .into_iter()
             .flatten()
             .map(|index| &self.project_contributions[*index])
+    }
+
+    /// In native mode an untouched class needs no generated class declaration.
+    /// Class hooks, installed patches and contributions retain full lowering.
+    pub fn keeps_native_class(&self, qualified: &str) -> bool {
+        self.use_site_fields
+            && self
+                .plugins
+                .iter()
+                .all(|plugin| plugin.manifest["capabilities"]["class-transform"] != true)
+            && self.project_patches.get(qualified).is_none_or(|patch| {
+                patch.as_object().is_some_and(|patch| {
+                    patch.len() == 1 && patch.get("kind").is_some_and(|kind| kind == "no-change")
+                })
+            })
+            && self.contributions_for(qualified).next().is_none()
     }
 
     pub fn set_projected_receiver(&mut self, qualified: String, receiver: String) {
@@ -1144,6 +1830,188 @@ impl Runtime {
             .cloned()
     }
 
+    pub fn has_use_site_fields(&self) -> bool {
+        self.use_site_fields
+            && !self.eager_class_fields
+            && (!self.deferred_field_targets.is_empty()
+                || !self.contribution_field_targets.is_empty())
+    }
+
+    pub fn projects_fields_at_uses(&self, class: &str) -> bool {
+        if !self.has_use_site_fields() {
+            return false;
+        }
+        let Some(project) = self.project.as_ref() else {
+            return false;
+        };
+        let Some(owners) = project.mro(class) else {
+            return false;
+        };
+        // Field contributions retain their native class declaration and
+        // assignment rules. A receiver-only view cannot reproduce that field
+        // contract, including inherited contributions.
+        if owners
+            .iter()
+            .any(|owner| self.contribution_field_targets.contains(owner))
+            || !owners
+                .iter()
+                .any(|owner| self.deferred_field_targets.contains(owner))
+        {
+            return false;
+        }
+        let Some((_, _, original)) = project.original_class(class) else {
+            return false;
+        };
+        if self.project_patches.get(class).is_some_and(|patch| {
+            patch["fields"]
+                .as_array()
+                .into_iter()
+                .flatten()
+                .any(|field| {
+                    let descriptor = &field["descriptor"];
+                    matches!(descriptor["kind"].as_str(), Some("value" | "callable"))
+                        || descriptor.get("class-type").is_some()
+                })
+        }) {
+            return false;
+        }
+        if !original.decorator_list.is_empty()
+            || original.type_params.is_some()
+            || original.arguments.as_ref().is_some_and(|arguments| {
+                arguments
+                    .args
+                    .iter()
+                    .any(|base| matches!(base, ruff_python_ast::Expr::Subscript(_)))
+            })
+            || project.default_constructor_result(class).is_none()
+        {
+            return false;
+        }
+        project.class_summary(class).is_some_and(|summary| {
+            !summary["methods"]
+                .as_array()
+                .into_iter()
+                .flatten()
+                .any(|method| method["name"] == "__init__")
+        })
+    }
+
+    fn use_site_field(&self, source: &Source, owner: &str, member: &str) -> Option<Value> {
+        let nominal = self.nominal_name(source, owner);
+        let owners = self.project.as_ref()?.mro(&nominal)?;
+        for owner in owners {
+            if !self.projects_fields_at_uses(&owner) {
+                continue;
+            }
+            if let Some(field) = self
+                .project_patches
+                .get(&owner)
+                .and_then(|patch| patch["fields"].as_array())
+                .and_then(|fields| fields.iter().find(|field| field["name"] == member))
+            {
+                if field["mode"] != "replace-existing"
+                    && self
+                        .project
+                        .as_ref()?
+                        .class_summary(&owner)
+                        .is_some_and(|class| {
+                            class["fields"]
+                                .as_array()
+                                .into_iter()
+                                .flatten()
+                                .any(|value| value["name"] == member)
+                        })
+                {
+                    return None;
+                }
+                return Some(field.clone());
+            }
+            for contribution in self.contributions_for(&owner) {
+                if contribution["patch"]["kind"] == "field"
+                    && contribution["patch"]["name"] == member
+                {
+                    return Some(contribution["patch"].clone());
+                }
+            }
+        }
+        None
+    }
+
+    fn use_site_constructor(&self, source: &Source, callee: &str) -> Option<Value> {
+        let owner = self.canonical_name(source, callee);
+        if !self.projects_fields_at_uses(&owner) {
+            return None;
+        }
+        let project = self.project.as_ref()?;
+        // Match Python's inherited __init__ lookup. A subclass that receives
+        // no patch still inherits its nearest generated constructor; a real
+        // intervening initializer or eagerly emitted patch remains native.
+        for candidate in project.mro(&owner)? {
+            if project.class_summary(&candidate).is_some_and(|class| {
+                class["methods"]
+                    .as_array()
+                    .into_iter()
+                    .flatten()
+                    .any(|method| method["name"] == "__init__")
+            }) {
+                return None;
+            }
+            let patch = self.project_patches.get(&candidate);
+            let mut fields = BTreeMap::new();
+            for field in patch
+                .and_then(|patch| patch["fields"].as_array())
+                .into_iter()
+                .flatten()
+            {
+                fields.insert(field["name"].as_str()?, field);
+            }
+            let mut explicit = patch
+                .and_then(|patch| patch.get("constructor"))
+                .filter(|value| value.is_object());
+            for contribution in self.contributions_for(&candidate) {
+                let value = &contribution["patch"];
+                match value["kind"].as_str() {
+                    Some("field") => {
+                        fields.entry(value["name"].as_str()?).or_insert(value);
+                    }
+                    Some("constructor") => {
+                        explicit = explicit.or(Some(value));
+                    }
+                    _ => {}
+                }
+            }
+            let mut parameters = Vec::new();
+            for field in fields.values() {
+                if let Some(parameter) = field.get("constructor-parameter") {
+                    let mut parameter = parameter.clone();
+                    if parameter.get("type-expr").is_none_or(Value::is_null) {
+                        parameter["type-expr"] = field
+                            .get("instance-set-type")
+                            .unwrap_or(&field["instance-get-type"])
+                            .clone();
+                    }
+                    if field["has-default"] == true {
+                        parameter["required"] = json!(false);
+                    }
+                    parameters.push(parameter);
+                }
+            }
+            if explicit.is_none() && parameters.is_empty() {
+                continue;
+            }
+            if !self.projects_fields_at_uses(&candidate) {
+                return None;
+            }
+            let mut signature = explicit
+                .cloned()
+                .unwrap_or_else(|| json!({"parameters":parameters}));
+            signature["return-type"] =
+                self.qualified_type_expr(&project.default_constructor_result(&owner)?);
+            return Some(json!({"kind":"call-signature-patch","signature":signature}));
+        }
+        None
+    }
+
     pub fn resolve_member(
         &mut self,
         source: &Source,
@@ -1182,7 +2050,66 @@ impl Runtime {
                 return Ok(response);
             }
         }
+        if !class_access && let Some(field) = self.use_site_field(source, owner, member) {
+            return Ok(
+                json!({"kind":"member-patch","name":member,"mode":"replace-existing", "read-only":false,
+                "access":{"kind":"value","type-expr":field["instance-get-type"]}}),
+            );
+        }
         Ok(json!({"kind":"no-change"}))
+    }
+
+    fn native_member_abstains(&self, index: usize, kind: &str, request: &Value) -> bool {
+        let plugin = &self.plugins[index];
+        if kind != "resolve-instance-member"
+            || !self.use_site_fields
+            || self.load_failures.contains_key(&plugin.id)
+        {
+            return false;
+        }
+        let Some(key) = &plugin.native_member_abstentions else {
+            return false;
+        };
+        let (Some(owner), Some(member)) = (
+            request["owner"]["expression"].as_str(),
+            request["member-name"].as_str(),
+        ) else {
+            return false;
+        };
+        plugin
+            .index
+            .as_ref()
+            .and_then(|index| index.get(key))
+            .and_then(|owners| owners.get(owner))
+            .and_then(|members| members.get(member))
+            .and_then(Value::as_bool)
+            == Some(true)
+    }
+
+    fn selected_signature(&self, index: usize, source: &Source, payload: &Value) -> Result<bool> {
+        let plugin = &self.plugins[index];
+        let key = "companion-call-signature-methods";
+        if !plugin
+            .config
+            .as_object()
+            .is_some_and(|config| config.contains_key(key))
+        {
+            return Ok(true);
+        }
+        let callee = payload["callee"]["expression"].as_str().unwrap_or("");
+        let method = callee.rsplit('.').next().unwrap_or(callee);
+        let selected = configured_return_method(&plugin.config, key, method)?;
+        // Constructors and explicit function claims retain their full hooks.
+        // A selected-out owner still owns the call: no later plugin may run.
+        let function = plugin.manifest["claims"]["functions"]
+            .as_array()
+            .into_iter()
+            .flatten()
+            .any(|claim| claim["qualified-name"] == self.protocol_name(source, callee));
+        Ok(selected
+            || payload.get("receiver").is_none()
+            || function
+            || self.load_failures.contains_key(&plugin.id))
     }
 
     fn allowed(&self, source: &Source, kind: &str, payload: &Value, manifest: &Value) -> bool {
@@ -1230,7 +2157,8 @@ impl Runtime {
                 }
                 // Constructors are state claims in the existing SDK. Ordinary
                 // constructor signatures are returned by class transforms.
-                if kind == "adjust-call-state"
+                if (kind == "adjust-call-state"
+                    || (self.use_site_fields && kind == "adjust-call-signature"))
                     && payload.get("receiver").is_none()
                     && list("constructors")
                         .iter()
@@ -1357,14 +2285,24 @@ impl Runtime {
             } else {
                 self.host.execute(id, request)
             };
-        self.execution_time += start.elapsed();
+        let elapsed = start.elapsed();
+        self.execution_time += elapsed;
+        if let Some(profile) = &mut self.execution_profile {
+            let entry = profile.entry(kind.to_owned()).or_default();
+            entry.0 += 1;
+            entry.1 += elapsed;
+        }
+        if matches!(kind, "build-project-index" | "analyze-classes")
+            && std::env::var_os("TY_COMPANION_TRACE_PHASES").is_some()
+        {
+            eprintln!("companion runtime {kind}: {:.6}s", elapsed.as_secs_f64());
+        }
         self.executions += 1;
         let response = match result {
-            // The fork consumes only the response variant for the requested
-            // hook. An explicit protocol Error is an abstention, unlike a host
+            // An explicit protocol Error is an abstention, unlike a host
             // failure (trap, execution limit or undecodable response).
             Ok(ty_plugin_protocol::PluginResponse::Error(_)) => json!({"kind":"no-change"}),
-            Ok(response) => serde_json::to_value(response)?,
+            Ok(response) => response_value(response)?,
             Err(error) => hook_failure_response(id, kind, error),
         };
         Ok(response)
@@ -1426,7 +2364,7 @@ impl Runtime {
             .context("hook payload must be object")?;
         object.insert("kind".into(), json!(kind));
         object.insert("context".into(), json!({"module":source.protocol_module.as_ref().unwrap_or(&source.module),"file-path":source.path,
-            "python-version":self.python_version,"platform":self.platform,"config":plugin.config,"speculative":false}));
+            "python-version":self.python_version,"platform":self.platform,"config":plugin.config,"speculative":payload["context"]["speculative"].as_bool().unwrap_or(false)}));
         if source.protocol_module.is_some() {
             rewrite_notebook_request(&mut request, source, |name| {
                 self.protocol_name(source, name)
@@ -1547,18 +2485,95 @@ impl Runtime {
     }
 
     pub fn execute_project(&mut self, kind: &str, payload: Value) -> Result<Value> {
+        self.execute_project_inner(kind, payload, true)
+    }
+
+    /// A disposable CLI revision consumes opaque indexes here. Its caller
+    /// needs contributions and diagnostics, but never a second copy of the
+    /// index, nor a cache entry for another project-index request.
+    pub fn execute_ephemeral_project_index(&mut self, payload: Value) -> Result<Value> {
+        self.execute_project_inner("build-project-index", payload, false)
+    }
+
+    fn execute_project_with_source_snapshot(
+        &mut self,
+        owner: usize,
+        payload: Value,
+        retain: bool,
+    ) -> Result<(Value, Option<Value>)> {
+        let id = self.plugins[owner].id.clone();
+        let key = retain
+            .then(|| request_key(&("project", &id, &payload)))
+            .transpose()?;
+        let request = if retain {
+            decode_request(payload).context("invalid plugin request")?
+        } else {
+            serde_json::from_value::<ty_plugin_protocol::BuildProjectIndexRequest>(payload)
+                .map(PluginRequest::BuildProjectIndex)
+                .context("invalid plugin request")?
+        };
+        let snapshot = source_class_snapshot(&request)?;
+        let provided = snapshot.is_some();
+        let previous = snapshot.map(|snapshot| {
+            self.plugins[owner]
+                .index
+                .replace(json!({SOURCE_CLASS_INDEX:snapshot}))
+        });
+        let result = if let Some(cached) = key.as_ref().and_then(|key| self.cache.get(key)).cloned()
+        {
+            self.hits += 1;
+            Ok(cached)
+        } else {
+            self.run_request(
+                &id,
+                "build-project-index",
+                &request,
+                provided.then_some(owner),
+            )
+        };
+        // Restore before observing any error or comparing generations. A build
+        // failure must never leave its temporary lookup index installed.
+        let supplied = if let Some(previous) = previous {
+            let supplied = self.plugins[owner].index.take();
+            self.plugins[owner].index = previous;
+            supplied.and_then(|mut value| value.as_object_mut()?.remove(SOURCE_CLASS_INDEX))
+        } else {
+            None
+        };
+        let response = result?;
+        if let Some(key) = key {
+            self.cache.insert(key, &response);
+        }
+        Ok((response, supplied))
+    }
+
+    fn execute_project_inner(
+        &mut self,
+        kind: &str,
+        payload: Value,
+        retain_index_response: bool,
+    ) -> Result<Value> {
         let capability = match kind {
             "build-project-index" => "project-index",
             "additional-dependencies" => "additional-dependencies",
             _ => bail!("not a project hook: {kind}"),
         };
+        let last = self
+            .plugins
+            .iter()
+            .rposition(|plugin| plugin.manifest["capabilities"][capability] == true);
+        let mut payload = Some(payload);
         let mut responses = Vec::new();
         for index in 0..self.plugins.len() {
             let plugin = &self.plugins[index];
             if plugin.manifest["capabilities"][capability] != true {
                 continue;
             }
-            let mut request = payload.clone();
+            let mut request = if Some(index) == last {
+                payload.take().expect("last project hook owns the payload")
+            } else {
+                payload.as_ref().expect("remaining project hooks").clone()
+            };
             request["kind"] = json!(kind);
             if kind == "build-project-index" {
                 request["context"]["config"] = plugin.config.clone();
@@ -1605,6 +2620,10 @@ impl Runtime {
             } else {
                 request["config"] = plugin.config.clone();
             }
+            let input_start = Instant::now();
+            if kind == "build-project-index" && self.use_site_fields {
+                select_project_inputs(&mut request, &plugin.config)?;
+            }
             let id = plugin.id.clone();
             let settings_diagnostics: Vec<_> = request["settings"]
                 .as_array()
@@ -1618,7 +2637,48 @@ impl Runtime {
                         .cloned()
                 })
                 .collect();
-            let mut response = self.dispatch(&id, request)?;
+            if kind == "build-project-index"
+                && std::env::var_os("TY_COMPANION_TRACE_PHASES").is_some()
+            {
+                eprintln!(
+                    "companion index input selection: {:.6}s",
+                    input_start.elapsed().as_secs_f64()
+                );
+            }
+            let source_lookup = kind == "build-project-index"
+                && {
+                    let policy = &self.plugins[index].config["companion-source-class-lookups"];
+                    policy == true
+                        || policy.as_u64().is_some_and(|minimum| {
+                            request["classes"]
+                                .as_array()
+                                .is_some_and(|classes| classes.len() as u64 >= minimum)
+                        })
+                }
+                && self.plugins[index].manifest["capabilities"]["project-index-lookup"] == true;
+            let (mut response, source_snapshot) = if source_lookup {
+                self.execute_project_with_source_snapshot(index, request, retain_index_response)?
+            } else if retain_index_response {
+                (self.dispatch(&id, request)?, None)
+            } else {
+                let decode_start = Instant::now();
+                // This disposable request comes from the companion's typed
+                // source-summary builder. Consume its strings and containers
+                // instead of cloning them through borrowed deserialization.
+                // External and cached requests retain decode_request's exact
+                // enum fallback and invalid-input diagnostics.
+                let request =
+                    serde_json::from_value::<ty_plugin_protocol::BuildProjectIndexRequest>(request)
+                        .map(PluginRequest::BuildProjectIndex)
+                        .context("invalid plugin request")?;
+                if std::env::var_os("TY_COMPANION_TRACE_PHASES").is_some() {
+                    eprintln!(
+                        "companion index protocol decode: {:.6}s",
+                        decode_start.elapsed().as_secs_f64()
+                    );
+                }
+                (self.run_request(&id, kind, &request, None)?, None)
+            };
             if response["kind"] == "project-index" && !settings_diagnostics.is_empty() {
                 // Native project-index diagnostics belong to the successful
                 // plugin response, with that plugin's own strictness policy.
@@ -1633,16 +2693,34 @@ impl Runtime {
                 response["diagnostics"] = json!(diagnostics);
             }
             if kind == "build-project-index" {
-                let next_index = response.get("plugin-index").cloned();
-                let next_classes = response["class-indexes"]
-                    .as_object()
-                    .map(|classes| {
-                        classes
-                            .iter()
-                            .map(|(name, value)| (name.clone(), value.clone()))
-                            .collect()
-                    })
-                    .unwrap_or_default();
+                let (mut next_index, next_classes) = if retain_index_response {
+                    (
+                        response.get("plugin-index").cloned(),
+                        response["class-indexes"]
+                            .as_object()
+                            .map(|classes| {
+                                classes
+                                    .iter()
+                                    .map(|(name, value)| (name.clone(), value.clone()))
+                                    .collect()
+                            })
+                            .unwrap_or_default(),
+                    )
+                } else {
+                    let object = response.as_object_mut().context("plugin response object")?;
+                    let index = object.remove("plugin-index");
+                    let classes = match object.remove("class-indexes") {
+                        Some(Value::Object(classes)) => classes.into_iter().collect(),
+                        _ => BTreeMap::new(),
+                    };
+                    (index, classes)
+                };
+                if let Some(snapshot) = source_snapshot
+                    && let Some(object) = next_index.as_mut().and_then(Value::as_object_mut)
+                    && object.get(SOURCE_CLASS_INDEX) == Some(&json!({"use":true}))
+                {
+                    object.insert(SOURCE_CLASS_INDEX.to_owned(), snapshot);
+                }
                 if self.plugins[index].index != next_index
                     || self.plugins[index].class_indexes != next_classes
                 {
@@ -1716,11 +2794,29 @@ impl Runtime {
     }
 
     pub fn execute(&mut self, source: &Source, kind: &str, payload: Value) -> Result<Value> {
+        if kind == "adjust-call-signature"
+            && payload.get("receiver").is_none()
+            && let Some(callee) = payload
+                .pointer("/callee/expression")
+                .and_then(Value::as_str)
+            && let Some(patch) = self.use_site_constructor(source, callee)
+        {
+            return Ok(patch);
+        }
         let mut responses = Vec::new();
         for index in 0..self.plugins.len() {
             let Some(request) = self.semantic_request(index, source, kind, &payload)? else {
                 continue;
             };
+            if self.native_member_abstains(index, kind, &request) {
+                // A member abstention still permits later claiming plugins.
+                continue;
+            }
+            if kind == "adjust-call-signature"
+                && !self.selected_signature(index, source, &request)?
+            {
+                return Ok(json!({"kind":"no-change"}));
+            }
             let mut response = self.dispatch_semantic(index, request)?;
             rewrite_protocol_names(&mut response, &self.plugins[index].virtual_names);
             if source.protocol_module.is_some() {
@@ -1815,6 +2911,35 @@ fn hook_failure_message(id: &str, kind: &str, message: &str, hint: &str) -> Valu
         eprintln!("warning: Plugin `{id}` {kind} hook failed: {message}. {hint}");
         json!({"kind":"no-change"})
     }
+}
+
+fn declared_third_party_overlays(config: &Value) -> Result<BTreeSet<String>> {
+    let Some(names) = config
+        .get("companion-third-party-overlays")
+        .filter(|v| !v.is_null())
+    else {
+        return Ok(BTreeSet::new());
+    };
+    names
+        .as_array()
+        .context("companion-third-party-overlays must be an array")?
+        .iter()
+        .map(|name| {
+            let name = name
+                .as_str()
+                .context("companion-third-party-overlays must contain module names")?;
+            ensure!(
+                !name.is_empty()
+                    && name
+                        .bytes()
+                        .all(|ch| ch == b'_' || ch.is_ascii_alphanumeric())
+                    && !name.as_bytes()[0].is_ascii_digit()
+                    && ruff_python_parser::parse_module(&format!("import {name}\n")).is_ok(),
+                "companion-third-party-overlays must contain top-level Python module names"
+            );
+            Ok(name.to_owned())
+        })
+        .collect()
 }
 
 fn merge_config(config: &mut Value, overrides: &Value) {
@@ -2044,6 +3169,102 @@ pub fn call_request(
     oracle: Option<&Oracle>,
     receiver: Option<&str>,
 ) -> Result<Value> {
+    call_request_with_speculation(runtime, source, kind, call, oracle, receiver, false)
+}
+
+#[derive(Clone, PartialEq)]
+pub struct EarlyCallReturn {
+    pub response: Value,
+    /// The author opts into keeping native call typing while providing the
+    /// same nominal identity for subsequent flow hooks. This is local host
+    /// policy; it does not change or decorate a plugin protocol response.
+    pub native: bool,
+}
+
+pub fn speculative_call_return(
+    runtime: &mut Runtime,
+    source: &Source,
+    call: &CallSite,
+) -> Result<Option<EarlyCallReturn>> {
+    if !runtime.early_returns_enabled()
+        || call.flow_receiver_type.is_none()
+        || !call.arguments.iter().all(|arg| {
+            matches!(
+                arg.literal["kind"].as_str(),
+                Some("int" | "str" | "bool" | "none")
+            )
+        })
+    {
+        return Ok(None);
+    }
+    let response = call_request_with_speculation(
+        runtime,
+        source,
+        "adjust-call-return",
+        call,
+        None,
+        None,
+        true,
+    )?;
+    let ground = response["return-type"]["mode"] == "annotation"
+        && response["return-type"]["expression"]
+            .as_str()
+            .is_some_and(|name| {
+                runtime
+                    .project
+                    .as_ref()
+                    .is_some_and(|project| project.plain_source_class(name))
+            });
+    if response["kind"] != "call-return-patch" || !ground {
+        return Ok(None);
+    }
+    // Complex snapshots, annotation imports and opaque result metadata retain
+    // their existing projection/validation path. Native delegation is limited
+    // to the plain source class already accepted above.
+    let mut native = response["return-type"]["snapshot"].is_null()
+        && response["return-type"]["imports"]
+            .as_array()
+            .is_none_or(Vec::is_empty)
+        && response["result-metadata"].is_null();
+    let method = call.callee.rsplit('.').next().unwrap_or(&call.callee);
+    // Unrelated plugins also retain the existing path unless they explicitly
+    // agree. A shared call must never drop another plugin's replacement.
+    for plugin in &runtime.plugins {
+        native &=
+            configured_return_method(&plugin.config, "companion-native-call-returns", method)?;
+    }
+    Ok(Some(EarlyCallReturn { response, native }))
+}
+
+enum PreparedCall {
+    Response(Value),
+    Request(Value),
+}
+
+fn call_request_with_speculation(
+    runtime: &mut Runtime,
+    source: &Source,
+    kind: &str,
+    call: &CallSite,
+    oracle: Option<&Oracle>,
+    receiver: Option<&str>,
+    speculative: bool,
+) -> Result<Value> {
+    match prepare_call_request(runtime, source, kind, call, oracle, receiver, speculative)? {
+        PreparedCall::Response(response) => Ok(response),
+        PreparedCall::Request(payload) => runtime.execute(source, kind, payload),
+    }
+}
+
+fn prepare_call_request(
+    runtime: &mut Runtime,
+    source: &Source,
+    kind: &str,
+    call: &CallSite,
+    oracle: Option<&Oracle>,
+    receiver: Option<&str>,
+    speculative: bool,
+) -> Result<PreparedCall> {
     let mut callee = call.callee.clone();
     let receiver = receiver
         .or(call.flow_receiver_type.as_deref())
@@ -2097,6 +3318,14 @@ pub fn call_request(
             callee = runtime.method_callee(owner, method);
         }
     }
+    // Deferred class fields contribute a constructor independently of call
+    // hook claims. Resolve it before the plugin-only routing fast path.
+    if kind == "adjust-call-signature"
+        && summary.is_none()
+        && let Some(patch) = runtime.use_site_constructor(source, &callee)
+    {
+        return Ok(PreparedCall::Response(patch));
+    }
     // Claims inspect only the callee and nominal receiver. Avoid constructing
     // argument/return snapshots and source locations for calls no plugin can
     // observe. Use the same namespace translation and claim implementation as
@@ -2105,17 +3334,36 @@ pub fn call_request(
     if let Some(summary) = &summary {
         routing["receiver"] = json!({"nominal-class":summary["nominal-class"]});
     }
-    let claimed = runtime.plugins.iter().any(|plugin| {
-        if plugin.inverse_virtual_names.is_empty() {
-            runtime.allowed(source, kind, &routing, &plugin.manifest)
-        } else {
-            let mut translated = routing.clone();
-            rewrite_protocol_names(&mut translated, &plugin.inverse_virtual_names);
-            runtime.allowed(source, kind, &translated, &plugin.manifest)
+    let mut claimed = false;
+    for (index, plugin) in runtime.plugins.iter().enumerate() {
+        let translated = (!plugin.inverse_virtual_names.is_empty()).then(|| {
+            let mut value = routing.clone();
+            rewrite_protocol_names(&mut value, &plugin.inverse_virtual_names);
+            value
+        });
+        let routed = translated.as_ref().unwrap_or(&routing);
+        let matches = runtime.allowed(source, kind, routed, &plugin.manifest);
+        if matches {
+            if kind == "adjust-call-signature" {
+                if !runtime.selected_signature(index, source, routed)? {
+                    return Ok(PreparedCall::Response(json!({"kind":"no-change"})));
+                }
+                claimed = true;
+                break;
+            }
+            if speculative
+                && !early_return_method(
+                    &plugin.config,
+                    callee.rsplit('.').next().unwrap_or(&callee),
+                )?
+            {
+                return Ok(PreparedCall::Response(json!({"kind":"no-change"})));
+            }
+            claimed = true;
         }
-    });
+    }
     if !claimed {
-        return Ok(json!({"kind":"no-change"}));
+        return Ok(PreparedCall::Response(json!({"kind":"no-change"})));
     }
     let arguments: Vec<_> = call
         .arguments
@@ -2148,12 +3396,959 @@ pub fn call_request(
     if let Some(summary) = summary {
         value["receiver"] = summary;
     }
-    runtime.execute(source, kind, value)
+    if speculative {
+        value["context"] = json!({"speculative":true});
+    }
+    Ok(PreparedCall::Request(value))
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn prefetched_hooks_preserve_serial_responses_keys_and_failures() -> Result<()> {
+        let directory =
+            std::env::temp_dir().join(format!("ty-prefetched-calls-{}", std::process::id()));
+        std::fs::create_dir_all(&directory)?;
+        let manifest = directory.join("plugin.json");
+        let artifact = directory.join("plugin.py");
+        let source_path = directory.join("demo.py");
+        std::fs::write(
+            &source_path,
+            "class Row: pass\nclass Manager:\n    def get(self, *, key: int) -> Row: ...\n",
+        )?;
+        std::fs::write(&manifest, json!({"id":"prefetch","name":"Prefetch","version":"0","protocol-version":{"major":0,"minor":9},"ty-compatibility":{"requirement":">=0.89.0"},"runtime":{"kind":"monty","artifact":"plugin.py"},"capabilities":{"project-index":true,"project-index-lookup":true,"call-return":true,"call-state":true},"claims":{"methods":[{"kind":"exact","class-qualified-name":"demo.Manager","method-name":"get"}]},"default-config":{"companion-native-fields":true,"companion-parallel-calls":true,"companion-early-call-returns":["get"]}}).to_string())?;
+        std::fs::write(
+            &artifact,
+            r#"
+counter = 0
+@on_project_index
+def index(request):
+    return project_index({'annotation': request['context']['root']})
+@on_call_return
+def returns(request):
+    global counter
+    counter += 1
+    assert counter == 1
+    if request['arguments'][0]['value']['value'] == -1:
+        return {'kind': 'malformed-response'}
+    return call_return_patch(type_annotation(project_index_value(request, ['annotation'])))
+@on_call_state
+def state(request):
+    return call_state_patch(result_members={'value': type_annotation(project_index_value(request, ['annotation']))}, fresh_result=True)
+"#,
+        )?;
+        let mut serial = Runtime::new(&manifest, &artifact)?;
+        let mut parallel = Runtime::new(&manifest, &artifact)?;
+        serial.use_site_fields = true;
+        parallel.use_site_fields = true;
+        let project = Arc::new(Project::load(
+            &directory,
+            std::slice::from_ref(&source_path),
+            &serial.manifest,
+            json!({}),
+        )?);
+        serial.attach_project(Arc::clone(&project), json!({}));
+        parallel.attach_project(Arc::clone(&project), json!({}));
+        let source = &project.modules["demo"].source;
+        let calls: Vec<_> = (0..16).map(|position| CallSite {
+            span: Span { start: position, end: position + 1 },
+            function: Span { start: position, end: position + 1 },
+            callee: "demo.Manager.get".into(),
+            arguments: vec![crate::model::Argument { span: Span { start: position, end: position + 1 }, name: Some("key".into()), literal: json!({"kind":"int","value": if position == 0 {-1} else {position as i64}}), kind: "keyword", inferred_type: None }],
+            receiver_span: None,
+            receiver_type: Some("demo.Manager".into()),
+            flow_receiver_type: Some("demo.Manager".into()),
+        }).collect();
+        for annotation in ["str", "bytes"] {
+            for runtime in [&mut serial, &mut parallel] {
+                runtime.execute_project("build-project-index", json!({"context":{"root":annotation,"python-version":"3.13","platform":"linux"}}))?;
+            }
+            let before = parallel.executions;
+            assert_eq!(parallel.prefetch_call_hooks(source, calls.iter())?, 32);
+            assert_eq!(parallel.executions - before, 32);
+            for call in &calls {
+                for (kind, speculative) in
+                    [("adjust-call-return", true), ("adjust-call-state", false)]
+                {
+                    let expected = call_request_with_speculation(
+                        &mut serial,
+                        source,
+                        kind,
+                        call,
+                        None,
+                        None,
+                        speculative,
+                    )?;
+                    let actual = call_request_with_speculation(
+                        &mut parallel,
+                        source,
+                        kind,
+                        call,
+                        None,
+                        None,
+                        speculative,
+                    )?;
+                    assert_eq!(actual, expected);
+                }
+            }
+            // One malformed return is retried normally; every successful
+            // prefetched request must match its real invocation's exact key.
+            assert_eq!(parallel.executions - before, 33);
+            let mut changed = calls[1].clone();
+            changed.arguments[0].literal = json!({"kind":"str","value":"changed"});
+            let before = parallel.executions;
+            assert_eq!(
+                call_request(
+                    &mut parallel,
+                    source,
+                    "adjust-call-state",
+                    &changed,
+                    None,
+                    None
+                )?,
+                call_request(
+                    &mut serial,
+                    source,
+                    "adjust-call-state",
+                    &changed,
+                    None,
+                    None
+                )?
+            );
+            assert_eq!(parallel.executions, before + 1);
+        }
+        std::fs::remove_dir_all(directory)?;
+        Ok(())
+    }
+
+    #[test]
+    fn stateless_prefetched_batches_preserve_serial_keys_failures_and_revisions() -> Result<()> {
+        let directory = std::env::temp_dir().join(format!(
+            "ty-stateless-prefetched-calls-{}",
+            std::process::id()
+        ));
+        std::fs::create_dir_all(&directory)?;
+        let manifest = directory.join("plugin.json");
+        let artifact = directory.join("plugin.py");
+        let source_path = directory.join("demo.py");
+        std::fs::write(
+            &source_path,
+            "class Row: pass\nclass Manager:\n    def get(self, *, key: int) -> Row: ...\n",
+        )?;
+        std::fs::write(&manifest, json!({"id":"prefetch","name":"Prefetch","version":"0","protocol-version":{"major":0,"minor":9},"ty-compatibility":{"requirement":">=0.89.0"},"runtime":{"kind":"monty","artifact":"plugin.py"},"capabilities":{"project-index":true,"project-index-lookup":true,"call-return":true,"call-state":true},"claims":{"methods":[{"kind":"exact","class-qualified-name":"demo.Manager","method-name":"get"}]},"default-config":{"companion-native-fields":true,"companion-parallel-calls":true,"companion-stateless-call-batches":true,"companion-early-call-returns":["get"]}}).to_string())?;
+        std::fs::write(
+            &artifact,
+            r#"
+@on_project_index
+def index(request):
+    return project_index({'annotation': request['context']['root']})
+@on_call_return
+def returns(request):
+    if request['arguments'][0]['value']['kind'] == 'str':
+        assert request['arguments'][0]['value']['value'] == 'café😀\n"quoted"'
+    if request['arguments'][0]['value']['value'] == -1:
+        return {'kind': 'malformed-response'}
+    return call_return_patch(type_annotation(project_index_value(request, ['annotation'])))
+@on_call_state
+def state(request):
+    return call_state_patch(result_members={'value': type_annotation(project_index_value(request, ['annotation']))}, fresh_result=True)
+"#,
+        )?;
+        let mut serial = Runtime::new(&manifest, &artifact)?;
+        let mut parallel = Runtime::new(&manifest, &artifact)?;
+        serial.use_site_fields = true;
+        parallel.use_site_fields = true;
+        let project = Arc::new(Project::load(
+            &directory,
+            std::slice::from_ref(&source_path),
+            &serial.manifest,
+            json!({}),
+        )?);
+        serial.attach_project(Arc::clone(&project), json!({}));
+        parallel.attach_project(Arc::clone(&project), json!({}));
+        let source = &project.modules["demo"].source;
+        let mut calls: Vec<_> = (0..16).map(|position| CallSite {
+            span: Span { start: position, end: position + 1 },
+            function: Span { start: position, end: position + 1 },
+            callee: "demo.Manager.get".into(),
+            arguments: vec![crate::model::Argument { span: Span { start: position, end: position + 1 }, name: Some("key".into()), literal: json!({"kind":"int","value": if position == 0 {-1} else {position as i64}}), kind: "keyword", inferred_type: None }],
+            receiver_span: None,
+            receiver_type: Some("demo.Manager".into()),
+            flow_receiver_type: Some("demo.Manager".into()),
+        }).collect();
+        calls.last_mut().unwrap().arguments[0].literal =
+            json!({"kind":"str", "value":"café😀\n\"quoted\""});
+        for annotation in ["str", "bytes"] {
+            for runtime in [&mut serial, &mut parallel] {
+                runtime.execute_project("build-project-index", json!({"context":{"root":annotation,"python-version":"3.13","platform":"linux"}}))?;
+            }
+            let before = parallel.executions;
+            assert_eq!(parallel.prefetch_call_hooks(source, calls.iter())?, 32);
+            assert_eq!(parallel.executions - before, 32);
+            for call in &calls {
+                for (kind, speculative) in
+                    [("adjust-call-return", true), ("adjust-call-state", false)]
+                {
+                    let expected = call_request_with_speculation(
+                        &mut serial,
+                        source,
+                        kind,
+                        call,
+                        None,
+                        None,
+                        speculative,
+                    )?;
+                    let actual = call_request_with_speculation(
+                        &mut parallel,
+                        source,
+                        kind,
+                        call,
+                        None,
+                        None,
+                        speculative,
+                    )?;
+                    assert_eq!(actual, expected);
+                }
+            }
+            // One malformed reply discards its whole speculative group. Every
+            // real request still matches serial execution and its complete key.
+            assert_eq!(parallel.executions - before, 48);
+            assert!(parallel.batch_dispatches >= 2);
+            assert!(parallel.batch_requests >= 32);
+            let mut changed = calls[1].clone();
+            changed.arguments[0].literal = json!({"kind":"str","value":"changed"});
+            let before = parallel.executions;
+            assert_eq!(
+                call_request(
+                    &mut parallel,
+                    source,
+                    "adjust-call-state",
+                    &changed,
+                    None,
+                    None
+                )?,
+                call_request(
+                    &mut serial,
+                    source,
+                    "adjust-call-state",
+                    &changed,
+                    None,
+                    None
+                )?
+            );
+            assert_eq!(parallel.executions, before + 1);
+        }
+        std::fs::remove_dir_all(directory)?;
+        Ok(())
+    }
+
+    #[test]
+    fn signature_method_selection_preserves_first_owner_functions_constructors_and_errors()
+    -> Result<()> {
+        let directory =
+            std::env::temp_dir().join(format!("ty-signature-selection-{}", std::process::id()));
+        std::fs::create_dir_all(&directory)?;
+        let mut paths = Vec::new();
+        for (id, annotation) in [("a", "str"), ("b", "bool")] {
+            let manifest = directory.join(format!("{id}.json"));
+            let artifact = directory.join(format!("{id}.py"));
+            std::fs::write(&manifest,json!({"id":id,"name":id,"version":"0","protocol-version":{"major":0,"minor":9},"ty-compatibility":{"requirement":">=0.89.0"},"runtime":{"kind":"monty","artifact":format!("{id}.py")},"capabilities":{"call-signature":true,"call-state":true},"claims":{"functions":[{"qualified-name":"demo.free"}],"constructors":[{"kind":"exact","qualified-name":"demo.Row"}],"methods":[{"kind":"exact","class-qualified-name":"demo.Manager","method-name":"get"},{"kind":"exact","class-qualified-name":"demo.Manager","method-name":"from_queryset"}]}}).to_string())?;
+            std::fs::write(
+                &artifact,
+                format!(
+                    "@on_call_signature\ndef signature(request):\n    return call_signature_patch(callable_signature(return_type=type_annotation('{annotation}')))\n"
+                ),
+            )?;
+            paths.push((manifest, artifact, json!({})));
+        }
+        let mut runtime = Runtime::from_plugins(&paths)?;
+        runtime.use_site_fields = true;
+        let source = Source::new(String::new(), "demo.py".into(), "demo".into());
+        let get = json!({"callee":typ("demo.Manager.get"),"receiver":{"nominal-class":"demo.Manager","type-expr":typ("demo.Manager")}});
+        let baseline = runtime.execute(&source, "adjust-call-signature", get.clone())?;
+        assert_eq!(baseline["signature"]["return-type"]["expression"], "str");
+        runtime.plugins[0].config["companion-call-signature-methods"] = json!(["from_queryset"]);
+        let executions = runtime.executions;
+        assert_eq!(
+            runtime.execute(&source, "adjust-call-signature", get.clone())?["kind"],
+            "no-change"
+        );
+        assert_eq!(
+            runtime.executions, executions,
+            "first owner's abstention cannot invoke a later plugin"
+        );
+        let mut selected = get.clone();
+        selected["callee"] = typ("demo.Manager.from_queryset");
+        assert_eq!(
+            runtime.execute(&source, "adjust-call-signature", selected)?["signature"]["return-type"]
+                ["expression"],
+            "str"
+        );
+        for payload in [
+            json!({"callee":typ("demo.free")}),
+            json!({"callee":typ("demo.free"),"receiver":{"nominal-class":"demo.Manager","type-expr":typ("demo.Manager")}}),
+            json!({"callee":typ("demo.Row")}),
+        ] {
+            assert_eq!(
+                runtime.execute(&source, "adjust-call-signature", payload)?["signature"]["return-type"]
+                    ["expression"],
+                "str"
+            );
+        }
+        for malformed in [json!("get"), json!([""]), json!([3]), json!(null)] {
+            runtime.plugins[0].config["companion-call-signature-methods"] = malformed;
+            assert!(
+                runtime
+                    .execute(&source, "adjust-call-signature", get.clone())
+                    .is_err()
+            );
+        }
+        runtime.plugins[0].config["companion-call-signature-methods"] = json!(["from_queryset"]);
+        runtime
+            .load_failures
+            .insert("a".into(), ("load failed".into(), "reload".into()));
+        let failed = runtime.execute(&source, "adjust-call-signature", get.clone())?;
+        assert_eq!(failed["kind"], "no-change");
+        assert_eq!(failed["diagnostics"].as_array().map(Vec::len), Some(1));
+        runtime.load_failures.clear();
+        runtime.plugins[0].manifest["claims"]["methods"] = json!([]);
+        assert_eq!(
+            runtime.execute(&source, "adjust-call-signature", get)?["signature"]["return-type"]["expression"],
+            "bool"
+        );
+        std::fs::remove_dir_all(directory)?;
+        Ok(())
+    }
+
+    #[test]
+    fn source_class_lookups_preserve_snapshots_scopes_fallbacks_and_generations() -> Result<()> {
+        let directory =
+            std::env::temp_dir().join(format!("ty-source-class-lookups-{}", std::process::id()));
+        struct Cleanup(std::path::PathBuf);
+        impl Drop for Cleanup {
+            fn drop(&mut self) {
+                let _ = std::fs::remove_dir_all(&self.0);
+            }
+        }
+        std::fs::create_dir_all(&directory)?;
+        let directory = Cleanup(directory.canonicalize()?);
+        let source_path = directory.0.join("demo.py");
+        std::fs::write(&source_path, "class Row:\n    one: str = 'café😀'\n")?;
+        let artifact = directory.0.join("plugin.py");
+        std::fs::write(
+            &artifact,
+            r#"
+@on_project_index
+def index(request):
+    available = project_index_value(request, ['__ty_companion_source_classes__', 'available'], False)
+    data = {'label': request['context']['config']['label'], 'ready': available}
+    if available:
+        expected = request['classes'][0]
+        name = expected['qualified-name']
+        actual = project_index_value(request, ['__ty_companion_source_classes__', 'classes', name])
+        assert actual == expected
+        actual['qualified-name'] = 'mutated'
+        assert project_index_value(request, ['__ty_companion_source_classes__', 'classes', name]) == expected
+        data['__ty_companion_source_classes__'] = {'use': True}
+    return project_index(data)
+@on_call_return
+def returns(request):
+    assert project_index_value(request, ['label']) == request['context']['config']['label']
+    source = project_index_value(request, ['__ty_companion_source_classes__', 'classes', 'demo.Row'])
+    if source is None:
+        return call_return_patch(type_annotation('bool'))
+    return call_return_patch(type_annotation('str' if source['fields'][0]['name'] == 'one' else 'bytes'))
+"#,
+        )?;
+        let mut paths = Vec::new();
+        for (id, source) in [("a", false), ("b", true)] {
+            let manifest = directory.0.join(format!("{id}.json"));
+            std::fs::write(&manifest, json!({"id":id,"name":id,"version":"0","protocol-version":{"major":0,"minor":9},"ty-compatibility":{"requirement":">=0.89.0"},"runtime":{"kind":"monty","artifact":"plugin.py"},"capabilities":{"project-index":true,"project-index-lookup":true,"call-return":true},"claims":{"functions":[{"qualified-name":"demo.make"}]}}).to_string())?;
+            paths.push((manifest, artifact.clone(), json!({"label":id,"companion-source-class-lookups":true,"companion-project-inputs":{"class-source":source}})));
+        }
+        let mut runtime = Runtime::from_plugins(&paths)?;
+        runtime.use_site_fields = true;
+        let project = Project::load(
+            &directory.0,
+            std::slice::from_ref(&source_path),
+            &runtime.manifest,
+            json!({}),
+        )?;
+        let original = project.build_request();
+        let hook = json!({"kind":"adjust-call-return","context":{"module":"demo","file-path":source_path,"python-version":"3.13","platform":"linux","config":{}},"callee":{"expression":"demo.make","mode":"expression"},"arguments":[]});
+        for retain in [false, true] {
+            for field in ["one", "two"] {
+                let mut request = original.clone();
+                request["classes"][0]["fields"][0]["name"] = json!(field);
+                if retain {
+                    runtime.execute_project("build-project-index", request.clone())?;
+                } else {
+                    runtime.execute_ephemeral_project_index(request.clone())?;
+                }
+                let generations = runtime
+                    .plugins
+                    .iter()
+                    .map(|plugin| plugin.index_generation)
+                    .collect::<Vec<_>>();
+                for owner in 0..2 {
+                    let index = runtime.plugins[owner]
+                        .index
+                        .as_ref()
+                        .context("source index")?;
+                    assert_eq!(index["label"], if owner == 0 { "a" } else { "b" });
+                    let class = &index[SOURCE_CLASS_INDEX]["classes"]["demo.Row"];
+                    assert_eq!(class.get("source").is_some(), owner == 1);
+                    assert_eq!(
+                        runtime.dispatch_semantic(owner, {
+                            let mut payload = hook.clone();
+                            payload["context"]["config"] = runtime.plugins[owner].config.clone();
+                            payload
+                        })?["return-type"]["expression"],
+                        if field == "one" { "str" } else { "bytes" }
+                    );
+                }
+                if retain {
+                    runtime.execute_project("build-project-index", request)?;
+                } else {
+                    runtime.execute_ephemeral_project_index(request)?;
+                }
+                assert_eq!(
+                    runtime
+                        .plugins
+                        .iter()
+                        .map(|plugin| plugin.index_generation)
+                        .collect::<Vec<_>>(),
+                    generations
+                );
+            }
+        }
+        for fallback in [
+            "disabled",
+            "minimum-count",
+            "missing-capability",
+            "oversized",
+            "duplicate",
+        ] {
+            let mut path = paths[0].clone();
+            let mut request = original.clone();
+            if fallback == "disabled" {
+                path.2["companion-source-class-lookups"] = json!(false);
+            }
+            if fallback == "minimum-count" {
+                path.2["companion-source-class-lookups"] = json!(512);
+            }
+            if fallback == "missing-capability" {
+                let mut manifest: Value = serde_json::from_slice(&std::fs::read(&path.0)?)?;
+                manifest["capabilities"]["project-index-lookup"] = json!(false);
+                let target = directory.0.join("no-lookup.json");
+                std::fs::write(&target, manifest.to_string())?;
+                path.0 = target;
+            }
+            if fallback == "oversized" {
+                request["classes"][0]["fields"][0]["name"] = json!("x".repeat(70_000));
+            }
+            if fallback == "duplicate" {
+                let class = request["classes"][0].clone();
+                request["classes"].as_array_mut().unwrap().push(class);
+            }
+            let mut runtime = Runtime::from_plugins(&[path])?;
+            runtime.use_site_fields = true;
+            runtime.execute_ephemeral_project_index(request)?;
+            assert_eq!(
+                runtime.plugins[0].index.as_ref().unwrap()["ready"],
+                false,
+                "{fallback}"
+            );
+            assert!(
+                runtime.plugins[0]
+                    .index
+                    .as_ref()
+                    .unwrap()
+                    .get(SOURCE_CLASS_INDEX)
+                    .is_none()
+            );
+            assert_eq!(
+                runtime.dispatch_semantic(0, {
+                    let mut payload = hook.clone();
+                    payload["context"]["config"] = runtime.plugins[0].config.clone();
+                    payload
+                })?["return-type"]["expression"],
+                "bool"
+            );
+        }
+        let mut path = paths[0].clone();
+        path.2["companion-source-class-lookups"] = json!("wrong");
+        assert!(
+            Runtime::from_plugins(&[path])
+                .err()
+                .context("invalid flag")?
+                .to_string()
+                .contains("must be a boolean")
+        );
+        Ok(())
+    }
+
+    #[test]
+    fn consumed_project_indexes_preserve_hooks_scopes_namespaces_and_revisions() -> Result<()> {
+        let directory =
+            std::env::temp_dir().join(format!("ty-consumed-index-{}", std::process::id()));
+        std::fs::create_dir_all(&directory)?;
+        let source_path = directory.join("demo.py");
+        std::fs::write(
+            &source_path,
+            "from typing import ClassVar\nsettings = {'modes': (1, True, None)}\ndef register(*args, **kwargs): ...\nclass Base[T]: pass\n@register('row', enabled=True)\nclass Row(Base[str]):\n    value: ClassVar[int] = 3\n    field = register(default={'nested': [None, 'text']})\n    class Meta:\n        abstract = True\n    def method(self, value: str | None = None, *, count: int = 1) -> tuple[str, int]:\n        return ('text', count)\n",
+        )?;
+        let mut paths = Vec::new();
+        for (id, annotation) in [("a", "bool"), ("b", "str")] {
+            let manifest = directory.join(format!("{id}.json"));
+            let artifact = directory.join(format!("{id}.py"));
+            std::fs::write(&manifest, json!({"id":id,"name":id,"version":"0","protocol-version":{"major":0,"minor":9},"ty-compatibility":{"requirement":">=0.89.0"},"runtime":{"kind":"monty","artifact":format!("{id}.py")},"capabilities":{"project-index":true,"class-transform":true,"instance-member":true},"claims":{"classes":[{"kind":"exact","qualified-name":"demo.Row"},{"kind":"exact","qualified-name":"demo.Missing"}],"attributes":[{"kind":"exact","scope":"instance","owner-qualified-name":"demo.Row","attribute-name":"dynamic"}]}}).to_string())?;
+            std::fs::write(
+                &artifact,
+                r#"
+@on_project_index
+def index(request):
+    return project_index(
+        {'annotation': request['context']['root'], 'opaque': {'qualified-name': 'virtual.Record'}},
+        class_indexes={'demo.Row': {'annotation': request['context']['config']['annotation']}},
+        virtual_types=[virtual_type('virtual.Record', virtual_class(members=[member('value', type_annotation('int'))]))],
+    )
+@on_class_transform
+def transform(request):
+    return class_patch(fields=[field(request['context']['config']['id'], type_annotation(request['project-index']['annotation']))])
+@on_instance_member
+def dynamic(request):
+    assert request['project-index']['opaque'] == {'qualified-name': 'virtual.Record'}
+    return member_response(member('dynamic', type_annotation(request['project-index']['annotation'])))
+"#,
+            )?;
+            paths.push((manifest, artifact, json!({"id":id,"annotation":annotation})));
+        }
+        let source = Source::new(String::new(), "demo.py".into(), "demo".into());
+        for count in [1, 2] {
+            let mut ordinary = Runtime::from_plugins(&paths[..count])?;
+            let mut consumed = Runtime::from_plugins(&paths[..count])?;
+            let project = Project::load(
+                &directory,
+                std::slice::from_ref(&source_path),
+                &ordinary.manifest,
+                json!({}),
+            )?;
+            for annotation in ["int", "bytes", "str"] {
+                let mut request = project.build_request();
+                request["context"]["root"] = json!(annotation);
+                request["context"]["python-version"] = json!("3.13");
+                request["context"]["platform"] = json!("darwin");
+                assert!(!request["classes"].as_array().unwrap().is_empty());
+                assert!(!request["functions"].as_array().unwrap().is_empty());
+                let mut expected =
+                    ordinary.execute_project("build-project-index", request.clone())?;
+                let actual = consumed.execute_ephemeral_project_index(request)?;
+                if let Some(object) = expected.as_object_mut() {
+                    object.remove("plugin-index");
+                    object.remove("class-indexes");
+                }
+                assert_eq!(actual, expected);
+                assert_eq!(
+                    consumed.virtual_display_names(),
+                    ordinary.virtual_display_names()
+                );
+                for name in ["demo.Row", "demo.Missing"] {
+                    let payload = json!({"class":{"qualified-name":name}});
+                    let expected = ordinary.execute(&source, "analyze-class", payload.clone())?;
+                    let actual = consumed.execute(&source, "analyze-class", payload)?;
+                    assert_eq!(actual, expected);
+                    for field in actual["fields"].as_array().unwrap() {
+                        let ty = if name == "demo.Row" {
+                            if field["name"] == "a" { "bool" } else { "str" }
+                        } else {
+                            annotation
+                        };
+                        assert_eq!(field["instance-get-type"]["expression"], ty);
+                    }
+                }
+                let payload = json!({"owner":typ("demo.Row"),"member-name":"dynamic"});
+                let expected =
+                    ordinary.execute(&source, "resolve-instance-member", payload.clone())?;
+                let actual = consumed.execute(&source, "resolve-instance-member", payload)?;
+                assert_eq!(actual, expected);
+                assert_eq!(actual["access"]["type-expr"]["expression"], annotation);
+            }
+        }
+        std::fs::remove_dir_all(directory)?;
+        Ok(())
+    }
+
+    #[test]
+    fn native_cli_requires_native_fields_unanimous_opt_in_and_boolean_config() -> Result<()> {
+        let directory =
+            std::env::temp_dir().join(format!("ty-native-cli-config-{}", std::process::id()));
+        std::fs::create_dir_all(&directory)?;
+        let artifact = directory.join("plugin.py");
+        std::fs::write(&artifact, "# Overlay-only plugin.\n")?;
+        let mut paths = Vec::new();
+        for id in ["one", "two"] {
+            let manifest = directory.join(format!("{id}.json"));
+            std::fs::write(&manifest,json!({"id":id,"name":id,"version":"0","protocol-version":{"major":0,"minor":9},"ty-compatibility":{"requirement":">=0.89.0"},"runtime":{"kind":"monty","artifact":"plugin.py"},"capabilities":{"stub-overlays":true},"default-config":{"companion-native-fields":true,"companion-native-cli":true}}).to_string())?;
+            paths.push((manifest, artifact.clone(), json!({})));
+        }
+        let mut runtime = Runtime::from_plugins(&paths)?;
+        assert_eq!(runtime.prefers_native_cli(), runtime.use_site_fields);
+        runtime.use_site_fields = false;
+        assert!(!runtime.prefers_native_cli());
+        paths[1].2 = json!({"companion-native-cli":false});
+        assert!(!Runtime::from_plugins(&paths)?.prefers_native_cli());
+        paths[1].2 = json!({"companion-native-cli":null});
+        assert!(!Runtime::from_plugins(&paths)?.prefers_native_cli());
+        paths[1].2 = json!({"companion-native-cli":"yes"});
+        assert!(Runtime::from_plugins(&paths).is_err());
+        assert!(!Runtime::from_plugins(&[])?.prefers_native_cli());
+        paths[1].2 = json!({});
+        assert!(!Runtime::from_plugins(&paths)?.prepares_project_contributions_early());
+        paths[0].2 = json!({"companion-early-project-contributions":true});
+        assert!(!Runtime::from_plugins(&paths)?.prepares_project_contributions_early());
+        paths[1].2 = paths[0].2.clone();
+        let mut early = Runtime::from_plugins(&paths)?;
+        early.use_site_fields = true;
+        assert!(early.prepares_project_contributions_early());
+        early.use_site_fields = false;
+        assert!(!early.prepares_project_contributions_early());
+        for invalid in [json!("yes"), json!(0), json!([])] {
+            paths[1].2 = json!({"companion-early-project-contributions":invalid});
+            assert!(Runtime::from_plugins(&paths).is_err());
+        }
+        for disabled in [json!(false), json!(null)] {
+            paths[1].2 = json!({"companion-early-project-contributions":disabled});
+            assert!(!Runtime::from_plugins(&paths)?.prepares_project_contributions_early());
+        }
+
+        for invalid in [json!("yes"), json!(1), json!([])] {
+            paths[1].2 = json!({"companion-stateless-call-batches":invalid});
+            assert!(Runtime::from_plugins(&paths).is_err());
+        }
+        for valid in [json!(true), json!(false), json!(null)] {
+            paths[1].2 = json!({"companion-stateless-call-batches":valid});
+            assert!(Runtime::from_plugins(&paths).is_ok());
+        }
+        std::fs::remove_dir_all(directory)?;
+        Ok(())
+    }
+
+    #[test]
+    fn third_party_overlay_declarations_require_all_plugins_and_valid_names() -> Result<()> {
+        assert!(declared_third_party_overlays(&json!({}))?.is_empty());
+        assert!(
+            declared_third_party_overlays(&json!({"companion-third-party-overlays":null}))?
+                .is_empty()
+        );
+        for value in [
+            json!(true),
+            json!("django"),
+            json!([1]),
+            json!([""]),
+            json!(["django.db"]),
+            json!(["x\nimport os"]),
+            json!(["42name"]),
+            json!(["class"]),
+        ] {
+            assert!(
+                declared_third_party_overlays(&json!({"companion-third-party-overlays":value}))
+                    .is_err()
+            );
+        }
+        let directory =
+            std::env::temp_dir().join(format!("ty-third-party-overlays-{}", std::process::id()));
+        std::fs::create_dir_all(&directory)?;
+        let artifact = directory.join("plugin.py");
+        std::fs::write(&artifact, "# Overlay-only plugin.\n")?;
+        let mut paths = Vec::new();
+        for id in ["first", "second"] {
+            let manifest = directory.join(format!("{id}.json"));
+            std::fs::write(&manifest,json!({"id":id,"name":id,"version":"0","protocol-version":{"major":0,"minor":9},"ty-compatibility":{"requirement":">=0.89.0"},"runtime":{"kind":"monty","artifact":"plugin.py"},"capabilities":{"stub-overlays":true},"default-config":{"companion-third-party-overlays":["django","another"]}}).to_string())?;
+            paths.push((manifest, artifact.clone(), json!({})));
+        }
+        assert!(
+            Runtime::from_plugins(&[])?
+                .third_party_overlay_modules()?
+                .is_empty()
+        );
+        assert_eq!(
+            Runtime::from_plugins(&paths)?.third_party_overlay_modules()?,
+            BTreeSet::from(["django".into(), "another".into()])
+        );
+        paths[1].2 = json!({"companion-third-party-overlays":["django"]});
+        assert_eq!(
+            Runtime::from_plugins(&paths)?.third_party_overlay_modules()?,
+            BTreeSet::from(["django".into()])
+        );
+        paths[1].2 = json!({"companion-third-party-overlays":null});
+        assert!(
+            Runtime::from_plugins(&paths)?
+                .third_party_overlay_modules()?
+                .is_empty()
+        );
+        paths[0].2 = json!({"companion-third-party-overlays":true});
+        assert!(Runtime::from_plugins(&paths).is_err());
+        std::fs::remove_dir_all(directory)?;
+        Ok(())
+    }
+
+    #[test]
+    fn early_return_opt_in_preserves_mixed_plugins_and_missing_native_inputs() -> Result<()> {
+        let directory =
+            std::env::temp_dir().join(format!("ty-early-opt-in-{}", std::process::id()));
+        std::fs::create_dir_all(&directory)?;
+        let path = directory.join("demo.py");
+        std::fs::write(
+            &path,
+            "class Item: pass\nclass Generic[T]: pass\nclass Manager:\n    def get(self, *, key: int) -> Item: raise NotImplementedError\nvalue = Manager().get(key=1)\n",
+        )?;
+        let mut paths = Vec::new();
+        for id in ["first", "second"] {
+            let manifest = directory.join(format!("{id}.json"));
+            let artifact = directory.join(format!("{id}.py"));
+            std::fs::write(&manifest, json!({"id":id,"name":id,"version":"0","protocol-version":{"major":0,"minor":9},"ty-compatibility":{"requirement":">=0.89.0"},"runtime":{"kind":"monty","artifact":format!("{id}.py")},"capabilities":{"call-return":true},"claims":{"methods":[{"kind":"exact","class-qualified-name":"demo.Manager","method-name":"get"}]}}).to_string())?;
+            std::fs::write(
+                &artifact,
+                "@on_call_return\ndef result(request):\n    return call_return_patch(type_annotation('demo.Item' if request['context']['speculative'] else 'str'))\n",
+            )?;
+            paths.push((
+                manifest,
+                artifact,
+                if id == "first" {
+                    json!({"companion-early-call-returns":["get"]})
+                } else {
+                    json!({})
+                },
+            ));
+        }
+        let mut runtime = Runtime::from_plugins(&paths)?;
+        runtime.use_site_fields = true;
+        let project = Project::load(&directory, &[path], &runtime.manifest, json!({}))?;
+        let module = project.modules["demo"].clone();
+        let ruff_python_ast::Stmt::Assign(assignment) = module.suite.last().unwrap() else {
+            unreachable!()
+        };
+        let ruff_python_ast::Expr::Call(expression) = assignment.value.as_ref() else {
+            unreachable!()
+        };
+        let mut call = crate::model::call_site(expression, "demo.Manager.get".into());
+        call.flow_receiver_type = Some("demo.Manager".into());
+        runtime.attach_project(Arc::new(project), json!({}));
+        let before = runtime.executions;
+        assert!(speculative_call_return(&mut runtime, &module.source, &call)?.is_none());
+        assert_eq!(
+            runtime.executions, before,
+            "Every observing plugin must opt in"
+        );
+        for plugin in &mut runtime.plugins {
+            plugin.config["companion-early-call-returns"] = json!(["get"]);
+        }
+        let response = speculative_call_return(&mut runtime, &module.source, &call)?.unwrap();
+        assert_eq!(response.response["return-type"]["expression"], "demo.Item");
+        assert!(!response.native);
+        runtime.plugins[0].config["companion-native-call-returns"] = json!(["get"]);
+        assert!(
+            !speculative_call_return(&mut runtime, &module.source, &call)?
+                .unwrap()
+                .native
+        );
+        for plugin in &mut runtime.plugins {
+            plugin.config["companion-native-call-returns"] = json!(["get"]);
+        }
+        assert!(
+            speculative_call_return(&mut runtime, &module.source, &call)?
+                .unwrap()
+                .native
+        );
+        let normal = call_request(
+            &mut runtime,
+            &module.source,
+            "adjust-call-return",
+            &call,
+            None,
+            None,
+        )?;
+        assert_eq!(
+            normal["return-type"]["expression"], "str",
+            "Speculative cache entries must not replace normal calls"
+        );
+        runtime.plugins[0].config["companion-native-call-returns"] = json!("get");
+        assert!(speculative_call_return(&mut runtime, &module.source, &call).is_err());
+        runtime.plugins[0].config["companion-native-call-returns"] = json!(["get"]);
+        let before = runtime.executions;
+        call.arguments[0].literal = json!({"kind":"unknown"});
+        assert!(speculative_call_return(&mut runtime, &module.source, &call)?.is_none());
+        assert_eq!(runtime.executions, before);
+        call.arguments[0].literal = json!({"kind":"int","value":1});
+        runtime.plugins[0].config["companion-early-call-returns"] = json!("get");
+        assert!(speculative_call_return(&mut runtime, &module.source, &call).is_err());
+        assert_eq!(runtime.executions, before);
+        assert!(
+            runtime
+                .project
+                .as_ref()
+                .unwrap()
+                .plain_source_class("demo.Item")
+        );
+        assert!(
+            !runtime
+                .project
+                .as_ref()
+                .unwrap()
+                .plain_source_class("demo.Generic")
+        );
+        std::fs::remove_dir_all(directory)?;
+        Ok(())
+    }
+
+    #[test]
+    fn project_input_selection_is_explicit_isolated_and_validated() -> Result<()> {
+        let directory =
+            std::env::temp_dir().join(format!("native-input-selection-{}", std::process::id()));
+        std::fs::create_dir_all(&directory)?;
+        let profile = json!({"companion-project-inputs":{"assignment-kinds":["call"],"class-source":false,"field-call-keywords":["null"],"field-call-argument-source":false}});
+        let mut paths = Vec::new();
+        for (id, config) in [("selected", profile), ("full", json!({}))] {
+            let artifact = directory.join(format!("{id}.py"));
+            let manifest = directory.join(format!("{id}.json"));
+            std::fs::write(
+                &artifact,
+                "@on_project_index\ndef index(request):\n    return project_index({'classes':request.get('classes',[]),'assignments':request.get('assignments',[])})\n",
+            )?;
+            std::fs::write(
+                &manifest,
+                serde_json::to_vec(
+                    &json!({"id":id,"name":id,"version":"0","protocol-version":{"major":0,"minor":9},"ty-compatibility":{"requirement":">=0.89.0"},"runtime":{"kind":"monty","artifact":format!("{id}.py")},"capabilities":{"project-index":true}}),
+                )?,
+            )?;
+            paths.push((manifest, artifact, config));
+        }
+        let source = json!({"module":"demo","file-path":"demo.py","start":{"line":1,"column":1},"end":{"line":1,"column":2}});
+        let mut request = json!({"kind":"build-project-index","context":{"root":"","python-version":"3.13","platform":"linux","config":{}},"classes":[{"qualified-name":"demo.Row","source":source,"fields":[{"name":"value","source":source,"assigned-value":{"kind":"call","callee":{"qualified-name":"library.Field"},"arguments":[{"kind":"positional","value":{"kind":"str","value":"Target"}},{"kind":"keyword","name":"null","value":{"kind":"bool","value":true}},{"kind":"keyword","name":"max_length","value":{"kind":"int","value":80}},{"kind":"star-kwargs","value":{"kind":"unknown"}}]}}],"nested-classes":[{"name":"Meta","qualified-name":"demo.Row.Meta","source":source}]}],"assignments":[{"name":"constant","qualified-name":"demo.constant","assigned-value":{"kind":"literal","value":{"kind":"int","value":1}}},{"name":"factory","qualified-name":"demo.factory","assigned-value":{"kind":"call","callee":{"qualified-name":"library.factory"}}}]});
+        request["classes"][0]["fields"][0]["assigned-value"]["arguments"][0]["source"] =
+            source.clone();
+        request["classes"][0]["nested-classes"][0]["fields"] =
+            request["classes"][0]["fields"].clone();
+        let original = request.clone();
+        let mut source_only = request.clone();
+        select_project_inputs(
+            &mut source_only,
+            &json!({"companion-project-inputs":{"field-call-argument-source":false}}),
+        )?;
+        assert_eq!(source_only["classes"][0]["source"], source);
+        assert_eq!(source_only["classes"][0]["fields"][0]["source"], source);
+        assert_eq!(
+            source_only["classes"][0]["fields"][0]["assigned-value"]["arguments"]
+                .as_array()
+                .unwrap()
+                .len(),
+            4
+        );
+        assert!(
+            source_only["classes"][0]["fields"][0]["assigned-value"]["arguments"][0]
+                .get("source")
+                .is_none()
+        );
+        assert!(source_only["classes"][0]["nested-classes"][0]["fields"][0]["assigned-value"]["arguments"][0].get("source").is_none());
+        let mut malformed = request.clone();
+        malformed["assignments"][0]["assigned-value"]["kind"] = json!("unexpected");
+        select_project_inputs(&mut malformed, &paths[0].2)?;
+        assert_eq!(
+            malformed["assignments"][0]["assigned-value"]["kind"],
+            "unexpected"
+        );
+        let mut runtime = Runtime::from_plugins(&paths)?;
+        runtime.use_site_fields = true;
+        assert!(!runtime.sparse_overlay_index()?);
+        assert!(!runtime.project_call_assignments_only()?);
+        runtime.execute_project("build-project-index", request.clone())?;
+        assert_eq!(request, original);
+        let selected_index = runtime
+            .plugins
+            .iter()
+            .position(|plugin| plugin.id == "selected")
+            .unwrap();
+        let full_index = runtime
+            .plugins
+            .iter()
+            .position(|plugin| plugin.id == "full")
+            .unwrap();
+        let selected = runtime.plugins[selected_index].index.as_ref().unwrap();
+        let full = runtime.plugins[full_index].index.as_ref().unwrap();
+        assert_eq!(selected["assignments"].as_array().unwrap().len(), 1);
+        assert_eq!(full["assignments"].as_array().unwrap().len(), 2);
+        assert!(selected["classes"][0].get("source").is_none());
+        assert!(
+            selected["classes"][0]["nested-classes"][0]
+                .get("source")
+                .is_none()
+        );
+        assert_eq!(selected["classes"][0]["fields"][0]["source"], source);
+        assert_eq!(full["classes"][0]["source"], source);
+        let arguments = selected["classes"][0]["fields"][0]["assigned-value"]["arguments"]
+            .as_array()
+            .unwrap();
+        assert_eq!(arguments.len(), 3);
+        assert_eq!(arguments[0]["kind"], "positional");
+        assert!(arguments[0].get("source").is_none());
+        assert_eq!(
+            full["classes"][0]["fields"][0]["assigned-value"]["arguments"][0]["source"],
+            source
+        );
+        assert_eq!(arguments[1]["name"], "null");
+        assert_eq!(arguments[2]["kind"], "star-kwargs");
+        runtime.use_site_fields = false;
+        runtime.execute_project("build-project-index", request.clone())?;
+        assert_eq!(
+            runtime.plugins[0].index, runtime.plugins[1].index,
+            "Default SDK requests remain complete"
+        );
+        runtime.use_site_fields = true;
+        for invalid in [
+            json!({"unknown":true}),
+            json!({"class-source":"false"}),
+            json!({"assignment-kinds":["bogus"]}),
+            json!({"field-call-keywords":[1]}),
+            json!({"field-call-argument-source":"false"}),
+            json!({"overlay-index":true}),
+            json!({"overlay-index":"bogus"}),
+        ] {
+            runtime.plugins[selected_index].config["companion-project-inputs"] = invalid;
+            let executions = runtime.executions;
+            assert!(
+                runtime
+                    .execute_project("build-project-index", request.clone())
+                    .is_err()
+            );
+            assert_eq!(
+                runtime.executions, executions,
+                "Reject malformed input selection before invoking a plugin"
+            );
+        }
+        for plugin in &mut runtime.plugins {
+            plugin.config["companion-project-inputs"] =
+                json!({"overlay-index":"imports", "assignment-kinds":["call"]});
+        }
+        assert!(runtime.sparse_overlay_index()?);
+        assert!(runtime.project_call_assignments_only()?);
+        runtime.plugins[full_index].manifest["capabilities"]["additional-dependencies"] =
+            json!(true);
+        assert!(!runtime.project_call_assignments_only()?);
+        runtime.plugins[full_index].manifest["capabilities"]["additional-dependencies"] =
+            json!(false);
+        runtime.plugins[full_index].config = json!({});
+        assert!(!runtime.sparse_overlay_index()?);
+        assert!(!runtime.project_call_assignments_only()?);
+        runtime.plugins[full_index].config =
+            json!({"companion-project-inputs":{"overlay-index":"imports"}});
+        runtime.use_site_fields = false;
+        assert!(!runtime.sparse_overlay_index()?);
+        std::fs::remove_dir_all(directory)?;
+        Ok(())
+    }
 
     #[test]
     fn class_batches_preserve_individual_results_limits_fallback_and_revisions() -> Result<()> {
@@ -2539,6 +4734,152 @@ def member_hook(request):
                 .all(|plugin| plugin.class_indexes.is_empty())
         );
         std::fs::remove_dir_all(directory)?;
+        Ok(())
+    }
+
+    #[test]
+    fn moved_response_indexes_preserve_exact_protocol_json() -> Result<()> {
+        for index in [
+            Value::Null,
+            json!(true),
+            json!(42),
+            json!(1.5),
+            json!("é\n"),
+            json!([]),
+            json!({"nested":[{"a/b~c":[null,false,1,"value"]}]}),
+        ] {
+            for classes in [
+                BTreeMap::new(),
+                BTreeMap::from([
+                    ("demo.Row".to_owned(), index.clone()),
+                    ("demo.Empty".to_owned(), Value::Null),
+                ]),
+            ] {
+                let response = ty_plugin_protocol::PluginResponse::ProjectIndex(
+                    ty_plugin_protocol::ProjectIndexResponse {
+                        plugin_index: index.clone(),
+                        class_indexes: classes,
+                        contributions: Vec::new(),
+                        virtual_types: Vec::new(),
+                        dependencies: Vec::new(),
+                        diagnostics: Vec::new(),
+                    },
+                );
+                let reference = serde_json::to_value(&response)?;
+                assert_eq!(response_value(response)?, reference);
+            }
+        }
+        for value in [
+            json!({"kind":"no-change"}),
+            json!({"kind":"class-patch","fields":[]}),
+            json!({"kind":"call-return-patch","return-type":typ("int")}),
+        ] {
+            let response: ty_plugin_protocol::PluginResponse = serde_json::from_value(value)?;
+            let reference = serde_json::to_value(&response)?;
+            assert_eq!(response_value(response)?, reference);
+        }
+        Ok(())
+    }
+
+    #[test]
+    fn prepared_member_abstentions_preserve_routing_namespaces_and_failures() -> Result<()> {
+        let directory = std::env::temp_dir().join(format!(
+            "ty-native-member-abstentions-{}",
+            std::process::id()
+        ));
+        std::fs::create_dir_all(&directory)?;
+        let mut paths = Vec::new();
+        for (id, result) in [("a.first", "str"), ("b.second", "int")] {
+            let manifest = directory.join(format!("{id}.json"));
+            let artifact = directory.join(format!("{id}.py"));
+            std::fs::write(
+                &artifact,
+                format!(
+                    "@on_instance_member\ndef instance(request):\n    return member_response(member(request['member-name'], type_annotation('{result}'), mode='replace-existing'))\n"
+                ),
+            )?;
+            let claims: Vec<_> = ["value", "other"].into_iter().map(|member|json!({"kind":"exact","scope":"instance","owner-qualified-name":"demo.Row","attribute-name":member})).collect();
+            std::fs::write(&manifest,json!({"id":id,"name":id,"version":"0","protocol-version":{"major":0,"minor":9},"ty-compatibility":{"requirement":">=0.89.0"},"runtime":{"kind":"monty","artifact":format!("{id}.py")},"capabilities":{"instance-member":true},"claims":{"attributes":claims},"default-config":{"companion-native-member-abstentions":"native"}}).to_string())?;
+            paths.push((manifest, artifact, json!({})));
+        }
+        let source = Source::new(String::new(), "demo.py".into(), "demo".into());
+        let request = json!({"owner":typ("demo.Row"),"member-name":"value"});
+        let declaration = json!({"native":{"demo.Row":{"value":true,"other":"true"}}});
+        let mut runtime = Runtime::from_plugins(&paths)?;
+        runtime.use_site_fields = true;
+        runtime.plugins[0].index = Some(declaration.clone());
+        assert_eq!(
+            runtime.execute(&source, "resolve-instance-member", request.clone())?["access"]["type-expr"]
+                ["expression"],
+            "int"
+        );
+        assert_eq!(
+            runtime.executions, 1,
+            "only the later plugin should execute"
+        );
+        assert_eq!(
+            runtime.execute(
+                &source,
+                "resolve-instance-member",
+                json!({"owner":typ("demo.Row"),"member-name":"other"})
+            )?["access"]["type-expr"]["expression"],
+            "str"
+        );
+        assert!(!runtime.native_member_abstains(0, "resolve-class-member", &request));
+        assert!(!runtime.native_member_abstains(0, "adjust-call-state", &request));
+        runtime.use_site_fields = false;
+        assert_eq!(
+            runtime.execute(&source, "resolve-instance-member", request.clone())?["access"]["type-expr"]
+                ["expression"],
+            "str"
+        );
+        runtime.use_site_fields = true;
+        runtime.plugins[0].index = None;
+        assert!(!runtime.native_member_abstains(0, "resolve-instance-member", &request));
+
+        let mut isolated = Runtime::from_plugins(&paths[..1])?;
+        isolated.use_site_fields = true;
+        isolated.plugins[0].index = Some(declaration);
+        isolated.plugins[0]
+            .virtual_names
+            .insert("demo.Row".into(), "_ty_plugin_test.Row".into());
+        isolated.plugins[0]
+            .inverse_virtual_names
+            .insert("_ty_plugin_test.Row".into(), "demo.Row".into());
+        assert_eq!(
+            isolated.execute(
+                &source,
+                "resolve-instance-member",
+                json!({"owner":typ("_ty_plugin_test.Row"),"member-name":"value"})
+            )?["kind"],
+            "no-change"
+        );
+        assert_eq!(isolated.executions, 0);
+        isolated.load_failures.insert(
+            "a.first".into(),
+            ("broken artifact".into(), "reload".into()),
+        );
+        assert!(!isolated.native_member_abstains(0, "resolve-instance-member", &request));
+        isolated.execute(&source, "resolve-instance-member", request)?;
+        for invalid in [json!(false), json!([]), json!("")] {
+            let mut malformed = paths[..1].to_vec();
+            malformed[0].2 = json!({"companion-native-member-abstentions":invalid});
+            assert!(Runtime::from_plugins(&malformed).is_err());
+        }
+        std::fs::remove_dir_all(directory)?;
+        Ok(())
+    }
+
+    #[test]
+    fn buffered_request_keys_preserve_exact_json_bytes() -> Result<()> {
+        for size in [0, 1, 8191, 8192, 8193, 32768] {
+            let payload = json!({"unicode":"é文\n\"\\", "values":[true, null, -1, 1.5], "large":"x".repeat(size)});
+            let expected: RequestKey = Sha256::digest(serde_json::to_vec(&payload)?).into();
+            assert_eq!(request_key(&payload)?, expected);
+            let mut changed = payload.clone();
+            changed["values"][0] = json!(false);
+            assert_ne!(request_key(&changed)?, expected);
+        }
         Ok(())
     }
 
@@ -2988,6 +5329,7 @@ def member_hook(request):
             "@on_call_return\ndef returns(request):\n    return {'kind':'invalid-response-kind'}\n",
         )?;
         let mut runtime = Runtime::new(&manifest, &plugin)?;
+        runtime.execution_profile = Some(BTreeMap::new());
         let first = runtime.execute(&source, "adjust-call-return", request.clone())?;
         assert_eq!(first["kind"], "no-change");
         assert!(
@@ -3003,6 +5345,10 @@ def member_hook(request):
         );
         assert_eq!(runtime.executions, 1);
         assert_eq!(runtime.hits, 1);
+        assert_eq!(
+            runtime.execution_profile()["adjust-call-return"]["executions"],
+            1
+        );
         // Plugin/config reload creates a new Runtime, so cached failures cannot
         // survive an edited artifact. Ordinary SDK exceptions are protocol
         // Error responses and retain the fork's silent abstention behavior.
@@ -3350,6 +5696,38 @@ def member_hook(request):
         assert!(cache.get(&second).is_none());
         assert!(cache.get(&first).is_some());
         assert_eq!(cache.entries.len(), RequestCache::MAX_ENTRIES);
+        assert_eq!(cache.entries.len(), cache.oldest.len());
+        assert!(cache.bytes <= RequestCache::MAX_BYTES);
+    }
+
+    #[test]
+    fn large_index_responses_do_not_evict_reusable_semantic_results() {
+        let mut cache = RequestCache::default();
+        // A sequential class scan nearly fills the shared budget. A new large
+        // index used to evict the first classes, whose recomputation would then
+        // evict the next classes, defeating reuse throughout the scan.
+        let semantic = json!({"payload": "x".repeat(2 * 1024 * 1024)});
+        let keys = (0..24)
+            .map(|index| request_key(&("class", index)).unwrap())
+            .collect::<Vec<_>>();
+        for key in &keys {
+            cache.insert(*key, &semantic);
+        }
+        let before = (cache.entries.len(), cache.bytes, cache.clock);
+        let index_key = request_key(&"project-index").unwrap();
+        let index_response = json!({"payload": "y".repeat(RequestCache::MAX_ENTRY_BYTES)});
+        cache.insert(index_key, &index_response);
+        assert_eq!((cache.entries.len(), cache.bytes, cache.clock), before);
+        assert_eq!(cache.oversized_skips, 1);
+        assert!(cache.get(&index_key).is_none());
+        for key in keys {
+            assert!(cache.get(&key).is_some(), "class result was evicted");
+        }
+        // Admission limits do not modify the response consumed by the caller.
+        assert_eq!(
+            index_response["payload"].as_str().unwrap().len(),
+            RequestCache::MAX_ENTRY_BYTES
+        );
         assert_eq!(cache.entries.len(), cache.oldest.len());
         assert!(cache.bytes <= RequestCache::MAX_BYTES);
     }

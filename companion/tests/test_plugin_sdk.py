@@ -16,7 +16,7 @@ class PluginSdkTests(unittest.TestCase):
         spec = importlib.util.spec_from_file_location("tested_plugin_sdk", path)
         self.sdk = importlib.util.module_from_spec(spec)
         spec.loader.exec_module(self.sdk)
-        embedded = root / "ruff/crates/ty_plugin_host/python/ty_plugin_sdk.py"
+        embedded = root / "crates/ty_plugin_host/python/ty_plugin_sdk.py"
         # The generated package adjusts the module's introductory prose.
         self.assertEqual(
             [ast.dump(node) for node in ast.parse(path.read_text()).body[1:]],

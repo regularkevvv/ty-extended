@@ -1,30 +1,57 @@
 # Version compatibility
 
-The companion and official ty are installed as separate distributions. The
-companion uses public CLI and LSP interfaces; it does not link ty's semantic
-engine or build a modified checker. The `ruff` submodule pins source dependencies
-for parsing, notebook handling and the plugin host, independently of official ty.
+ty-extended and official ty are installed as separate distributions. ty-extended uses public CLI and LSP interfaces; it does not link Ty's semantic
+engine or build a modified checker. Five published Ruff crates provide parsing,
+text positions, notebook handling and diagnostics. Their registry versions are
+pinned in Cargo.lock; the plugin host, protocol and SDK live in this repository.
+There is no fork submodule or vendored Ruff source.
 
 ## Version policy
 
-Starting with companion 0.87.0, versions are independent. The package accepts a
+Starting with ty-extended 0.87.0, versions are independent. The package accepts a
 group of official ty versions within the declared dependency range. Updating ty
-inside that range does not require rebuilding or republishing the companion.
+inside that range does not require rebuilding or republishing ty-extended.
 
 The tested-version ledger is recorded with the release's compatibility evidence.
 Tests identify each official executable by version and SHA-256 and run the same
-companion binary against it. Endpoint checks alone do not establish the whole
+ty-extended binary against it. Endpoint checks alone do not establish the whole
 range. The release gate also checks installed wheels, real editor sessions and
 the Django conformance corpus.
 
 Official ty is pre-1.0. A later release can change configuration, diagnostic names,
 expected-type inference, bundled stubs or notebook responses. Scheduled compatibility
 checks detect those changes. A failing upstream version needs investigation and,
-where necessary, a companion fix or dependency restriction; future versions are
-not presented as already tested. Companion releases are driven by those fixes and
+where necessary, a ty-extended fix or dependency restriction; future versions are
+not presented as already tested. ty-extended releases are driven by those fixes and
 features, rather than every upstream version number.
 
 ## Qualified versions
+
+The [0.90.0 ledger](qualification/compatibility-0.90.0.json) records one unchanged
+optimized wheel executable against **all 21 official Ty releases from 0.0.84
+through 0.0.104**. Every release passes all 18 CLI, editor, notebook, plugin and SDK
+gates: **378 passing gates**. Native rule identities normalize documented pure
+renames for internal classification and historical comparisons; consumer output
+preserves official diagnostic IDs. Newly split implicit-return and generator
+rules retain their distinct identities.
+
+The independent workspace also passes all hosted runtime gates on Linux, macOS
+and Windows, nine wheel/source packaging jobs, both Docker architectures and both
+five-workload performance matrices. [The migration receipt](qualification/upstream-ruff-migration.json)
+keeps this evidence separate from subsequent public-package acceptance.
+
+### Earlier qualification
+
+The [earlier native Django candidate](qualification/native-django-latest-v28.json)
+passes its expanded source suite against every Ty release from **0.0.84 through
+0.0.101**. The same ty-extended executable passes 236 regular Rust tests and three
+additional integration tests in each projection mode on each version, 172 Django
+corpus cases, SDK field and native API controls, and eight custom-primary-key
+cases in each mode. Internal classification handles renamed native diagnostic
+rules while consumer output preserves the official rule IDs. This source sweep
+does not qualify installed wheels or extend the published release's ledger. The
+candidate also fails its required 3-times native performance ceiling. That receipt predates the accepted performance implementation and the current
+0.90.0 qualification; it is retained as historical evidence.
 
 The [0.89.0 CI-wheel ledger](qualification/compatibility-0.89.0.json) records
 one unchanged installed executable against **every official ty release from
@@ -43,7 +70,7 @@ this is not a version-matched Python 3.15 comparator pair.
 
 Protocol 0.9's batch path is checked against the individual full-index reference:
 **2,582 class results and 3,012 batches** across 27 projects match through embedded
-Monty 1.5.0. The companion passes 208 Rust tests on Linux/macOS and 211 on Windows,
+Monty 1.5.0. ty-extended passes 208 Rust tests on Linux/macOS and 211 on Windows,
 50 Python harness tests and 83 SDK/host tests, together with 152 Django responses
 through both CPython and Monty. Windows includes a dedicated drive/UNC
 projection-boundary test. Tests cover batch limits, opt-in negotiation, individual-hook fallback, cache
@@ -51,8 +78,8 @@ invalidation and preservation of plugin indexes.
 
 The final source passes Linux, macOS and Windows CI, including forced timestamp
 collisions and Windows editor reconfiguration. The full version sweep uses the
-exact CI wheel. Additional Django matrix results retain their earlier companion
-identity in the ledger and are repeated against the public companion before the
+exact CI wheel. Additional Django matrix results retain their earlier ty-extended
+identity in the ledger and are repeated against the public ty-extended before the
 Django release. Published-package acceptance remains a separate release gate.
 Measurements against MyPy and bare
 official ty are recorded in [the performance report](performance.md), including
@@ -65,7 +92,7 @@ the full 16-version sweep after normalizing identified build metadata. Fresh
 installed SDK, CLI and editor checks pass on Python 3.8, 3.9 and 3.13; the native
 installer and an independent published-SDK consumer pass as well. All five public
 performance workloads meet the MyPy median ceiling. Django's complete 21-pair
-matrix and separate Python 3.15 controls pass against the published companion.
+matrix and separate Python 3.15 controls pass against the published ty-extended.
 
 ### Previous releases
 
@@ -114,30 +141,30 @@ CI installs the newest available version and repeats the regression gates.
 
 ## Scope of checker compatibility
 
-Qualification covers the companion's documented CLI, editor and plugin surface.
+Qualification covers ty-extended's documented CLI, editor and plugin surface.
 Official ty's new diagnostic-baseline options are preview features and are not
 part of this qualification; baseline matching against transformed plugin views
 needs its own validation. Checker diagnostics and rule severities remain owned
 by the installed official version. New optional checker features can need a
-companion adapter even when existing checking workflows remain compatible.
+ty-extended adapter even when existing checking workflows remain compatible.
 
 ## Plugin compatibility
 
-Companion 0.89.0 embeds Monty **1.5.0**. The SDK and host tests execute with
-the runtime selected by the companion lockfile, including sandbox and execution
+ty-extended 0.90.0 embeds Monty **1.6.0**. The SDK and host tests execute with
+the runtime selected by ty-extended lockfile, including sandbox and execution
 limit controls. Plugin users do not install a separate Monty interpreter or
 Python worker.
 
-The companion runs embedded Monty plugins using protocol 0.9 and accepts existing
+ty-extended runs embedded Monty plugins using protocol 0.9 and accepts existing
 protocol 0.7 and 0.8 plugins. Protocol 0.9 adds opt-in bounded class batches;
 protocol 0.8 adds optional class-specific indexes and read-only index lookups.
 These additions do not change the official checker interfaces. Plugin package
-requirements constrain companion versions. The legacy `ty-compatibility` manifest
+requirements constrain ty-extended versions. The legacy `ty-compatibility` manifest
 field remains part of the format, but does not select or install official ty.
 Protocol negotiation and capability validation remain separate from checker
 compatibility tests.
 
-WASM and worker runtimes are outside the companion. The historical SDK ledger
+WASM and worker runtimes are outside ty-extended. The historical SDK ledger
 includes explicit private/runtime boundaries, rather than claiming every old
 checker integration test executes unchanged. Consult [the evidence](https://github.com/regularkevvv/ty-extended/blob/main/companion/STATUS.md)
 for tested contracts, rejection controls and known limitations.

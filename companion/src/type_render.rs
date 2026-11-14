@@ -70,6 +70,11 @@ pub struct Types {
     /// Generic method bodies depend only on class access and setter presence.
     /// Each field retains its own nominal subclass and concrete access types.
     pub(crate) descriptor_bases: BTreeMap<(bool, bool), String>,
+    /// Repeated concrete generic bases share one type alias. Individual fields
+    /// still declare distinct subclasses, including their `Self` class access.
+    pub(crate) descriptor_specializations: BTreeMap<String, Option<String>>,
+    pub(crate) field_value_factory: Option<String>,
+    pub(crate) field_value_specializations: BTreeSet<String>,
     prefix: String,
     module: String,
     unimportable_module: bool,
@@ -101,6 +106,9 @@ impl Types {
             imports: BTreeSet::new(),
             definitions: String::new(),
             descriptor_bases: BTreeMap::new(),
+            descriptor_specializations: BTreeMap::new(),
+            field_value_factory: None,
+            field_value_specializations: BTreeSet::new(),
             prefix: prefix.into(),
             module: module.into(),
             unimportable_module: false,

@@ -7,7 +7,6 @@ import argparse
 import hashlib
 import json
 import os
-import re
 import subprocess
 import textwrap
 from pathlib import Path
@@ -367,17 +366,14 @@ def main():
     for name in ("companion", "official", "fork", "output"):
         setattr(args, name, getattr(args, name).resolve())
     args.output.mkdir(parents=True)
-    original = (
-        Path(__file__).resolve().parents[2]
-        / "ruff/crates/ty_python_semantic/src/types/class/static_literal.rs"
-    )
-    source = original.read_text(encoding="utf-8")
+    original = Path(__file__).resolve().parents[1] / "tests/fixtures/sdk_contracts.json"
+    catalog = json.loads(original.read_text(encoding="utf-8"))["cases"]
     report = {
         "passed": False,
         "artifact": str(args.companion),
         "sha256": digest(args.companion),
-        "original_source": str(original),
-        "original_source_sha256": digest(original),
+        "fixture_catalog": str(original),
+        "fixture_catalog_sha256": digest(original),
         "source_sha256": digest(Path(__file__)),
         "fork_sha256": digest(args.fork),
         "official_sha256": digest(args.official),
@@ -387,16 +383,7 @@ def main():
     environment = {**os.environ, "TY_UV": "0", "TY_MAX_PARALLELISM": "1"}
     try:
         for index, name in enumerate(NAMES):
-            block = re.search(
-                r"fn " + name + r"\(\).*?(?=\n    #\[test\]|\Z)", source, re.S
-            )
-            assert block, name
-            files = re.findall(
-                r'db\.write_dedented\(\s*"/src/([^\"]+)",\s*r#"(.*?)"#,\s*\)\?;',
-                block[0],
-                re.S,
-            )
-            assert files, name
+            files = catalog["classes"][name].items()
             root = args.output / name
             root.mkdir()
             for file, text in files:
@@ -424,7 +411,10 @@ def main():
                 # Retain the exact SDK wire response as well as the original
                 # Rust schema, so descriptor/setter comparisons cannot be
                 # explained by an authoring-helper adaptation.
-                sdk = original.parents[4] / "ty_plugin_host/python/ty_plugin_sdk.py"
+                sdk = (
+                    Path(__file__).resolve().parents[2]
+                    / "crates/ty_plugin_host/python/ty_plugin_sdk.py"
+                )
                 namespace = {}
                 exec(
                     compile(sdk.read_text(encoding="utf-8"), str(sdk), "exec"),

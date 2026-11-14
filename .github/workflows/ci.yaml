@@ -18,25 +18,18 @@ env:
   PYTHON_VERSION: "3.13"
   PACKAGE_NAME: ty-extended
 jobs:
-  ruff-submodule-source:
-    name: ruff-extended submodule source
+  upstream-dependencies:
+    name: Upstream library dependencies
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
       - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0
         with:
           persist-credentials: false
-      - name: Check Ruff submodule fork
-        run: |
-          url="$(git config --file .gitmodules --get submodule.ruff.url)"
-          case "$url" in
-            "https://github.com/regularkevvv/ruff-extended"|"https://github.com/regularkevvv/ruff-extended.git"|"git@github.com:regularkevvv/ruff-extended.git")
-              ;;
-            *)
-              echo "Expected ruff submodule to point at ruff-extended; got: $url"
-              exit 1
-              ;;
-          esac
+      - name: Install Rust
+        run: rustup toolchain install 1.98.0 --profile minimal
+      - name: Audit dependencies
+        run: python3 scripts/audit_dependencies.py
   python-package:
     name: python package
     runs-on: ${{ github.repository == 'astral-sh/ty' && 'github-ubuntu-24.04-x86_64-4' || 'ubuntu-latest' }}
@@ -45,7 +38,6 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
           persist-credentials: false
-          submodules: recursive
       - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97
         with:
           python-version: ${{ env.PYTHON_VERSION }}
@@ -111,7 +103,6 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
           persist-credentials: false
-          submodules: recursive
       - uses: astral-sh/setup-uv@c18668ad3cf93ea998bef934396af7bb5c839dc7
         with:
           version: 0.12.23

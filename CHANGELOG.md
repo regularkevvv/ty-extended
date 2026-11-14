@@ -1,11 +1,26 @@
 # Changelog
 
-Current releases are Monty companions for unchanged official ty. Companion versions
+Current releases add plugin support to unchanged official ty. ty-extended versions
 are independent of official ty starting with 0.87.0. Earlier releases shipped a
 modified checker; their published notes remain unchanged.
 
 Entries below 0.74.0 say "extension" where they now would say "plugin"; the term was settled on
 "plugin" in 0.74.0 and released notes are left as they were published.
+
+## Unreleased
+
+## 0.90.0
+
+- Own the plugin host, protocol, SDK and examples in this repository. Depend on five published Ruff crates and remove the fork submodule; no Ruff source is vendored.
+- Extend separately installed, unchanged official Ty with Python plugins supported by Monty. Keep ty-extended releases independent of official Ty versions.
+- Qualify groups of official Ty versions with one unchanged executable and complete CLI/editor/SDK gates.
+- Preserve the accepted native Django performance implementation through scoped indexes, shared type factories, lazy row construction and native inference.
+- Cancel and reap speculative checker processes when their results cannot be reused. Validate accepted results against source, configuration, directory and probe changes after checking.
+- Retain in-memory declaration providers during preparatory inference and preserve fully qualified class identities across modules.
+- Recognize documented diagnostic renames in historical comparisons while preserving consumer-facing native rule IDs and newly split rules.
+- Publish protocol and Rust SDK 0.0.12 from the independent workspace. Build standalone wheels, native archives and source distributions without a Ruff checkout.
+- Remove unused upstream fuzzing, signing, documentation, version-publishing and notification workflows. Retain this project's compatibility, packaging and release gates.
+- Record every performance observation and negative control, including failed series and invalid comparisons. Measurements qualify the documented workloads, not universal worst-case bounds.
 
 ## 0.89.0
 

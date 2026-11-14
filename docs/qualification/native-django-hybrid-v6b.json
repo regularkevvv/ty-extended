@@ -1,0 +1,2784 @@
+{
+  "schema": 1,
+  "observed_at": "2026-11-09T00:46:46.222507+00:00",
+  "status": "Local experimental v6b qualification; not release acceptance. v7 is a subsequent unqualified indexing experiment.",
+  "host": "macOS-27.0.1-arm64-arm-64bit-Mach-O",
+  "versions": {
+    "official_ty": "0.0.99",
+    "django_types": "0.24.0",
+    "django": "6.1.3",
+    "python": "3.13.0",
+    "mypy": "2.4.1",
+    "mypy_django_stubs": "6.1.2"
+  },
+  "experimental_environment": {
+    "TY_COMPANION_NATIVE_FIELDS": "1",
+    "TY_COMPANION_MEMORY_PROJECTION": "1"
+  },
+  "root_source": {
+    "base_commit": "b61e9618c9db3defac8fc8fe36191f3417ce6d4c",
+    "uncommitted": true,
+    "sha256": {
+      "companion/src/project_config.rs": "24f468df508a496b12be2a2907a92f2f7b54f8d6d5f4047553483f8207fa5b34",
+      "companion/src/flow.rs": "83fec76e8bd74b4ee6af26bd369159bd6d79fd343ece35abbf1b270a9b16554a",
+      "companion/src/runtime.rs": "7fdb95548705884a2d838fe659bf46d39ffd6e71025cf1604ddaaf3a2501c703",
+      "companion/src/static_project.rs": "2cf4c4a73ddc32996ed016abeb33132522b707ffb234831d5efba8b45a09ca35",
+      "companion/src/editor_options.rs": "6c3d5540fdea2956a9ed179fb2291f087456a48cf744647063bdd11a3f775d46",
+      "companion/src/cli_edits.rs": "01543f2a5d63f7a66545923b6ccd25e06161b6e3fd9b2936d09073768902c444",
+      "companion/src/project_check.rs": "59d0bafdd2bc60296f9a992fc0b9751dcf6c9b415c05aae4fecadf555312539c",
+      "companion/src/project.rs": "a657ab1db588cdc032cf7a2a78a0ada255f70f7cbb0797b84cf131dd79e6354c",
+      "companion/src/checker.rs": "a335f03c95ef3a4190c47006e274a7bfc596c4f32d5a78e28d0c2725e3763ab3",
+      "companion/src/verify.rs": "e7708860ec0bd32cdfb8d6a171a53b2c12d5a67703f5a5b4322fa72d1592603d",
+      "companion/src/type_snapshot.rs": "0c018b699a8d140782e3813a5606d188c27b392400d1796ab839d73002eba813",
+      "companion/src/mapping.rs": "eb6f154ffc98dea9ac9469e8fbf5fc34fb3e26422004e53c9716e0867de153a1",
+      "companion/src/main.rs": "99872fc0672e54164f6b0863a8c040e31531f1e3d9cd7477e492834c4ecdcf3a",
+      "companion/src/notebook.rs": "0bbd10d569d77019c19b7b76e7d2259c93afaaccc7f18c089e6478f3491cd24f",
+      "companion/src/lsp_mapping.rs": "2a3d7cc63f066bc25db11d680819124e3ff609448d2f27ab93b15d877bfc48fb",
+      "companion/src/lsp_server.rs": "f6a49b11f82ef55a8028d78253fb210844135b9c93e7777074dab3c6f846676a",
+      "companion/src/lower.rs": "feb1cec23983ff3e1144ecef89e63b00789bae920f54c484889faf1cb334dd28",
+      "companion/src/type_render.rs": "d4f62ea50e5fa320e862ae635e8bf90329211324963a8d92bea21cf6b9533111",
+      "companion/src/model.rs": "910d42537fa63b97809bb99dba3a504202f2ddb692ccf07c5ecedfc9fd3273f0",
+      "companion/src/cli.rs": "1cf30fe5cae409179d860ff2e5611d58e42c83f68599cc354ece0ec9c92a086c"
+    },
+    "ruff_gitlink": "7014a751a69f00d359f21fb9be6df67fb4dde4dc",
+    "ruff_sdk_or_checker_modified": false
+  },
+  "django_source": {
+    "base_commit": "2d59e00825ed2e0018cecf8997e65a3312aa9286",
+    "uncommitted": true,
+    "monty_sha256": "65007153d4e00edf5a0ddee9f94852475376590cf9c0efdce01b3e1e675218a0",
+    "vendor_tree_sha256": "deb0d8749886b0e6bfa97bf5966edba149b143a70dbfa3625dd1f806a8caf836"
+  },
+  "comparison": {
+    "passed": true,
+    "performance_goal_met": false,
+    "method": "Five rotated serial fresh processes; warm filesystem caches permitted; empty MyPy cache each run; 4 GiB sampled RSS / 90 seconds; host load under16; exact source bytes and mtimes preserved.",
+    "files": 7082,
+    "models": 2501,
+    "assertions": 100,
+    "source_sha256": "51c1a88b05a169f1222685fe6105e4be5f43d4213aaaf57c60bf99dbe0d82df9",
+    "binary_sha256": "7e41d7dfdb67519ceac67481bdf6f6c59ae053e71413de353d50c61ca309eab0",
+    "plugin_sha256": "65007153d4e00edf5a0ddee9f94852475376590cf9c0efdce01b3e1e675218a0",
+    "records": [
+      {
+        "backend": "bare-ty",
+        "label": "0/official",
+        "command": [
+          "$WORK/official-django-comparison/native-environment/bin/ty",
+          "check",
+          "--python",
+          "$WORK/official-django-comparison/native-environment/bin/python",
+          "--python-version",
+          "3.13",
+          "--output-format",
+          "gitlab",
+          "--no-progress",
+          "--color",
+          "never",
+          "--config-file",
+          "$WORK/official-django-comparison/official.toml",
+          "$WORK/stress/project"
+        ],
+        "seconds": 0.366899500018917,
+        "exit": 0,
+        "diagnostic_codes": {},
+        "user_cpu_seconds": 0.439389,
+        "system_cpu_seconds": 0.536129,
+        "sampled_process_tree_peak_rss_kib": 91728,
+        "stopped": null,
+        "monitor_error": null,
+        "parse_error": null,
+        "load_before": [
+          5.767578125,
+          9.77734375,
+          13.8779296875
+        ],
+        "load_after": [
+          5.767578125,
+          9.77734375,
+          13.8779296875
+        ],
+        "source_sha256": "51c1a88b05a169f1222685fe6105e4be5f43d4213aaaf57c60bf99dbe0d82df9",
+        "source_preserved": true,
+        "variant": "official",
+        "phases": {}
+      },
+      {
+        "backend": "companion",
+        "label": "0/hybrid",
+        "command": [
+          "$WORK/native-hybrid/release-v6b",
+          "check",
+          "--python",
+          "$WORK/environment/bin/python",
+          "--python-version",
+          "3.13",
+          "--output-format",
+          "gitlab",
+          "--no-progress",
+          "--color",
+          "never",
+          "$WORK/stress/project",
+          "--ty",
+          "$WORK/environment/bin/ty",
+          "--config-file",
+          "$WORK/native-hybrid/stress.toml"
+        ],
+        "seconds": 2.8267191249178723,
+        "exit": 0,
+        "diagnostic_codes": {},
+        "user_cpu_seconds": 2.044246,
+        "system_cpu_seconds": 1.440993,
+        "sampled_process_tree_peak_rss_kib": 512240,
+        "stopped": null,
+        "monitor_error": null,
+        "parse_error": null,
+        "load_before": [
+          5.767578125,
+          9.77734375,
+          13.8779296875
+        ],
+        "load_after": [
+          5.5458984375,
+          9.66455078125,
+          13.81396484375
+        ],
+        "source_sha256": "51c1a88b05a169f1222685fe6105e4be5f43d4213aaaf57c60bf99dbe0d82df9",
+        "source_preserved": true,
+        "variant": "hybrid",
+        "phases": {
+          "startup_source_copy": 0.007,
+          "startup_configuration": 0.003,
+          "startup_runtime": 0.008,
+          "startup_overlays": 0.171,
+          "startup_selection": 0.083,
+          "startup_source_and_stub_index": 0.406,
+          "startup_project": 0.0,
+          "source_scan": 0.182,
+          "external_resolution": 0.007,
+          "function_summaries": 0.0,
+          "project_index": 0.419,
+          "virtual_declarations": 0.003,
+          "class_projection": 0.018,
+          "initial_lowering": 0.257,
+          "flow_and_render": 0.23500000000000001,
+          "import_preflight": 0.026,
+          "oracle_check": 0.42000000000000004,
+          "hook_responses": 0.125,
+          "final_render": 0.005,
+          "final_check": 0.272,
+          "diagnostic_mapping": 0.01,
+          "source_maps": 0.01
+        }
+      },
+      {
+        "backend": "mypy",
+        "label": "0/mypy",
+        "command": [
+          "$WORK/mypy-reference/bin/mypy",
+          "--config-file",
+          "$WORK/stress/mypy.ini",
+          "--output",
+          "json",
+          "--no-incremental",
+          "$WORK/stress/project",
+          "--cache-dir",
+          "$WORK/native-hybrid/release-comparison-v6b/runs/0/mypy/scratch/mypy-cache"
+        ],
+        "seconds": 7.055160832940601,
+        "exit": 0,
+        "diagnostic_codes": {},
+        "user_cpu_seconds": 5.936225,
+        "system_cpu_seconds": 1.399585,
+        "sampled_process_tree_peak_rss_kib": 507056,
+        "stopped": null,
+        "monitor_error": null,
+        "parse_error": null,
+        "load_before": [
+          5.5458984375,
+          9.66455078125,
+          13.81396484375
+        ],
+        "load_after": [
+          5.7421875,
+          9.63671875,
+          13.77978515625
+        ],
+        "source_sha256": "51c1a88b05a169f1222685fe6105e4be5f43d4213aaaf57c60bf99dbe0d82df9",
+        "source_preserved": true,
+        "variant": "mypy",
+        "phases": {}
+      },
+      {
+        "backend": "companion",
+        "label": "0/previous",
+        "command": [
+          "$WORK/factory-release-v13b",
+          "check",
+          "--python",
+          "$WORK/environment/bin/python",
+          "--python-version",
+          "3.13",
+          "--output-format",
+          "gitlab",
+          "--no-progress",
+          "--color",
+          "never",
+          "$WORK/stress/project",
+          "--ty",
+          "$WORK/environment/bin/ty",
+          "--config-file",
+          "$WORK/stress/local-django.toml"
+        ],
+        "seconds": 5.473853625007905,
+        "exit": 0,
+        "diagnostic_codes": {},
+        "user_cpu_seconds": 4.196536,
+        "system_cpu_seconds": 1.916755,
+        "sampled_process_tree_peak_rss_kib": 1184864,
+        "stopped": null,
+        "monitor_error": null,
+        "parse_error": null,
+        "load_before": [
+          5.7421875,
+          9.63671875,
+          13.77978515625
+        ],
+        "load_after": [
+          5.6025390625,
+          9.54296875,
+          13.72216796875
+        ],
+        "source_sha256": "51c1a88b05a169f1222685fe6105e4be5f43d4213aaaf57c60bf99dbe0d82df9",
+        "source_preserved": true,
+        "variant": "previous",
+        "phases": {
+          "startup_source_copy": 0.008,
+          "startup_configuration": 0.01,
+          "startup_runtime": 0.019,
+          "startup_overlays": 0.109,
+          "startup_selection": 0.086,
+          "startup_source_and_stub_index": 0.422,
+          "startup_project": 0.0,
+          "source_scan": 0.181,
+          "external_resolution": 0.009,
+          "function_summaries": 0.0,
+          "project_index": 0.768,
+          "virtual_declarations": 0.13,
+          "class_projection": 0.514,
+          "initial_lowering": 0.421,
+          "flow_and_render": 0.146,
+          "import_preflight": 0.07100000000000001,
+          "oracle_check": 0.6930000000000001,
+          "hook_responses": 0.08299999999999999,
+          "final_render": 0.013,
+          "final_check": 1.355,
+          "diagnostic_mapping": 0.012,
+          "source_maps": 0.011
+        }
+      },
+      {
+        "backend": "mypy",
+        "label": "1/mypy",
+        "command": [
+          "$WORK/mypy-reference/bin/mypy",
+          "--config-file",
+          "$WORK/stress/mypy.ini",
+          "--output",
+          "json",
+          "--no-incremental",
+          "$WORK/stress/project",
+          "--cache-dir",
+          "$WORK/native-hybrid/release-comparison-v6b/runs/1/mypy/scratch/mypy-cache"
+        ],
+        "seconds": 7.154842333053239,
+        "exit": 0,
+        "diagnostic_codes": {},
+        "user_cpu_seconds": 6.072807,
+        "system_cpu_seconds": 1.402395,
+        "sampled_process_tree_peak_rss_kib": 506848,
+        "stopped": null,
+        "monitor_error": null,
+        "parse_error": null,
+        "load_before": [
+          5.39404296875,
+          9.43408203125,
+          13.6591796875
+        ],
+        "load_after": [
+          5.4423828125,
+          9.376953125,
+          13.6142578125
+        ],
+        "source_sha256": "51c1a88b05a169f1222685fe6105e4be5f43d4213aaaf57c60bf99dbe0d82df9",
+        "source_preserved": true,
+        "variant": "mypy",
+        "phases": {}
+      },
+      {
+        "backend": "companion",
+        "label": "1/previous",
+        "command": [
+          "$WORK/factory-release-v13b",
+          "check",
+          "--python",
+          "$WORK/environment/bin/python",
+          "--python-version",
+          "3.13",
+          "--output-format",
+          "gitlab",
+          "--no-progress",
+          "--color",
+          "never",
+          "$WORK/stress/project",
+          "--ty",
+          "$WORK/environment/bin/ty",
+          "--config-file",
+          "$WORK/stress/local-django.toml"
+        ],
+        "seconds": 5.198478125035763,
+        "exit": 0,
+        "diagnostic_codes": {},
+        "user_cpu_seconds": 4.181075,
+        "system_cpu_seconds": 1.837991,
+        "sampled_process_tree_peak_rss_kib": 1186144,
+        "stopped": null,
+        "monitor_error": null,
+        "parse_error": null,
+        "load_before": [
+          5.4423828125,
+          9.376953125,
+          13.6142578125
+        ],
+        "load_after": [
+          5.24658203125,
+          9.27099609375,
+          13.5517578125
+        ],
+        "source_sha256": "51c1a88b05a169f1222685fe6105e4be5f43d4213aaaf57c60bf99dbe0d82df9",
+        "source_preserved": true,
+        "variant": "previous",
+        "phases": {
+          "startup_source_copy": 0.006,
+          "startup_configuration": 0.001,
+          "startup_runtime": 0.006,
+          "startup_overlays": 0.09,
+          "startup_selection": 0.084,
+          "startup_source_and_stub_index": 0.415,
+          "startup_project": 0.0,
+          "source_scan": 0.181,
+          "external_resolution": 0.007,
+          "function_summaries": 0.0,
+          "project_index": 0.744,
+          "virtual_declarations": 0.119,
+          "class_projection": 0.498,
+          "initial_lowering": 0.409,
+          "flow_and_render": 0.145,
+          "import_preflight": 0.069,
+          "oracle_check": 0.6910000000000001,
+          "hook_responses": 0.08199999999999999,
+          "final_render": 0.013,
+          "final_check": 1.35,
+          "diagnostic_mapping": 0.012,
+          "source_maps": 0.011
+        }
+      },
+      {
+        "backend": "bare-ty",
+        "label": "1/official",
+        "command": [
+          "$WORK/official-django-comparison/native-environment/bin/ty",
+          "check",
+          "--python",
+          "$WORK/official-django-comparison/native-environment/bin/python",
+          "--python-version",
+          "3.13",
+          "--output-format",
+          "gitlab",
+          "--no-progress",
+          "--color",
+          "never",
+          "--config-file",
+          "$WORK/official-django-comparison/official.toml",
+          "$WORK/stress/project"
+        ],
+        "seconds": 0.3029824170516804,
+        "exit": 0,
+        "diagnostic_codes": {},
+        "user_cpu_seconds": 0.44920499999999997,
+        "system_cpu_seconds": 0.450408,
+        "sampled_process_tree_peak_rss_kib": 96016,
+        "stopped": null,
+        "monitor_error": null,
+        "parse_error": null,
+        "load_before": [
+          5.24658203125,
+          9.27099609375,
+          13.5517578125
+        ],
+        "load_after": [
+          5.24658203125,
+          9.27099609375,
+          13.5517578125
+        ],
+        "source_sha256": "51c1a88b05a169f1222685fe6105e4be5f43d4213aaaf57c60bf99dbe0d82df9",
+        "source_preserved": true,
+        "variant": "official",
+        "phases": {}
+      },
+      {
+        "backend": "companion",
+        "label": "1/hybrid",
+        "command": [
+          "$WORK/native-hybrid/release-v6b",
+          "check",
+          "--python",
+          "$WORK/environment/bin/python",
+          "--python-version",
+          "3.13",
+          "--output-format",
+          "gitlab",
+          "--no-progress",
+          "--color",
+          "never",
+          "$WORK/stress/project",
+          "--ty",
+          "$WORK/environment/bin/ty",
+          "--config-file",
+          "$WORK/native-hybrid/stress.toml"
+        ],
+        "seconds": 2.7107739999191836,
+        "exit": 0,
+        "diagnostic_codes": {},
+        "user_cpu_seconds": 2.059187,
+        "system_cpu_seconds": 1.4746,
+        "sampled_process_tree_peak_rss_kib": 511328,
+        "stopped": null,
+        "monitor_error": null,
+        "parse_error": null,
+        "load_before": [
+          5.70703125,
+          9.29931640625,
+          13.53662109375
+        ],
+        "load_after": [
+          5.70703125,
+          9.29931640625,
+          13.53662109375
+        ],
+        "source_sha256": "51c1a88b05a169f1222685fe6105e4be5f43d4213aaaf57c60bf99dbe0d82df9",
+        "source_preserved": true,
+        "variant": "hybrid",
+        "phases": {
+          "startup_source_copy": 0.006,
+          "startup_configuration": 0.002,
+          "startup_runtime": 0.007,
+          "startup_overlays": 0.087,
+          "startup_selection": 0.084,
+          "startup_source_and_stub_index": 0.406,
+          "startup_project": 0.0,
+          "source_scan": 0.179,
+          "external_resolution": 0.007,
+          "function_summaries": 0.0,
+          "project_index": 0.421,
+          "virtual_declarations": 0.003,
+          "class_projection": 0.017,
+          "initial_lowering": 0.255,
+          "flow_and_render": 0.234,
+          "import_preflight": 0.026999999999999996,
+          "oracle_check": 0.4,
+          "hook_responses": 0.127,
+          "final_render": 0.005,
+          "final_check": 0.273,
+          "diagnostic_mapping": 0.009,
+          "source_maps": 0.01
+        }
+      },
+      {
+        "backend": "companion",
+        "label": "2/hybrid",
+        "command": [
+          "$WORK/native-hybrid/release-v6b",
+          "check",
+          "--python",
+          "$WORK/environment/bin/python",
+          "--python-version",
+          "3.13",
+          "--output-format",
+          "gitlab",
+          "--no-progress",
+          "--color",
+          "never",
+          "$WORK/stress/project",
+          "--ty",
+          "$WORK/environment/bin/ty",
+          "--config-file",
+          "$WORK/native-hybrid/stress.toml"
+        ],
+        "seconds": 2.734788833069615,
+        "exit": 0,
+        "diagnostic_codes": {},
+        "user_cpu_seconds": 2.044402,
+        "system_cpu_seconds": 1.486846,
+        "sampled_process_tree_peak_rss_kib": 517104,
+        "stopped": null,
+        "monitor_error": null,
+        "parse_error": null,
+        "load_before": [
+          5.70703125,
+          9.29931640625,
+          13.53662109375
+        ],
+        "load_after": [
+          5.5703125,
+          9.2109375,
+          13.48046875
+        ],
+        "source_sha256": "51c1a88b05a169f1222685fe6105e4be5f43d4213aaaf57c60bf99dbe0d82df9",
+        "source_preserved": true,
+        "variant": "hybrid",
+        "phases": {
+          "startup_source_copy": 0.006,
+          "startup_configuration": 0.002,
+          "startup_runtime": 0.006,
+          "startup_overlays": 0.092,
+          "startup_selection": 0.084,
+          "startup_source_and_stub_index": 0.408,
+          "startup_project": 0.0,
+          "source_scan": 0.182,
+          "external_resolution": 0.007,
+          "function_summaries": 0.0,
+          "project_index": 0.419,
+          "virtual_declarations": 0.003,
+          "class_projection": 0.017,
+          "initial_lowering": 0.259,
+          "flow_and_render": 0.23900000000000002,
+          "import_preflight": 0.028,
+          "oracle_check": 0.40800000000000003,
+          "hook_responses": 0.13,
+          "final_render": 0.005,
+          "final_check": 0.27,
+          "diagnostic_mapping": 0.009,
+          "source_maps": 0.01
+        }
+      },
+      {
+        "backend": "bare-ty",
+        "label": "2/official",
+        "command": [
+          "$WORK/official-django-comparison/native-environment/bin/ty",
+          "check",
+          "--python",
+          "$WORK/official-django-comparison/native-environment/bin/python",
+          "--python-version",
+          "3.13",
+          "--output-format",
+          "gitlab",
+          "--no-progress",
+          "--color",
+          "never",
+          "--config-file",
+          "$WORK/official-django-comparison/official.toml",
+          "$WORK/stress/project"
+        ],
+        "seconds": 0.30486058397218585,
+        "exit": 0,
+        "diagnostic_codes": {},
+        "user_cpu_seconds": 0.445314,
+        "system_cpu_seconds": 0.49245099999999997,
+        "sampled_process_tree_peak_rss_kib": 95408,
+        "stopped": null,
+        "monitor_error": null,
+        "parse_error": null,
+        "load_before": [
+          5.5703125,
+          9.2109375,
+          13.48046875
+        ],
+        "load_after": [
+          5.5703125,
+          9.2109375,
+          13.48046875
+        ],
+        "source_sha256": "51c1a88b05a169f1222685fe6105e4be5f43d4213aaaf57c60bf99dbe0d82df9",
+        "source_preserved": true,
+        "variant": "official",
+        "phases": {}
+      },
+      {
+        "backend": "companion",
+        "label": "2/previous",
+        "command": [
+          "$WORK/factory-release-v13b",
+          "check",
+          "--python",
+          "$WORK/environment/bin/python",
+          "--python-version",
+          "3.13",
+          "--output-format",
+          "gitlab",
+          "--no-progress",
+          "--color",
+          "never",
+          "$WORK/stress/project",
+          "--ty",
+          "$WORK/environment/bin/ty",
+          "--config-file",
+          "$WORK/stress/local-django.toml"
+        ],
+        "seconds": 5.164761084015481,
+        "exit": 0,
+        "diagnostic_codes": {},
+        "user_cpu_seconds": 4.183299,
+        "system_cpu_seconds": 1.773467,
+        "sampled_process_tree_peak_rss_kib": 1188352,
+        "stopped": null,
+        "monitor_error": null,
+        "parse_error": null,
+        "load_before": [
+          5.5703125,
+          9.2109375,
+          13.48046875
+        ],
+        "load_after": [
+          5.6044921875,
+          9.1572265625,
+          13.4365234375
+        ],
+        "source_sha256": "51c1a88b05a169f1222685fe6105e4be5f43d4213aaaf57c60bf99dbe0d82df9",
+        "source_preserved": true,
+        "variant": "previous",
+        "phases": {
+          "startup_source_copy": 0.006,
+          "startup_configuration": 0.001,
+          "startup_runtime": 0.006,
+          "startup_overlays": 0.085,
+          "startup_selection": 0.084,
+          "startup_source_and_stub_index": 0.418,
+          "startup_project": 0.0,
+          "source_scan": 0.183,
+          "external_resolution": 0.008,
+          "function_summaries": 0.0,
+          "project_index": 0.755,
+          "virtual_declarations": 0.121,
+          "class_projection": 0.501,
+          "initial_lowering": 0.41,
+          "flow_and_render": 0.145,
+          "import_preflight": 0.07100000000000001,
+          "oracle_check": 0.636,
+          "hook_responses": 0.08,
+          "final_render": 0.013,
+          "final_check": 1.347,
+          "diagnostic_mapping": 0.012,
+          "source_maps": 0.011
+        }
+      },
+      {
+        "backend": "mypy",
+        "label": "2/mypy",
+        "command": [
+          "$WORK/mypy-reference/bin/mypy",
+          "--config-file",
+          "$WORK/stress/mypy.ini",
+          "--output",
+          "json",
+          "--no-incremental",
+          "$WORK/stress/project",
+          "--cache-dir",
+          "$WORK/native-hybrid/release-comparison-v6b/runs/2/mypy/scratch/mypy-cache"
+        ],
+        "seconds": 8.82651837496087,
+        "exit": 0,
+        "diagnostic_codes": {},
+        "user_cpu_seconds": 6.811504,
+        "system_cpu_seconds": 1.591594,
+        "sampled_process_tree_peak_rss_kib": 510240,
+        "stopped": null,
+        "monitor_error": null,
+        "parse_error": null,
+        "load_before": [
+          5.6044921875,
+          9.1572265625,
+          13.4365234375
+        ],
+        "load_after": [
+          6.4716796875,
+          9.21923828125,
+          13.40771484375
+        ],
+        "source_sha256": "51c1a88b05a169f1222685fe6105e4be5f43d4213aaaf57c60bf99dbe0d82df9",
+        "source_preserved": true,
+        "variant": "mypy",
+        "phases": {}
+      },
+      {
+        "backend": "companion",
+        "label": "3/previous",
+        "command": [
+          "$WORK/factory-release-v13b",
+          "check",
+          "--python",
+          "$WORK/environment/bin/python",
+          "--python-version",
+          "3.13",
+          "--output-format",
+          "gitlab",
+          "--no-progress",
+          "--color",
+          "never",
+          "$WORK/stress/project",
+          "--ty",
+          "$WORK/environment/bin/ty",
+          "--config-file",
+          "$WORK/stress/local-django.toml"
+        ],
+        "seconds": 5.872520541073754,
+        "exit": 0,
+        "diagnostic_codes": {},
+        "user_cpu_seconds": 4.347579,
+        "system_cpu_seconds": 2.094594,
+        "sampled_process_tree_peak_rss_kib": 1188624,
+        "stopped": null,
+        "monitor_error": null,
+        "parse_error": null,
+        "load_before": [
+          6.4716796875,
+          9.21923828125,
+          13.40771484375
+        ],
+        "load_after": [
+          6.75390625,
+          9.23193359375,
+          13.3876953125
+        ],
+        "source_sha256": "51c1a88b05a169f1222685fe6105e4be5f43d4213aaaf57c60bf99dbe0d82df9",
+        "source_preserved": true,
+        "variant": "previous",
+        "phases": {
+          "startup_source_copy": 0.006,
+          "startup_configuration": 0.002,
+          "startup_runtime": 0.006,
+          "startup_overlays": 0.096,
+          "startup_selection": 0.087,
+          "startup_source_and_stub_index": 0.5,
+          "startup_project": 0.0,
+          "source_scan": 0.188,
+          "external_resolution": 0.008,
+          "function_summaries": 0.0,
+          "project_index": 0.789,
+          "virtual_declarations": 0.128,
+          "class_projection": 0.533,
+          "initial_lowering": 0.432,
+          "flow_and_render": 0.156,
+          "import_preflight": 0.07200000000000001,
+          "oracle_check": 0.886,
+          "hook_responses": 0.087,
+          "final_render": 0.014,
+          "final_check": 1.564,
+          "diagnostic_mapping": 0.013,
+          "source_maps": 0.012
+        }
+      },
+      {
+        "backend": "mypy",
+        "label": "3/mypy",
+        "command": [
+          "$WORK/mypy-reference/bin/mypy",
+          "--config-file",
+          "$WORK/stress/mypy.ini",
+          "--output",
+          "json",
+          "--no-incremental",
+          "$WORK/stress/project",
+          "--cache-dir",
+          "$WORK/native-hybrid/release-comparison-v6b/runs/3/mypy/scratch/mypy-cache"
+        ],
+        "seconds": 7.487451707944274,
+        "exit": 0,
+        "diagnostic_codes": {},
+        "user_cpu_seconds": 6.387418,
+        "system_cpu_seconds": 1.420552,
+        "sampled_process_tree_peak_rss_kib": 507664,
+        "stopped": null,
+        "monitor_error": null,
+        "parse_error": null,
+        "load_before": [
+          7.4140625,
+          9.32763671875,
+          13.39697265625
+        ],
+        "load_after": [
+          7.30078125,
+          9.27197265625,
+          13.353515625
+        ],
+        "source_sha256": "51c1a88b05a169f1222685fe6105e4be5f43d4213aaaf57c60bf99dbe0d82df9",
+        "source_preserved": true,
+        "variant": "mypy",
+        "phases": {}
+      },
+      {
+        "backend": "companion",
+        "label": "3/hybrid",
+        "command": [
+          "$WORK/native-hybrid/release-v6b",
+          "check",
+          "--python",
+          "$WORK/environment/bin/python",
+          "--python-version",
+          "3.13",
+          "--output-format",
+          "gitlab",
+          "--no-progress",
+          "--color",
+          "never",
+          "$WORK/stress/project",
+          "--ty",
+          "$WORK/environment/bin/ty",
+          "--config-file",
+          "$WORK/native-hybrid/stress.toml"
+        ],
+        "seconds": 3.0903212500270456,
+        "exit": 0,
+        "diagnostic_codes": {},
+        "user_cpu_seconds": 2.071994,
+        "system_cpu_seconds": 1.361423,
+        "sampled_process_tree_peak_rss_kib": 512496,
+        "stopped": null,
+        "monitor_error": null,
+        "parse_error": null,
+        "load_before": [
+          7.30078125,
+          9.27197265625,
+          13.353515625
+        ],
+        "load_after": [
+          9.1181640625,
+          9.61572265625,
+          13.45068359375
+        ],
+        "source_sha256": "51c1a88b05a169f1222685fe6105e4be5f43d4213aaaf57c60bf99dbe0d82df9",
+        "source_preserved": true,
+        "variant": "hybrid",
+        "phases": {
+          "startup_source_copy": 0.006,
+          "startup_configuration": 0.002,
+          "startup_runtime": 0.008,
+          "startup_overlays": 0.103,
+          "startup_selection": 0.09,
+          "startup_source_and_stub_index": 0.48,
+          "startup_project": 0.0,
+          "source_scan": 0.206,
+          "external_resolution": 0.008,
+          "function_summaries": 0.0,
+          "project_index": 0.437,
+          "virtual_declarations": 0.003,
+          "class_projection": 0.018,
+          "initial_lowering": 0.277,
+          "flow_and_render": 0.267,
+          "import_preflight": 0.027999999999999997,
+          "oracle_check": 0.503,
+          "hook_responses": 0.145,
+          "final_render": 0.006,
+          "final_check": 0.313,
+          "diagnostic_mapping": 0.01,
+          "source_maps": 0.01
+        }
+      },
+      {
+        "backend": "bare-ty",
+        "label": "3/official",
+        "command": [
+          "$WORK/official-django-comparison/native-environment/bin/ty",
+          "check",
+          "--python",
+          "$WORK/official-django-comparison/native-environment/bin/python",
+          "--python-version",
+          "3.13",
+          "--output-format",
+          "gitlab",
+          "--no-progress",
+          "--color",
+          "never",
+          "--config-file",
+          "$WORK/official-django-comparison/official.toml",
+          "$WORK/stress/project"
+        ],
+        "seconds": 0.40082354203332216,
+        "exit": 0,
+        "diagnostic_codes": {},
+        "user_cpu_seconds": 0.425511,
+        "system_cpu_seconds": 0.56639,
+        "sampled_process_tree_peak_rss_kib": 91376,
+        "stopped": null,
+        "monitor_error": null,
+        "parse_error": null,
+        "load_before": [
+          9.1181640625,
+          9.61572265625,
+          13.45068359375
+        ],
+        "load_after": [
+          9.1181640625,
+          9.61572265625,
+          13.45068359375
+        ],
+        "source_sha256": "51c1a88b05a169f1222685fe6105e4be5f43d4213aaaf57c60bf99dbe0d82df9",
+        "source_preserved": true,
+        "variant": "official",
+        "phases": {}
+      },
+      {
+        "backend": "bare-ty",
+        "label": "4/official",
+        "command": [
+          "$WORK/official-django-comparison/native-environment/bin/ty",
+          "check",
+          "--python",
+          "$WORK/official-django-comparison/native-environment/bin/python",
+          "--python-version",
+          "3.13",
+          "--output-format",
+          "gitlab",
+          "--no-progress",
+          "--color",
+          "never",
+          "--config-file",
+          "$WORK/official-django-comparison/official.toml",
+          "$WORK/stress/project"
+        ],
+        "seconds": 0.3755584169412032,
+        "exit": 0,
+        "diagnostic_codes": {},
+        "user_cpu_seconds": 0.41441999999999996,
+        "system_cpu_seconds": 0.464997,
+        "sampled_process_tree_peak_rss_kib": 97424,
+        "stopped": null,
+        "monitor_error": null,
+        "parse_error": null,
+        "load_before": [
+          9.1181640625,
+          9.61572265625,
+          13.45068359375
+        ],
+        "load_after": [
+          9.1181640625,
+          9.61572265625,
+          13.45068359375
+        ],
+        "source_sha256": "51c1a88b05a169f1222685fe6105e4be5f43d4213aaaf57c60bf99dbe0d82df9",
+        "source_preserved": true,
+        "variant": "official",
+        "phases": {}
+      },
+      {
+        "backend": "companion",
+        "label": "4/previous",
+        "command": [
+          "$WORK/factory-release-v13b",
+          "check",
+          "--python",
+          "$WORK/environment/bin/python",
+          "--python-version",
+          "3.13",
+          "--output-format",
+          "gitlab",
+          "--no-progress",
+          "--color",
+          "never",
+          "$WORK/stress/project",
+          "--ty",
+          "$WORK/environment/bin/ty",
+          "--config-file",
+          "$WORK/stress/local-django.toml"
+        ],
+        "seconds": 6.180577874998562,
+        "exit": 0,
+        "diagnostic_codes": {},
+        "user_cpu_seconds": 4.3973889999999995,
+        "system_cpu_seconds": 1.867194,
+        "sampled_process_tree_peak_rss_kib": 1197488,
+        "stopped": null,
+        "monitor_error": null,
+        "parse_error": null,
+        "load_before": [
+          9.6689453125,
+          9.7216796875,
+          13.46533203125
+        ],
+        "load_after": [
+          9.775390625,
+          9.74267578125,
+          13.45068359375
+        ],
+        "source_sha256": "51c1a88b05a169f1222685fe6105e4be5f43d4213aaaf57c60bf99dbe0d82df9",
+        "source_preserved": true,
+        "variant": "previous",
+        "phases": {
+          "startup_source_copy": 0.006,
+          "startup_configuration": 0.002,
+          "startup_runtime": 0.006,
+          "startup_overlays": 0.101,
+          "startup_selection": 0.09,
+          "startup_source_and_stub_index": 0.537,
+          "startup_project": 0.0,
+          "source_scan": 0.245,
+          "external_resolution": 0.008,
+          "function_summaries": 0.0,
+          "project_index": 0.814,
+          "virtual_declarations": 0.13,
+          "class_projection": 0.524,
+          "initial_lowering": 0.457,
+          "flow_and_render": 0.198,
+          "import_preflight": 0.07600000000000001,
+          "oracle_check": 0.897,
+          "hook_responses": 0.08499999999999999,
+          "final_render": 0.014,
+          "final_check": 1.617,
+          "diagnostic_mapping": 0.015,
+          "source_maps": 0.013
+        }
+      },
+      {
+        "backend": "mypy",
+        "label": "4/mypy",
+        "command": [
+          "$WORK/mypy-reference/bin/mypy",
+          "--config-file",
+          "$WORK/stress/mypy.ini",
+          "--output",
+          "json",
+          "--no-incremental",
+          "$WORK/stress/project",
+          "--cache-dir",
+          "$WORK/native-hybrid/release-comparison-v6b/runs/4/mypy/scratch/mypy-cache"
+        ],
+        "seconds": 8.241188667016104,
+        "exit": 0,
+        "diagnostic_codes": {},
+        "user_cpu_seconds": 6.515234,
+        "system_cpu_seconds": 1.470343,
+        "sampled_process_tree_peak_rss_kib": 505664,
+        "stopped": null,
+        "monitor_error": null,
+        "parse_error": null,
+        "load_before": [
+          9.775390625,
+          9.74267578125,
+          13.45068359375
+        ],
+        "load_after": [
+          10.49169921875,
+          9.8984375,
+          13.46240234375
+        ],
+        "source_sha256": "51c1a88b05a169f1222685fe6105e4be5f43d4213aaaf57c60bf99dbe0d82df9",
+        "source_preserved": true,
+        "variant": "mypy",
+        "phases": {}
+      },
+      {
+        "backend": "companion",
+        "label": "4/hybrid",
+        "command": [
+          "$WORK/native-hybrid/release-v6b",
+          "check",
+          "--python",
+          "$WORK/environment/bin/python",
+          "--python-version",
+          "3.13",
+          "--output-format",
+          "gitlab",
+          "--no-progress",
+          "--color",
+          "never",
+          "$WORK/stress/project",
+          "--ty",
+          "$WORK/environment/bin/ty",
+          "--config-file",
+          "$WORK/native-hybrid/stress.toml"
+        ],
+        "seconds": 3.8152983330655843,
+        "exit": 0,
+        "diagnostic_codes": {},
+        "user_cpu_seconds": 2.137622,
+        "system_cpu_seconds": 2.150761,
+        "sampled_process_tree_peak_rss_kib": 518896,
+        "stopped": null,
+        "monitor_error": null,
+        "parse_error": null,
+        "load_before": [
+          10.49169921875,
+          9.8984375,
+          13.46240234375
+        ],
+        "load_after": [
+          12.2939453125,
+          10.28173828125,
+          13.57666015625
+        ],
+        "source_sha256": "51c1a88b05a169f1222685fe6105e4be5f43d4213aaaf57c60bf99dbe0d82df9",
+        "source_preserved": true,
+        "variant": "hybrid",
+        "phases": {
+          "startup_source_copy": 0.011,
+          "startup_configuration": 0.002,
+          "startup_runtime": 0.008,
+          "startup_overlays": 0.179,
+          "startup_selection": 0.099,
+          "startup_source_and_stub_index": 0.582,
+          "startup_project": 0.0,
+          "source_scan": 0.28,
+          "external_resolution": 0.009,
+          "function_summaries": 0.0,
+          "project_index": 0.509,
+          "virtual_declarations": 0.004,
+          "class_projection": 0.021,
+          "initial_lowering": 0.343,
+          "flow_and_render": 0.269,
+          "import_preflight": 0.028999999999999998,
+          "oracle_check": 0.801,
+          "hook_responses": 0.157,
+          "final_render": 0.006,
+          "final_check": 0.317,
+          "diagnostic_mapping": 0.01,
+          "source_maps": 0.011
+        }
+      },
+      {
+        "backend": "companion",
+        "label": "negative/hybrid",
+        "command": [
+          "$WORK/native-hybrid/release-v6b",
+          "check",
+          "--python",
+          "$WORK/environment/bin/python",
+          "--python-version",
+          "3.13",
+          "--output-format",
+          "gitlab",
+          "--no-progress",
+          "--color",
+          "never",
+          "$WORK/stress/project",
+          "--ty",
+          "$WORK/environment/bin/ty",
+          "--config-file",
+          "$WORK/native-hybrid/stress.toml"
+        ],
+        "seconds": 3.1440038749715313,
+        "exit": 1,
+        "diagnostic_codes": {
+          "invalid-assignment": 2
+        },
+        "user_cpu_seconds": 2.044092,
+        "system_cpu_seconds": 1.535625,
+        "sampled_process_tree_peak_rss_kib": 513936,
+        "stopped": null,
+        "monitor_error": null,
+        "parse_error": null,
+        "load_before": [
+          12.2939453125,
+          10.28173828125,
+          13.57666015625
+        ],
+        "load_after": [
+          12.2939453125,
+          10.28173828125,
+          13.57666015625
+        ],
+        "source_sha256": "1d6a6430d5c3eaec3a1d648f4c95b35912d6efc7d7c15370efadb0d6f41164ef",
+        "source_preserved": true,
+        "variant": "hybrid",
+        "phases": {
+          "startup_source_copy": 0.007,
+          "startup_configuration": 0.002,
+          "startup_runtime": 0.006,
+          "startup_overlays": 0.118,
+          "startup_selection": 0.088,
+          "startup_source_and_stub_index": 0.485,
+          "startup_project": 0.006,
+          "source_scan": 0.267,
+          "external_resolution": 0.008,
+          "function_summaries": 0.0,
+          "project_index": 0.432,
+          "virtual_declarations": 0.003,
+          "class_projection": 0.018,
+          "initial_lowering": 0.261,
+          "flow_and_render": 0.261,
+          "import_preflight": 0.026999999999999996,
+          "oracle_check": 0.515,
+          "hook_responses": 0.13499999999999998,
+          "final_render": 0.006,
+          "final_check": 0.313,
+          "diagnostic_mapping": 0.01,
+          "source_maps": 0.011
+        },
+        "verified_negative_locations": [
+          {
+            "path": "checks.py",
+            "line": 103
+          },
+          {
+            "path": "filler00000.py",
+            "line": 1
+          }
+        ]
+      },
+      {
+        "backend": "companion",
+        "label": "negative/previous",
+        "command": [
+          "$WORK/factory-release-v13b",
+          "check",
+          "--python",
+          "$WORK/environment/bin/python",
+          "--python-version",
+          "3.13",
+          "--output-format",
+          "gitlab",
+          "--no-progress",
+          "--color",
+          "never",
+          "$WORK/stress/project",
+          "--ty",
+          "$WORK/environment/bin/ty",
+          "--config-file",
+          "$WORK/stress/local-django.toml"
+        ],
+        "seconds": 6.105216374970041,
+        "exit": 1,
+        "diagnostic_codes": {
+          "invalid-assignment": 2
+        },
+        "user_cpu_seconds": 4.453854,
+        "system_cpu_seconds": 2.09972,
+        "sampled_process_tree_peak_rss_kib": 1198352,
+        "stopped": null,
+        "monitor_error": null,
+        "parse_error": null,
+        "load_before": [
+          12.35009765625,
+          10.32666015625,
+          13.5732421875
+        ],
+        "load_after": [
+          11.84130859375,
+          10.25439453125,
+          13.52880859375
+        ],
+        "source_sha256": "1d6a6430d5c3eaec3a1d648f4c95b35912d6efc7d7c15370efadb0d6f41164ef",
+        "source_preserved": true,
+        "variant": "previous",
+        "phases": {
+          "startup_source_copy": 0.006,
+          "startup_configuration": 0.002,
+          "startup_runtime": 0.006,
+          "startup_overlays": 0.097,
+          "startup_selection": 0.086,
+          "startup_source_and_stub_index": 0.5,
+          "startup_project": 0.0,
+          "source_scan": 0.248,
+          "external_resolution": 0.008,
+          "function_summaries": 0.0,
+          "project_index": 0.801,
+          "virtual_declarations": 0.135,
+          "class_projection": 0.535,
+          "initial_lowering": 0.506,
+          "flow_and_render": 0.192,
+          "import_preflight": 0.10400000000000001,
+          "oracle_check": 0.9450000000000001,
+          "hook_responses": 0.10699999999999998,
+          "final_render": 0.014,
+          "final_check": 1.496,
+          "diagnostic_mapping": 0.014,
+          "source_maps": 0.012
+        },
+        "verified_negative_locations": [
+          {
+            "path": "checks.py",
+            "line": 103
+          },
+          {
+            "path": "filler00000.py",
+            "line": 1
+          }
+        ]
+      },
+      {
+        "backend": "mypy",
+        "label": "negative/mypy",
+        "command": [
+          "$WORK/mypy-reference/bin/mypy",
+          "--config-file",
+          "$WORK/stress/mypy.ini",
+          "--output",
+          "json",
+          "--no-incremental",
+          "$WORK/stress/project",
+          "--cache-dir",
+          "$WORK/native-hybrid/release-comparison-v6b/runs/negative/mypy/scratch/mypy-cache"
+        ],
+        "seconds": 7.885580666945316,
+        "exit": 1,
+        "diagnostic_codes": {
+          "assignment": 2
+        },
+        "user_cpu_seconds": 6.428651,
+        "system_cpu_seconds": 1.350593,
+        "sampled_process_tree_peak_rss_kib": 505520,
+        "stopped": null,
+        "monitor_error": null,
+        "parse_error": null,
+        "load_before": [
+          11.84130859375,
+          10.25439453125,
+          13.52880859375
+        ],
+        "load_after": [
+          13.46044921875,
+          10.66943359375,
+          13.63818359375
+        ],
+        "source_sha256": "1d6a6430d5c3eaec3a1d648f4c95b35912d6efc7d7c15370efadb0d6f41164ef",
+        "source_preserved": true,
+        "variant": "mypy",
+        "phases": {},
+        "verified_negative_locations": [
+          {
+            "path": "checks.py",
+            "line": 103
+          },
+          {
+            "path": "filler00000.py",
+            "line": 1
+          }
+        ]
+      },
+      {
+        "backend": "bare-ty",
+        "label": "negative/official",
+        "command": [
+          "$WORK/official-django-comparison/native-environment/bin/ty",
+          "check",
+          "--python",
+          "$WORK/official-django-comparison/native-environment/bin/python",
+          "--python-version",
+          "3.13",
+          "--output-format",
+          "gitlab",
+          "--no-progress",
+          "--color",
+          "never",
+          "--config-file",
+          "$WORK/official-django-comparison/official.toml",
+          "$WORK/stress/project"
+        ],
+        "seconds": 0.4400371250230819,
+        "exit": 1,
+        "diagnostic_codes": {
+          "invalid-assignment": 2
+        },
+        "user_cpu_seconds": 0.430432,
+        "system_cpu_seconds": 0.631599,
+        "sampled_process_tree_peak_rss_kib": 92224,
+        "stopped": null,
+        "monitor_error": null,
+        "parse_error": null,
+        "load_before": [
+          13.46044921875,
+          10.66943359375,
+          13.63818359375
+        ],
+        "load_after": [
+          13.46044921875,
+          10.66943359375,
+          13.63818359375
+        ],
+        "source_sha256": "1d6a6430d5c3eaec3a1d648f4c95b35912d6efc7d7c15370efadb0d6f41164ef",
+        "source_preserved": true,
+        "variant": "official",
+        "phases": {},
+        "verified_negative_locations": [
+          {
+            "path": "checks.py",
+            "line": 103
+          },
+          {
+            "path": "filler00000.py",
+            "line": 1
+          }
+        ]
+      },
+      {
+        "backend": "companion",
+        "label": "focus/hybrid",
+        "command": [
+          "$WORK/native-hybrid/release-v6b",
+          "check",
+          "--python",
+          "$WORK/environment/bin/python",
+          "--python-version",
+          "3.13",
+          "--output-format",
+          "gitlab",
+          "--no-progress",
+          "--color",
+          "never",
+          "$WORK/stress/project",
+          "--ty",
+          "$WORK/environment/bin/ty",
+          "--config-file",
+          "$WORK/native-hybrid/stress.toml"
+        ],
+        "seconds": 3.339769540936686,
+        "exit": 1,
+        "diagnostic_codes": {
+          "invalid-argument-type": 1,
+          "invalid-assignment": 3,
+          "plugin-configuration": 5,
+          "unknown-argument": 1
+        },
+        "user_cpu_seconds": 2.327978,
+        "system_cpu_seconds": 1.34106,
+        "sampled_process_tree_peak_rss_kib": 516528,
+        "stopped": null,
+        "monitor_error": null,
+        "parse_error": null,
+        "load_before": [
+          13.46044921875,
+          10.66943359375,
+          13.63818359375
+        ],
+        "load_after": [
+          14.06396484375,
+          10.8408203125,
+          13.68115234375
+        ],
+        "source_sha256": "0c9a80c961e8a08ee05c07bc22f5e624e5b02be801c85248af2bd6463719f181",
+        "source_preserved": true,
+        "variant": "hybrid",
+        "phases": {
+          "startup_source_copy": 0.006,
+          "startup_configuration": 0.002,
+          "startup_runtime": 0.006,
+          "startup_overlays": 0.104,
+          "startup_selection": 0.085,
+          "startup_source_and_stub_index": 0.404,
+          "startup_project": 0.0,
+          "source_scan": 0.181,
+          "external_resolution": 0.007,
+          "function_summaries": 0.0,
+          "project_index": 0.429,
+          "virtual_declarations": 0.003,
+          "class_projection": 0.018,
+          "initial_lowering": 0.264,
+          "flow_and_render": 0.459,
+          "import_preflight": 0.028999999999999998,
+          "oracle_check": 0.532,
+          "hook_responses": 0.164,
+          "final_render": 0.006,
+          "final_check": 0.431,
+          "diagnostic_mapping": 0.013,
+          "source_maps": 0.012
+        }
+      },
+      {
+        "backend": "companion",
+        "label": "focus/previous",
+        "command": [
+          "$WORK/factory-release-v13b",
+          "check",
+          "--python",
+          "$WORK/environment/bin/python",
+          "--python-version",
+          "3.13",
+          "--output-format",
+          "gitlab",
+          "--no-progress",
+          "--color",
+          "never",
+          "$WORK/stress/project",
+          "--ty",
+          "$WORK/environment/bin/ty",
+          "--config-file",
+          "$WORK/stress/local-django.toml"
+        ],
+        "seconds": 7.460599040961824,
+        "exit": 1,
+        "diagnostic_codes": {
+          "invalid-argument-type": 1,
+          "invalid-assignment": 3,
+          "plugin-configuration": 5,
+          "unknown-argument": 1
+        },
+        "user_cpu_seconds": 4.936112,
+        "system_cpu_seconds": 2.322066,
+        "sampled_process_tree_peak_rss_kib": 1201824,
+        "stopped": null,
+        "monitor_error": null,
+        "parse_error": null,
+        "load_before": [
+          14.06396484375,
+          10.8408203125,
+          13.68115234375
+        ],
+        "load_after": [
+          13.41796875,
+          10.76025390625,
+          13.6357421875
+        ],
+        "source_sha256": "0c9a80c961e8a08ee05c07bc22f5e624e5b02be801c85248af2bd6463719f181",
+        "source_preserved": true,
+        "variant": "previous",
+        "phases": {
+          "startup_source_copy": 0.006,
+          "startup_configuration": 0.002,
+          "startup_runtime": 0.006,
+          "startup_overlays": 0.104,
+          "startup_selection": 0.088,
+          "startup_source_and_stub_index": 0.52,
+          "startup_project": 0.0,
+          "source_scan": 0.217,
+          "external_resolution": 0.008,
+          "function_summaries": 0.0,
+          "project_index": 0.786,
+          "virtual_declarations": 0.132,
+          "class_projection": 0.546,
+          "initial_lowering": 0.563,
+          "flow_and_render": 0.5269999999999999,
+          "import_preflight": 0.119,
+          "oracle_check": 1.282,
+          "hook_responses": 0.13899999999999998,
+          "final_render": 0.014,
+          "final_check": 1.993,
+          "diagnostic_mapping": 0.019,
+          "source_maps": 0.013
+        }
+      },
+      {
+        "backend": "mypy",
+        "label": "focus/mypy",
+        "command": [
+          "$WORK/mypy-reference/bin/mypy",
+          "--config-file",
+          "$WORK/stress/mypy.ini",
+          "--output",
+          "json",
+          "--no-incremental",
+          "$WORK/stress/project",
+          "--cache-dir",
+          "$WORK/native-hybrid/release-comparison-v6b/runs/focus/mypy/scratch/mypy-cache"
+        ],
+        "seconds": 7.676943292026408,
+        "exit": 1,
+        "diagnostic_codes": {
+          "assignment": 3,
+          "misc": 6
+        },
+        "user_cpu_seconds": 6.316959,
+        "system_cpu_seconds": 1.395361,
+        "sampled_process_tree_peak_rss_kib": 506832,
+        "stopped": null,
+        "monitor_error": null,
+        "parse_error": null,
+        "load_before": [
+          15.06591796875,
+          11.14599609375,
+          13.7548828125
+        ],
+        "load_after": [
+          14.259765625,
+          11.0439453125,
+          13.703125
+        ],
+        "source_sha256": "0c9a80c961e8a08ee05c07bc22f5e624e5b02be801c85248af2bd6463719f181",
+        "source_preserved": true,
+        "variant": "mypy",
+        "phases": {}
+      },
+      {
+        "backend": "bare-ty",
+        "label": "focus/official",
+        "command": [
+          "$WORK/official-django-comparison/native-environment/bin/ty",
+          "check",
+          "--python",
+          "$WORK/official-django-comparison/native-environment/bin/python",
+          "--python-version",
+          "3.13",
+          "--output-format",
+          "gitlab",
+          "--no-progress",
+          "--color",
+          "never",
+          "--config-file",
+          "$WORK/official-django-comparison/official.toml",
+          "$WORK/stress/project"
+        ],
+        "seconds": 0.32311658293474466,
+        "exit": 1,
+        "diagnostic_codes": {
+          "type-assertion-failure": 4,
+          "unresolved-attribute": 1,
+          "invalid-assignment": 2
+        },
+        "user_cpu_seconds": 0.44639599999999996,
+        "system_cpu_seconds": 0.395507,
+        "sampled_process_tree_peak_rss_kib": 95168,
+        "stopped": null,
+        "monitor_error": null,
+        "parse_error": null,
+        "load_before": [
+          14.259765625,
+          11.0439453125,
+          13.703125
+        ],
+        "load_after": [
+          14.259765625,
+          11.0439453125,
+          13.703125
+        ],
+        "source_sha256": "0c9a80c961e8a08ee05c07bc22f5e624e5b02be801c85248af2bd6463719f181",
+        "source_preserved": true,
+        "variant": "official",
+        "phases": {}
+      }
+    ],
+    "focus": {
+      "hybrid": {
+        "matched": 20,
+        "total": 20,
+        "cases": [
+          {
+            "feature": "fields",
+            "case": "char-read",
+            "expected": "pass",
+            "matched": true,
+            "diagnostics": []
+          },
+          {
+            "feature": "managers",
+            "case": "get-result",
+            "expected": "pass",
+            "matched": true,
+            "diagnostics": []
+          },
+          {
+            "feature": "managers",
+            "case": "filter-result",
+            "expected": "pass",
+            "matched": true,
+            "diagnostics": []
+          },
+          {
+            "feature": "managers",
+            "case": "first-result",
+            "expected": "pass",
+            "matched": true,
+            "diagnostics": []
+          },
+          {
+            "feature": "managers",
+            "case": "count-result",
+            "expected": "pass",
+            "matched": true,
+            "diagnostics": []
+          },
+          {
+            "feature": "relations",
+            "case": "string-target",
+            "expected": "pass",
+            "matched": true,
+            "diagnostics": []
+          },
+          {
+            "feature": "relations",
+            "case": "string-target-id-domain",
+            "expected": "fail",
+            "matched": true,
+            "diagnostics": [
+              {
+                "code": "invalid-assignment",
+                "message": "invalid-assignment: Object of type `int | None` is not assignable to `str`"
+              }
+            ]
+          },
+          {
+            "feature": "relations",
+            "case": "reverse-manager",
+            "expected": "pass",
+            "matched": true,
+            "diagnostics": []
+          },
+          {
+            "feature": "rows",
+            "case": "values-field",
+            "expected": "pass",
+            "matched": true,
+            "diagnostics": []
+          },
+          {
+            "feature": "rows",
+            "case": "flat-values-list",
+            "expected": "pass",
+            "matched": true,
+            "diagnostics": []
+          },
+          {
+            "feature": "constructors",
+            "case": "valid",
+            "expected": "pass",
+            "matched": true,
+            "diagnostics": []
+          },
+          {
+            "feature": "fields",
+            "case": "invalid-write",
+            "expected": "fail",
+            "matched": true,
+            "diagnostics": [
+              {
+                "code": "invalid-assignment",
+                "message": "invalid-assignment: Invalid assignment to data descriptor attribute `name` on type `Item2500`: Expected `str | Combinable`, found `list[int]`"
+              }
+            ]
+          },
+          {
+            "feature": "fields",
+            "case": "wrong-read-assignment",
+            "expected": "fail",
+            "matched": true,
+            "diagnostics": [
+              {
+                "code": "invalid-assignment",
+                "message": "invalid-assignment: Object of type `str` is not assignable to `int`"
+              }
+            ]
+          },
+          {
+            "feature": "constructors",
+            "case": "invalid-value",
+            "expected": "fail",
+            "matched": true,
+            "diagnostics": [
+              {
+                "code": "invalid-argument-type",
+                "message": "invalid-argument-type: Argument is incorrect: Expected `str`, found `list[str]`"
+              }
+            ]
+          },
+          {
+            "feature": "constructors",
+            "case": "unknown-field",
+            "expected": "fail",
+            "matched": true,
+            "diagnostics": [
+              {
+                "code": "unknown-argument",
+                "message": "unknown-argument: Argument `missing_name` does not match any known parameter of function `benchapp.models.Item2500`"
+              }
+            ]
+          },
+          {
+            "feature": "creation",
+            "case": "invalid-value",
+            "expected": "fail",
+            "matched": true,
+            "diagnostics": [
+              {
+                "code": "plugin-configuration",
+                "message": "plugin-configuration: Invalid Django lookup value for `name` on `benchapp.models.Item2500.name`; expected `str`: django-ty.invalid-lookup-value"
+              }
+            ]
+          },
+          {
+            "feature": "queries",
+            "case": "unknown-field",
+            "expected": "fail",
+            "matched": true,
+            "diagnostics": [
+              {
+                "code": "plugin-configuration",
+                "message": "plugin-configuration: Unknown Django lookup `missing_name` for model `benchapp.models.Item2500`: django-ty.unknown-lookup"
+              }
+            ]
+          },
+          {
+            "feature": "queries",
+            "case": "unknown-lookup",
+            "expected": "fail",
+            "matched": true,
+            "diagnostics": [
+              {
+                "code": "plugin-configuration",
+                "message": "plugin-configuration: Unknown Django lookup `name__missing` for model `benchapp.models.Item2500`: django-ty.unknown-lookup"
+              }
+            ]
+          },
+          {
+            "feature": "queries",
+            "case": "unknown-ordering-field",
+            "expected": "fail",
+            "matched": true,
+            "diagnostics": [
+              {
+                "code": "plugin-configuration",
+                "message": "plugin-configuration: Unknown Django lookup `missing_name` for model `benchapp.models.Item2500`: django-ty.unknown-lookup"
+              }
+            ]
+          },
+          {
+            "feature": "queries",
+            "case": "unknown-selected-field",
+            "expected": "fail",
+            "matched": true,
+            "diagnostics": [
+              {
+                "code": "plugin-configuration",
+                "message": "plugin-configuration: Unknown Django lookup `missing_name` for model `benchapp.models.Item2500`: django-ty.unknown-lookup"
+              }
+            ]
+          }
+        ],
+        "unmarked": []
+      },
+      "previous": {
+        "matched": 20,
+        "total": 20,
+        "cases": [
+          {
+            "feature": "fields",
+            "case": "char-read",
+            "expected": "pass",
+            "matched": true,
+            "diagnostics": []
+          },
+          {
+            "feature": "managers",
+            "case": "get-result",
+            "expected": "pass",
+            "matched": true,
+            "diagnostics": []
+          },
+          {
+            "feature": "managers",
+            "case": "filter-result",
+            "expected": "pass",
+            "matched": true,
+            "diagnostics": []
+          },
+          {
+            "feature": "managers",
+            "case": "first-result",
+            "expected": "pass",
+            "matched": true,
+            "diagnostics": []
+          },
+          {
+            "feature": "managers",
+            "case": "count-result",
+            "expected": "pass",
+            "matched": true,
+            "diagnostics": []
+          },
+          {
+            "feature": "relations",
+            "case": "string-target",
+            "expected": "pass",
+            "matched": true,
+            "diagnostics": []
+          },
+          {
+            "feature": "relations",
+            "case": "string-target-id-domain",
+            "expected": "fail",
+            "matched": true,
+            "diagnostics": [
+              {
+                "code": "invalid-assignment",
+                "message": "invalid-assignment: Object of type `int | None` is not assignable to `str`"
+              }
+            ]
+          },
+          {
+            "feature": "relations",
+            "case": "reverse-manager",
+            "expected": "pass",
+            "matched": true,
+            "diagnostics": []
+          },
+          {
+            "feature": "rows",
+            "case": "values-field",
+            "expected": "pass",
+            "matched": true,
+            "diagnostics": []
+          },
+          {
+            "feature": "rows",
+            "case": "flat-values-list",
+            "expected": "pass",
+            "matched": true,
+            "diagnostics": []
+          },
+          {
+            "feature": "constructors",
+            "case": "valid",
+            "expected": "pass",
+            "matched": true,
+            "diagnostics": []
+          },
+          {
+            "feature": "fields",
+            "case": "invalid-write",
+            "expected": "fail",
+            "matched": true,
+            "diagnostics": [
+              {
+                "code": "invalid-assignment",
+                "message": "invalid-assignment: Object of type `list[int]` is not assignable to attribute `name` of type `str`"
+              }
+            ]
+          },
+          {
+            "feature": "fields",
+            "case": "wrong-read-assignment",
+            "expected": "fail",
+            "matched": true,
+            "diagnostics": [
+              {
+                "code": "invalid-assignment",
+                "message": "invalid-assignment: Object of type `str` is not assignable to `int`"
+              }
+            ]
+          },
+          {
+            "feature": "constructors",
+            "case": "invalid-value",
+            "expected": "fail",
+            "matched": true,
+            "diagnostics": [
+              {
+                "code": "invalid-argument-type",
+                "message": "invalid-argument-type: Argument is incorrect: Expected `str`, found `list[str]`"
+              }
+            ]
+          },
+          {
+            "feature": "constructors",
+            "case": "unknown-field",
+            "expected": "fail",
+            "matched": true,
+            "diagnostics": [
+              {
+                "code": "unknown-argument",
+                "message": "unknown-argument: Argument `missing_name` does not match any known parameter"
+              }
+            ]
+          },
+          {
+            "feature": "creation",
+            "case": "invalid-value",
+            "expected": "fail",
+            "matched": true,
+            "diagnostics": [
+              {
+                "code": "plugin-configuration",
+                "message": "plugin-configuration: Invalid Django lookup value for `name` on `benchapp.models.Item2500.name`; expected `str`: django-ty.invalid-lookup-value"
+              }
+            ]
+          },
+          {
+            "feature": "queries",
+            "case": "unknown-field",
+            "expected": "fail",
+            "matched": true,
+            "diagnostics": [
+              {
+                "code": "plugin-configuration",
+                "message": "plugin-configuration: Unknown Django lookup `missing_name` for model `benchapp.models.Item2500`: django-ty.unknown-lookup"
+              }
+            ]
+          },
+          {
+            "feature": "queries",
+            "case": "unknown-lookup",
+            "expected": "fail",
+            "matched": true,
+            "diagnostics": [
+              {
+                "code": "plugin-configuration",
+                "message": "plugin-configuration: Unknown Django lookup `name__missing` for model `benchapp.models.Item2500`: django-ty.unknown-lookup"
+              }
+            ]
+          },
+          {
+            "feature": "queries",
+            "case": "unknown-ordering-field",
+            "expected": "fail",
+            "matched": true,
+            "diagnostics": [
+              {
+                "code": "plugin-configuration",
+                "message": "plugin-configuration: Unknown Django lookup `missing_name` for model `benchapp.models.Item2500`: django-ty.unknown-lookup"
+              }
+            ]
+          },
+          {
+            "feature": "queries",
+            "case": "unknown-selected-field",
+            "expected": "fail",
+            "matched": true,
+            "diagnostics": [
+              {
+                "code": "plugin-configuration",
+                "message": "plugin-configuration: Unknown Django lookup `missing_name` for model `benchapp.models.Item2500`: django-ty.unknown-lookup"
+              }
+            ]
+          }
+        ],
+        "unmarked": []
+      },
+      "mypy": {
+        "matched": 19,
+        "total": 20,
+        "cases": [
+          {
+            "feature": "fields",
+            "case": "char-read",
+            "expected": "pass",
+            "matched": true,
+            "diagnostics": []
+          },
+          {
+            "feature": "managers",
+            "case": "get-result",
+            "expected": "pass",
+            "matched": true,
+            "diagnostics": []
+          },
+          {
+            "feature": "managers",
+            "case": "filter-result",
+            "expected": "pass",
+            "matched": true,
+            "diagnostics": []
+          },
+          {
+            "feature": "managers",
+            "case": "first-result",
+            "expected": "pass",
+            "matched": true,
+            "diagnostics": []
+          },
+          {
+            "feature": "managers",
+            "case": "count-result",
+            "expected": "pass",
+            "matched": true,
+            "diagnostics": []
+          },
+          {
+            "feature": "relations",
+            "case": "string-target",
+            "expected": "pass",
+            "matched": true,
+            "diagnostics": []
+          },
+          {
+            "feature": "relations",
+            "case": "string-target-id-domain",
+            "expected": "fail",
+            "matched": true,
+            "diagnostics": [
+              {
+                "code": "assignment",
+                "message": "Incompatible types in assignment (expression has type \"int\", variable has type \"str\")"
+              }
+            ]
+          },
+          {
+            "feature": "relations",
+            "case": "reverse-manager",
+            "expected": "pass",
+            "matched": true,
+            "diagnostics": []
+          },
+          {
+            "feature": "rows",
+            "case": "values-field",
+            "expected": "pass",
+            "matched": true,
+            "diagnostics": []
+          },
+          {
+            "feature": "rows",
+            "case": "flat-values-list",
+            "expected": "pass",
+            "matched": true,
+            "diagnostics": []
+          },
+          {
+            "feature": "constructors",
+            "case": "valid",
+            "expected": "pass",
+            "matched": true,
+            "diagnostics": []
+          },
+          {
+            "feature": "fields",
+            "case": "invalid-write",
+            "expected": "fail",
+            "matched": true,
+            "diagnostics": [
+              {
+                "code": "assignment",
+                "message": "Incompatible types in assignment (expression has type \"list[int]\", variable has type \"str | int | Combinable\")"
+              }
+            ]
+          },
+          {
+            "feature": "fields",
+            "case": "wrong-read-assignment",
+            "expected": "fail",
+            "matched": true,
+            "diagnostics": [
+              {
+                "code": "assignment",
+                "message": "Incompatible types in assignment (expression has type \"str\", variable has type \"int\")"
+              }
+            ]
+          },
+          {
+            "feature": "constructors",
+            "case": "invalid-value",
+            "expected": "fail",
+            "matched": true,
+            "diagnostics": [
+              {
+                "code": "misc",
+                "message": "Incompatible type for \"name\" of \"Item2500\" (got \"list[Any]\", expected \"str | int | Combinable\")"
+              }
+            ]
+          },
+          {
+            "feature": "constructors",
+            "case": "unknown-field",
+            "expected": "fail",
+            "matched": true,
+            "diagnostics": [
+              {
+                "code": "misc",
+                "message": "Unexpected attribute \"missing_name\" for model \"Item2500\""
+              }
+            ]
+          },
+          {
+            "feature": "creation",
+            "case": "invalid-value",
+            "expected": "fail",
+            "matched": true,
+            "diagnostics": [
+              {
+                "code": "misc",
+                "message": "Incompatible type for \"name\" of \"Item2500\" (got \"list[Any]\", expected \"str | int | Combinable\")"
+              }
+            ]
+          },
+          {
+            "feature": "queries",
+            "case": "unknown-field",
+            "expected": "fail",
+            "matched": true,
+            "diagnostics": [
+              {
+                "code": "misc",
+                "message": "Cannot resolve keyword 'missing_name' into field. Choices are: id, name, parent, parent_id"
+              }
+            ]
+          },
+          {
+            "feature": "queries",
+            "case": "unknown-lookup",
+            "expected": "fail",
+            "matched": false,
+            "diagnostics": []
+          },
+          {
+            "feature": "queries",
+            "case": "unknown-ordering-field",
+            "expected": "fail",
+            "matched": true,
+            "diagnostics": [
+              {
+                "code": "misc",
+                "message": "Cannot resolve keyword 'missing_name' into field. Choices are: id, name, parent, parent_id"
+              }
+            ]
+          },
+          {
+            "feature": "queries",
+            "case": "unknown-selected-field",
+            "expected": "fail",
+            "matched": true,
+            "diagnostics": [
+              {
+                "code": "misc",
+                "message": "Invalid field in \"only()\": Item2500 has no field named 'missing_name'"
+              }
+            ]
+          }
+        ],
+        "unmarked": []
+      },
+      "official": {
+        "matched": 8,
+        "total": 20,
+        "cases": [
+          {
+            "feature": "fields",
+            "case": "char-read",
+            "expected": "pass",
+            "matched": true,
+            "diagnostics": []
+          },
+          {
+            "feature": "managers",
+            "case": "get-result",
+            "expected": "pass",
+            "matched": true,
+            "diagnostics": []
+          },
+          {
+            "feature": "managers",
+            "case": "filter-result",
+            "expected": "pass",
+            "matched": true,
+            "diagnostics": []
+          },
+          {
+            "feature": "managers",
+            "case": "first-result",
+            "expected": "pass",
+            "matched": true,
+            "diagnostics": []
+          },
+          {
+            "feature": "managers",
+            "case": "count-result",
+            "expected": "pass",
+            "matched": true,
+            "diagnostics": []
+          },
+          {
+            "feature": "relations",
+            "case": "string-target",
+            "expected": "pass",
+            "matched": false,
+            "diagnostics": [
+              {
+                "code": "type-assertion-failure",
+                "message": "type-assertion-failure: Type `Unknown` does not match asserted type `Item2499`"
+              }
+            ]
+          },
+          {
+            "feature": "relations",
+            "case": "string-target-id-domain",
+            "expected": "fail",
+            "matched": false,
+            "diagnostics": []
+          },
+          {
+            "feature": "relations",
+            "case": "reverse-manager",
+            "expected": "pass",
+            "matched": false,
+            "diagnostics": [
+              {
+                "code": "type-assertion-failure",
+                "message": "type-assertion-failure: Type `Unknown` does not match asserted type `Item2500`"
+              },
+              {
+                "code": "unresolved-attribute",
+                "message": "unresolved-attribute: Object of type `Item2499` has no attribute `item2500_set`"
+              }
+            ]
+          },
+          {
+            "feature": "rows",
+            "case": "values-field",
+            "expected": "pass",
+            "matched": false,
+            "diagnostics": [
+              {
+                "code": "type-assertion-failure",
+                "message": "type-assertion-failure: Type `Any` does not match asserted type `str`"
+              }
+            ]
+          },
+          {
+            "feature": "rows",
+            "case": "flat-values-list",
+            "expected": "pass",
+            "matched": false,
+            "diagnostics": [
+              {
+                "code": "type-assertion-failure",
+                "message": "type-assertion-failure: Type `Any` does not match asserted type `str`"
+              }
+            ]
+          },
+          {
+            "feature": "constructors",
+            "case": "valid",
+            "expected": "pass",
+            "matched": true,
+            "diagnostics": []
+          },
+          {
+            "feature": "fields",
+            "case": "invalid-write",
+            "expected": "fail",
+            "matched": true,
+            "diagnostics": [
+              {
+                "code": "invalid-assignment",
+                "message": "invalid-assignment: Invalid assignment to data descriptor attribute `name` on type `Item2500`: Expected `str | Combinable`, found `list[int]`"
+              }
+            ]
+          },
+          {
+            "feature": "fields",
+            "case": "wrong-read-assignment",
+            "expected": "fail",
+            "matched": true,
+            "diagnostics": [
+              {
+                "code": "invalid-assignment",
+                "message": "invalid-assignment: Object of type `str` is not assignable to `int`"
+              }
+            ]
+          },
+          {
+            "feature": "constructors",
+            "case": "invalid-value",
+            "expected": "fail",
+            "matched": false,
+            "diagnostics": []
+          },
+          {
+            "feature": "constructors",
+            "case": "unknown-field",
+            "expected": "fail",
+            "matched": false,
+            "diagnostics": []
+          },
+          {
+            "feature": "creation",
+            "case": "invalid-value",
+            "expected": "fail",
+            "matched": false,
+            "diagnostics": []
+          },
+          {
+            "feature": "queries",
+            "case": "unknown-field",
+            "expected": "fail",
+            "matched": false,
+            "diagnostics": []
+          },
+          {
+            "feature": "queries",
+            "case": "unknown-lookup",
+            "expected": "fail",
+            "matched": false,
+            "diagnostics": []
+          },
+          {
+            "feature": "queries",
+            "case": "unknown-ordering-field",
+            "expected": "fail",
+            "matched": false,
+            "diagnostics": []
+          },
+          {
+            "feature": "queries",
+            "case": "unknown-selected-field",
+            "expected": "fail",
+            "matched": false,
+            "diagnostics": []
+          }
+        ],
+        "unmarked": []
+      }
+    },
+    "negative_controls": {
+      "hybrid": {
+        "backend": "companion",
+        "label": "negative/hybrid",
+        "command": [
+          "$WORK/native-hybrid/release-v6b",
+          "check",
+          "--python",
+          "$WORK/environment/bin/python",
+          "--python-version",
+          "3.13",
+          "--output-format",
+          "gitlab",
+          "--no-progress",
+          "--color",
+          "never",
+          "$WORK/stress/project",
+          "--ty",
+          "$WORK/environment/bin/ty",
+          "--config-file",
+          "$WORK/native-hybrid/stress.toml"
+        ],
+        "seconds": 3.1440038749715313,
+        "exit": 1,
+        "diagnostic_codes": {
+          "invalid-assignment": 2
+        },
+        "user_cpu_seconds": 2.044092,
+        "system_cpu_seconds": 1.535625,
+        "sampled_process_tree_peak_rss_kib": 513936,
+        "stopped": null,
+        "monitor_error": null,
+        "parse_error": null,
+        "load_before": [
+          12.2939453125,
+          10.28173828125,
+          13.57666015625
+        ],
+        "load_after": [
+          12.2939453125,
+          10.28173828125,
+          13.57666015625
+        ],
+        "source_sha256": "1d6a6430d5c3eaec3a1d648f4c95b35912d6efc7d7c15370efadb0d6f41164ef",
+        "source_preserved": true,
+        "variant": "hybrid",
+        "phases": {
+          "startup_source_copy": 0.007,
+          "startup_configuration": 0.002,
+          "startup_runtime": 0.006,
+          "startup_overlays": 0.118,
+          "startup_selection": 0.088,
+          "startup_source_and_stub_index": 0.485,
+          "startup_project": 0.006,
+          "source_scan": 0.267,
+          "external_resolution": 0.008,
+          "function_summaries": 0.0,
+          "project_index": 0.432,
+          "virtual_declarations": 0.003,
+          "class_projection": 0.018,
+          "initial_lowering": 0.261,
+          "flow_and_render": 0.261,
+          "import_preflight": 0.026999999999999996,
+          "oracle_check": 0.515,
+          "hook_responses": 0.13499999999999998,
+          "final_render": 0.006,
+          "final_check": 0.313,
+          "diagnostic_mapping": 0.01,
+          "source_maps": 0.011
+        },
+        "verified_negative_locations": [
+          {
+            "path": "checks.py",
+            "line": 103
+          },
+          {
+            "path": "filler00000.py",
+            "line": 1
+          }
+        ]
+      },
+      "previous": {
+        "backend": "companion",
+        "label": "negative/previous",
+        "command": [
+          "$WORK/factory-release-v13b",
+          "check",
+          "--python",
+          "$WORK/environment/bin/python",
+          "--python-version",
+          "3.13",
+          "--output-format",
+          "gitlab",
+          "--no-progress",
+          "--color",
+          "never",
+          "$WORK/stress/project",
+          "--ty",
+          "$WORK/environment/bin/ty",
+          "--config-file",
+          "$WORK/stress/local-django.toml"
+        ],
+        "seconds": 6.105216374970041,
+        "exit": 1,
+        "diagnostic_codes": {
+          "invalid-assignment": 2
+        },
+        "user_cpu_seconds": 4.453854,
+        "system_cpu_seconds": 2.09972,
+        "sampled_process_tree_peak_rss_kib": 1198352,
+        "stopped": null,
+        "monitor_error": null,
+        "parse_error": null,
+        "load_before": [
+          12.35009765625,
+          10.32666015625,
+          13.5732421875
+        ],
+        "load_after": [
+          11.84130859375,
+          10.25439453125,
+          13.52880859375
+        ],
+        "source_sha256": "1d6a6430d5c3eaec3a1d648f4c95b35912d6efc7d7c15370efadb0d6f41164ef",
+        "source_preserved": true,
+        "variant": "previous",
+        "phases": {
+          "startup_source_copy": 0.006,
+          "startup_configuration": 0.002,
+          "startup_runtime": 0.006,
+          "startup_overlays": 0.097,
+          "startup_selection": 0.086,
+          "startup_source_and_stub_index": 0.5,
+          "startup_project": 0.0,
+          "source_scan": 0.248,
+          "external_resolution": 0.008,
+          "function_summaries": 0.0,
+          "project_index": 0.801,
+          "virtual_declarations": 0.135,
+          "class_projection": 0.535,
+          "initial_lowering": 0.506,
+          "flow_and_render": 0.192,
+          "import_preflight": 0.10400000000000001,
+          "oracle_check": 0.9450000000000001,
+          "hook_responses": 0.10699999999999998,
+          "final_render": 0.014,
+          "final_check": 1.496,
+          "diagnostic_mapping": 0.014,
+          "source_maps": 0.012
+        },
+        "verified_negative_locations": [
+          {
+            "path": "checks.py",
+            "line": 103
+          },
+          {
+            "path": "filler00000.py",
+            "line": 1
+          }
+        ]
+      },
+      "mypy": {
+        "backend": "mypy",
+        "label": "negative/mypy",
+        "command": [
+          "$WORK/mypy-reference/bin/mypy",
+          "--config-file",
+          "$WORK/stress/mypy.ini",
+          "--output",
+          "json",
+          "--no-incremental",
+          "$WORK/stress/project",
+          "--cache-dir",
+          "$WORK/native-hybrid/release-comparison-v6b/runs/negative/mypy/scratch/mypy-cache"
+        ],
+        "seconds": 7.885580666945316,
+        "exit": 1,
+        "diagnostic_codes": {
+          "assignment": 2
+        },
+        "user_cpu_seconds": 6.428651,
+        "system_cpu_seconds": 1.350593,
+        "sampled_process_tree_peak_rss_kib": 505520,
+        "stopped": null,
+        "monitor_error": null,
+        "parse_error": null,
+        "load_before": [
+          11.84130859375,
+          10.25439453125,
+          13.52880859375
+        ],
+        "load_after": [
+          13.46044921875,
+          10.66943359375,
+          13.63818359375
+        ],
+        "source_sha256": "1d6a6430d5c3eaec3a1d648f4c95b35912d6efc7d7c15370efadb0d6f41164ef",
+        "source_preserved": true,
+        "variant": "mypy",
+        "phases": {},
+        "verified_negative_locations": [
+          {
+            "path": "checks.py",
+            "line": 103
+          },
+          {
+            "path": "filler00000.py",
+            "line": 1
+          }
+        ]
+      },
+      "official": {
+        "backend": "bare-ty",
+        "label": "negative/official",
+        "command": [
+          "$WORK/official-django-comparison/native-environment/bin/ty",
+          "check",
+          "--python",
+          "$WORK/official-django-comparison/native-environment/bin/python",
+          "--python-version",
+          "3.13",
+          "--output-format",
+          "gitlab",
+          "--no-progress",
+          "--color",
+          "never",
+          "--config-file",
+          "$WORK/official-django-comparison/official.toml",
+          "$WORK/stress/project"
+        ],
+        "seconds": 0.4400371250230819,
+        "exit": 1,
+        "diagnostic_codes": {
+          "invalid-assignment": 2
+        },
+        "user_cpu_seconds": 0.430432,
+        "system_cpu_seconds": 0.631599,
+        "sampled_process_tree_peak_rss_kib": 92224,
+        "stopped": null,
+        "monitor_error": null,
+        "parse_error": null,
+        "load_before": [
+          13.46044921875,
+          10.66943359375,
+          13.63818359375
+        ],
+        "load_after": [
+          13.46044921875,
+          10.66943359375,
+          13.63818359375
+        ],
+        "source_sha256": "1d6a6430d5c3eaec3a1d648f4c95b35912d6efc7d7c15370efadb0d6f41164ef",
+        "source_preserved": true,
+        "variant": "official",
+        "phases": {},
+        "verified_negative_locations": [
+          {
+            "path": "checks.py",
+            "line": 103
+          },
+          {
+            "path": "filler00000.py",
+            "line": 1
+          }
+        ]
+      }
+    },
+    "medians": {
+      "hybrid": 2.8267191249178723,
+      "previous": 5.473853625007905,
+      "mypy": 7.487451707944274,
+      "official": 0.366899500018917
+    },
+    "maxima": {
+      "hybrid": 3.8152983330655843,
+      "previous": 6.180577874998562,
+      "mypy": 8.82651837496087,
+      "official": 0.40082354203332216
+    },
+    "focus_source_sha256": "0c9a80c961e8a08ee05c07bc22f5e624e5b02be801c85248af2bd6463719f181",
+    "mypy_ceiling_met": true
+  },
+  "additional_checks": {
+    "companion_regular": 222,
+    "companion_ignored_integration": 3,
+    "fmt": "pass",
+    "clippy": "pass",
+    "django_contract_and_rows": {
+      "matched": 172,
+      "unmarked": 0
+    },
+    "same_model_name_cases": {
+      "matched": 4,
+      "unmarked": 0
+    },
+    "generic_sdk_fields": {
+      "assertions": 31,
+      "negative_controls": 5,
+      "modes": [
+        "disk",
+        "memory"
+      ],
+      "exact_historical_diagnostics": true
+    },
+    "django_python_units": {
+      "passed": 44,
+      "failed": 1,
+      "failure": "Historical official-contract evidence receipt has stale corpus SHA after the generic annotation migration. It was not rewritten to hide the failure."
+    },
+    "monty_types": {
+      "functions": 89,
+      "sdk_declarations": 46,
+      "invalid_payload_controls": 7
+    }
+  },
+  "remaining_gates": [
+    "One-second fresh-process target (maximum observed hybrid time 3.815 seconds)",
+    "Complete static API compatibility audit",
+    "Fresh complete official-contract receipt and current runtime/wheel/editor qualifications",
+    "Django/Python and official Ty version matrix",
+    "Hosted CI for this prototype and consumer activation"
+  ],
+  "build_cleaned": true,
+  "path_remapping": {
+    "$WORK": "task-owned temporary qualification directory",
+    "$ROOT": "ty-extended checkout"
+  },
+  "input_selection_equivalence": {
+    "passed": true,
+    "scope": "CPython complete-response equivalence on preserved 2,501-model stress request; semantic proof only, not Monty or end-to-end timing.",
+    "classes": 2501,
+    "assignment_count_before": 7080,
+    "assignment_count_after": 0,
+    "compact_bytes_before": 7530767,
+    "compact_bytes_after": 3013547,
+    "response_sha256": "25e2f3e8487070e3e4520ba82c3b4d3a0ca59095934a2e0c11764c2a0a214654",
+    "source_request_sha256": "effe3705db4f111a704bf853ec11b19d664b2d5d35d1f0b18eb4bba265c216cc",
+    "profile": {
+      "assignment-kinds": [
+        "call"
+      ],
+      "class-source": false,
+      "field-call-keywords": [
+        "null",
+        "default",
+        "db_default",
+        "primary_key",
+        "choices",
+        "to",
+        "to_field",
+        "related_name",
+        "related_query_name"
+      ]
+    },
+    "cpython_full_seconds": 0.05637524998746812,
+    "cpython_selected_seconds": 0.12372425000648946,
+    "plugin_sha256": "469b69fe73ac3b16ec23735be0e45d5c243d64f718caea816ecb861730ba9cc5"
+  },
+  "local_source_archives": {
+    "pre-v7-source-snapshot.tar.gz": "b827edd20063d85f42ed27265000c01892c78a3c7936f4ff100f66c4b975e673",
+    "django-source-v6b.tar.gz": "039f64bc3b3973b7ad0d7342d129568691ec7b41ffc3e555e4eae8909ba69075"
+  },
+  "known_gaps_found_later": [
+    "Broader native-mode SDK testing exposed unnecessary attribute probes and missing incomplete-editor declarations; fixes passed the v7b suite in both modes.",
+    "A subsequent regression fixture exposed inherited constructor keywords being rejected when the subclass had no direct patch; the fix is under v8 qualification.",
+    "The native declaration base treated ASGIRequest.GET as a method; an adapter is under expanded QueryDict qualification."
+  ]
+}

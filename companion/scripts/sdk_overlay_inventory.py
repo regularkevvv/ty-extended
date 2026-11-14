@@ -155,20 +155,17 @@ def main() -> int:
     for name in ("companion", "official", "fork", "output"):
         setattr(args, name, getattr(args, name).resolve())
     args.output.mkdir(parents=True)
-    original = (
-        Path(__file__).resolve().parents[2]
-        / "ruff/crates/ty_module_resolver/src/resolve.rs"
-    )
-    source = original.read_text(encoding="utf-8")
+    original = Path(__file__).resolve().parents[1] / "tests/fixtures/sdk_contracts.json"
+    catalog = json.loads(original.read_text(encoding="utf-8"))["cases"]
     original_names = [row[0] for row in CASES] + [
         "real_module_resolution_ignores_plugin_stub_overlay"
     ]
     for name in original_names:
-        assert f"fn {name}()" in source, (name, "pinned resolver fixture moved")
+        assert name in catalog["overlays"], (name, "pinned resolver fixture moved")
     result = {
         "passed": False,
-        "original_source": str(original),
-        "original_source_sha256": digest(original),
+        "fixture_catalog": str(original),
+        "fixture_catalog_sha256": digest(original),
         "runner_sha256": digest(Path(__file__)),
         "path_helper_sha256": digest(Path(__file__).with_name("harness_paths.py")),
         "original_contracts": original_names,
@@ -399,11 +396,10 @@ def main() -> int:
                 )
             assert (root / "main.py").read_text(encoding="utf-8") == main_source
         # Literal original #12 fixture, transported through the public LSP.
-        source12 = original.parents[2] / "ty_ide/src/goto_definition.rs"
-        source12_text = source12.read_text(encoding="utf-8")
+        source12 = original
         assert (
-            "fn goto_definition_plugin_stub_overlay_maps_to_site_packages_source()"
-            in source12_text
+            "goto_definition_plugin_stub_overlay_maps_to_site_packages_source"
+            in catalog["overlays"]
         )
         main12 = "from foo import make\nmake()\n"
         overlay12 = "def make() -> int: ...\n"

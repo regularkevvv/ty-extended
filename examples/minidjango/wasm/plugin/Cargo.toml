@@ -10,8 +10,8 @@ publish = false
 crate-type = ["cdylib"]
 
 [dependencies]
-ty_plugin_examples = { path = "../../../../ruff/crates/ty_plugin_examples" }
-ty_plugin_sdk = { path = "../../../../ruff/crates/ty_plugin_sdk" }
+ty_plugin_examples = { path = "../../../../crates/ty_plugin_examples" }
+ty_plugin_sdk = { path = "../../../../crates/ty_plugin_sdk" }
 
 # Standalone crate living outside the ruff workspace.
 [workspace]

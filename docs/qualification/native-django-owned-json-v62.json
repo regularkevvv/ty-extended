@@ -1,0 +1,542 @@
+{
+  "status": "Rejected: complete local and isolated Linux/macOS matrices fail the strict 3-times gate. No merge or release accepted.",
+  "official_ty": "0.0.101",
+  "django_commit": "b25f41c5b3063682e7e1789170ceb6423140a58a",
+  "ruff_commit": "03b2ebfde0653f5295a325c2b6ce0e96b47b0a00",
+  "implementation": [
+    "Move already-built JSON values into source locations, class fields, methods, class summaries and call arguments instead of serializing and copying them again. Preserve all keys and values.",
+    "Disable Django class-snapshot lookups by default after a same-binary structural profile showed higher total indexing time despite lower guest work. Keep bounded snapshot support explicitly opt-in.",
+    "Retain the earlier private combined-record index, lazy reverse-manager annotations, ordered source loading, native-result reuse guards and stateless hook batching."
+  ],
+  "qualification": {
+    "passed": true,
+    "steps": 98,
+    "regular_rust_tests_per_field_mode": 268,
+    "additional_tests_per_field_mode": 3,
+    "sdk_cli_invocations": 36,
+    "sdk_cli_individual_test_executions": 44,
+    "clippy": true,
+    "source_sha256": {
+      "companion/src/project_config.rs": "b404ee4e3427c60af4261698a500454c3c7c2194f86a93bbf24f4be71fc16617",
+      "companion/src/flow.rs": "d6d879a0293f7ea07d5da2a1005c93b7b0f07a7a4044948e57a8591d93f5d306",
+      "companion/src/runtime.rs": "aa976e6dc4db66ccbccf6c68b51b6a884bfb4168f570404be2d6e4b86e55dcae",
+      "companion/src/native_rules.rs": "45a10fdebaec5c6307c75d287d97ef3c85701fe21c4ad915c6c79162db196184",
+      "companion/src/static_project.rs": "b57a33c3065aed0caea78b3c7dcdf85fc6f3cef0ffd950585fdcd9d15f68fd1e",
+      "companion/src/editor_options.rs": "6c3d5540fdea2956a9ed179fb2291f087456a48cf744647063bdd11a3f775d46",
+      "companion/src/cli_edits.rs": "01543f2a5d63f7a66545923b6ccd25e06161b6e3fd9b2936d09073768902c444",
+      "companion/src/project_check.rs": "fba615ab2e3e083d962478b483e2ea307c427f83f39915d5eb26ab85a76bde2b",
+      "companion/src/project.rs": "7f91cae56e3a682175851c79fffc9dcd2a315e3dbdf19df097872ba437941ac3",
+      "companion/src/checker.rs": "4cb129fef5bf83671852080f618a0068f0b119bf2258abe4fe855e45c75d9687",
+      "companion/src/verify.rs": "e7708860ec0bd32cdfb8d6a171a53b2c12d5a67703f5a5b4322fa72d1592603d",
+      "companion/src/type_snapshot.rs": "0c018b699a8d140782e3813a5606d188c27b392400d1796ab839d73002eba813",
+      "companion/src/mapping.rs": "f92e4155bff39e8d47bed7b19a81e418a200fda3892eaebff485b1ea278bb761",
+      "companion/src/main.rs": "889627d345b64c595b0e5880e825b068f00008e5744ad52577a4c6933d6a668a",
+      "companion/src/parallel.rs": "ea1b52946ab12fca3cdf9788be063f737ea8a0ab91203565b475f5daf3e314fe",
+      "companion/src/notebook.rs": "0bbd10d569d77019c19b7b76e7d2259c93afaaccc7f18c089e6478f3491cd24f",
+      "companion/src/lsp_mapping.rs": "2a3d7cc63f066bc25db11d680819124e3ff609448d2f27ab93b15d877bfc48fb",
+      "companion/src/lsp_server.rs": "f6a49b11f82ef55a8028d78253fb210844135b9c93e7777074dab3c6f846676a",
+      "companion/src/native_warmup.rs": "08a9e6bd722adfc152cb2dd1b4f9c2b552ee31db7c8d55cc24b96a317c698688",
+      "companion/src/lower.rs": "df0249023e8c7f88eff2eb49ca2d0ee64aba682ebc5b244c230435acccb136d4",
+      "companion/src/type_render.rs": "d4f62ea50e5fa320e862ae635e8bf90329211324963a8d92bea21cf6b9533111",
+      "companion/src/model.rs": "a7b09f8e510b1554fdbd747efff07bf3aaba40134f0af28c17dd49fb1564bb12",
+      "companion/src/cli.rs": "28f9456cd46a1a2bbf5640b500a2921a38c7b13e18687b1f6d2345a8a0e26bf2",
+      "ruff/crates/ty_plugin_host/src/monty.rs": "297dbe3457a47dd315659154a64f0d5210e731df98a3adf9d81cd48fe7301da5",
+      "ruff/crates/ty_plugin_host/tests/monty.rs": "88e474f60dfc7bcb57d2763fb328522dfb3e208cb9495e3e00c6e45c563d6d61",
+      "ruff/crates/ty_plugin_host/src/lib.rs": "9f4c6b83459fec687cf979798d71a48b1a3f733b862dc130a88ddb766afae0da",
+      "ruff/crates/ty_plugin_host/python/ty_plugin_sdk.py": "59d9c4cc97eaf85b1ce9c178551d1c64a024bd82e2d675fd0a7dd051cb2bd527",
+      "python/ty_extended/plugin_sdk.py": "b34661a7b88baef806f744a946c6030c2e1b95cdbf09856096cd48e8dfef53b2"
+    },
+    "cargo_clean": {
+      "step": "clean",
+      "exit": 0,
+      "seconds": 2.012635000050068
+    },
+    "cargo_clean_report": "Removed 3254 files, 877.4MiB total"
+  },
+  "independent_previous_binary_request_comparison": {
+    "passed": true,
+    "equal_bytes": true,
+    "baseline_sha256": "0b258819116f0d93df34747145ff3308b5b7f0028a2a05a5b994be0384668771",
+    "current_sha256": "0b258819116f0d93df34747145ff3308b5b7f0028a2a05a5b994be0384668771",
+    "bytes": 11530514,
+    "classes": 2501,
+    "task_projection_cleaned": true
+  },
+  "django_source_qualification": {
+    "passed_except_stale_receipt": true,
+    "corpus_cases": 172,
+    "multi_app": true,
+    "sdk_fields": true,
+    "django_runtime_cases": 83,
+    "querydict_cases_per_projection_mode": 9,
+    "primary_key_cases": true,
+    "larger_example": {
+      "disk_positive_diagnostics": 0,
+      "memory_positive_diagnostics": 0,
+      "negative_diagnostics_per_mode": 9,
+      "source_preserved": true
+    },
+    "python_unit_results": "68/69; sole failing official-contract receipt remains stale",
+    "steps": [
+      {
+        "step": "corpus",
+        "exit": 0,
+        "seconds": 1.3044451249297708
+      },
+      {
+        "step": "multi-app",
+        "exit": 0,
+        "seconds": 0.3217211659066379
+      },
+      {
+        "step": "sdk-fields",
+        "exit": 0,
+        "seconds": 0.3517030419316143
+      },
+      {
+        "step": "monty-types",
+        "exit": 0,
+        "seconds": 0.31969987507909536
+      },
+      {
+        "step": "python-units",
+        "exit": 1,
+        "seconds": 5.513222625013441
+      },
+      {
+        "step": "django-runtime",
+        "exit": 0,
+        "seconds": 0.7245692501310259
+      },
+      {
+        "step": "querydict-0",
+        "exit": 0,
+        "seconds": 3.566217999905348
+      },
+      {
+        "step": "querydict-1",
+        "exit": 0,
+        "seconds": 2.030978540889919
+      },
+      {
+        "step": "primary",
+        "exit": 0,
+        "seconds": 0.6856879580300301
+      }
+    ]
+  },
+  "remaining_gates": [
+    "Complete five-workload performance matrix with identical official Ty: each median and every paired repeat at most 3 times bare Ty, and at most MyPy.",
+    "Fresh checker version groups, Django full-contract receipt, editor and installed-artifact qualification.",
+    "Integrate and qualify the separate Django relation/default-row fixes.",
+    "All CI green, merge/release and published-artifact verification for both projects before the final issue response."
+  ],
+  "acceptance": false,
+  "completed_performance": {
+    "local": {
+      "passed": false,
+      "companion_sha256": "588fb5135ae1e702731c48efb814efdf31c7f3085783f7faa9b583874c9297ce",
+      "provider_preserved": true,
+      "temporary_environments_cleaned": true,
+      "workloads": {
+        "small": {
+          "median_seconds": {
+            "companion": 0.11359824985265732,
+            "bare-ty": 0.042104499880224466,
+            "mypy": 1.6948938330169767
+          },
+          "performance_gate": {
+            "max_ty_ratio": 3.0,
+            "median_ty_ratio": 2.698007343058642,
+            "paired_ty_ratios": [
+              2.8748724444219134,
+              2.742707246227884,
+              2.6305531569926472,
+              2.699233569635013,
+              2.4998510772972664
+            ],
+            "max_paired_ty_ratio": 2.8748724444219134,
+            "ty_ceiling_met": true,
+            "mypy_ceiling_met": true,
+            "one_second_goal_met": true,
+            "passed": true
+          },
+          "production_path_verified": true,
+          "source_sha256": "d56dec6ca0858f30863af951cfd8ee50cc0820bc9d0acc5fd5774b85ef95908e"
+        },
+        "distributed": {
+          "median_seconds": {
+            "companion": 0.20930104213766754,
+            "bare-ty": 0.10053387493826449,
+            "mypy": 2.4641710410360247
+          },
+          "performance_gate": {
+            "max_ty_ratio": 3.0,
+            "median_ty_ratio": 2.0818957019829827,
+            "paired_ty_ratios": [
+              2.5913609599838865,
+              1.4871789772882216,
+              2.6118825683835523,
+              2.7169030590085463,
+              2.0315975597426528
+            ],
+            "max_paired_ty_ratio": 2.7169030590085463,
+            "ty_ceiling_met": true,
+            "mypy_ceiling_met": true,
+            "one_second_goal_met": true,
+            "passed": true
+          },
+          "production_path_verified": true,
+          "source_sha256": "215897d7d242aeb2411e9f446fed78cd4105eb934b051c4035f409b7323e45a0"
+        },
+        "many-files": {
+          "median_seconds": {
+            "companion": 0.5316894161514938,
+            "bare-ty": 0.19046929106116295,
+            "mypy": 4.646830915939063
+          },
+          "performance_gate": {
+            "max_ty_ratio": 3.0,
+            "median_ty_ratio": 2.7914705472430157,
+            "paired_ty_ratios": [
+              2.915251591330464,
+              2.9070677783568937,
+              2.814556729681685,
+              2.423580794016517,
+              2.7900997725634054
+            ],
+            "max_paired_ty_ratio": 2.915251591330464,
+            "ty_ceiling_met": true,
+            "mypy_ceiling_met": true,
+            "one_second_goal_met": true,
+            "passed": true
+          },
+          "production_path_verified": true,
+          "source_sha256": "ba0380a4b1aa169061e65909e3ec9d9ecec7d4679a12e6dc914c7c2a5659b731"
+        },
+        "stress": {
+          "median_seconds": {
+            "companion": 0.714741624891758,
+            "bare-ty": 0.3506057080812752,
+            "mypy": 7.844006499974057
+          },
+          "performance_gate": {
+            "max_ty_ratio": 3.0,
+            "median_ty_ratio": 2.038590953932989,
+            "paired_ty_ratios": [
+              2.163901271089868,
+              2.3242922028959994,
+              2.159577034023339,
+              1.9852082178316348,
+              1.9100781472049246
+            ],
+            "max_paired_ty_ratio": 2.3242922028959994,
+            "ty_ceiling_met": true,
+            "mypy_ceiling_met": true,
+            "one_second_goal_met": true,
+            "passed": true
+          },
+          "production_path_verified": true,
+          "source_sha256": "51c1a88b05a169f1222685fe6105e4be5f43d4213aaaf57c60bf99dbe0d82df9"
+        },
+        "distributed-stress": {
+          "median_seconds": {
+            "companion": 0.7641822909936309,
+            "bare-ty": 0.23292416706681252,
+            "mypy": 7.508511167019606
+          },
+          "performance_gate": {
+            "max_ty_ratio": 3.0,
+            "median_ty_ratio": 3.2808201081789465,
+            "paired_ty_ratios": [
+              3.335354092897733,
+              3.33806720629767,
+              3.43107325448304,
+              3.1752343970520176,
+              3.16421295494026
+            ],
+            "max_paired_ty_ratio": 3.43107325448304,
+            "ty_ceiling_met": false,
+            "mypy_ceiling_met": true,
+            "one_second_goal_met": true,
+            "passed": false
+          },
+          "production_path_verified": true,
+          "source_sha256": "0b165879eeaa32cb6906921446ecaa428c3c4f44890779f7601511dc5d572124"
+        }
+      }
+    },
+    "ubuntu-latest": {
+      "passed": false,
+      "companion_sha256": "7d5d993298d204288fa698a6b6faca95934b5aba1569a458059199a1bec28b02",
+      "provider_preserved": true,
+      "temporary_environments_cleaned": true,
+      "workloads": {
+        "small": {
+          "median_seconds": {
+            "companion": 0.0967700359999526,
+            "bare-ty": 0.03596469100000377,
+            "mypy": 1.793030075000047
+          },
+          "performance_gate": {
+            "max_ty_ratio": 3.0,
+            "median_ty_ratio": 2.690695604751406,
+            "paired_ty_ratios": [
+              2.8959308306220937,
+              2.583669021372852,
+              2.683135015152893,
+              2.298770000141591,
+              2.5893778433617243
+            ],
+            "max_paired_ty_ratio": 2.8959308306220937,
+            "ty_ceiling_met": true,
+            "mypy_ceiling_met": true,
+            "one_second_goal_met": true,
+            "passed": true
+          },
+          "production_path_verified": true,
+          "source_sha256": "d56dec6ca0858f30863af951cfd8ee50cc0820bc9d0acc5fd5774b85ef95908e"
+        },
+        "distributed": {
+          "median_seconds": {
+            "companion": 0.1800416830000131,
+            "bare-ty": 0.062234746000058294,
+            "mypy": 2.6799589759999662
+          },
+          "performance_gate": {
+            "max_ty_ratio": 3.0,
+            "median_ty_ratio": 2.892944770753053,
+            "paired_ty_ratios": [
+              2.911649466680602,
+              2.9009692537493144,
+              3.278345702954052,
+              2.85802111191742,
+              3.018527223750009
+            ],
+            "max_paired_ty_ratio": 3.278345702954052,
+            "ty_ceiling_met": false,
+            "mypy_ceiling_met": true,
+            "one_second_goal_met": true,
+            "passed": false
+          },
+          "production_path_verified": true,
+          "source_sha256": "215897d7d242aeb2411e9f446fed78cd4105eb934b051c4035f409b7323e45a0"
+        },
+        "many-files": {
+          "median_seconds": {
+            "companion": 0.3778722150000249,
+            "bare-ty": 0.1223811710000291,
+            "mypy": 5.605775513000026
+          },
+          "performance_gate": {
+            "max_ty_ratio": 3.0,
+            "median_ty_ratio": 3.0876662799699393,
+            "paired_ty_ratios": [
+              2.916145998778905,
+              3.0597783969739383,
+              3.1410332940532135,
+              3.3537619443108126,
+              2.8908883813090984
+            ],
+            "max_paired_ty_ratio": 3.3537619443108126,
+            "ty_ceiling_met": false,
+            "mypy_ceiling_met": true,
+            "one_second_goal_met": true,
+            "passed": false
+          },
+          "production_path_verified": true,
+          "source_sha256": "ba0380a4b1aa169061e65909e3ec9d9ecec7d4679a12e6dc914c7c2a5659b731"
+        },
+        "stress": {
+          "median_seconds": {
+            "companion": 0.5861489469999697,
+            "bare-ty": 0.24844700099993133,
+            "mypy": 9.482449558999974
+          },
+          "performance_gate": {
+            "max_ty_ratio": 3.0,
+            "median_ty_ratio": 2.359251448561988,
+            "paired_ty_ratios": [
+              2.4202969414270297,
+              2.346518302308331,
+              2.256471657372395,
+              2.508496544493281,
+              2.4603254938200463
+            ],
+            "max_paired_ty_ratio": 2.508496544493281,
+            "ty_ceiling_met": true,
+            "mypy_ceiling_met": true,
+            "one_second_goal_met": true,
+            "passed": true
+          },
+          "production_path_verified": true,
+          "source_sha256": "51c1a88b05a169f1222685fe6105e4be5f43d4213aaaf57c60bf99dbe0d82df9"
+        },
+        "distributed-stress": {
+          "median_seconds": {
+            "companion": 0.6535035620000826,
+            "bare-ty": 0.19752112000003308,
+            "mypy": 9.201737370000046
+          },
+          "performance_gate": {
+            "max_ty_ratio": 3.0,
+            "median_ty_ratio": 3.3085249921627278,
+            "paired_ty_ratios": [
+              3.2375007936332345,
+              3.3471061419696597,
+              3.2254079501100588,
+              3.3976423298279994,
+              3.402000221545254
+            ],
+            "max_paired_ty_ratio": 3.402000221545254,
+            "ty_ceiling_met": false,
+            "mypy_ceiling_met": true,
+            "one_second_goal_met": true,
+            "passed": false
+          },
+          "production_path_verified": true,
+          "source_sha256": "0b165879eeaa32cb6906921446ecaa428c3c4f44890779f7601511dc5d572124"
+        }
+      }
+    },
+    "macos-latest": {
+      "passed": false,
+      "companion_sha256": "f97d0e2effb0ec05527fe563e3bd7094bb620600e754932b9a6d5b0d7ea37f0b",
+      "provider_preserved": true,
+      "temporary_environments_cleaned": true,
+      "workloads": {
+        "small": {
+          "median_seconds": {
+            "companion": 0.2532305830000041,
+            "bare-ty": 0.149892459000057,
+            "mypy": 3.375647541999797
+          },
+          "performance_gate": {
+            "max_ty_ratio": 3.0,
+            "median_ty_ratio": 1.6894150959249248,
+            "paired_ty_ratios": [
+              2.2766890252747785,
+              1.5739821116097183,
+              1.9177518541290588,
+              2.565111501939282,
+              1.4511745717633588
+            ],
+            "max_paired_ty_ratio": 2.565111501939282,
+            "ty_ceiling_met": true,
+            "mypy_ceiling_met": true,
+            "one_second_goal_met": true,
+            "passed": true
+          },
+          "production_path_verified": true,
+          "source_sha256": "d56dec6ca0858f30863af951cfd8ee50cc0820bc9d0acc5fd5774b85ef95908e"
+        },
+        "distributed": {
+          "median_seconds": {
+            "companion": 0.3644154169999183,
+            "bare-ty": 0.18914429200003724,
+            "mypy": 3.676214125000115
+          },
+          "performance_gate": {
+            "max_ty_ratio": 3.0,
+            "median_ty_ratio": 1.926652996749416,
+            "paired_ty_ratios": [
+              2.219698229116545,
+              1.3529850606486933,
+              2.085250468068526,
+              0.9958263869755906,
+              1.6046752069470296
+            ],
+            "max_paired_ty_ratio": 2.219698229116545,
+            "ty_ceiling_met": true,
+            "mypy_ceiling_met": true,
+            "one_second_goal_met": true,
+            "passed": true
+          },
+          "production_path_verified": true,
+          "source_sha256": "215897d7d242aeb2411e9f446fed78cd4105eb934b051c4035f409b7323e45a0"
+        },
+        "many-files": {
+          "median_seconds": {
+            "companion": 0.6247411249999004,
+            "bare-ty": 0.24158454200005508,
+            "mypy": 5.194034375000001
+          },
+          "performance_gate": {
+            "max_ty_ratio": 3.0,
+            "median_ty_ratio": 2.586014485147638,
+            "paired_ty_ratios": [
+              1.576358353246326,
+              2.2679284587663866,
+              2.9993854761181247,
+              3.519577827514861,
+              3.475089209864436
+            ],
+            "max_paired_ty_ratio": 3.519577827514861,
+            "ty_ceiling_met": false,
+            "mypy_ceiling_met": true,
+            "one_second_goal_met": true,
+            "passed": false
+          },
+          "production_path_verified": true,
+          "source_sha256": "ba0380a4b1aa169061e65909e3ec9d9ecec7d4679a12e6dc914c7c2a5659b731"
+        },
+        "stress": {
+          "median_seconds": {
+            "companion": 0.8378628750001553,
+            "bare-ty": 0.3661236250000002,
+            "mypy": 7.02662154099994
+          },
+          "performance_gate": {
+            "max_ty_ratio": 3.0,
+            "median_ty_ratio": 2.28846984403193,
+            "paired_ty_ratios": [
+              2.873790752724023,
+              2.9229030839721464,
+              2.8726255244367893,
+              1.417738253619388,
+              1.6884776064368328
+            ],
+            "max_paired_ty_ratio": 2.9229030839721464,
+            "ty_ceiling_met": true,
+            "mypy_ceiling_met": true,
+            "one_second_goal_met": false,
+            "passed": true
+          },
+          "production_path_verified": true,
+          "source_sha256": "51c1a88b05a169f1222685fe6105e4be5f43d4213aaaf57c60bf99dbe0d82df9"
+        },
+        "distributed-stress": {
+          "median_seconds": {
+            "companion": 0.9175246249999418,
+            "bare-ty": 0.28852379199997813,
+            "mypy": 6.850278707999905
+          },
+          "performance_gate": {
+            "max_ty_ratio": 3.0,
+            "median_ty_ratio": 3.1800657361387077,
+            "paired_ty_ratios": [
+              3.558783839831278,
+              4.095073453937901,
+              2.845379654439838,
+              3.9008583307557765,
+              2.9717585335216037
+            ],
+            "max_paired_ty_ratio": 4.095073453937901,
+            "ty_ceiling_met": false,
+            "mypy_ceiling_met": true,
+            "one_second_goal_met": false,
+            "passed": false
+          },
+          "production_path_verified": true,
+          "source_sha256": "0b165879eeaa32cb6906921446ecaa428c3c4f44890779f7601511dc5d572124"
+        }
+      }
+    }
+  },
+  "local_load_guard": {
+    "all_recorded_loads_below_16": true,
+    "max_recorded_load": 15.9072265625,
+    "performance_accepted_locally": false
+  },
+  "isolated_run": "https://github.com/regularkevvv/ty-extended/actions/runs/43263351415"
+}

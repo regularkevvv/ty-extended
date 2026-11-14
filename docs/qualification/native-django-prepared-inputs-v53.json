@@ -1,0 +1,4146 @@
+{
+  "status": "correctness-qualified-all-production-matrices-failed",
+  "release_accepted": false,
+  "method": "Prepare strongly identified source and directory inputs on a background thread during plugin indexing. Reuse precomputed compacted native paths; retain exact final input, revision, provider and diagnostic checks. Use bounded parallel revision validation.",
+  "semantic_checker": "Unchanged external official Astral Ty 0.0.101",
+  "source_sha256": {
+    "companion/src/project_config.rs": "3a5c5005ae9ada881e5c31020d782379aeaa3214825eb6654a646cdab95bdade",
+    "companion/src/flow.rs": "d6d879a0293f7ea07d5da2a1005c93b7b0f07a7a4044948e57a8591d93f5d306",
+    "companion/src/runtime.rs": "ce0bcf6ac98d85a92a106898b5adff444930bd9073e9a33dee747429a3897d8f",
+    "companion/src/native_rules.rs": "45a10fdebaec5c6307c75d287d97ef3c85701fe21c4ad915c6c79162db196184",
+    "companion/src/static_project.rs": "b57a33c3065aed0caea78b3c7dcdf85fc6f3cef0ffd950585fdcd9d15f68fd1e",
+    "companion/src/editor_options.rs": "6c3d5540fdea2956a9ed179fb2291f087456a48cf744647063bdd11a3f775d46",
+    "companion/src/cli_edits.rs": "01543f2a5d63f7a66545923b6ccd25e06161b6e3fd9b2936d09073768902c444",
+    "companion/src/project_check.rs": "b4929695f7df387291343547204447f515dddbf3753127457647f09634b224ac",
+    "companion/src/project.rs": "d8017537a58c714dc2478a1ce2db80efe11e29c8f1342933d855fd9516455a9c",
+    "companion/src/checker.rs": "4cb129fef5bf83671852080f618a0068f0b119bf2258abe4fe855e45c75d9687",
+    "companion/src/verify.rs": "e7708860ec0bd32cdfb8d6a171a53b2c12d5a67703f5a5b4322fa72d1592603d",
+    "companion/src/type_snapshot.rs": "0c018b699a8d140782e3813a5606d188c27b392400d1796ab839d73002eba813",
+    "companion/src/mapping.rs": "f92e4155bff39e8d47bed7b19a81e418a200fda3892eaebff485b1ea278bb761",
+    "companion/src/main.rs": "889627d345b64c595b0e5880e825b068f00008e5744ad52577a4c6933d6a668a",
+    "companion/src/parallel.rs": "ea1b52946ab12fca3cdf9788be063f737ea8a0ab91203565b475f5daf3e314fe",
+    "companion/src/notebook.rs": "0bbd10d569d77019c19b7b76e7d2259c93afaaccc7f18c089e6478f3491cd24f",
+    "companion/src/lsp_mapping.rs": "2a3d7cc63f066bc25db11d680819124e3ff609448d2f27ab93b15d877bfc48fb",
+    "companion/src/lsp_server.rs": "f6a49b11f82ef55a8028d78253fb210844135b9c93e7777074dab3c6f846676a",
+    "companion/src/native_warmup.rs": "08a9e6bd722adfc152cb2dd1b4f9c2b552ee31db7c8d55cc24b96a317c698688",
+    "companion/src/lower.rs": "df0249023e8c7f88eff2eb49ca2d0ee64aba682ebc5b244c230435acccb136d4",
+    "companion/src/type_render.rs": "d4f62ea50e5fa320e862ae635e8bf90329211324963a8d92bea21cf6b9533111",
+    "companion/src/model.rs": "8bb5f959e83a06c65603dda8b389a58a5854ae1d47d57b53d7abf3b2e6afe65e",
+    "companion/src/cli.rs": "c5da2dcd032e87084e8c80a160642c6c2ee615020a3f9bd4e4eb7cbb450be52f",
+    "ruff/crates/ty_plugin_host/src/monty.rs": "3ecf94981aef4e841d1e7a32c27c00907263fceb82e5adeee93dcd63ad632a3b",
+    "ruff/crates/ty_plugin_host/tests/monty.rs": "3ee1f9e8e9f6591603ce89f283c787c6bf3fecd818aab12650b893881dca136e"
+  },
+  "companion_qualification": {
+    "passed": true,
+    "regular_tests_per_field_mode": 259,
+    "additional_tests_per_field_mode": 3,
+    "sdk_cli_suite_invocations": 36,
+    "individual_sdk_cli_test_executions": 44,
+    "format_and_clippy_passed": true,
+    "cargo_clean_exit": 0
+  },
+  "django_qualification": {
+    "steps": [
+      {
+        "step": "corpus",
+        "exit": 0,
+        "seconds": 1.0924755409359932
+      },
+      {
+        "step": "multi-app",
+        "exit": 0,
+        "seconds": 0.2972680419916287
+      },
+      {
+        "step": "sdk-fields",
+        "exit": 0,
+        "seconds": 0.3352905419887975
+      },
+      {
+        "step": "monty-types",
+        "exit": 0,
+        "seconds": 0.34156745800282806
+      },
+      {
+        "step": "python-units",
+        "exit": 1,
+        "seconds": 4.2343411250039935
+      },
+      {
+        "step": "django-runtime",
+        "exit": 0,
+        "seconds": 0.705000082962215
+      },
+      {
+        "step": "querydict-0",
+        "exit": 0,
+        "seconds": 3.50099837500602
+      },
+      {
+        "step": "querydict-1",
+        "exit": 0,
+        "seconds": 2.065001916955225
+      },
+      {
+        "step": "primary",
+        "exit": 0,
+        "seconds": 0.6376407910138369
+      },
+      {
+        "step": "source-example",
+        "exit": 0,
+        "seconds": 3.2074789999751374
+      }
+    ],
+    "binary_sha256": "fb1dea829ae5029ec4c330dc64dad83cdba01d37e976efe09ec7bd31caa502ec",
+    "focus_receipt": "pending optimized paired comparison",
+    "passed": true
+  },
+  "real_django_structural_probe": {
+    "passed": true,
+    "scope": "Structural probe only, not performance acceptance",
+    "runs": [
+      {
+        "diagnostics": [],
+        "native_cli_reused": false,
+        "monty_executions": 202,
+        "monty_cache_hits": 399,
+        "oracle_rounds": 1,
+        "native_call_returns": 100,
+        "seconds": 0.149521375,
+        "phases": {
+          "class_projection": 0.000100334,
+          "diagnostic_mapping": 0.001479708,
+          "external_resolution": 0.0013275,
+          "final_check": 0.00044975,
+          "final_render": 0.000214292,
+          "flow_and_render": 0.000608292,
+          "function_summaries": 6.4584e-05,
+          "hook_responses": 0.003702375,
+          "import_preflight": 0.000936417,
+          "initial_lowering": 0.012923041,
+          "native_cli_prepare": 8.0125e-05,
+          "oracle_check": 0.011416541,
+          "project_index": 0.023128583,
+          "source_maps": 0.002177,
+          "source_scan": 6.1958e-05,
+          "virtual_declarations": 0.001028083,
+          "warmup_flow": 0.08905275,
+          "warmup_join": 0.00065975
+        },
+        "enabled": false
+      },
+      {
+        "diagnostics": [],
+        "native_cli_reused": true,
+        "monty_executions": 202,
+        "monty_cache_hits": 399,
+        "oracle_rounds": 1,
+        "native_call_returns": 100,
+        "seconds": 0.143944792,
+        "phases": {
+          "class_projection": 9.3709e-05,
+          "diagnostic_mapping": 0.001479458,
+          "external_resolution": 0.001013584,
+          "final_check": 0.000434583,
+          "final_render": 0.000185334,
+          "flow_and_render": 0.093587125,
+          "function_summaries": 4.3791e-05,
+          "hook_responses": 0.003575625,
+          "import_preflight": 0.000929792,
+          "initial_lowering": 0.013044166,
+          "native_cli_prepare": 0.002056792,
+          "oracle_check": 0.003374166,
+          "project_index": 0.020322209,
+          "source_maps": 0.00281,
+          "source_scan": 4.5625e-05,
+          "virtual_declarations": 0.000810166
+        },
+        "enabled": true
+      }
+    ],
+    "same_diagnostics": true,
+    "fast_path_engaged": true,
+    "same_hook_execution_count": true,
+    "source_and_provider_preserved": true
+  },
+  "known_release_blocker": "The official-contract receipt test remains stale. Its single failure is allowed only in this interim source qualification; release acceptance is false.",
+  "performance_gate": {
+    "max_ty_ratio": 3,
+    "all_five_workload_medians_and_every_pair_required": true,
+    "mypy_ceiling_required": true,
+    "passed": false,
+    "reason": "The complete local, Linux and macOS optimized matrices all fail the strict 3-times median/every-pair ceiling. Correctness, source/provider and cleanup controls pass."
+  },
+  "optimized_build": {
+    "passed": true,
+    "source_sha256": {
+      "companion/src/project_config.rs": "3a5c5005ae9ada881e5c31020d782379aeaa3214825eb6654a646cdab95bdade",
+      "companion/src/flow.rs": "d6d879a0293f7ea07d5da2a1005c93b7b0f07a7a4044948e57a8591d93f5d306",
+      "companion/src/runtime.rs": "ce0bcf6ac98d85a92a106898b5adff444930bd9073e9a33dee747429a3897d8f",
+      "companion/src/native_rules.rs": "45a10fdebaec5c6307c75d287d97ef3c85701fe21c4ad915c6c79162db196184",
+      "companion/src/static_project.rs": "b57a33c3065aed0caea78b3c7dcdf85fc6f3cef0ffd950585fdcd9d15f68fd1e",
+      "companion/src/editor_options.rs": "6c3d5540fdea2956a9ed179fb2291f087456a48cf744647063bdd11a3f775d46",
+      "companion/src/cli_edits.rs": "01543f2a5d63f7a66545923b6ccd25e06161b6e3fd9b2936d09073768902c444",
+      "companion/src/project_check.rs": "b4929695f7df387291343547204447f515dddbf3753127457647f09634b224ac",
+      "companion/src/project.rs": "d8017537a58c714dc2478a1ce2db80efe11e29c8f1342933d855fd9516455a9c",
+      "companion/src/checker.rs": "4cb129fef5bf83671852080f618a0068f0b119bf2258abe4fe855e45c75d9687",
+      "companion/src/verify.rs": "e7708860ec0bd32cdfb8d6a171a53b2c12d5a67703f5a5b4322fa72d1592603d",
+      "companion/src/type_snapshot.rs": "0c018b699a8d140782e3813a5606d188c27b392400d1796ab839d73002eba813",
+      "companion/src/mapping.rs": "f92e4155bff39e8d47bed7b19a81e418a200fda3892eaebff485b1ea278bb761",
+      "companion/src/main.rs": "889627d345b64c595b0e5880e825b068f00008e5744ad52577a4c6933d6a668a",
+      "companion/src/parallel.rs": "ea1b52946ab12fca3cdf9788be063f737ea8a0ab91203565b475f5daf3e314fe",
+      "companion/src/notebook.rs": "0bbd10d569d77019c19b7b76e7d2259c93afaaccc7f18c089e6478f3491cd24f",
+      "companion/src/lsp_mapping.rs": "2a3d7cc63f066bc25db11d680819124e3ff609448d2f27ab93b15d877bfc48fb",
+      "companion/src/lsp_server.rs": "f6a49b11f82ef55a8028d78253fb210844135b9c93e7777074dab3c6f846676a",
+      "companion/src/native_warmup.rs": "08a9e6bd722adfc152cb2dd1b4f9c2b552ee31db7c8d55cc24b96a317c698688",
+      "companion/src/lower.rs": "df0249023e8c7f88eff2eb49ca2d0ee64aba682ebc5b244c230435acccb136d4",
+      "companion/src/type_render.rs": "d4f62ea50e5fa320e862ae635e8bf90329211324963a8d92bea21cf6b9533111",
+      "companion/src/model.rs": "8bb5f959e83a06c65603dda8b389a58a5854ae1d47d57b53d7abf3b2e6afe65e",
+      "companion/src/cli.rs": "c5da2dcd032e87084e8c80a160642c6c2ee615020a3f9bd4e4eb7cbb450be52f"
+    },
+    "build_exit": 0,
+    "build_seconds": 318.0863275830634,
+    "stopped": [],
+    "binary_sha256": "6c0dda3641ecd66325c508ff48ba9903cc905c7c21ef51ca2b470e94decc6a3b",
+    "clean_exit": 0,
+    "clean_seconds": 0.3473880839301273
+  },
+  "local_production_matrix": {
+    "passed": false,
+    "django_commit": "a5243bb1ce298ad3844d49ba3418ca4fa3b55475",
+    "companion_sha256": "6c0dda3641ecd66325c508ff48ba9903cc905c7c21ef51ca2b470e94decc6a3b",
+    "production_defaults": true,
+    "workloads": {
+      "small": {
+        "benchmark_exit": 1,
+        "performance_gate": {
+          "max_ty_ratio": 3.0,
+          "median_ty_ratio": 3.308034386835624,
+          "paired_ty_ratios": [
+            3.715845509727574,
+            3.408281173883994,
+            2.988469116560824,
+            3.300015256484174,
+            3.1434333794990517
+          ],
+          "max_paired_ty_ratio": 3.715845509727574,
+          "ty_ceiling_met": false,
+          "mypy_ceiling_met": true,
+          "one_second_goal_met": true,
+          "passed": false
+        },
+        "native_cli_reuse_positive_samples": 5,
+        "phase_medians_seconds": {
+          "class_projection": 0.0,
+          "diagnostic_mapping": 0.001,
+          "external_resolution": 0.001,
+          "final_check": 0.0,
+          "final_render": 0.0,
+          "flow_and_render": 0.02,
+          "function_summaries": 0.0,
+          "hook_responses": 0.001,
+          "import_preflight": 0.0,
+          "initial_lowering": 0.003,
+          "native_cli_prepare": 0.005,
+          "oracle_check": 0.021,
+          "project_index": 0.003,
+          "source_maps": 0.001,
+          "source_scan": 0.0,
+          "startup_configuration": 0.002,
+          "startup_overlays": 0.006,
+          "startup_project": 0.0,
+          "startup_runtime": 0.008,
+          "startup_selection": 0.001,
+          "startup_source_and_stub_index": 0.031,
+          "startup_source_copy": 0.0,
+          "virtual_declarations": 0.001
+        },
+        "passed": false,
+        "median_seconds": {
+          "companion": 0.129822708084248,
+          "bare-ty": 0.03924466704484075,
+          "mypy": 1.5344075829489157
+        },
+        "source_sha256": "d56dec6ca0858f30863af951cfd8ee50cc0820bc9d0acc5fd5774b85ef95908e",
+        "production_path_verified": true
+      },
+      "distributed": {
+        "benchmark_exit": 1,
+        "performance_gate": {
+          "max_ty_ratio": 3.0,
+          "median_ty_ratio": 3.1640978197252285,
+          "paired_ty_ratios": [
+            3.539518776063377,
+            2.6201633990994653,
+            3.130134367533563,
+            3.214641096779499,
+            3.023678115276674
+          ],
+          "max_paired_ty_ratio": 3.539518776063377,
+          "ty_ceiling_met": false,
+          "mypy_ceiling_met": true,
+          "one_second_goal_met": true,
+          "passed": false
+        },
+        "native_cli_reuse_positive_samples": 5,
+        "phase_medians_seconds": {
+          "class_projection": 0.0,
+          "diagnostic_mapping": 0.001,
+          "external_resolution": 0.001,
+          "final_check": 0.0,
+          "final_render": 0.0,
+          "flow_and_render": 0.082,
+          "function_summaries": 0.0,
+          "hook_responses": 0.003,
+          "import_preflight": 0.001,
+          "initial_lowering": 0.011,
+          "native_cli_prepare": 0.002,
+          "oracle_check": 0.002,
+          "project_index": 0.017,
+          "source_maps": 0.002,
+          "source_scan": 0.0,
+          "startup_configuration": 0.002,
+          "startup_overlays": 0.006,
+          "startup_project": 0.0,
+          "startup_runtime": 0.007,
+          "startup_selection": 0.008,
+          "startup_source_and_stub_index": 0.044,
+          "startup_source_copy": 0.002,
+          "virtual_declarations": 0.001
+        },
+        "passed": false,
+        "median_seconds": {
+          "companion": 0.2222996250493452,
+          "bare-ty": 0.07025687501300126,
+          "mypy": 2.1351643750676885
+        },
+        "source_sha256": "215897d7d242aeb2411e9f446fed78cd4105eb934b051c4035f409b7323e45a0",
+        "production_path_verified": true
+      },
+      "many-files": {
+        "benchmark_exit": 1,
+        "performance_gate": {
+          "max_ty_ratio": 3.0,
+          "median_ty_ratio": 3.352170112824858,
+          "paired_ty_ratios": [
+            3.0967814211984797,
+            3.436893350544409,
+            3.4315533761613697,
+            2.9093333567706074,
+            3.8193572101175275
+          ],
+          "max_paired_ty_ratio": 3.8193572101175275,
+          "ty_ceiling_met": false,
+          "mypy_ceiling_met": true,
+          "one_second_goal_met": true,
+          "passed": false
+        },
+        "native_cli_reuse_positive_samples": 5,
+        "phase_medians_seconds": {
+          "class_projection": 0.0,
+          "diagnostic_mapping": 0.005,
+          "external_resolution": 0.001,
+          "final_check": 0.004,
+          "final_render": 0.001,
+          "flow_and_render": 0.099,
+          "function_summaries": 0.0,
+          "hook_responses": 0.022,
+          "import_preflight": 0.001,
+          "initial_lowering": 0.043,
+          "native_cli_prepare": 0.005,
+          "oracle_check": 0.085,
+          "project_index": 0.036,
+          "source_maps": 0.007,
+          "source_scan": 0.0,
+          "startup_configuration": 0.002,
+          "startup_overlays": 0.006,
+          "startup_project": 0.0,
+          "startup_runtime": 0.007,
+          "startup_selection": 0.055,
+          "startup_source_and_stub_index": 0.122,
+          "startup_source_copy": 0.008,
+          "virtual_declarations": 0.001
+        },
+        "passed": false,
+        "median_seconds": {
+          "companion": 0.5734796250471845,
+          "bare-ty": 0.17107712489087135,
+          "mypy": 4.047673791996203
+        },
+        "source_sha256": "ba0380a4b1aa169061e65909e3ec9d9ecec7d4679a12e6dc914c7c2a5659b731",
+        "production_path_verified": true
+      },
+      "stress": {
+        "benchmark_exit": 1,
+        "performance_gate": {
+          "max_ty_ratio": 3.0,
+          "median_ty_ratio": 2.805582825795478,
+          "paired_ty_ratios": [
+            2.8366156076045317,
+            2.7612751070197348,
+            2.7984894658500687,
+            2.8138935432418664,
+            3.0501136170180914
+          ],
+          "max_paired_ty_ratio": 3.0501136170180914,
+          "ty_ceiling_met": false,
+          "mypy_ceiling_met": true,
+          "one_second_goal_met": true,
+          "passed": false
+        },
+        "native_cli_reuse_positive_samples": 5,
+        "phase_medians_seconds": {
+          "class_projection": 0.0,
+          "diagnostic_mapping": 0.007,
+          "external_resolution": 0.006,
+          "final_check": 0.004,
+          "final_render": 0.001,
+          "flow_and_render": 0.122,
+          "function_summaries": 0.0,
+          "hook_responses": 0.021,
+          "import_preflight": 0.005,
+          "initial_lowering": 0.054,
+          "native_cli_prepare": 0.008,
+          "oracle_check": 0.189,
+          "project_index": 0.156,
+          "source_maps": 0.007,
+          "source_scan": 0.0,
+          "startup_configuration": 0.002,
+          "startup_overlays": 0.006,
+          "startup_project": 0.0,
+          "startup_runtime": 0.007,
+          "startup_selection": 0.054,
+          "startup_source_and_stub_index": 0.129,
+          "startup_source_copy": 0.008,
+          "virtual_declarations": 0.002
+        },
+        "focus": {
+          "companion": {
+            "run": {
+              "backend": "companion",
+              "label": "focus/companion",
+              "command": [
+                "/private/tmp/ty-companion-subsecond-work/native-hybrid/release-v53",
+                "check",
+                "--python",
+                "/private/tmp/ty-companion-subsecond-work/native-hybrid/production-matrix-v53/evidence/candidate/bin/python",
+                "--output-format",
+                "gitlab",
+                "--no-progress",
+                "--color",
+                "never",
+                "/private/tmp/ty-companion-subsecond-work/native-hybrid/production-matrix-v53/evidence/stress/project",
+                "--ty",
+                "/private/tmp/ty-companion-subsecond-work/native-hybrid/production-matrix-v53/evidence/candidate/bin/ty",
+                "--config-file",
+                "/private/tmp/ty-companion-subsecond-work/native-hybrid/production-matrix-v53/evidence/stress/companion.toml"
+              ],
+              "seconds": 1.6809319589519873,
+              "exit": 1,
+              "diagnostic_codes": {
+                "invalid-argument-type": 1,
+                "invalid-assignment": 3,
+                "plugin-configuration": 5,
+                "unknown-argument": 1
+              },
+              "user_cpu_seconds": 2.009696,
+              "system_cpu_seconds": 2.160396,
+              "sampled_process_tree_peak_rss_kib": 386752,
+              "stopped": null,
+              "monitor_error": null,
+              "parse_error": null,
+              "load_before": [
+                7.14306640625,
+                7.4384765625,
+                7.6142578125
+              ],
+              "load_after": [
+                7.14306640625,
+                7.4384765625,
+                7.6142578125
+              ],
+              "source_sha256": "0c9a80c961e8a08ee05c07bc22f5e624e5b02be801c85248af2bd6463719f181",
+              "source_preserved": true
+            },
+            "matched": 20,
+            "total": 20,
+            "cases": [
+              {
+                "line": 3,
+                "expect_failure": false,
+                "matched": true,
+                "diagnostics": []
+              },
+              {
+                "line": 4,
+                "expect_failure": false,
+                "matched": true,
+                "diagnostics": []
+              },
+              {
+                "line": 5,
+                "expect_failure": false,
+                "matched": true,
+                "diagnostics": []
+              },
+              {
+                "line": 6,
+                "expect_failure": false,
+                "matched": true,
+                "diagnostics": []
+              },
+              {
+                "line": 7,
+                "expect_failure": false,
+                "matched": true,
+                "diagnostics": []
+              },
+              {
+                "line": 8,
+                "expect_failure": false,
+                "matched": true,
+                "diagnostics": []
+              },
+              {
+                "line": 9,
+                "expect_failure": true,
+                "matched": true,
+                "diagnostics": [
+                  {
+                    "check_name": "invalid-assignment",
+                    "description": "invalid-assignment: Object of type `int | None` is not assignable to `str`",
+                    "fingerprint": "15d71a2353666b38075aa2999e014068c14c949d44d3d0df000ccea21df074ac",
+                    "location": {
+                      "path": "/private/tmp/ty-companion-subsecond-work/native-hybrid/production-matrix-v53/evidence/stress/project/filler00001.py",
+                      "positions": {
+                        "begin": {
+                          "column": 22,
+                          "line": 9
+                        },
+                        "end": {
+                          "column": 49,
+                          "line": 9
+                        }
+                      }
+                    },
+                    "severity": "major"
+                  }
+                ]
+              },
+              {
+                "line": 10,
+                "expect_failure": false,
+                "matched": true,
+                "diagnostics": []
+              },
+              {
+                "line": 11,
+                "expect_failure": false,
+                "matched": true,
+                "diagnostics": []
+              },
+              {
+                "line": 12,
+                "expect_failure": false,
+                "matched": true,
+                "diagnostics": []
+              },
+              {
+                "line": 13,
+                "expect_failure": false,
+                "matched": true,
+                "diagnostics": []
+              },
+              {
+                "line": 14,
+                "expect_failure": true,
+                "matched": true,
+                "diagnostics": [
+                  {
+                    "check_name": "invalid-assignment",
+                    "description": "invalid-assignment: Invalid assignment to data descriptor attribute `name` on type `Item2500`: Expected `str | Combinable`, found `list[int]`",
+                    "fingerprint": "6137837d02548b72767d8820f4de0c4e29011acd308e9f87a235ce44ef5e743a",
+                    "location": {
+                      "path": "/private/tmp/ty-companion-subsecond-work/native-hybrid/production-matrix-v53/evidence/stress/project/filler00001.py",
+                      "positions": {
+                        "begin": {
+                          "column": 26,
+                          "line": 14
+                        },
+                        "end": {
+                          "column": 29,
+                          "line": 14
+                        }
+                      }
+                    },
+                    "severity": "major"
+                  }
+                ]
+              },
+              {
+                "line": 15,
+                "expect_failure": true,
+                "matched": true,
+                "diagnostics": [
+                  {
+                    "check_name": "invalid-assignment",
+                    "description": "invalid-assignment: Object of type `str` is not assignable to `int`",
+                    "fingerprint": "4c27c5e034760f9e0e1ec9ddef7f810d3245d6459bc03c72207821a69fa976f9",
+                    "location": {
+                      "path": "/private/tmp/ty-companion-subsecond-work/native-hybrid/production-matrix-v53/evidence/stress/project/filler00001.py",
+                      "positions": {
+                        "begin": {
+                          "column": 14,
+                          "line": 15
+                        },
+                        "end": {
+                          "column": 52,
+                          "line": 15
+                        }
+                      }
+                    },
+                    "severity": "major"
+                  }
+                ]
+              },
+              {
+                "line": 16,
+                "expect_failure": true,
+                "matched": true,
+                "diagnostics": [
+                  {
+                    "check_name": "invalid-argument-type",
+                    "description": "invalid-argument-type: Argument is incorrect: Expected `str`, found `list[str]`",
+                    "fingerprint": "56e9be38cf6b8cd4e4f74138129425e700681e158d667a407efedd63bc5d1f43",
+                    "location": {
+                      "path": "/private/tmp/ty-companion-subsecond-work/native-hybrid/production-matrix-v53/evidence/stress/project/filler00001.py",
+                      "positions": {
+                        "begin": {
+                          "column": 17,
+                          "line": 16
+                        },
+                        "end": {
+                          "column": 29,
+                          "line": 16
+                        }
+                      }
+                    },
+                    "severity": "major"
+                  }
+                ]
+              },
+              {
+                "line": 17,
+                "expect_failure": true,
+                "matched": true,
+                "diagnostics": [
+                  {
+                    "check_name": "unknown-argument",
+                    "description": "unknown-argument: Argument `missing_name` does not match any known parameter of function `benchapp.models.Item2500`",
+                    "fingerprint": "a946eac3c49966d6f0febfa86efa28d23c98ecfb05abaaf88733b518e7f99300",
+                    "location": {
+                      "path": "/private/tmp/ty-companion-subsecond-work/native-hybrid/production-matrix-v53/evidence/stress/project/filler00001.py",
+                      "positions": {
+                        "begin": {
+                          "column": 17,
+                          "line": 17
+                        },
+                        "end": {
+                          "column": 35,
+                          "line": 17
+                        }
+                      }
+                    },
+                    "severity": "major"
+                  }
+                ]
+              },
+              {
+                "line": 18,
+                "expect_failure": true,
+                "matched": true,
+                "diagnostics": [
+                  {
+                    "check_name": "plugin-configuration",
+                    "description": "plugin-configuration: Invalid Django lookup value for `name` on `benchapp.models.Item2500.name`; expected `str`: django-ty.invalid-lookup-value",
+                    "fingerprint": "6894d93985fdac60199e668b334ab61f95880b2e1adf8f2162b47a563bafd78b",
+                    "location": {
+                      "path": "/private/tmp/ty-companion-subsecond-work/native-hybrid/production-matrix-v53/evidence/stress/project/filler00001.py",
+                      "positions": {
+                        "begin": {
+                          "column": 1,
+                          "line": 18
+                        },
+                        "end": {
+                          "column": 45,
+                          "line": 18
+                        }
+                      }
+                    },
+                    "severity": "major"
+                  }
+                ]
+              },
+              {
+                "line": 19,
+                "expect_failure": true,
+                "matched": true,
+                "diagnostics": [
+                  {
+                    "check_name": "plugin-configuration",
+                    "description": "plugin-configuration: Unknown Django lookup `missing_name` for model `benchapp.models.Item2500`: django-ty.unknown-lookup",
+                    "fingerprint": "e36514b864eb814d98bdd5e8be0f59cb737718099a43ca14131705f2c0bc1e35",
+                    "location": {
+                      "path": "/private/tmp/ty-companion-subsecond-work/native-hybrid/production-matrix-v53/evidence/stress/project/filler00001.py",
+                      "positions": {
+                        "begin": {
+                          "column": 1,
+                          "line": 19
+                        },
+                        "end": {
+                          "column": 51,
+                          "line": 19
+                        }
+                      }
+                    },
+                    "severity": "major"
+                  }
+                ]
+              },
+              {
+                "line": 20,
+                "expect_failure": true,
+                "matched": true,
+                "diagnostics": [
+                  {
+                    "check_name": "plugin-configuration",
+                    "description": "plugin-configuration: Unknown Django lookup `name__missing` for model `benchapp.models.Item2500`: django-ty.unknown-lookup",
+                    "fingerprint": "82af9d74542f8679fe4e7db95c706d5dc76d34dac85df3fa0c61dcda4c7e3a2c",
+                    "location": {
+                      "path": "/private/tmp/ty-companion-subsecond-work/native-hybrid/production-matrix-v53/evidence/stress/project/filler00001.py",
+                      "positions": {
+                        "begin": {
+                          "column": 1,
+                          "line": 20
+                        },
+                        "end": {
+                          "column": 52,
+                          "line": 20
+                        }
+                      }
+                    },
+                    "severity": "major"
+                  }
+                ]
+              },
+              {
+                "line": 21,
+                "expect_failure": true,
+                "matched": true,
+                "diagnostics": [
+                  {
+                    "check_name": "plugin-configuration",
+                    "description": "plugin-configuration: Unknown Django lookup `missing_name` for model `benchapp.models.Item2500`: django-ty.unknown-lookup",
+                    "fingerprint": "d9f11bfc5fa189f5764cc22b57cb987fa130c596f2a4b82d93083b20e4f30c97",
+                    "location": {
+                      "path": "/private/tmp/ty-companion-subsecond-work/native-hybrid/production-matrix-v53/evidence/stress/project/filler00001.py",
+                      "positions": {
+                        "begin": {
+                          "column": 1,
+                          "line": 21
+                        },
+                        "end": {
+                          "column": 49,
+                          "line": 21
+                        }
+                      }
+                    },
+                    "severity": "major"
+                  }
+                ]
+              },
+              {
+                "line": 22,
+                "expect_failure": true,
+                "matched": true,
+                "diagnostics": [
+                  {
+                    "check_name": "plugin-configuration",
+                    "description": "plugin-configuration: Unknown Django lookup `missing_name` for model `benchapp.models.Item2500`: django-ty.unknown-lookup",
+                    "fingerprint": "2cd6d6182ff86edb4f0b6dd142a3f3dbeaefcb9cc2e0ff6cee19a7ffadc923f5",
+                    "location": {
+                      "path": "/private/tmp/ty-companion-subsecond-work/native-hybrid/production-matrix-v53/evidence/stress/project/filler00001.py",
+                      "positions": {
+                        "begin": {
+                          "column": 1,
+                          "line": 22
+                        },
+                        "end": {
+                          "column": 45,
+                          "line": 22
+                        }
+                      }
+                    },
+                    "severity": "major"
+                  }
+                ]
+              }
+            ],
+            "unmarked": []
+          },
+          "bare-ty": {
+            "run": {
+              "backend": "bare-ty",
+              "label": "focus/bare-ty",
+              "command": [
+                "/private/tmp/ty-companion-subsecond-work/native-hybrid/production-matrix-v53/evidence/candidate/bin/ty",
+                "check",
+                "--python",
+                "/private/tmp/ty-companion-subsecond-work/native-hybrid/production-matrix-v53/evidence/native/bin/python",
+                "--output-format",
+                "gitlab",
+                "--no-progress",
+                "--color",
+                "never",
+                "/private/tmp/ty-companion-subsecond-work/native-hybrid/production-matrix-v53/evidence/stress/project",
+                "--config-file",
+                "/private/tmp/ty-companion-subsecond-work/native-hybrid/production-matrix-v53/evidence/stress/bare.toml"
+              ],
+              "seconds": 0.30640079197473824,
+              "exit": 1,
+              "diagnostic_codes": {
+                "type-assertion-failure": 4,
+                "missing-attribute": 1,
+                "invalid-assignment": 2
+              },
+              "user_cpu_seconds": 0.46719099999999997,
+              "system_cpu_seconds": 0.70688,
+              "sampled_process_tree_peak_rss_kib": 97296,
+              "stopped": null,
+              "monitor_error": null,
+              "parse_error": null,
+              "load_before": [
+                7.14306640625,
+                7.4384765625,
+                7.6142578125
+              ],
+              "load_after": [
+                7.14306640625,
+                7.4384765625,
+                7.6142578125
+              ],
+              "source_sha256": "0c9a80c961e8a08ee05c07bc22f5e624e5b02be801c85248af2bd6463719f181",
+              "source_preserved": true
+            },
+            "matched": 8,
+            "total": 20,
+            "cases": [
+              {
+                "line": 3,
+                "expect_failure": false,
+                "matched": true,
+                "diagnostics": []
+              },
+              {
+                "line": 4,
+                "expect_failure": false,
+                "matched": true,
+                "diagnostics": []
+              },
+              {
+                "line": 5,
+                "expect_failure": false,
+                "matched": true,
+                "diagnostics": []
+              },
+              {
+                "line": 6,
+                "expect_failure": false,
+                "matched": true,
+                "diagnostics": []
+              },
+              {
+                "line": 7,
+                "expect_failure": false,
+                "matched": true,
+                "diagnostics": []
+              },
+              {
+                "line": 8,
+                "expect_failure": false,
+                "matched": false,
+                "diagnostics": [
+                  {
+                    "check_name": "type-assertion-failure",
+                    "description": "type-assertion-failure: Type `Unknown` does not match asserted type `Item2499`",
+                    "severity": "major",
+                    "fingerprint": "3a0f3879a69f571d",
+                    "location": {
+                      "path": "filler00001.py",
+                      "positions": {
+                        "begin": {
+                          "line": 8,
+                          "column": 1
+                        },
+                        "end": {
+                          "line": 8,
+                          "column": 55
+                        }
+                      }
+                    }
+                  }
+                ]
+              },
+              {
+                "line": 9,
+                "expect_failure": true,
+                "matched": false,
+                "diagnostics": []
+              },
+              {
+                "line": 10,
+                "expect_failure": false,
+                "matched": false,
+                "diagnostics": [
+                  {
+                    "check_name": "type-assertion-failure",
+                    "description": "type-assertion-failure: Type `Unknown` does not match asserted type `Item2500`",
+                    "severity": "major",
+                    "fingerprint": "bbfddaaecd397dc3",
+                    "location": {
+                      "path": "filler00001.py",
+                      "positions": {
+                        "begin": {
+                          "line": 10,
+                          "column": 1
+                        },
+                        "end": {
+                          "line": 10,
+                          "column": 67
+                        }
+                      }
+                    }
+                  },
+                  {
+                    "check_name": "missing-attribute",
+                    "description": "missing-attribute: Object of type `Item2499` has no attribute `item2500_set`",
+                    "severity": "major",
+                    "fingerprint": "1492470cd29c6daf",
+                    "location": {
+                      "path": "filler00001.py",
+                      "positions": {
+                        "begin": {
+                          "line": 10,
+                          "column": 13
+                        },
+                        "end": {
+                          "line": 10,
+                          "column": 43
+                        }
+                      }
+                    }
+                  }
+                ]
+              },
+              {
+                "line": 11,
+                "expect_failure": false,
+                "matched": false,
+                "diagnostics": [
+                  {
+                    "check_name": "type-assertion-failure",
+                    "description": "type-assertion-failure: Type `Any` does not match asserted type `str`",
+                    "severity": "major",
+                    "fingerprint": "ceaab67674a7d63b",
+                    "location": {
+                      "path": "filler00001.py",
+                      "positions": {
+                        "begin": {
+                          "line": 11,
+                          "column": 1
+                        },
+                        "end": {
+                          "line": 11,
+                          "column": 71
+                        }
+                      }
+                    }
+                  }
+                ]
+              },
+              {
+                "line": 12,
+                "expect_failure": false,
+                "matched": false,
+                "diagnostics": [
+                  {
+                    "check_name": "type-assertion-failure",
+                    "description": "type-assertion-failure: Type `Any` does not match asserted type `str`",
+                    "severity": "major",
+                    "fingerprint": "7ddafaaf78080852",
+                    "location": {
+                      "path": "filler00001.py",
+                      "positions": {
+                        "begin": {
+                          "line": 12,
+                          "column": 1
+                        },
+                        "end": {
+                          "line": 12,
+                          "column": 79
+                        }
+                      }
+                    }
+                  }
+                ]
+              },
+              {
+                "line": 13,
+                "expect_failure": false,
+                "matched": true,
+                "diagnostics": []
+              },
+              {
+                "line": 14,
+                "expect_failure": true,
+                "matched": true,
+                "diagnostics": [
+                  {
+                    "check_name": "invalid-assignment",
+                    "description": "invalid-assignment: Invalid assignment to data descriptor attribute `name` on type `Item2500`: Expected `str | Combinable`, found `list[int]`",
+                    "severity": "major",
+                    "fingerprint": "33fd5fe841cb20ba",
+                    "location": {
+                      "path": "filler00001.py",
+                      "positions": {
+                        "begin": {
+                          "line": 14,
+                          "column": 26
+                        },
+                        "end": {
+                          "line": 14,
+                          "column": 29
+                        }
+                      }
+                    }
+                  }
+                ]
+              },
+              {
+                "line": 15,
+                "expect_failure": true,
+                "matched": true,
+                "diagnostics": [
+                  {
+                    "check_name": "invalid-assignment",
+                    "description": "invalid-assignment: Object of type `str` is not assignable to `int`",
+                    "severity": "major",
+                    "fingerprint": "b399e38d5cc54182",
+                    "location": {
+                      "path": "filler00001.py",
+                      "positions": {
+                        "begin": {
+                          "line": 15,
+                          "column": 14
+                        },
+                        "end": {
+                          "line": 15,
+                          "column": 52
+                        }
+                      }
+                    }
+                  }
+                ]
+              },
+              {
+                "line": 16,
+                "expect_failure": true,
+                "matched": false,
+                "diagnostics": []
+              },
+              {
+                "line": 17,
+                "expect_failure": true,
+                "matched": false,
+                "diagnostics": []
+              },
+              {
+                "line": 18,
+                "expect_failure": true,
+                "matched": false,
+                "diagnostics": []
+              },
+              {
+                "line": 19,
+                "expect_failure": true,
+                "matched": false,
+                "diagnostics": []
+              },
+              {
+                "line": 20,
+                "expect_failure": true,
+                "matched": false,
+                "diagnostics": []
+              },
+              {
+                "line": 21,
+                "expect_failure": true,
+                "matched": false,
+                "diagnostics": []
+              },
+              {
+                "line": 22,
+                "expect_failure": true,
+                "matched": false,
+                "diagnostics": []
+              }
+            ],
+            "unmarked": []
+          },
+          "mypy": {
+            "run": {
+              "backend": "mypy",
+              "label": "focus/mypy",
+              "command": [
+                "/private/tmp/ty-companion-subsecond-work/native-hybrid/production-matrix-v53/evidence/reference/bin/mypy",
+                "--config-file",
+                "/private/tmp/ty-companion-subsecond-work/native-hybrid/production-matrix-v53/evidence/stress/mypy.ini",
+                "--output",
+                "json",
+                "--no-incremental",
+                "/private/tmp/ty-companion-subsecond-work/native-hybrid/production-matrix-v53/evidence/stress/project",
+                "--cache-dir",
+                "/private/tmp/ty-companion-subsecond-work/native-hybrid/production-matrix-v53/evidence/stress/runs/focus/mypy/scratch/mypy-cache"
+              ],
+              "seconds": 6.829037334071472,
+              "exit": 1,
+              "diagnostic_codes": {
+                "assignment": 3,
+                "misc": 6
+              },
+              "user_cpu_seconds": 5.942445,
+              "system_cpu_seconds": 1.258911,
+              "sampled_process_tree_peak_rss_kib": 512800,
+              "stopped": null,
+              "monitor_error": null,
+              "parse_error": null,
+              "load_before": [
+                7.14306640625,
+                7.4384765625,
+                7.6142578125
+              ],
+              "load_after": [
+                6.5791015625,
+                7.30859375,
+                7.5654296875
+              ],
+              "source_sha256": "0c9a80c961e8a08ee05c07bc22f5e624e5b02be801c85248af2bd6463719f181",
+              "source_preserved": true
+            },
+            "matched": 19,
+            "total": 20,
+            "cases": [
+              {
+                "line": 3,
+                "expect_failure": false,
+                "matched": true,
+                "diagnostics": []
+              },
+              {
+                "line": 4,
+                "expect_failure": false,
+                "matched": true,
+                "diagnostics": []
+              },
+              {
+                "line": 5,
+                "expect_failure": false,
+                "matched": true,
+                "diagnostics": []
+              },
+              {
+                "line": 6,
+                "expect_failure": false,
+                "matched": true,
+                "diagnostics": []
+              },
+              {
+                "line": 7,
+                "expect_failure": false,
+                "matched": true,
+                "diagnostics": []
+              },
+              {
+                "line": 8,
+                "expect_failure": false,
+                "matched": true,
+                "diagnostics": []
+              },
+              {
+                "line": 9,
+                "expect_failure": true,
+                "matched": true,
+                "diagnostics": [
+                  {
+                    "file": "filler00001.py",
+                    "line": 9,
+                    "column": 21,
+                    "end_line": 9,
+                    "end_column": 48,
+                    "message": "Incompatible types in assignment (expression has type \"int\", variable has type \"str\")",
+                    "hint": null,
+                    "code": "assignment",
+                    "severity": "error"
+                  }
+                ]
+              },
+              {
+                "line": 10,
+                "expect_failure": false,
+                "matched": true,
+                "diagnostics": []
+              },
+              {
+                "line": 11,
+                "expect_failure": false,
+                "matched": true,
+                "diagnostics": []
+              },
+              {
+                "line": 12,
+                "expect_failure": false,
+                "matched": true,
+                "diagnostics": []
+              },
+              {
+                "line": 13,
+                "expect_failure": false,
+                "matched": true,
+                "diagnostics": []
+              },
+              {
+                "line": 14,
+                "expect_failure": true,
+                "matched": true,
+                "diagnostics": [
+                  {
+                    "file": "filler00001.py",
+                    "line": 14,
+                    "column": 25,
+                    "end_line": 14,
+                    "end_column": 28,
+                    "message": "Incompatible types in assignment (expression has type \"list[int]\", variable has type \"str | int | Combinable\")",
+                    "hint": null,
+                    "code": "assignment",
+                    "severity": "error"
+                  }
+                ]
+              },
+              {
+                "line": 15,
+                "expect_failure": true,
+                "matched": true,
+                "diagnostics": [
+                  {
+                    "file": "filler00001.py",
+                    "line": 15,
+                    "column": 13,
+                    "end_line": 15,
+                    "end_column": 51,
+                    "message": "Incompatible types in assignment (expression has type \"str\", variable has type \"int\")",
+                    "hint": null,
+                    "code": "assignment",
+                    "severity": "error"
+                  }
+                ]
+              },
+              {
+                "line": 16,
+                "expect_failure": true,
+                "matched": true,
+                "diagnostics": [
+                  {
+                    "file": "filler00001.py",
+                    "line": 16,
+                    "column": 0,
+                    "end_line": 16,
+                    "end_column": 29,
+                    "message": "Incompatible type for \"name\" of \"Item2500\" (got \"list[Any]\", expected \"str | int | Combinable\")",
+                    "hint": null,
+                    "code": "misc",
+                    "severity": "error"
+                  }
+                ]
+              },
+              {
+                "line": 17,
+                "expect_failure": true,
+                "matched": true,
+                "diagnostics": [
+                  {
+                    "file": "filler00001.py",
+                    "line": 17,
+                    "column": 0,
+                    "end_line": 17,
+                    "end_column": 35,
+                    "message": "Unexpected attribute \"missing_name\" for model \"Item2500\"",
+                    "hint": null,
+                    "code": "misc",
+                    "severity": "error"
+                  }
+                ]
+              },
+              {
+                "line": 18,
+                "expect_failure": true,
+                "matched": true,
+                "diagnostics": [
+                  {
+                    "file": "filler00001.py",
+                    "line": 18,
+                    "column": 0,
+                    "end_line": 18,
+                    "end_column": 44,
+                    "message": "Incompatible type for \"name\" of \"Item2500\" (got \"list[Any]\", expected \"str | int | Combinable\")",
+                    "hint": null,
+                    "code": "misc",
+                    "severity": "error"
+                  }
+                ]
+              },
+              {
+                "line": 19,
+                "expect_failure": true,
+                "matched": true,
+                "diagnostics": [
+                  {
+                    "file": "filler00001.py",
+                    "line": 19,
+                    "column": 0,
+                    "end_line": 19,
+                    "end_column": 50,
+                    "message": "Cannot resolve keyword 'missing_name' into field. Choices are: id, name, parent, parent_id",
+                    "hint": null,
+                    "code": "misc",
+                    "severity": "error"
+                  }
+                ]
+              },
+              {
+                "line": 20,
+                "expect_failure": true,
+                "matched": false,
+                "diagnostics": []
+              },
+              {
+                "line": 21,
+                "expect_failure": true,
+                "matched": true,
+                "diagnostics": [
+                  {
+                    "file": "filler00001.py",
+                    "line": 21,
+                    "column": 0,
+                    "end_line": 21,
+                    "end_column": 48,
+                    "message": "Cannot resolve keyword 'missing_name' into field. Choices are: id, name, parent, parent_id",
+                    "hint": null,
+                    "code": "misc",
+                    "severity": "error"
+                  }
+                ]
+              },
+              {
+                "line": 22,
+                "expect_failure": true,
+                "matched": true,
+                "diagnostics": [
+                  {
+                    "file": "filler00001.py",
+                    "line": 22,
+                    "column": 0,
+                    "end_line": 22,
+                    "end_column": 44,
+                    "message": "Invalid field in \"only()\": Item2500 has no field named 'missing_name'",
+                    "hint": null,
+                    "code": "misc",
+                    "severity": "error"
+                  }
+                ]
+              }
+            ],
+            "unmarked": []
+          }
+        },
+        "passed": false,
+        "median_seconds": {
+          "companion": 0.8405705000041053,
+          "bare-ty": 0.2996063749305904,
+          "mypy": 6.899111416074447
+        },
+        "source_sha256": "51c1a88b05a169f1222685fe6105e4be5f43d4213aaaf57c60bf99dbe0d82df9",
+        "production_path_verified": true
+      },
+      "distributed-stress": {
+        "benchmark_exit": 1,
+        "performance_gate": {
+          "max_ty_ratio": 3.0,
+          "median_ty_ratio": 3.793767319122584,
+          "paired_ty_ratios": [
+            3.7572254910408116,
+            3.941415722406416,
+            3.894489796146208,
+            3.928353807277705,
+            3.3686007903788155
+          ],
+          "max_paired_ty_ratio": 3.941415722406416,
+          "ty_ceiling_met": false,
+          "mypy_ceiling_met": true,
+          "one_second_goal_met": true,
+          "passed": false
+        },
+        "native_cli_reuse_positive_samples": 5,
+        "phase_medians_seconds": {
+          "class_projection": 0.0,
+          "diagnostic_mapping": 0.007,
+          "external_resolution": 0.006,
+          "final_check": 0.004,
+          "final_render": 0.001,
+          "flow_and_render": 0.112,
+          "function_summaries": 0.0,
+          "hook_responses": 0.022,
+          "import_preflight": 0.005,
+          "initial_lowering": 0.057,
+          "native_cli_prepare": 0.008,
+          "oracle_check": 0.094,
+          "project_index": 0.163,
+          "source_maps": 0.008,
+          "source_scan": 0.0,
+          "startup_configuration": 0.002,
+          "startup_overlays": 0.006,
+          "startup_project": 0.0,
+          "startup_runtime": 0.007,
+          "startup_selection": 0.057,
+          "startup_source_and_stub_index": 0.14,
+          "startup_source_copy": 0.008,
+          "virtual_declarations": 0.002
+        },
+        "passed": false,
+        "median_seconds": {
+          "companion": 0.7508135830285028,
+          "bare-ty": 0.19790712499525398,
+          "mypy": 6.70544770907145
+        },
+        "source_sha256": "0b165879eeaa32cb6906921446ecaa428c3c4f44890779f7601511dc5d572124",
+        "production_path_verified": true
+      }
+    },
+    "provider_preserved": true,
+    "benchmark_exit": 1,
+    "performance_gate": {
+      "max_ty_ratio": 3.0,
+      "median_ty_ratio": 2.805582825795478,
+      "paired_ty_ratios": [
+        2.8366156076045317,
+        2.7612751070197348,
+        2.7984894658500687,
+        2.8138935432418664,
+        3.0501136170180914
+      ],
+      "max_paired_ty_ratio": 3.0501136170180914,
+      "ty_ceiling_met": false,
+      "mypy_ceiling_met": true,
+      "one_second_goal_met": true,
+      "passed": false
+    },
+    "native_cli_reuse_positive_samples": 5,
+    "phase_medians_seconds": {
+      "class_projection": 0.0,
+      "diagnostic_mapping": 0.007,
+      "external_resolution": 0.006,
+      "final_check": 0.004,
+      "final_render": 0.001,
+      "flow_and_render": 0.122,
+      "function_summaries": 0.0,
+      "hook_responses": 0.021,
+      "import_preflight": 0.005,
+      "initial_lowering": 0.054,
+      "native_cli_prepare": 0.008,
+      "oracle_check": 0.189,
+      "project_index": 0.156,
+      "source_maps": 0.007,
+      "source_scan": 0.0,
+      "startup_configuration": 0.002,
+      "startup_overlays": 0.006,
+      "startup_project": 0.0,
+      "startup_runtime": 0.007,
+      "startup_selection": 0.054,
+      "startup_source_and_stub_index": 0.129,
+      "startup_source_copy": 0.008,
+      "virtual_declarations": 0.002
+    },
+    "median_seconds": {
+      "companion": 0.8405705000041053,
+      "bare-ty": 0.2996063749305904,
+      "mypy": 6.899111416074447
+    },
+    "source_sha256": "51c1a88b05a169f1222685fe6105e4be5f43d4213aaaf57c60bf99dbe0d82df9",
+    "production_path_verified": true,
+    "temporary_environments_cleaned": true,
+    "load_admission": {
+      "passed": false,
+      "admission": [
+        {
+          "time": 1794482177.825654,
+          "load": [
+            6.97705078125,
+            7.70654296875,
+            7.7294921875
+          ]
+        },
+        {
+          "time": 1794482182.8354828,
+          "load": [
+            6.658203125,
+            7.6279296875,
+            7.70166015625
+          ]
+        },
+        {
+          "time": 1794482187.843219,
+          "load": [
+            6.685546875,
+            7.6171875,
+            7.697265625
+          ]
+        },
+        {
+          "time": 1794482192.848514,
+          "load": [
+            6.55029296875,
+            7.57373046875,
+            7.68115234375
+          ]
+        }
+      ],
+      "benchmark_exit": 1,
+      "all_recorded_loads_below_16": true,
+      "max_recorded_load": 8.8505859375,
+      "performance_accepted_locally": false
+    }
+  },
+  "focused_accuracy": {
+    "companion": {
+      "matched": 20,
+      "total": 20
+    },
+    "bare-ty": {
+      "matched": 8,
+      "total": 20
+    },
+    "mypy": {
+      "matched": 19,
+      "total": 20
+    }
+  },
+  "ci_run": "https://github.com/regularkevvv/ty-extended/actions/runs/43207836331",
+  "ci": {
+    "run": "https://github.com/regularkevvv/ty-extended/actions/runs/43207836331",
+    "head": "4092ee17840496d2c7d7e9c50a312058203901c6",
+    "linux": {
+      "passed": false,
+      "django_commit": "a5243bb1ce298ad3844d49ba3418ca4fa3b55475",
+      "companion_sha256": "60f040b3387d0569cdc26dd65548f97cc10238dd8a99759d10cde5e673cd29ab",
+      "production_defaults": true,
+      "workloads": {
+        "small": {
+          "benchmark_exit": 1,
+          "performance_gate": {
+            "max_ty_ratio": 3.0,
+            "median_ty_ratio": 2.9360722602251657,
+            "paired_ty_ratios": [
+              3.2076655024033087,
+              2.8108821534736195,
+              2.831731373917246,
+              3.0539644960927075,
+              2.917045049824178
+            ],
+            "max_paired_ty_ratio": 3.2076655024033087,
+            "ty_ceiling_met": false,
+            "mypy_ceiling_met": true,
+            "one_second_goal_met": true,
+            "passed": false
+          },
+          "native_cli_reuse_positive_samples": 5,
+          "phase_medians_seconds": {
+            "class_projection": 0.0,
+            "diagnostic_mapping": 0.001,
+            "external_resolution": 0.0,
+            "final_check": 0.0,
+            "final_render": 0.0,
+            "flow_and_render": 0.025,
+            "function_summaries": 0.0,
+            "hook_responses": 0.0,
+            "import_preflight": 0.0,
+            "initial_lowering": 0.004,
+            "native_cli_prepare": 0.001,
+            "oracle_check": 0.022,
+            "project_index": 0.003,
+            "source_maps": 0.001,
+            "source_scan": 0.0,
+            "startup_configuration": 0.002,
+            "startup_overlays": 0.002,
+            "startup_project": 0.0,
+            "startup_runtime": 0.011,
+            "startup_selection": 0.001,
+            "startup_source_and_stub_index": 0.03,
+            "startup_source_copy": 0.0,
+            "virtual_declarations": 0.0
+          },
+          "passed": false,
+          "median_seconds": {
+            "companion": 0.12775360399996316,
+            "bare-ty": 0.04351173700001709,
+            "mypy": 2.511236937000035
+          },
+          "source_sha256": "d56dec6ca0858f30863af951cfd8ee50cc0820bc9d0acc5fd5774b85ef95908e",
+          "production_path_verified": true
+        },
+        "distributed": {
+          "benchmark_exit": 1,
+          "performance_gate": {
+            "max_ty_ratio": 3.0,
+            "median_ty_ratio": 3.1447490141455687,
+            "paired_ty_ratios": [
+              3.104915399749311,
+              3.0084840786679874,
+              3.341440102160602,
+              3.2887476411491874,
+              3.025386989391773
+            ],
+            "max_paired_ty_ratio": 3.341440102160602,
+            "ty_ceiling_met": false,
+            "mypy_ceiling_met": true,
+            "one_second_goal_met": true,
+            "passed": false
+          },
+          "native_cli_reuse_positive_samples": 5,
+          "phase_medians_seconds": {
+            "class_projection": 0.0,
+            "diagnostic_mapping": 0.001,
+            "external_resolution": 0.001,
+            "final_check": 0.0,
+            "final_render": 0.0,
+            "flow_and_render": 0.114,
+            "function_summaries": 0.0,
+            "hook_responses": 0.003,
+            "import_preflight": 0.001,
+            "initial_lowering": 0.012,
+            "native_cli_prepare": 0.001,
+            "oracle_check": 0.002,
+            "project_index": 0.022,
+            "source_maps": 0.002,
+            "source_scan": 0.0,
+            "startup_configuration": 0.002,
+            "startup_overlays": 0.002,
+            "startup_project": 0.0,
+            "startup_runtime": 0.01,
+            "startup_selection": 0.007,
+            "startup_source_and_stub_index": 0.041,
+            "startup_source_copy": 0.001,
+            "virtual_declarations": 0.001
+          },
+          "passed": false,
+          "median_seconds": {
+            "companion": 0.2507844379999824,
+            "bare-ty": 0.079747043999987,
+            "mypy": 3.617838722999977
+          },
+          "source_sha256": "215897d7d242aeb2411e9f446fed78cd4105eb934b051c4035f409b7323e45a0",
+          "production_path_verified": true
+        },
+        "many-files": {
+          "benchmark_exit": 1,
+          "performance_gate": {
+            "max_ty_ratio": 3.0,
+            "median_ty_ratio": 3.213230664906071,
+            "paired_ty_ratios": [
+              3.2198238351317294,
+              3.1241489433815537,
+              3.230713872238833,
+              3.306127297161399,
+              3.1283691731242347
+            ],
+            "max_paired_ty_ratio": 3.306127297161399,
+            "ty_ceiling_met": false,
+            "mypy_ceiling_met": true,
+            "one_second_goal_met": true,
+            "passed": false
+          },
+          "native_cli_reuse_positive_samples": 5,
+          "phase_medians_seconds": {
+            "class_projection": 0.0,
+            "diagnostic_mapping": 0.005,
+            "external_resolution": 0.001,
+            "final_check": 0.004,
+            "final_render": 0.0,
+            "flow_and_render": 0.111,
+            "function_summaries": 0.0,
+            "hook_responses": 0.022,
+            "import_preflight": 0.002,
+            "initial_lowering": 0.045,
+            "native_cli_prepare": 0.003,
+            "oracle_check": 0.102,
+            "project_index": 0.036,
+            "source_maps": 0.008,
+            "source_scan": 0.0,
+            "startup_configuration": 0.002,
+            "startup_overlays": 0.002,
+            "startup_project": 0.0,
+            "startup_runtime": 0.01,
+            "startup_selection": 0.047,
+            "startup_source_and_stub_index": 0.071,
+            "startup_source_copy": 0.007,
+            "virtual_declarations": 0.001
+          },
+          "passed": false,
+          "median_seconds": {
+            "companion": 0.5114699529999598,
+            "bare-ty": 0.15917623300003925,
+            "mypy": 7.058182088999956
+          },
+          "source_sha256": "ba0380a4b1aa169061e65909e3ec9d9ecec7d4679a12e6dc914c7c2a5659b731",
+          "production_path_verified": true
+        },
+        "stress": {
+          "benchmark_exit": 1,
+          "performance_gate": {
+            "max_ty_ratio": 3.0,
+            "median_ty_ratio": 2.9499138178443767,
+            "paired_ty_ratios": [
+              2.812047081781901,
+              3.0304915110400774,
+              3.003818765057105,
+              2.8855853929802064,
+              2.8901999389023696
+            ],
+            "max_paired_ty_ratio": 3.0304915110400774,
+            "ty_ceiling_met": false,
+            "mypy_ceiling_met": true,
+            "one_second_goal_met": false,
+            "passed": false
+          },
+          "native_cli_reuse_positive_samples": 5,
+          "phase_medians_seconds": {
+            "class_projection": 0.0,
+            "diagnostic_mapping": 0.007,
+            "external_resolution": 0.007,
+            "final_check": 0.004,
+            "final_render": 0.001,
+            "flow_and_render": 0.166,
+            "function_summaries": 0.0,
+            "hook_responses": 0.021,
+            "import_preflight": 0.011,
+            "initial_lowering": 0.059,
+            "native_cli_prepare": 0.008,
+            "oracle_check": 0.239,
+            "project_index": 0.232,
+            "source_maps": 0.007,
+            "source_scan": 0.0,
+            "startup_configuration": 0.003,
+            "startup_overlays": 0.002,
+            "startup_project": 0.0,
+            "startup_runtime": 0.012,
+            "startup_selection": 0.045,
+            "startup_source_and_stub_index": 0.1,
+            "startup_source_copy": 0.009,
+            "virtual_declarations": 0.003
+          },
+          "focus": {
+            "companion": {
+              "run": {
+                "backend": "companion",
+                "label": "focus/companion",
+                "command": [
+                  "/home/runner/work/_temp/ty-extended-native",
+                  "check",
+                  "--python",
+                  "/home/runner/work/_temp/native-django-evidence/candidate/bin/python",
+                  "--output-format",
+                  "gitlab",
+                  "--no-progress",
+                  "--color",
+                  "never",
+                  "/home/runner/work/_temp/native-django-evidence/stress/project",
+                  "--ty",
+                  "/home/runner/work/_temp/native-django-evidence/candidate/bin/ty",
+                  "--config-file",
+                  "/home/runner/work/_temp/native-django-evidence/stress/companion.toml"
+                ],
+                "seconds": 1.8783856459999697,
+                "exit": 1,
+                "diagnostic_codes": {
+                  "invalid-argument-type": 1,
+                  "invalid-assignment": 3,
+                  "plugin-configuration": 5,
+                  "unknown-argument": 1
+                },
+                "user_cpu_seconds": 2.59171,
+                "system_cpu_seconds": 0.566655,
+                "sampled_process_tree_peak_rss_kib": 346872,
+                "stopped": null,
+                "monitor_error": null,
+                "parse_error": null,
+                "load_before": [
+                  1.2958984375,
+                  1.2001953125,
+                  0.81396484375
+                ],
+                "load_after": [
+                  1.2958984375,
+                  1.2001953125,
+                  0.81396484375
+                ],
+                "source_sha256": "0c9a80c961e8a08ee05c07bc22f5e624e5b02be801c85248af2bd6463719f181",
+                "source_preserved": true
+              },
+              "matched": 20,
+              "total": 20,
+              "cases": [
+                {
+                  "line": 3,
+                  "expect_failure": false,
+                  "matched": true,
+                  "diagnostics": []
+                },
+                {
+                  "line": 4,
+                  "expect_failure": false,
+                  "matched": true,
+                  "diagnostics": []
+                },
+                {
+                  "line": 5,
+                  "expect_failure": false,
+                  "matched": true,
+                  "diagnostics": []
+                },
+                {
+                  "line": 6,
+                  "expect_failure": false,
+                  "matched": true,
+                  "diagnostics": []
+                },
+                {
+                  "line": 7,
+                  "expect_failure": false,
+                  "matched": true,
+                  "diagnostics": []
+                },
+                {
+                  "line": 8,
+                  "expect_failure": false,
+                  "matched": true,
+                  "diagnostics": []
+                },
+                {
+                  "line": 9,
+                  "expect_failure": true,
+                  "matched": true,
+                  "diagnostics": [
+                    {
+                      "check_name": "invalid-assignment",
+                      "description": "invalid-assignment: Object of type `int | None` is not assignable to `str`",
+                      "fingerprint": "57cdef3480563be39f1e44f5b6056a0d67e738965def40735080065d5119dfcf",
+                      "location": {
+                        "path": "/home/runner/work/_temp/native-django-evidence/stress/project/filler00001.py",
+                        "positions": {
+                          "begin": {
+                            "column": 22,
+                            "line": 9
+                          },
+                          "end": {
+                            "column": 49,
+                            "line": 9
+                          }
+                        }
+                      },
+                      "severity": "major"
+                    }
+                  ]
+                },
+                {
+                  "line": 10,
+                  "expect_failure": false,
+                  "matched": true,
+                  "diagnostics": []
+                },
+                {
+                  "line": 11,
+                  "expect_failure": false,
+                  "matched": true,
+                  "diagnostics": []
+                },
+                {
+                  "line": 12,
+                  "expect_failure": false,
+                  "matched": true,
+                  "diagnostics": []
+                },
+                {
+                  "line": 13,
+                  "expect_failure": false,
+                  "matched": true,
+                  "diagnostics": []
+                },
+                {
+                  "line": 14,
+                  "expect_failure": true,
+                  "matched": true,
+                  "diagnostics": [
+                    {
+                      "check_name": "invalid-assignment",
+                      "description": "invalid-assignment: Invalid assignment to data descriptor attribute `name` on type `Item2500`: Expected `str | Combinable`, found `list[int]`",
+                      "fingerprint": "340508fcf7711da1fe4b32feea27ce6d66ca9f2142489e137e8109792f41a28e",
+                      "location": {
+                        "path": "/home/runner/work/_temp/native-django-evidence/stress/project/filler00001.py",
+                        "positions": {
+                          "begin": {
+                            "column": 26,
+                            "line": 14
+                          },
+                          "end": {
+                            "column": 29,
+                            "line": 14
+                          }
+                        }
+                      },
+                      "severity": "major"
+                    }
+                  ]
+                },
+                {
+                  "line": 15,
+                  "expect_failure": true,
+                  "matched": true,
+                  "diagnostics": [
+                    {
+                      "check_name": "invalid-assignment",
+                      "description": "invalid-assignment: Object of type `str` is not assignable to `int`",
+                      "fingerprint": "143fd20b3c7c59ecc21b8fe646fe8e91b13d5669296b5f548a80dd91ce6c7e8a",
+                      "location": {
+                        "path": "/home/runner/work/_temp/native-django-evidence/stress/project/filler00001.py",
+                        "positions": {
+                          "begin": {
+                            "column": 14,
+                            "line": 15
+                          },
+                          "end": {
+                            "column": 52,
+                            "line": 15
+                          }
+                        }
+                      },
+                      "severity": "major"
+                    }
+                  ]
+                },
+                {
+                  "line": 16,
+                  "expect_failure": true,
+                  "matched": true,
+                  "diagnostics": [
+                    {
+                      "check_name": "invalid-argument-type",
+                      "description": "invalid-argument-type: Argument is incorrect: Expected `str`, found `list[str]`",
+                      "fingerprint": "55d7ce64ed9e07349de36a32c6b04f1bf0b5f232014bbd9fac257ad1bc0df129",
+                      "location": {
+                        "path": "/home/runner/work/_temp/native-django-evidence/stress/project/filler00001.py",
+                        "positions": {
+                          "begin": {
+                            "column": 17,
+                            "line": 16
+                          },
+                          "end": {
+                            "column": 29,
+                            "line": 16
+                          }
+                        }
+                      },
+                      "severity": "major"
+                    }
+                  ]
+                },
+                {
+                  "line": 17,
+                  "expect_failure": true,
+                  "matched": true,
+                  "diagnostics": [
+                    {
+                      "check_name": "unknown-argument",
+                      "description": "unknown-argument: Argument `missing_name` does not match any known parameter of function `benchapp.models.Item2500`",
+                      "fingerprint": "4d3d25d315d543ac2760a447180600a20d8c007fd99db8647d09dc8e00359057",
+                      "location": {
+                        "path": "/home/runner/work/_temp/native-django-evidence/stress/project/filler00001.py",
+                        "positions": {
+                          "begin": {
+                            "column": 17,
+                            "line": 17
+                          },
+                          "end": {
+                            "column": 35,
+                            "line": 17
+                          }
+                        }
+                      },
+                      "severity": "major"
+                    }
+                  ]
+                },
+                {
+                  "line": 18,
+                  "expect_failure": true,
+                  "matched": true,
+                  "diagnostics": [
+                    {
+                      "check_name": "plugin-configuration",
+                      "description": "plugin-configuration: Invalid Django lookup value for `name` on `benchapp.models.Item2500.name`; expected `str`: django-ty.invalid-lookup-value",
+                      "fingerprint": "9312a1a3f19a797bf2e3699ca389b36d231c9603934d99193912b095b9c22b3a",
+                      "location": {
+                        "path": "/home/runner/work/_temp/native-django-evidence/stress/project/filler00001.py",
+                        "positions": {
+                          "begin": {
+                            "column": 1,
+                            "line": 18
+                          },
+                          "end": {
+                            "column": 45,
+                            "line": 18
+                          }
+                        }
+                      },
+                      "severity": "major"
+                    }
+                  ]
+                },
+                {
+                  "line": 19,
+                  "expect_failure": true,
+                  "matched": true,
+                  "diagnostics": [
+                    {
+                      "check_name": "plugin-configuration",
+                      "description": "plugin-configuration: Unknown Django lookup `missing_name` for model `benchapp.models.Item2500`: django-ty.unknown-lookup",
+                      "fingerprint": "3e61e4f454c2ac2ff59cb0e164a29a0dd8428f6023ac14a5b774274957ebae6e",
+                      "location": {
+                        "path": "/home/runner/work/_temp/native-django-evidence/stress/project/filler00001.py",
+                        "positions": {
+                          "begin": {
+                            "column": 1,
+                            "line": 19
+                          },
+                          "end": {
+                            "column": 51,
+                            "line": 19
+                          }
+                        }
+                      },
+                      "severity": "major"
+                    }
+                  ]
+                },
+                {
+                  "line": 20,
+                  "expect_failure": true,
+                  "matched": true,
+                  "diagnostics": [
+                    {
+                      "check_name": "plugin-configuration",
+                      "description": "plugin-configuration: Unknown Django lookup `name__missing` for model `benchapp.models.Item2500`: django-ty.unknown-lookup",
+                      "fingerprint": "b015e5353c3c5b4875eec1d1f4e768ae105945c4ea0622e144416c1baca71553",
+                      "location": {
+                        "path": "/home/runner/work/_temp/native-django-evidence/stress/project/filler00001.py",
+                        "positions": {
+                          "begin": {
+                            "column": 1,
+                            "line": 20
+                          },
+                          "end": {
+                            "column": 52,
+                            "line": 20
+                          }
+                        }
+                      },
+                      "severity": "major"
+                    }
+                  ]
+                },
+                {
+                  "line": 21,
+                  "expect_failure": true,
+                  "matched": true,
+                  "diagnostics": [
+                    {
+                      "check_name": "plugin-configuration",
+                      "description": "plugin-configuration: Unknown Django lookup `missing_name` for model `benchapp.models.Item2500`: django-ty.unknown-lookup",
+                      "fingerprint": "307e57032f44f9239ee1f683a1bcfde2db3361f4a8834f0b9668b731517a2dd6",
+                      "location": {
+                        "path": "/home/runner/work/_temp/native-django-evidence/stress/project/filler00001.py",
+                        "positions": {
+                          "begin": {
+                            "column": 1,
+                            "line": 21
+                          },
+                          "end": {
+                            "column": 49,
+                            "line": 21
+                          }
+                        }
+                      },
+                      "severity": "major"
+                    }
+                  ]
+                },
+                {
+                  "line": 22,
+                  "expect_failure": true,
+                  "matched": true,
+                  "diagnostics": [
+                    {
+                      "check_name": "plugin-configuration",
+                      "description": "plugin-configuration: Unknown Django lookup `missing_name` for model `benchapp.models.Item2500`: django-ty.unknown-lookup",
+                      "fingerprint": "e89470048f10029cec45c2ce3ace28e309889c177ee6b0e7428246f638660a20",
+                      "location": {
+                        "path": "/home/runner/work/_temp/native-django-evidence/stress/project/filler00001.py",
+                        "positions": {
+                          "begin": {
+                            "column": 1,
+                            "line": 22
+                          },
+                          "end": {
+                            "column": 45,
+                            "line": 22
+                          }
+                        }
+                      },
+                      "severity": "major"
+                    }
+                  ]
+                }
+              ],
+              "unmarked": []
+            },
+            "bare-ty": {
+              "run": {
+                "backend": "bare-ty",
+                "label": "focus/bare-ty",
+                "command": [
+                  "/home/runner/work/_temp/native-django-evidence/candidate/bin/ty",
+                  "check",
+                  "--python",
+                  "/home/runner/work/_temp/native-django-evidence/native/bin/python",
+                  "--output-format",
+                  "gitlab",
+                  "--no-progress",
+                  "--color",
+                  "never",
+                  "/home/runner/work/_temp/native-django-evidence/stress/project",
+                  "--config-file",
+                  "/home/runner/work/_temp/native-django-evidence/stress/bare.toml"
+                ],
+                "seconds": 0.3364231489999838,
+                "exit": 1,
+                "diagnostic_codes": {
+                  "type-assertion-failure": 4,
+                  "missing-attribute": 1,
+                  "invalid-assignment": 2
+                },
+                "user_cpu_seconds": 0.528349,
+                "system_cpu_seconds": 0.121391,
+                "sampled_process_tree_peak_rss_kib": 93676,
+                "stopped": null,
+                "monitor_error": null,
+                "parse_error": null,
+                "load_before": [
+                  1.2958984375,
+                  1.2001953125,
+                  0.81396484375
+                ],
+                "load_after": [
+                  1.2958984375,
+                  1.2001953125,
+                  0.81396484375
+                ],
+                "source_sha256": "0c9a80c961e8a08ee05c07bc22f5e624e5b02be801c85248af2bd6463719f181",
+                "source_preserved": true
+              },
+              "matched": 8,
+              "total": 20,
+              "cases": [
+                {
+                  "line": 3,
+                  "expect_failure": false,
+                  "matched": true,
+                  "diagnostics": []
+                },
+                {
+                  "line": 4,
+                  "expect_failure": false,
+                  "matched": true,
+                  "diagnostics": []
+                },
+                {
+                  "line": 5,
+                  "expect_failure": false,
+                  "matched": true,
+                  "diagnostics": []
+                },
+                {
+                  "line": 6,
+                  "expect_failure": false,
+                  "matched": true,
+                  "diagnostics": []
+                },
+                {
+                  "line": 7,
+                  "expect_failure": false,
+                  "matched": true,
+                  "diagnostics": []
+                },
+                {
+                  "line": 8,
+                  "expect_failure": false,
+                  "matched": false,
+                  "diagnostics": [
+                    {
+                      "check_name": "type-assertion-failure",
+                      "description": "type-assertion-failure: Type `Unknown` does not match asserted type `Item2499`",
+                      "severity": "major",
+                      "fingerprint": "3a0f3879a69f571d",
+                      "location": {
+                        "path": "filler00001.py",
+                        "positions": {
+                          "begin": {
+                            "line": 8,
+                            "column": 1
+                          },
+                          "end": {
+                            "line": 8,
+                            "column": 55
+                          }
+                        }
+                      }
+                    }
+                  ]
+                },
+                {
+                  "line": 9,
+                  "expect_failure": true,
+                  "matched": false,
+                  "diagnostics": []
+                },
+                {
+                  "line": 10,
+                  "expect_failure": false,
+                  "matched": false,
+                  "diagnostics": [
+                    {
+                      "check_name": "type-assertion-failure",
+                      "description": "type-assertion-failure: Type `Unknown` does not match asserted type `Item2500`",
+                      "severity": "major",
+                      "fingerprint": "bbfddaaecd397dc3",
+                      "location": {
+                        "path": "filler00001.py",
+                        "positions": {
+                          "begin": {
+                            "line": 10,
+                            "column": 1
+                          },
+                          "end": {
+                            "line": 10,
+                            "column": 67
+                          }
+                        }
+                      }
+                    },
+                    {
+                      "check_name": "missing-attribute",
+                      "description": "missing-attribute: Object of type `Item2499` has no attribute `item2500_set`",
+                      "severity": "major",
+                      "fingerprint": "1492470cd29c6daf",
+                      "location": {
+                        "path": "filler00001.py",
+                        "positions": {
+                          "begin": {
+                            "line": 10,
+                            "column": 13
+                          },
+                          "end": {
+                            "line": 10,
+                            "column": 43
+                          }
+                        }
+                      }
+                    }
+                  ]
+                },
+                {
+                  "line": 11,
+                  "expect_failure": false,
+                  "matched": false,
+                  "diagnostics": [
+                    {
+                      "check_name": "type-assertion-failure",
+                      "description": "type-assertion-failure: Type `Any` does not match asserted type `str`",
+                      "severity": "major",
+                      "fingerprint": "ceaab67674a7d63b",
+                      "location": {
+                        "path": "filler00001.py",
+                        "positions": {
+                          "begin": {
+                            "line": 11,
+                            "column": 1
+                          },
+                          "end": {
+                            "line": 11,
+                            "column": 71
+                          }
+                        }
+                      }
+                    }
+                  ]
+                },
+                {
+                  "line": 12,
+                  "expect_failure": false,
+                  "matched": false,
+                  "diagnostics": [
+                    {
+                      "check_name": "type-assertion-failure",
+                      "description": "type-assertion-failure: Type `Any` does not match asserted type `str`",
+                      "severity": "major",
+                      "fingerprint": "7ddafaaf78080852",
+                      "location": {
+                        "path": "filler00001.py",
+                        "positions": {
+                          "begin": {
+                            "line": 12,
+                            "column": 1
+                          },
+                          "end": {
+                            "line": 12,
+                            "column": 79
+                          }
+                        }
+                      }
+                    }
+                  ]
+                },
+                {
+                  "line": 13,
+                  "expect_failure": false,
+                  "matched": true,
+                  "diagnostics": []
+                },
+                {
+                  "line": 14,
+                  "expect_failure": true,
+                  "matched": true,
+                  "diagnostics": [
+                    {
+                      "check_name": "invalid-assignment",
+                      "description": "invalid-assignment: Invalid assignment to data descriptor attribute `name` on type `Item2500`: Expected `str | Combinable`, found `list[int]`",
+                      "severity": "major",
+                      "fingerprint": "33fd5fe841cb20ba",
+                      "location": {
+                        "path": "filler00001.py",
+                        "positions": {
+                          "begin": {
+                            "line": 14,
+                            "column": 26
+                          },
+                          "end": {
+                            "line": 14,
+                            "column": 29
+                          }
+                        }
+                      }
+                    }
+                  ]
+                },
+                {
+                  "line": 15,
+                  "expect_failure": true,
+                  "matched": true,
+                  "diagnostics": [
+                    {
+                      "check_name": "invalid-assignment",
+                      "description": "invalid-assignment: Object of type `str` is not assignable to `int`",
+                      "severity": "major",
+                      "fingerprint": "b399e38d5cc54182",
+                      "location": {
+                        "path": "filler00001.py",
+                        "positions": {
+                          "begin": {
+                            "line": 15,
+                            "column": 14
+                          },
+                          "end": {
+                            "line": 15,
+                            "column": 52
+                          }
+                        }
+                      }
+                    }
+                  ]
+                },
+                {
+                  "line": 16,
+                  "expect_failure": true,
+                  "matched": false,
+                  "diagnostics": []
+                },
+                {
+                  "line": 17,
+                  "expect_failure": true,
+                  "matched": false,
+                  "diagnostics": []
+                },
+                {
+                  "line": 18,
+                  "expect_failure": true,
+                  "matched": false,
+                  "diagnostics": []
+                },
+                {
+                  "line": 19,
+                  "expect_failure": true,
+                  "matched": false,
+                  "diagnostics": []
+                },
+                {
+                  "line": 20,
+                  "expect_failure": true,
+                  "matched": false,
+                  "diagnostics": []
+                },
+                {
+                  "line": 21,
+                  "expect_failure": true,
+                  "matched": false,
+                  "diagnostics": []
+                },
+                {
+                  "line": 22,
+                  "expect_failure": true,
+                  "matched": false,
+                  "diagnostics": []
+                }
+              ],
+              "unmarked": []
+            },
+            "mypy": {
+              "run": {
+                "backend": "mypy",
+                "label": "focus/mypy",
+                "command": [
+                  "/home/runner/work/_temp/native-django-evidence/reference/bin/mypy",
+                  "--config-file",
+                  "/home/runner/work/_temp/native-django-evidence/stress/mypy.ini",
+                  "--output",
+                  "json",
+                  "--no-incremental",
+                  "/home/runner/work/_temp/native-django-evidence/stress/project",
+                  "--cache-dir",
+                  "/home/runner/work/_temp/native-django-evidence/stress/runs/focus/mypy/scratch/mypy-cache"
+                ],
+                "seconds": 12.768031650000012,
+                "exit": 1,
+                "diagnostic_codes": {
+                  "assignment": 3,
+                  "misc": 6
+                },
+                "user_cpu_seconds": 11.834405,
+                "system_cpu_seconds": 1.2249729999999999,
+                "sampled_process_tree_peak_rss_kib": 461484,
+                "stopped": null,
+                "monitor_error": null,
+                "parse_error": null,
+                "load_before": [
+                  1.27197265625,
+                  1.19677734375,
+                  0.8154296875
+                ],
+                "load_after": [
+                  1.3037109375,
+                  1.20654296875,
+                  0.8232421875
+                ],
+                "source_sha256": "0c9a80c961e8a08ee05c07bc22f5e624e5b02be801c85248af2bd6463719f181",
+                "source_preserved": true
+              },
+              "matched": 19,
+              "total": 20,
+              "cases": [
+                {
+                  "line": 3,
+                  "expect_failure": false,
+                  "matched": true,
+                  "diagnostics": []
+                },
+                {
+                  "line": 4,
+                  "expect_failure": false,
+                  "matched": true,
+                  "diagnostics": []
+                },
+                {
+                  "line": 5,
+                  "expect_failure": false,
+                  "matched": true,
+                  "diagnostics": []
+                },
+                {
+                  "line": 6,
+                  "expect_failure": false,
+                  "matched": true,
+                  "diagnostics": []
+                },
+                {
+                  "line": 7,
+                  "expect_failure": false,
+                  "matched": true,
+                  "diagnostics": []
+                },
+                {
+                  "line": 8,
+                  "expect_failure": false,
+                  "matched": true,
+                  "diagnostics": []
+                },
+                {
+                  "line": 9,
+                  "expect_failure": true,
+                  "matched": true,
+                  "diagnostics": [
+                    {
+                      "file": "filler00001.py",
+                      "line": 9,
+                      "column": 21,
+                      "end_line": 9,
+                      "end_column": 48,
+                      "message": "Incompatible types in assignment (expression has type \"int\", variable has type \"str\")",
+                      "hint": null,
+                      "code": "assignment",
+                      "severity": "error"
+                    }
+                  ]
+                },
+                {
+                  "line": 10,
+                  "expect_failure": false,
+                  "matched": true,
+                  "diagnostics": []
+                },
+                {
+                  "line": 11,
+                  "expect_failure": false,
+                  "matched": true,
+                  "diagnostics": []
+                },
+                {
+                  "line": 12,
+                  "expect_failure": false,
+                  "matched": true,
+                  "diagnostics": []
+                },
+                {
+                  "line": 13,
+                  "expect_failure": false,
+                  "matched": true,
+                  "diagnostics": []
+                },
+                {
+                  "line": 14,
+                  "expect_failure": true,
+                  "matched": true,
+                  "diagnostics": [
+                    {
+                      "file": "filler00001.py",
+                      "line": 14,
+                      "column": 25,
+                      "end_line": 14,
+                      "end_column": 28,
+                      "message": "Incompatible types in assignment (expression has type \"list[int]\", variable has type \"str | int | Combinable\")",
+                      "hint": null,
+                      "code": "assignment",
+                      "severity": "error"
+                    }
+                  ]
+                },
+                {
+                  "line": 15,
+                  "expect_failure": true,
+                  "matched": true,
+                  "diagnostics": [
+                    {
+                      "file": "filler00001.py",
+                      "line": 15,
+                      "column": 13,
+                      "end_line": 15,
+                      "end_column": 51,
+                      "message": "Incompatible types in assignment (expression has type \"str\", variable has type \"int\")",
+                      "hint": null,
+                      "code": "assignment",
+                      "severity": "error"
+                    }
+                  ]
+                },
+                {
+                  "line": 16,
+                  "expect_failure": true,
+                  "matched": true,
+                  "diagnostics": [
+                    {
+                      "file": "filler00001.py",
+                      "line": 16,
+                      "column": 0,
+                      "end_line": 16,
+                      "end_column": 29,
+                      "message": "Incompatible type for \"name\" of \"Item2500\" (got \"list[Any]\", expected \"str | int | Combinable\")",
+                      "hint": null,
+                      "code": "misc",
+                      "severity": "error"
+                    }
+                  ]
+                },
+                {
+                  "line": 17,
+                  "expect_failure": true,
+                  "matched": true,
+                  "diagnostics": [
+                    {
+                      "file": "filler00001.py",
+                      "line": 17,
+                      "column": 0,
+                      "end_line": 17,
+                      "end_column": 35,
+                      "message": "Unexpected attribute \"missing_name\" for model \"Item2500\"",
+                      "hint": null,
+                      "code": "misc",
+                      "severity": "error"
+                    }
+                  ]
+                },
+                {
+                  "line": 18,
+                  "expect_failure": true,
+                  "matched": true,
+                  "diagnostics": [
+                    {
+                      "file": "filler00001.py",
+                      "line": 18,
+                      "column": 0,
+                      "end_line": 18,
+                      "end_column": 44,
+                      "message": "Incompatible type for \"name\" of \"Item2500\" (got \"list[Any]\", expected \"str | int | Combinable\")",
+                      "hint": null,
+                      "code": "misc",
+                      "severity": "error"
+                    }
+                  ]
+                },
+                {
+                  "line": 19,
+                  "expect_failure": true,
+                  "matched": true,
+                  "diagnostics": [
+                    {
+                      "file": "filler00001.py",
+                      "line": 19,
+                      "column": 0,
+                      "end_line": 19,
+                      "end_column": 50,
+                      "message": "Cannot resolve keyword 'missing_name' into field. Choices are: id, name, parent, parent_id",
+                      "hint": null,
+                      "code": "misc",
+                      "severity": "error"
+                    }
+                  ]
+                },
+                {
+                  "line": 20,
+                  "expect_failure": true,
+                  "matched": false,
+                  "diagnostics": []
+                },
+                {
+                  "line": 21,
+                  "expect_failure": true,
+                  "matched": true,
+                  "diagnostics": [
+                    {
+                      "file": "filler00001.py",
+                      "line": 21,
+                      "column": 0,
+                      "end_line": 21,
+                      "end_column": 48,
+                      "message": "Cannot resolve keyword 'missing_name' into field. Choices are: id, name, parent, parent_id",
+                      "hint": null,
+                      "code": "misc",
+                      "severity": "error"
+                    }
+                  ]
+                },
+                {
+                  "line": 22,
+                  "expect_failure": true,
+                  "matched": true,
+                  "diagnostics": [
+                    {
+                      "file": "filler00001.py",
+                      "line": 22,
+                      "column": 0,
+                      "end_line": 22,
+                      "end_column": 44,
+                      "message": "Invalid field in \"only()\": Item2500 has no field named 'missing_name'",
+                      "hint": null,
+                      "code": "misc",
+                      "severity": "error"
+                    }
+                  ]
+                }
+              ],
+              "unmarked": []
+            }
+          },
+          "passed": false,
+          "median_seconds": {
+            "companion": 1.0020967330000303,
+            "bare-ty": 0.3397037319999754,
+            "mypy": 12.845881674999987
+          },
+          "source_sha256": "51c1a88b05a169f1222685fe6105e4be5f43d4213aaaf57c60bf99dbe0d82df9",
+          "production_path_verified": true
+        },
+        "distributed-stress": {
+          "benchmark_exit": 1,
+          "performance_gate": {
+            "max_ty_ratio": 3.0,
+            "median_ty_ratio": 3.493193371866621,
+            "paired_ty_ratios": [
+              3.5814871776956165,
+              3.347578979702997,
+              3.4579050243791607,
+              3.59286062942806,
+              3.4415215181563132
+            ],
+            "max_paired_ty_ratio": 3.59286062942806,
+            "ty_ceiling_met": false,
+            "mypy_ceiling_met": true,
+            "one_second_goal_met": true,
+            "passed": false
+          },
+          "native_cli_reuse_positive_samples": 5,
+          "phase_medians_seconds": {
+            "class_projection": 0.0,
+            "diagnostic_mapping": 0.007,
+            "external_resolution": 0.008,
+            "final_check": 0.004,
+            "final_render": 0.001,
+            "flow_and_render": 0.147,
+            "function_summaries": 0.0,
+            "hook_responses": 0.022,
+            "import_preflight": 0.011,
+            "initial_lowering": 0.062,
+            "native_cli_prepare": 0.007,
+            "oracle_check": 0.164,
+            "project_index": 0.241,
+            "source_maps": 0.009,
+            "source_scan": 0.0,
+            "startup_configuration": 0.002,
+            "startup_overlays": 0.002,
+            "startup_project": 0.0,
+            "startup_runtime": 0.01,
+            "startup_selection": 0.049,
+            "startup_source_and_stub_index": 0.113,
+            "startup_source_copy": 0.009,
+            "virtual_declarations": 0.003
+          },
+          "passed": false,
+          "median_seconds": {
+            "companion": 0.9445573080000713,
+            "bare-ty": 0.2703993760000003,
+            "mypy": 12.227413497000043
+          },
+          "source_sha256": "0b165879eeaa32cb6906921446ecaa428c3c4f44890779f7601511dc5d572124",
+          "production_path_verified": true
+        }
+      },
+      "provider_preserved": true,
+      "benchmark_exit": 1,
+      "performance_gate": {
+        "max_ty_ratio": 3.0,
+        "median_ty_ratio": 2.9499138178443767,
+        "paired_ty_ratios": [
+          2.812047081781901,
+          3.0304915110400774,
+          3.003818765057105,
+          2.8855853929802064,
+          2.8901999389023696
+        ],
+        "max_paired_ty_ratio": 3.0304915110400774,
+        "ty_ceiling_met": false,
+        "mypy_ceiling_met": true,
+        "one_second_goal_met": false,
+        "passed": false
+      },
+      "native_cli_reuse_positive_samples": 5,
+      "phase_medians_seconds": {
+        "class_projection": 0.0,
+        "diagnostic_mapping": 0.007,
+        "external_resolution": 0.007,
+        "final_check": 0.004,
+        "final_render": 0.001,
+        "flow_and_render": 0.166,
+        "function_summaries": 0.0,
+        "hook_responses": 0.021,
+        "import_preflight": 0.011,
+        "initial_lowering": 0.059,
+        "native_cli_prepare": 0.008,
+        "oracle_check": 0.239,
+        "project_index": 0.232,
+        "source_maps": 0.007,
+        "source_scan": 0.0,
+        "startup_configuration": 0.003,
+        "startup_overlays": 0.002,
+        "startup_project": 0.0,
+        "startup_runtime": 0.012,
+        "startup_selection": 0.045,
+        "startup_source_and_stub_index": 0.1,
+        "startup_source_copy": 0.009,
+        "virtual_declarations": 0.003
+      },
+      "median_seconds": {
+        "companion": 1.0020967330000303,
+        "bare-ty": 0.3397037319999754,
+        "mypy": 12.845881674999987
+      },
+      "source_sha256": "51c1a88b05a169f1222685fe6105e4be5f43d4213aaaf57c60bf99dbe0d82df9",
+      "production_path_verified": true,
+      "temporary_environments_cleaned": true,
+      "focused_accuracy": {
+        "companion": {
+          "matched": 20,
+          "total": 20
+        },
+        "bare-ty": {
+          "matched": 8,
+          "total": 20
+        },
+        "mypy": {
+          "matched": 19,
+          "total": 20
+        }
+      }
+    },
+    "macos": {
+      "passed": false,
+      "django_commit": "a5243bb1ce298ad3844d49ba3418ca4fa3b55475",
+      "companion_sha256": "7d728d5e1b785347d75a50660ae3377d1022de8da8c6e00c7c4f88aa3ec4b1fc",
+      "production_defaults": true,
+      "workloads": {
+        "small": {
+          "benchmark_exit": 1,
+          "performance_gate": {
+            "max_ty_ratio": 3.0,
+            "median_ty_ratio": 3.2207114638457295,
+            "paired_ty_ratios": [
+              3.2207114638457295,
+              5.998639258723195,
+              2.9545259493261002,
+              1.5012795837513049,
+              1.7504751926007023
+            ],
+            "max_paired_ty_ratio": 5.998639258723195,
+            "ty_ceiling_met": false,
+            "mypy_ceiling_met": true,
+            "one_second_goal_met": true,
+            "passed": false
+          },
+          "native_cli_reuse_positive_samples": 5,
+          "phase_medians_seconds": {
+            "class_projection": 0.0,
+            "diagnostic_mapping": 0.001,
+            "external_resolution": 0.001,
+            "final_check": 0.0,
+            "final_render": 0.0,
+            "flow_and_render": 0.03,
+            "function_summaries": 0.0,
+            "hook_responses": 0.001,
+            "import_preflight": 0.0,
+            "initial_lowering": 0.003,
+            "native_cli_prepare": 0.001,
+            "oracle_check": 0.073,
+            "project_index": 0.005,
+            "source_maps": 0.001,
+            "source_scan": 0.0,
+            "startup_configuration": 0.003,
+            "startup_overlays": 0.004,
+            "startup_project": 0.0,
+            "startup_runtime": 0.029,
+            "startup_selection": 0.001,
+            "startup_source_and_stub_index": 0.055,
+            "startup_source_copy": 0.001,
+            "virtual_declarations": 0.001
+          },
+          "passed": false,
+          "median_seconds": {
+            "companion": 0.26458708299992395,
+            "bare-ty": 0.08215174999997998,
+            "mypy": 1.657696499999929
+          },
+          "source_sha256": "d56dec6ca0858f30863af951cfd8ee50cc0820bc9d0acc5fd5774b85ef95908e",
+          "production_path_verified": true
+        },
+        "distributed": {
+          "benchmark_exit": 1,
+          "performance_gate": {
+            "max_ty_ratio": 3.0,
+            "median_ty_ratio": 2.5669906950380224,
+            "paired_ty_ratios": [
+              2.3390789212650165,
+              1.8443713836552207,
+              2.7861791215636784,
+              1.6442488640433193,
+              4.2363808861341
+            ],
+            "max_paired_ty_ratio": 4.2363808861341,
+            "ty_ceiling_met": false,
+            "mypy_ceiling_met": true,
+            "one_second_goal_met": true,
+            "passed": false
+          },
+          "native_cli_reuse_positive_samples": 5,
+          "phase_medians_seconds": {
+            "class_projection": 0.0,
+            "diagnostic_mapping": 0.001,
+            "external_resolution": 0.001,
+            "final_check": 0.0,
+            "final_render": 0.0,
+            "flow_and_render": 0.079,
+            "function_summaries": 0.0,
+            "hook_responses": 0.002,
+            "import_preflight": 0.001,
+            "initial_lowering": 0.01,
+            "native_cli_prepare": 0.002,
+            "oracle_check": 0.026,
+            "project_index": 0.017,
+            "source_maps": 0.002,
+            "source_scan": 0.0,
+            "startup_configuration": 0.002,
+            "startup_overlays": 0.004,
+            "startup_project": 0.0,
+            "startup_runtime": 0.01,
+            "startup_selection": 0.006,
+            "startup_source_and_stub_index": 0.052,
+            "startup_source_copy": 0.001,
+            "virtual_declarations": 0.001
+          },
+          "passed": false,
+          "median_seconds": {
+            "companion": 0.2684937499999478,
+            "bare-ty": 0.10459475000004659,
+            "mypy": 2.3392654589999893
+          },
+          "source_sha256": "215897d7d242aeb2411e9f446fed78cd4105eb934b051c4035f409b7323e45a0",
+          "production_path_verified": true
+        },
+        "many-files": {
+          "benchmark_exit": 1,
+          "performance_gate": {
+            "max_ty_ratio": 3.0,
+            "median_ty_ratio": 3.4914152467828985,
+            "paired_ty_ratios": [
+              3.9884202358737686,
+              1.4325679456727778,
+              2.926898324530672,
+              3.119260495043336,
+              3.4914152467828985
+            ],
+            "max_paired_ty_ratio": 3.9884202358737686,
+            "ty_ceiling_met": false,
+            "mypy_ceiling_met": true,
+            "one_second_goal_met": true,
+            "passed": false
+          },
+          "native_cli_reuse_positive_samples": 5,
+          "phase_medians_seconds": {
+            "class_projection": 0.0,
+            "diagnostic_mapping": 0.005,
+            "external_resolution": 0.001,
+            "final_check": 0.004,
+            "final_render": 0.001,
+            "flow_and_render": 0.124,
+            "function_summaries": 0.0,
+            "hook_responses": 0.015,
+            "import_preflight": 0.001,
+            "initial_lowering": 0.048,
+            "native_cli_prepare": 0.005,
+            "oracle_check": 0.137,
+            "project_index": 0.03,
+            "source_maps": 0.008,
+            "source_scan": 0.0,
+            "startup_configuration": 0.003,
+            "startup_overlays": 0.004,
+            "startup_project": 0.0,
+            "startup_runtime": 0.01,
+            "startup_selection": 0.038,
+            "startup_source_and_stub_index": 0.097,
+            "startup_source_copy": 0.008,
+            "virtual_declarations": 0.001
+          },
+          "passed": false,
+          "median_seconds": {
+            "companion": 0.6278342919999886,
+            "bare-ty": 0.17982229199992616,
+            "mypy": 3.9618340839999746
+          },
+          "source_sha256": "ba0380a4b1aa169061e65909e3ec9d9ecec7d4679a12e6dc914c7c2a5659b731",
+          "production_path_verified": true
+        },
+        "stress": {
+          "benchmark_exit": 1,
+          "performance_gate": {
+            "max_ty_ratio": 3.0,
+            "median_ty_ratio": 2.862071314123797,
+            "paired_ty_ratios": [
+              2.9552966699499694,
+              2.862071314123797,
+              3.0611770034411445,
+              2.506917092084559,
+              4.1312986444890765
+            ],
+            "max_paired_ty_ratio": 4.1312986444890765,
+            "ty_ceiling_met": false,
+            "mypy_ceiling_met": true,
+            "one_second_goal_met": false,
+            "passed": false
+          },
+          "native_cli_reuse_positive_samples": 5,
+          "phase_medians_seconds": {
+            "class_projection": 0.0,
+            "diagnostic_mapping": 0.008,
+            "external_resolution": 0.006,
+            "final_check": 0.004,
+            "final_render": 0.001,
+            "flow_and_render": 0.094,
+            "function_summaries": 0.0,
+            "hook_responses": 0.017,
+            "import_preflight": 0.004,
+            "initial_lowering": 0.044,
+            "native_cli_prepare": 0.006,
+            "oracle_check": 0.234,
+            "project_index": 0.174,
+            "source_maps": 0.008,
+            "source_scan": 0.0,
+            "startup_configuration": 0.003,
+            "startup_overlays": 0.004,
+            "startup_project": 0.0,
+            "startup_runtime": 0.011,
+            "startup_selection": 0.032,
+            "startup_source_and_stub_index": 0.138,
+            "startup_source_copy": 0.007,
+            "virtual_declarations": 0.002
+          },
+          "focus": {
+            "companion": {
+              "run": {
+                "backend": "companion",
+                "label": "focus/companion",
+                "command": [
+                  "/Users/runner/work/_temp/ty-extended-native",
+                  "check",
+                  "--python",
+                  "/Users/runner/work/_temp/native-django-evidence/candidate/bin/python",
+                  "--output-format",
+                  "gitlab",
+                  "--no-progress",
+                  "--color",
+                  "never",
+                  "/Users/runner/work/_temp/native-django-evidence/stress/project",
+                  "--ty",
+                  "/Users/runner/work/_temp/native-django-evidence/candidate/bin/ty",
+                  "--config-file",
+                  "/Users/runner/work/_temp/native-django-evidence/stress/companion.toml"
+                ],
+                "seconds": 1.901809999999955,
+                "exit": 1,
+                "diagnostic_codes": {
+                  "invalid-argument-type": 1,
+                  "invalid-assignment": 3,
+                  "plugin-configuration": 5,
+                  "unknown-argument": 1
+                },
+                "user_cpu_seconds": 1.7378,
+                "system_cpu_seconds": 1.070916,
+                "sampled_process_tree_peak_rss_kib": 354576,
+                "stopped": null,
+                "monitor_error": null,
+                "parse_error": null,
+                "load_before": [
+                  8.837890625,
+                  11.71044921875,
+                  15.330078125
+                ],
+                "load_after": [
+                  8.2900390625,
+                  11.548828125,
+                  15.251953125
+                ],
+                "source_sha256": "0c9a80c961e8a08ee05c07bc22f5e624e5b02be801c85248af2bd6463719f181",
+                "source_preserved": true
+              },
+              "matched": 20,
+              "total": 20,
+              "cases": [
+                {
+                  "line": 3,
+                  "expect_failure": false,
+                  "matched": true,
+                  "diagnostics": []
+                },
+                {
+                  "line": 4,
+                  "expect_failure": false,
+                  "matched": true,
+                  "diagnostics": []
+                },
+                {
+                  "line": 5,
+                  "expect_failure": false,
+                  "matched": true,
+                  "diagnostics": []
+                },
+                {
+                  "line": 6,
+                  "expect_failure": false,
+                  "matched": true,
+                  "diagnostics": []
+                },
+                {
+                  "line": 7,
+                  "expect_failure": false,
+                  "matched": true,
+                  "diagnostics": []
+                },
+                {
+                  "line": 8,
+                  "expect_failure": false,
+                  "matched": true,
+                  "diagnostics": []
+                },
+                {
+                  "line": 9,
+                  "expect_failure": true,
+                  "matched": true,
+                  "diagnostics": [
+                    {
+                      "check_name": "invalid-assignment",
+                      "description": "invalid-assignment: Object of type `int | None` is not assignable to `str`",
+                      "fingerprint": "9953b3afadd73788c49f83cdba496875e43a8f0b565e335c19773b42140c3b5b",
+                      "location": {
+                        "path": "/Users/runner/work/_temp/native-django-evidence/stress/project/filler00001.py",
+                        "positions": {
+                          "begin": {
+                            "column": 22,
+                            "line": 9
+                          },
+                          "end": {
+                            "column": 49,
+                            "line": 9
+                          }
+                        }
+                      },
+                      "severity": "major"
+                    }
+                  ]
+                },
+                {
+                  "line": 10,
+                  "expect_failure": false,
+                  "matched": true,
+                  "diagnostics": []
+                },
+                {
+                  "line": 11,
+                  "expect_failure": false,
+                  "matched": true,
+                  "diagnostics": []
+                },
+                {
+                  "line": 12,
+                  "expect_failure": false,
+                  "matched": true,
+                  "diagnostics": []
+                },
+                {
+                  "line": 13,
+                  "expect_failure": false,
+                  "matched": true,
+                  "diagnostics": []
+                },
+                {
+                  "line": 14,
+                  "expect_failure": true,
+                  "matched": true,
+                  "diagnostics": [
+                    {
+                      "check_name": "invalid-assignment",
+                      "description": "invalid-assignment: Invalid assignment to data descriptor attribute `name` on type `Item2500`: Expected `str | Combinable`, found `list[int]`",
+                      "fingerprint": "f73240b934722ec41722f9730387d5e89e38fcfb5dbda6807d88c6004e9c8f99",
+                      "location": {
+                        "path": "/Users/runner/work/_temp/native-django-evidence/stress/project/filler00001.py",
+                        "positions": {
+                          "begin": {
+                            "column": 26,
+                            "line": 14
+                          },
+                          "end": {
+                            "column": 29,
+                            "line": 14
+                          }
+                        }
+                      },
+                      "severity": "major"
+                    }
+                  ]
+                },
+                {
+                  "line": 15,
+                  "expect_failure": true,
+                  "matched": true,
+                  "diagnostics": [
+                    {
+                      "check_name": "invalid-assignment",
+                      "description": "invalid-assignment: Object of type `str` is not assignable to `int`",
+                      "fingerprint": "0c4b4b3ded611adaec90bc80b96970577451f664c74314b76024babcb2e763ee",
+                      "location": {
+                        "path": "/Users/runner/work/_temp/native-django-evidence/stress/project/filler00001.py",
+                        "positions": {
+                          "begin": {
+                            "column": 14,
+                            "line": 15
+                          },
+                          "end": {
+                            "column": 52,
+                            "line": 15
+                          }
+                        }
+                      },
+                      "severity": "major"
+                    }
+                  ]
+                },
+                {
+                  "line": 16,
+                  "expect_failure": true,
+                  "matched": true,
+                  "diagnostics": [
+                    {
+                      "check_name": "invalid-argument-type",
+                      "description": "invalid-argument-type: Argument is incorrect: Expected `str`, found `list[str]`",
+                      "fingerprint": "ae8efacab93c84d0591a8f320e5649fe0c7a7a883b27bb945aa3a02bddbe8128",
+                      "location": {
+                        "path": "/Users/runner/work/_temp/native-django-evidence/stress/project/filler00001.py",
+                        "positions": {
+                          "begin": {
+                            "column": 17,
+                            "line": 16
+                          },
+                          "end": {
+                            "column": 29,
+                            "line": 16
+                          }
+                        }
+                      },
+                      "severity": "major"
+                    }
+                  ]
+                },
+                {
+                  "line": 17,
+                  "expect_failure": true,
+                  "matched": true,
+                  "diagnostics": [
+                    {
+                      "check_name": "unknown-argument",
+                      "description": "unknown-argument: Argument `missing_name` does not match any known parameter of function `benchapp.models.Item2500`",
+                      "fingerprint": "ed1be456ea90ee729fcc8a5864cc78e394b1c554e9d6fe140535d7c78800bee3",
+                      "location": {
+                        "path": "/Users/runner/work/_temp/native-django-evidence/stress/project/filler00001.py",
+                        "positions": {
+                          "begin": {
+                            "column": 17,
+                            "line": 17
+                          },
+                          "end": {
+                            "column": 35,
+                            "line": 17
+                          }
+                        }
+                      },
+                      "severity": "major"
+                    }
+                  ]
+                },
+                {
+                  "line": 18,
+                  "expect_failure": true,
+                  "matched": true,
+                  "diagnostics": [
+                    {
+                      "check_name": "plugin-configuration",
+                      "description": "plugin-configuration: Invalid Django lookup value for `name` on `benchapp.models.Item2500.name`; expected `str`: django-ty.invalid-lookup-value",
+                      "fingerprint": "214132b54a07a41f533130cfb9428fb6da90d839cd78f63c73475a9bb7de6ac5",
+                      "location": {
+                        "path": "/Users/runner/work/_temp/native-django-evidence/stress/project/filler00001.py",
+                        "positions": {
+                          "begin": {
+                            "column": 1,
+                            "line": 18
+                          },
+                          "end": {
+                            "column": 45,
+                            "line": 18
+                          }
+                        }
+                      },
+                      "severity": "major"
+                    }
+                  ]
+                },
+                {
+                  "line": 19,
+                  "expect_failure": true,
+                  "matched": true,
+                  "diagnostics": [
+                    {
+                      "check_name": "plugin-configuration",
+                      "description": "plugin-configuration: Unknown Django lookup `missing_name` for model `benchapp.models.Item2500`: django-ty.unknown-lookup",
+                      "fingerprint": "c88780f4145af5cd0719f9f524d5f8322c3a79ab66dbc119182dcf7c6ab657c0",
+                      "location": {
+                        "path": "/Users/runner/work/_temp/native-django-evidence/stress/project/filler00001.py",
+                        "positions": {
+                          "begin": {
+                            "column": 1,
+                            "line": 19
+                          },
+                          "end": {
+                            "column": 51,
+                            "line": 19
+                          }
+                        }
+                      },
+                      "severity": "major"
+                    }
+                  ]
+                },
+                {
+                  "line": 20,
+                  "expect_failure": true,
+                  "matched": true,
+                  "diagnostics": [
+                    {
+                      "check_name": "plugin-configuration",
+                      "description": "plugin-configuration: Unknown Django lookup `name__missing` for model `benchapp.models.Item2500`: django-ty.unknown-lookup",
+                      "fingerprint": "0c82adafa6c97674239775d29db256b817a29a8b619f3a703c546df50303e741",
+                      "location": {
+                        "path": "/Users/runner/work/_temp/native-django-evidence/stress/project/filler00001.py",
+                        "positions": {
+                          "begin": {
+                            "column": 1,
+                            "line": 20
+                          },
+                          "end": {
+                            "column": 52,
+                            "line": 20
+                          }
+                        }
+                      },
+                      "severity": "major"
+                    }
+                  ]
+                },
+                {
+                  "line": 21,
+                  "expect_failure": true,
+                  "matched": true,
+                  "diagnostics": [
+                    {
+                      "check_name": "plugin-configuration",
+                      "description": "plugin-configuration: Unknown Django lookup `missing_name` for model `benchapp.models.Item2500`: django-ty.unknown-lookup",
+                      "fingerprint": "592744fd894bcff72737f7ff5f73c43e5b2f048d8466ecc4bc531f994d7830c7",
+                      "location": {
+                        "path": "/Users/runner/work/_temp/native-django-evidence/stress/project/filler00001.py",
+                        "positions": {
+                          "begin": {
+                            "column": 1,
+                            "line": 21
+                          },
+                          "end": {
+                            "column": 49,
+                            "line": 21
+                          }
+                        }
+                      },
+                      "severity": "major"
+                    }
+                  ]
+                },
+                {
+                  "line": 22,
+                  "expect_failure": true,
+                  "matched": true,
+                  "diagnostics": [
+                    {
+                      "check_name": "plugin-configuration",
+                      "description": "plugin-configuration: Unknown Django lookup `missing_name` for model `benchapp.models.Item2500`: django-ty.unknown-lookup",
+                      "fingerprint": "a1babd420eab39704bd8d50b3cd6dd805a35426a3447aa8cb7956f0995fa633e",
+                      "location": {
+                        "path": "/Users/runner/work/_temp/native-django-evidence/stress/project/filler00001.py",
+                        "positions": {
+                          "begin": {
+                            "column": 1,
+                            "line": 22
+                          },
+                          "end": {
+                            "column": 45,
+                            "line": 22
+                          }
+                        }
+                      },
+                      "severity": "major"
+                    }
+                  ]
+                }
+              ],
+              "unmarked": []
+            },
+            "bare-ty": {
+              "run": {
+                "backend": "bare-ty",
+                "label": "focus/bare-ty",
+                "command": [
+                  "/Users/runner/work/_temp/native-django-evidence/candidate/bin/ty",
+                  "check",
+                  "--python",
+                  "/Users/runner/work/_temp/native-django-evidence/native/bin/python",
+                  "--output-format",
+                  "gitlab",
+                  "--no-progress",
+                  "--color",
+                  "never",
+                  "/Users/runner/work/_temp/native-django-evidence/stress/project",
+                  "--config-file",
+                  "/Users/runner/work/_temp/native-django-evidence/stress/bare.toml"
+                ],
+                "seconds": 0.5062268330000279,
+                "exit": 1,
+                "diagnostic_codes": {
+                  "type-assertion-failure": 4,
+                  "missing-attribute": 1,
+                  "invalid-assignment": 2
+                },
+                "user_cpu_seconds": 0.460383,
+                "system_cpu_seconds": 0.284601,
+                "sampled_process_tree_peak_rss_kib": 84496,
+                "stopped": null,
+                "monitor_error": null,
+                "parse_error": null,
+                "load_before": [
+                  8.2900390625,
+                  11.548828125,
+                  15.251953125
+                ],
+                "load_after": [
+                  8.2900390625,
+                  11.548828125,
+                  15.251953125
+                ],
+                "source_sha256": "0c9a80c961e8a08ee05c07bc22f5e624e5b02be801c85248af2bd6463719f181",
+                "source_preserved": true
+              },
+              "matched": 8,
+              "total": 20,
+              "cases": [
+                {
+                  "line": 3,
+                  "expect_failure": false,
+                  "matched": true,
+                  "diagnostics": []
+                },
+                {
+                  "line": 4,
+                  "expect_failure": false,
+                  "matched": true,
+                  "diagnostics": []
+                },
+                {
+                  "line": 5,
+                  "expect_failure": false,
+                  "matched": true,
+                  "diagnostics": []
+                },
+                {
+                  "line": 6,
+                  "expect_failure": false,
+                  "matched": true,
+                  "diagnostics": []
+                },
+                {
+                  "line": 7,
+                  "expect_failure": false,
+                  "matched": true,
+                  "diagnostics": []
+                },
+                {
+                  "line": 8,
+                  "expect_failure": false,
+                  "matched": false,
+                  "diagnostics": [
+                    {
+                      "check_name": "type-assertion-failure",
+                      "description": "type-assertion-failure: Type `Unknown` does not match asserted type `Item2499`",
+                      "severity": "major",
+                      "fingerprint": "3a0f3879a69f571d",
+                      "location": {
+                        "path": "filler00001.py",
+                        "positions": {
+                          "begin": {
+                            "line": 8,
+                            "column": 1
+                          },
+                          "end": {
+                            "line": 8,
+                            "column": 55
+                          }
+                        }
+                      }
+                    }
+                  ]
+                },
+                {
+                  "line": 9,
+                  "expect_failure": true,
+                  "matched": false,
+                  "diagnostics": []
+                },
+                {
+                  "line": 10,
+                  "expect_failure": false,
+                  "matched": false,
+                  "diagnostics": [
+                    {
+                      "check_name": "type-assertion-failure",
+                      "description": "type-assertion-failure: Type `Unknown` does not match asserted type `Item2500`",
+                      "severity": "major",
+                      "fingerprint": "bbfddaaecd397dc3",
+                      "location": {
+                        "path": "filler00001.py",
+                        "positions": {
+                          "begin": {
+                            "line": 10,
+                            "column": 1
+                          },
+                          "end": {
+                            "line": 10,
+                            "column": 67
+                          }
+                        }
+                      }
+                    },
+                    {
+                      "check_name": "missing-attribute",
+                      "description": "missing-attribute: Object of type `Item2499` has no attribute `item2500_set`",
+                      "severity": "major",
+                      "fingerprint": "1492470cd29c6daf",
+                      "location": {
+                        "path": "filler00001.py",
+                        "positions": {
+                          "begin": {
+                            "line": 10,
+                            "column": 13
+                          },
+                          "end": {
+                            "line": 10,
+                            "column": 43
+                          }
+                        }
+                      }
+                    }
+                  ]
+                },
+                {
+                  "line": 11,
+                  "expect_failure": false,
+                  "matched": false,
+                  "diagnostics": [
+                    {
+                      "check_name": "type-assertion-failure",
+                      "description": "type-assertion-failure: Type `Any` does not match asserted type `str`",
+                      "severity": "major",
+                      "fingerprint": "ceaab67674a7d63b",
+                      "location": {
+                        "path": "filler00001.py",
+                        "positions": {
+                          "begin": {
+                            "line": 11,
+                            "column": 1
+                          },
+                          "end": {
+                            "line": 11,
+                            "column": 71
+                          }
+                        }
+                      }
+                    }
+                  ]
+                },
+                {
+                  "line": 12,
+                  "expect_failure": false,
+                  "matched": false,
+                  "diagnostics": [
+                    {
+                      "check_name": "type-assertion-failure",
+                      "description": "type-assertion-failure: Type `Any` does not match asserted type `str`",
+                      "severity": "major",
+                      "fingerprint": "7ddafaaf78080852",
+                      "location": {
+                        "path": "filler00001.py",
+                        "positions": {
+                          "begin": {
+                            "line": 12,
+                            "column": 1
+                          },
+                          "end": {
+                            "line": 12,
+                            "column": 79
+                          }
+                        }
+                      }
+                    }
+                  ]
+                },
+                {
+                  "line": 13,
+                  "expect_failure": false,
+                  "matched": true,
+                  "diagnostics": []
+                },
+                {
+                  "line": 14,
+                  "expect_failure": true,
+                  "matched": true,
+                  "diagnostics": [
+                    {
+                      "check_name": "invalid-assignment",
+                      "description": "invalid-assignment: Invalid assignment to data descriptor attribute `name` on type `Item2500`: Expected `str | Combinable`, found `list[int]`",
+                      "severity": "major",
+                      "fingerprint": "33fd5fe841cb20ba",
+                      "location": {
+                        "path": "filler00001.py",
+                        "positions": {
+                          "begin": {
+                            "line": 14,
+                            "column": 26
+                          },
+                          "end": {
+                            "line": 14,
+                            "column": 29
+                          }
+                        }
+                      }
+                    }
+                  ]
+                },
+                {
+                  "line": 15,
+                  "expect_failure": true,
+                  "matched": true,
+                  "diagnostics": [
+                    {
+                      "check_name": "invalid-assignment",
+                      "description": "invalid-assignment: Object of type `str` is not assignable to `int`",
+                      "severity": "major",
+                      "fingerprint": "b399e38d5cc54182",
+                      "location": {
+                        "path": "filler00001.py",
+                        "positions": {
+                          "begin": {
+                            "line": 15,
+                            "column": 14
+                          },
+                          "end": {
+                            "line": 15,
+                            "column": 52
+                          }
+                        }
+                      }
+                    }
+                  ]
+                },
+                {
+                  "line": 16,
+                  "expect_failure": true,
+                  "matched": false,
+                  "diagnostics": []
+                },
+                {
+                  "line": 17,
+                  "expect_failure": true,
+                  "matched": false,
+                  "diagnostics": []
+                },
+                {
+                  "line": 18,
+                  "expect_failure": true,
+                  "matched": false,
+                  "diagnostics": []
+                },
+                {
+                  "line": 19,
+                  "expect_failure": true,
+                  "matched": false,
+                  "diagnostics": []
+                },
+                {
+                  "line": 20,
+                  "expect_failure": true,
+                  "matched": false,
+                  "diagnostics": []
+                },
+                {
+                  "line": 21,
+                  "expect_failure": true,
+                  "matched": false,
+                  "diagnostics": []
+                },
+                {
+                  "line": 22,
+                  "expect_failure": true,
+                  "matched": false,
+                  "diagnostics": []
+                }
+              ],
+              "unmarked": []
+            },
+            "mypy": {
+              "run": {
+                "backend": "mypy",
+                "label": "focus/mypy",
+                "command": [
+                  "/Users/runner/work/_temp/native-django-evidence/reference/bin/mypy",
+                  "--config-file",
+                  "/Users/runner/work/_temp/native-django-evidence/stress/mypy.ini",
+                  "--output",
+                  "json",
+                  "--no-incremental",
+                  "/Users/runner/work/_temp/native-django-evidence/stress/project",
+                  "--cache-dir",
+                  "/Users/runner/work/_temp/native-django-evidence/stress/runs/focus/mypy/scratch/mypy-cache"
+                ],
+                "seconds": 6.825655167000036,
+                "exit": 1,
+                "diagnostic_codes": {
+                  "assignment": 3,
+                  "misc": 6
+                },
+                "user_cpu_seconds": 5.724556,
+                "system_cpu_seconds": 1.379159,
+                "sampled_process_tree_peak_rss_kib": 504736,
+                "stopped": null,
+                "monitor_error": null,
+                "parse_error": null,
+                "load_before": [
+                  8.2900390625,
+                  11.548828125,
+                  15.251953125
+                ],
+                "load_after": [
+                  7.7060546875,
+                  11.37353515625,
+                  15.16796875
+                ],
+                "source_sha256": "0c9a80c961e8a08ee05c07bc22f5e624e5b02be801c85248af2bd6463719f181",
+                "source_preserved": true
+              },
+              "matched": 19,
+              "total": 20,
+              "cases": [
+                {
+                  "line": 3,
+                  "expect_failure": false,
+                  "matched": true,
+                  "diagnostics": []
+                },
+                {
+                  "line": 4,
+                  "expect_failure": false,
+                  "matched": true,
+                  "diagnostics": []
+                },
+                {
+                  "line": 5,
+                  "expect_failure": false,
+                  "matched": true,
+                  "diagnostics": []
+                },
+                {
+                  "line": 6,
+                  "expect_failure": false,
+                  "matched": true,
+                  "diagnostics": []
+                },
+                {
+                  "line": 7,
+                  "expect_failure": false,
+                  "matched": true,
+                  "diagnostics": []
+                },
+                {
+                  "line": 8,
+                  "expect_failure": false,
+                  "matched": true,
+                  "diagnostics": []
+                },
+                {
+                  "line": 9,
+                  "expect_failure": true,
+                  "matched": true,
+                  "diagnostics": [
+                    {
+                      "file": "filler00001.py",
+                      "line": 9,
+                      "column": 21,
+                      "end_line": 9,
+                      "end_column": 48,
+                      "message": "Incompatible types in assignment (expression has type \"int\", variable has type \"str\")",
+                      "hint": null,
+                      "code": "assignment",
+                      "severity": "error"
+                    }
+                  ]
+                },
+                {
+                  "line": 10,
+                  "expect_failure": false,
+                  "matched": true,
+                  "diagnostics": []
+                },
+                {
+                  "line": 11,
+                  "expect_failure": false,
+                  "matched": true,
+                  "diagnostics": []
+                },
+                {
+                  "line": 12,
+                  "expect_failure": false,
+                  "matched": true,
+                  "diagnostics": []
+                },
+                {
+                  "line": 13,
+                  "expect_failure": false,
+                  "matched": true,
+                  "diagnostics": []
+                },
+                {
+                  "line": 14,
+                  "expect_failure": true,
+                  "matched": true,
+                  "diagnostics": [
+                    {
+                      "file": "filler00001.py",
+                      "line": 14,
+                      "column": 25,
+                      "end_line": 14,
+                      "end_column": 28,
+                      "message": "Incompatible types in assignment (expression has type \"list[int]\", variable has type \"str | int | Combinable\")",
+                      "hint": null,
+                      "code": "assignment",
+                      "severity": "error"
+                    }
+                  ]
+                },
+                {
+                  "line": 15,
+                  "expect_failure": true,
+                  "matched": true,
+                  "diagnostics": [
+                    {
+                      "file": "filler00001.py",
+                      "line": 15,
+                      "column": 13,
+                      "end_line": 15,
+                      "end_column": 51,
+                      "message": "Incompatible types in assignment (expression has type \"str\", variable has type \"int\")",
+                      "hint": null,
+                      "code": "assignment",
+                      "severity": "error"
+                    }
+                  ]
+                },
+                {
+                  "line": 16,
+                  "expect_failure": true,
+                  "matched": true,
+                  "diagnostics": [
+                    {
+                      "file": "filler00001.py",
+                      "line": 16,
+                      "column": 0,
+                      "end_line": 16,
+                      "end_column": 29,
+                      "message": "Incompatible type for \"name\" of \"Item2500\" (got \"list[Any]\", expected \"str | int | Combinable\")",
+                      "hint": null,
+                      "code": "misc",
+                      "severity": "error"
+                    }
+                  ]
+                },
+                {
+                  "line": 17,
+                  "expect_failure": true,
+                  "matched": true,
+                  "diagnostics": [
+                    {
+                      "file": "filler00001.py",
+                      "line": 17,
+                      "column": 0,
+                      "end_line": 17,
+                      "end_column": 35,
+                      "message": "Unexpected attribute \"missing_name\" for model \"Item2500\"",
+                      "hint": null,
+                      "code": "misc",
+                      "severity": "error"
+                    }
+                  ]
+                },
+                {
+                  "line": 18,
+                  "expect_failure": true,
+                  "matched": true,
+                  "diagnostics": [
+                    {
+                      "file": "filler00001.py",
+                      "line": 18,
+                      "column": 0,
+                      "end_line": 18,
+                      "end_column": 44,
+                      "message": "Incompatible type for \"name\" of \"Item2500\" (got \"list[Any]\", expected \"str | int | Combinable\")",
+                      "hint": null,
+                      "code": "misc",
+                      "severity": "error"
+                    }
+                  ]
+                },
+                {
+                  "line": 19,
+                  "expect_failure": true,
+                  "matched": true,
+                  "diagnostics": [
+                    {
+                      "file": "filler00001.py",
+                      "line": 19,
+                      "column": 0,
+                      "end_line": 19,
+                      "end_column": 50,
+                      "message": "Cannot resolve keyword 'missing_name' into field. Choices are: id, name, parent, parent_id",
+                      "hint": null,
+                      "code": "misc",
+                      "severity": "error"
+                    }
+                  ]
+                },
+                {
+                  "line": 20,
+                  "expect_failure": true,
+                  "matched": false,
+                  "diagnostics": []
+                },
+                {
+                  "line": 21,
+                  "expect_failure": true,
+                  "matched": true,
+                  "diagnostics": [
+                    {
+                      "file": "filler00001.py",
+                      "line": 21,
+                      "column": 0,
+                      "end_line": 21,
+                      "end_column": 48,
+                      "message": "Cannot resolve keyword 'missing_name' into field. Choices are: id, name, parent, parent_id",
+                      "hint": null,
+                      "code": "misc",
+                      "severity": "error"
+                    }
+                  ]
+                },
+                {
+                  "line": 22,
+                  "expect_failure": true,
+                  "matched": true,
+                  "diagnostics": [
+                    {
+                      "file": "filler00001.py",
+                      "line": 22,
+                      "column": 0,
+                      "end_line": 22,
+                      "end_column": 44,
+                      "message": "Invalid field in \"only()\": Item2500 has no field named 'missing_name'",
+                      "hint": null,
+                      "code": "misc",
+                      "severity": "error"
+                    }
+                  ]
+                }
+              ],
+              "unmarked": []
+            }
+          },
+          "passed": false,
+          "median_seconds": {
+            "companion": 0.8437506669999948,
+            "bare-ty": 0.29480420800007323,
+            "mypy": 6.757354875000033
+          },
+          "source_sha256": "51c1a88b05a169f1222685fe6105e4be5f43d4213aaaf57c60bf99dbe0d82df9",
+          "production_path_verified": true
+        },
+        "distributed-stress": {
+          "benchmark_exit": 1,
+          "performance_gate": {
+            "max_ty_ratio": 3.0,
+            "median_ty_ratio": 3.853252540775887,
+            "paired_ty_ratios": [
+              3.349221127516086,
+              4.6939453641687825,
+              3.403984036100656,
+              2.7568644658509647,
+              4.359689922267358
+            ],
+            "max_paired_ty_ratio": 4.6939453641687825,
+            "ty_ceiling_met": false,
+            "mypy_ceiling_met": true,
+            "one_second_goal_met": false,
+            "passed": false
+          },
+          "native_cli_reuse_positive_samples": 5,
+          "phase_medians_seconds": {
+            "class_projection": 0.0,
+            "diagnostic_mapping": 0.008,
+            "external_resolution": 0.007,
+            "final_check": 0.004,
+            "final_render": 0.001,
+            "flow_and_render": 0.102,
+            "function_summaries": 0.0,
+            "hook_responses": 0.017,
+            "import_preflight": 0.004,
+            "initial_lowering": 0.051,
+            "native_cli_prepare": 0.007,
+            "oracle_check": 0.182,
+            "project_index": 0.175,
+            "source_maps": 0.008,
+            "source_scan": 0.0,
+            "startup_configuration": 0.003,
+            "startup_overlays": 0.004,
+            "startup_project": 0.0,
+            "startup_runtime": 0.009,
+            "startup_selection": 0.039,
+            "startup_source_and_stub_index": 0.141,
+            "startup_source_copy": 0.008,
+            "virtual_declarations": 0.002
+          },
+          "passed": false,
+          "median_seconds": {
+            "companion": 0.8780075839999881,
+            "bare-ty": 0.22786141699998552,
+            "mypy": 6.3385405420000325
+          },
+          "source_sha256": "0b165879eeaa32cb6906921446ecaa428c3c4f44890779f7601511dc5d572124",
+          "production_path_verified": true
+        }
+      },
+      "provider_preserved": true,
+      "benchmark_exit": 1,
+      "performance_gate": {
+        "max_ty_ratio": 3.0,
+        "median_ty_ratio": 2.862071314123797,
+        "paired_ty_ratios": [
+          2.9552966699499694,
+          2.862071314123797,
+          3.0611770034411445,
+          2.506917092084559,
+          4.1312986444890765
+        ],
+        "max_paired_ty_ratio": 4.1312986444890765,
+        "ty_ceiling_met": false,
+        "mypy_ceiling_met": true,
+        "one_second_goal_met": false,
+        "passed": false
+      },
+      "native_cli_reuse_positive_samples": 5,
+      "phase_medians_seconds": {
+        "class_projection": 0.0,
+        "diagnostic_mapping": 0.008,
+        "external_resolution": 0.006,
+        "final_check": 0.004,
+        "final_render": 0.001,
+        "flow_and_render": 0.094,
+        "function_summaries": 0.0,
+        "hook_responses": 0.017,
+        "import_preflight": 0.004,
+        "initial_lowering": 0.044,
+        "native_cli_prepare": 0.006,
+        "oracle_check": 0.234,
+        "project_index": 0.174,
+        "source_maps": 0.008,
+        "source_scan": 0.0,
+        "startup_configuration": 0.003,
+        "startup_overlays": 0.004,
+        "startup_project": 0.0,
+        "startup_runtime": 0.011,
+        "startup_selection": 0.032,
+        "startup_source_and_stub_index": 0.138,
+        "startup_source_copy": 0.007,
+        "virtual_declarations": 0.002
+      },
+      "median_seconds": {
+        "companion": 0.8437506669999948,
+        "bare-ty": 0.29480420800007323,
+        "mypy": 6.757354875000033
+      },
+      "source_sha256": "51c1a88b05a169f1222685fe6105e4be5f43d4213aaaf57c60bf99dbe0d82df9",
+      "production_path_verified": true,
+      "temporary_environments_cleaned": true,
+      "focused_accuracy": {
+        "companion": {
+          "matched": 20,
+          "total": 20
+        },
+        "bare-ty": {
+          "matched": 8,
+          "total": 20
+        },
+        "mypy": {
+          "matched": 19,
+          "total": 20
+        }
+      }
+    }
+  }
+}

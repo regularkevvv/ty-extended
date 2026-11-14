@@ -1,154 +1,74 @@
-# Companion performance
+# ty-extended performance
 
-The companion checks generated analysis copies with unchanged official ty and
-runs Django hooks in embedded Monty. Its total time includes discovery, plugin
-execution, projection, type queries and the final checker run.
+ty-extended checks analysis copies with unchanged official Ty. Total time includes discovery, plugin execution, projection, type queries and the final checker run.
 
-## Version 0.89.0
+## Current native comparison
 
-The [0.89.0 local receipts](qualification/performance-0.89.0.json) record five
-rotated serial runs on macOS arm64 with the release candidate, Django-ty 0.7.0,
-official ty 0.0.99, MyPy 2.4.1, django-stubs 6.1.2 and Django 6.1.3. This candidate
-includes the filesystem revision and Windows path corrections. All five workloads
-meet the MyPy median ceiling, preserve source bytes and pass exact ORM assertions
-plus both intentional-error controls.
+The [final cancellation receipt](qualification/native-check-cancellation-0.90.0.json) records ten rotated fresh-process runs per checker across five workloads on macOS arm64. Both Ty stacks use official **Ty 0.0.104** and Django **6.1.3**. The candidate uses the restored Django-ty 0.8 provider; native Ty uses **django-types 0.24.0**. MyPy **2.4.1** uses **django-stubs 6.1.2**.
 
-| Python files / models / model modules | Companion | MyPy + django-stubs | Bare ty |
-| ------------------------------------- | --------: | ------------------: | ------: |
-| 100 / 25 / 5                          |   0.535 s |             1.600 s | 0.064 s |
-| 1,000 / 250 / 25                      |   1.252 s |             2.172 s | 0.084 s |
-| 7,082 / 250 / 25                      |   3.577 s |             4.166 s | 0.165 s |
-| 7,082 / 2,501 / 1                     |   6.551 s |             6.685 s | 0.270 s |
-| 7,082 / 2,501 / 250                   |   6.065 s |             6.545 s | 0.195 s |
+| Workload           | ty-extended mean | Native Ty mean | MyPy mean | Ratio of means |
+| ------------------ | ---------------: | -------------: | --------: | -------------: |
+| small              |          0.111 s |        0.039 s |   1.378 s |         2.835x |
+| distributed        |          0.201 s |        0.068 s |   1.966 s |         2.962x |
+| many-files         |          0.552 s |        0.199 s |   4.131 s |         2.780x |
+| stress             |          0.711 s |        0.339 s |   6.767 s |         2.098x |
+| distributed-stress |          0.694 s |        0.197 s |   6.547 s |         3.525x |
 
-The largest single-module case improves from the published 0.87/Django-ty 0.6
-pair's 80.788 seconds to 6.551 seconds, approximately 12.3 times faster. Its margin
-against MyPy is only 2.0%; this is close to parity, not a large speed advantage.
-Smaller projects show larger gains. These measurements identify a local release
-candidate binary; hosted CI and public-package acceptance are separate checks.
-The receipt links the earlier candidate measurements and retains the public
-0.88.0 failure below, so results from different executables remain distinguishable.
+The last local ten-repeat series **fails** the 3.5x gate: distributed stress is 3.525x by means and 3.519x by medians. Its 0.694-second mean is below one second and below MyPy. That failure is retained; it is not relabeled as passing.
 
-The installed CI wheel separately passes the largest case in five rotated runs:
-**6.424 seconds versus MyPy's 6.691 seconds** (bare ty:
-0.271 seconds). All five Linux CI workloads also meet the MyPy median
-ceiling. Their complete samples and executable identities are in the same receipt.
+A separate controlled comparison rotates the prior executable, the final executable and native Ty over the identical distributed-stress project for **30 runs each**. Means are **0.679, 0.678 and 0.212 seconds** respectively. The final/prior ratio is **0.998**; the final/native ratio is **3.192**. Medians are **0.670, 0.669 and 0.204 seconds**. This comparison shows no regression from the discarded-check fix and preserves every observation.
 
-The same receipt preserves a follow-up with **published 0.88.0**: 6.593 seconds
-versus MyPy's 6.487 seconds. Correctness passed, but that run **failed** the strict
-performance ceiling. That failure prompted the class batching in 0.89; it is not
-replaced by an earlier passing CI-wheel measurement.
+The dedicated [30-repeat hosted qualification](qualification/performance-ci-cancel-0.90.0.json) passes all five workloads on **both Linux and macOS**, with the same restored provider. Largest ratios of means are **3.425x** and **2.842x**; largest median ratios are **3.431x** and **2.936x**. Hosted gates require both aggregates to stay at or below 3.5x and MyPy. Earlier [failed CI series](qualification/performance-ci-repeat-0.90.0.json), the [preceding hosted series](qualification/performance-ci-30-0.90.0.json) and the local miss remain separate evidence. These are workload qualifications, not bounds for every run or project.
 
-The [published 0.89.0 acceptance](qualification/ty-extended-0.89.0.json)
-repeats all five workloads with the downloaded PyPI executable and the same Django
-0.7 candidate wheel. Every workload passes correctness and the MyPy median ceiling.
-The largest case takes **6.594 seconds** versus **6.806 seconds**
-for MyPy and **0.271 seconds** for bare ty. The receipt preserves all five
-rotated samples per workload, source hashes, error controls and memory measurements.
+A separate resource fixture uses 7,082 files and a standalone module with 2,501 chained models. Its installed one-thread run originally took about **12.7 seconds**. A trace showed nearly 11 seconds spent waiting for a speculative native check before rejecting its result. The fix cancels and reaps known-invalid work promptly. Three explicit Ty 0.0.104 runs now average **2.235 seconds** with one thread and **1.969 seconds** with default parallelism, versus native Ty's **0.528** and **0.406 seconds**. Rendering requires a `models` import outside the early check's coverage, so the validated second-check path remains necessary. This fixture passes correctness and resource bounds but still exceeds the timing target. An exploratory comparison that selected an older Ty from PATH is explicitly marked invalid in the receipt.
 
-## Previous 0.88.0 measurements
+## Correctness
 
-The [2026-11-07 receipts](https://github.com/regularkevvv/ty-extended/blob/main/companion/evidence/performance-2026-11-07.json)
-identify the CI-built 0.88.0 wheel, Django-ty 0.7.0, official ty 0.0.99,
-MyPy 2.4.1, django-stubs 6.1.2 and Django 6.1.3. Each value is the median
-of three serial fresh-process runs; all positive and negative typing controls pass.
+The generated workloads check exact ORM result types, then introduce an ordinary Python error and an ORM assignment error at known source locations. A separate 20-case extension exercises behavior beyond the timed assertions: ty-extended matches **20/20**, MyPy **19/20**, and native Ty **8/20**. This is a bounded corpus, not a score for every Django API.
 
-| Host            | Python files / models / model modules | Companion | MyPy + django-stubs | Bare ty |
-| --------------- | ------------------------------------- | --------: | ------------------: | ------: |
-| macOS arm64     | 100 / 25 / 5                          |   0.547 s |             1.690 s | 0.064 s |
-| macOS arm64     | 1,000 / 250 / 25                      |   1.299 s |             2.221 s | 0.089 s |
-| macOS arm64     | 7,082 / 250 / 25                      |   3.597 s |             4.368 s | 0.166 s |
-| macOS arm64     | 7,082 / 2,501 / 1                     |   6.963 s |             7.035 s | 0.281 s |
-| macOS arm64     | 7,082 / 2,501 / 250                   |   6.315 s |             6.966 s | 0.200 s |
-| Linux x86_64 CI | 100 / 25 / 5                          |   0.300 s |             1.164 s | 0.046 s |
-| Linux x86_64 CI | 1,000 / 250 / 25                      |   0.732 s |             1.688 s | 0.061 s |
-| Linux x86_64 CI | 7,082 / 250 / 25                      |   1.695 s |             3.343 s | 0.105 s |
-| Linux x86_64 CI | 7,082 / 2,501 / 1                     |   4.299 s |             5.888 s | 0.171 s |
+Every comparison preserves source and provider bytes and modification times. Failed processes, malformed output, stray diagnostics, timeouts and memory-limit violations invalidate the run. Fresh processes are used throughout, with an empty MyPy cache each time; operating-system filesystem caches may be warm. Commands, versions, source and executable hashes, process-tree memory and host-load observations are retained.
 
-The published 0.87.0 companion with Django-ty 0.6.0 takes **80.788 seconds**
-on the exact same largest project on the Mac. Version 0.88.0 with Django-ty 0.7.0
-takes **6.963 seconds**, an **11.6× improvement**. Maximum sampled process-tree
-RSS across the three positive runs falls from 2,871 MiB to 1,358 MiB. Both stacks
-preserve source bytes and catch the two deliberately introduced errors.
+## Accepted baseline and policy
 
-The companion meets the median-at-most-MyPy gate on all nine recorded host/workload
-combinations. The largest Mac workload is effectively at parity with MyPy;
-its approximately one-percent margin is too small to claim a meaningful speed
-advantage. The other Mac workloads are 1.2–3.1× faster, and Linux CI workloads
-are 1.4–3.9× faster. These are workload-specific observations, not a universal
-speed guarantee. Bare ty does not provide the Django checking used here.
+The maintainer accepted the [30-run baseline](qualification/native-django-accepted-baseline-v62.json), averaging **0.776 seconds**, against native Ty's **0.237 seconds** and MyPy's **7.451 seconds** on distributed stress. Its ratios are 3.28x by means and 3.40x by medians.
 
-The additional 250-module project checks the same large model population spread
-across files. It preserves all 100 ORM type assertions and both negative controls.
-CI enforces the MyPy median ceiling on all five project shapes.
+The current gate requires **both mean and median** to be at most **3.5x** native Ty and no slower than MyPy. Every paired observation is also reported. Earlier receipts that failed the strict three-times/every-pair policy retain that result; the explicit baseline acceptance superseded that policy.
 
-## What is compared
+## Why the earlier run took over a minute
 
-`companion/scripts/compare_checkers.py` creates a registered Django application
-and runs three public commands over identical Python files:
+The original path repeatedly copied and serialized a whole-project index for each model. Scoped indexes and bounded class batches removed that repeated work. Native Django field inference, retained provider declarations, shared snapshots, lazy row construction, fewer checker probes and moving owned JSON values reduced the remaining work.
 
-- `ty-extended check`, with Django-ty's Monty plugin and packaged stubs;
-- MyPy with django-stubs and its Django plugin;
-- bare official `ty check`, with no companion or Django plugin.
-
-Every sample starts fresh processes. MyPy uses `--no-incremental` and an empty,
-disposable cache; operating-system filesystem caches may be warm. Serial rounds rotate command order (five for the 0.89 local suite; three for
-the earlier measurements and CI). Reports retain all samples, commands, package
-versions, executable and source hashes, CPU time, sampled process-tree memory
-and system load. Temporary analysis and cache directories are removed after each
-sample.
-
-The generated projects assert exact ORM result types. Both plugin-enabled
-checkers must accept them, then reject an intentionally wrong ORM assignment
-and an ordinary Python assignment at their exact source locations. Source bytes
-must remain unchanged. A failed
-process, malformed output, timeout or memory-limit violation invalidates the
-run. The performance gate separately requires the companion's median to be no
-slower than MyPy's median on that workload.
-
-Bare ty reports unresolved Django model managers and failed type assertions.
-Its timings show the cost of the underlying checker, but do not establish
-equivalent Django checking. These fresh-process measurements also do not compare
-MyPy's persistent daemon or either checker's incremental editor performance.
+Rust alone does not remove duplicate analysis or subprocess startup. Official Ty still runs, while ty-extended also discovers plugins, indexes source and applies the additional Django behavior. Persistent editors reuse valid state between edits; these measurements cover fresh CLI processes.
 
 ## Reproduce
 
-Use separate environments for the two plugin implementations, with the same
-Python and Django versions. Install `mypy` and `django-stubs` in the reference
-environment, and `ty-extended` and `django-ty` in the companion environment.
+Build the candidate, then run the pinned five-shape comparison:
+
+```shell
+python3 companion/scripts/native_django_benchmark.py \
+  --companion /path/to/ty-extended --production-defaults --matrix \
+  --repeats 10 --output /tmp/new-native-comparison
+```
+
+The harness installs separate candidate, native and MyPy environments and pins the Django plugin source. Native Ty includes django-types. For an independently installed plugin wheel:
 
 ```shell
 python3 companion/scripts/compare_checkers.py \
   --companion /path/to/candidate/bin/ty-extended \
   --official /path/to/candidate/bin/ty \
+  --official-python /path/to/native/bin/python \
   --python /path/to/candidate/bin/python \
   --mypy /path/to/reference/bin/mypy \
   --plugin /path/to/candidate/lib/python3.13/site-packages/django_ty \
-  --files 7082 --models 2501 --queries 100 --repeats 3 \
+  --files 7082 --models 2501 --model-modules 250 --queries 100 \
+  --repeats 10 --production-defaults --max-ty-ratio 3.5 --aggregate-ratios \
   --output /tmp/new-comparison
 ```
 
-The harness requires a POSIX system with process monitoring. `--model-modules`
-spreads models across modules and exercises cross-module relations. Smaller
-workloads and many ordinary files with fewer models separate startup, project
-discovery and plugin costs. A median on these generated projects is evidence
-for those projects, not an upper bound for arbitrary applications or hardware.
+The native environment needs Django and django-types, with the same official Ty executable used by both Ty stacks. The reference environment needs Django, MyPy and django-stubs. Process monitoring requires POSIX. The hosted `ty-extended` workflow runs a required, dedicated 30-repeat matrix on Linux and macOS, cleans Cargo before timing and removes temporary environments afterward. Compatibility jobs retain the semantic checks; they do not duplicate performance timing after a full integration build. Earlier 10-repeat failures remain recorded alongside the subsequent series.
 
-## Implementation
+## Earlier measurements
 
-Protocol 0.9 adds explicitly opted-in class batches bounded to 128 items and
-1 MiB of requests. Each result is cached under the unchanged individual request
-key. Failed, unavailable or invalid batches fall back to individual calls.
-Fresh interpreter state is preserved between invocations; plugins must preserve
-independent results within a batch.
+Historical receipts remain available, including the [native Django comparison](qualification/official-django-comparison.json), [owned JSON optimization](qualification/native-django-owned-json-v62.json), [0.89 performance ledger](qualification/performance-0.89.0.json), and [published 0.89 acceptance](qualification/ty-extended-0.89.0.json). Failed prototype gates remain marked failed in their receipts.
 
-Protocol 0.8 lets plugins supply the data each class needs and request individual
-entries from their own retained project index. Django-ty 0.7 uses both interfaces.
-The host preserves fresh interpreter state, bounded execution and read-only
-access to the selected index.
-
-The companion shares generated descriptors and names, packs virtual declarations
-into a bounded set of modules, and materializes required declarations. It reuses
-projections whose type evidence remains valid, skips unchanged source copies and
-batches final CLI checks for large projects. File-selection, error-mapping,
-notebook and editor regression tests cover the affected paths.
+The published 0.89 stack with Django-ty 0.7 took **6.594 seconds** on the largest single-module case, versus MyPy's **6.806 seconds**. Earlier bare-Ty comparisons omitted django-types and therefore do not measure native Django support. Absolute results from separate machines or sessions are not controlled comparisons between implementations.

@@ -1,7 +1,7 @@
 [workspace]
 members = ["cargo:./companion"]
 packages = ["ty-extended"]
-version = "0.89.0"
+version = "0.90.0"
 
 # Config for 'dist'
 [dist]
@@ -57,13 +57,13 @@ publish-jobs = ["./publish-pypi", "./publish-sdk-crates"]
 # Post-announce jobs to run in CI
 post-announce-jobs = []
 # Custom permissions for GitHub Jobs
-github-custom-job-permissions = { "publish-sdk-crates" = { contents = "read", id-token = "write" }, "publish-docs" = { contents = "read", id-token = "write" }, "publish-versions" = { contents = "read", id-token = "write" }, "publish-mirror" = { contents = "read" } }
+github-custom-job-permissions = { "publish-sdk-crates" = { contents = "read", id-token = "write" } }
 # Whether to install an updater program
 install-updater = false
 # Path that installers should place binaries in
 install-path = ["$XDG_BIN_HOME/", "$XDG_DATA_HOME/../bin", "~/.local/bin"]
 # Whether source tarballs should include submodules
-recursive-tarball = true
+recursive-tarball = false
 # Publish installers and archives from this project's GitHub releases.
 hosting = ["github"]
 

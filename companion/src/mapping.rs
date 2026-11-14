@@ -120,6 +120,17 @@ impl DiagnosticOrigins {
                             );
                         }
                     } else if code == "too-many-positional-arguments" {
+                        let function_prefix = format!(
+                            "too-many-positional-arguments: Too many positional arguments to function `{name}`: "
+                        );
+                        if let Some(detail) = description.strip_prefix(&function_prefix) {
+                            return (
+                                original,
+                                format!(
+                                    "too-many-positional-arguments: Too many positional arguments: {detail}"
+                                ),
+                            );
+                        }
                         let prefix = format!(
                             "too-many-positional-arguments: Too many positional arguments to `{printed}`: expected "
                         );
@@ -193,6 +204,7 @@ enum Operation {
         offset: usize,
         text: String,
         origin: Option<Span>,
+        diagnostic_exceptions: Vec<(Span, String)>,
     },
     Replace {
         span: Span,
@@ -228,6 +240,22 @@ impl Edits {
             offset,
             text,
             origin: None,
+            diagnostic_exceptions: Vec::new(),
+        });
+    }
+    /// Permit a specific native rule only inside the supplied generated ranges.
+    /// Ranges are relative to this insertion; copied user code never qualifies.
+    pub fn insert_with_diagnostic_exceptions(
+        &mut self,
+        offset: usize,
+        text: String,
+        diagnostic_exceptions: Vec<(Span, String)>,
+    ) {
+        self.operations.push(Operation::Insert {
+            offset,
+            text,
+            origin: None,
+            diagnostic_exceptions,
         });
     }
     /// Anchor a generated declaration to its user-authored declaration. This
@@ -237,6 +265,7 @@ impl Edits {
             offset,
             text,
             origin: Some(origin),
+            diagnostic_exceptions: Vec::new(),
         });
     }
     pub fn replace(&mut self, span: Span, text: String) {
@@ -334,13 +363,16 @@ pub struct Rendered {
     synthetic_argument_positions: BTreeSet<usize>,
     signature_masks: Vec<Span>,
     suppressed_diagnostics: Vec<(Span, String)>,
+    generated_diagnostic_exceptions: Vec<(Span, String)>,
 }
 
 impl Rendered {
     pub fn suppresses_diagnostic(&self, code: &str, original: Span) -> bool {
-        self.suppressed_diagnostics
-            .iter()
-            .any(|(span, expected)| *span == original && expected == code)
+        self.suppressed_diagnostics.iter().any(|(span, expected)| {
+            *span == original
+                && crate::native_rules::semantic_id(expected)
+                    == crate::native_rules::semantic_id(code)
+        })
     }
     /// Split the combined notebook projection back into its code cells. Each
     /// source span excludes the one newline separator appended by ty between
@@ -504,6 +536,12 @@ impl Rendered {
                 .iter()
                 .filter(|(span, _)| contains(original, *span))
                 .map(|(span, code)| (shift(*span, original.start), code.clone()))
+                .collect(),
+            generated_diagnostic_exceptions: self
+                .generated_diagnostic_exceptions
+                .iter()
+                .filter(|(span, _)| contains(generated, *span))
+                .map(|(span, code)| (shift(*span, generated.start), code.clone()))
                 .collect(),
         };
         for (&(line, column), key) in &self.probes {
@@ -748,7 +786,7 @@ fn validate_offset(source: &Source, offset: usize) -> Result<()> {
 
 pub fn render(source: &Source, edits: &Edits) -> Result<Rendered> {
     let mut grouped = BTreeMap::<Span, Node>::new();
-    let mut insertions = BTreeMap::<usize, Vec<(String, Option<Span>)>>::new();
+    let mut insertions = BTreeMap::<usize, Vec<InsertedText>>::new();
     let mut type_hints = Vec::new();
     let mut suppressed_diagnostics = Vec::new();
     for operation in &edits.operations {
@@ -774,8 +812,19 @@ pub fn render(source: &Source, edits: &Edits) -> Result<Rendered> {
                 offset,
                 text,
                 origin,
+                diagnostic_exceptions,
             } => {
                 validate_offset(source, *offset)?;
+                for (span, _) in diagnostic_exceptions {
+                    ensure!(
+                        origin.is_none()
+                            && span.start < span.end
+                            && span.end <= text.len()
+                            && text.is_char_boundary(span.start)
+                            && text.is_char_boundary(span.end),
+                        "invalid generated diagnostic exception"
+                    );
+                }
                 if let Some(origin) = origin {
                     validate_offset(source, origin.start)?;
                     validate_offset(source, origin.end)?;
@@ -784,10 +833,11 @@ pub fn render(source: &Source, edits: &Edits) -> Result<Rendered> {
                         "inverted inserted declaration origin"
                     );
                 }
-                insertions
-                    .entry(*offset)
-                    .or_default()
-                    .push((text.clone(), *origin));
+                insertions.entry(*offset).or_default().push((
+                    text.clone(),
+                    *origin,
+                    diagnostic_exceptions.clone(),
+                ));
                 continue;
             }
             Operation::Replace { span, .. } | Operation::Wrap { span, .. } => *span,
@@ -891,6 +941,7 @@ pub fn render(source: &Source, edits: &Edits) -> Result<Rendered> {
             synthetic_argument_positions: BTreeSet::new(),
             signature_masks: Vec::new(),
             suppressed_diagnostics,
+            generated_diagnostic_exceptions: Vec::new(),
         },
     };
     writer.node(0)?;
@@ -909,7 +960,7 @@ pub fn render(source: &Source, edits: &Edits) -> Result<Rendered> {
     Ok(writer.output)
 }
 
-type InsertedText = (String, Option<Span>);
+type InsertedText = (String, Option<Span>, Vec<(Span, String)>);
 
 struct Writer<'a> {
     source: &'a Source,
@@ -949,9 +1000,20 @@ impl Writer<'_> {
             // Clone the insertion group to release its borrow before appending.
             let texts = self.insertions[self.next_insertion].1.clone();
             self.next_insertion += 1;
-            for (text, origin) in texts {
+            for (text, origin, exceptions) in texts {
                 let start = self.output.text.len();
                 self.append(&text);
+                self.output
+                    .generated_diagnostic_exceptions
+                    .extend(exceptions.into_iter().map(|(span, code)| {
+                        (
+                            Span {
+                                start: start + span.start,
+                                end: start + span.end,
+                            },
+                            code,
+                        )
+                    }));
                 if let Some(original) = origin {
                     self.output.mappings.push(Mapping {
                         generated: Span {
@@ -1220,14 +1282,29 @@ pub fn map_diagnostics_with_origins(
             suppressed.push(diagnostic.clone());
             continue;
         }
+        if rendered
+            .generated_diagnostic_exceptions
+            .iter()
+            .any(|(span, code)| {
+                span.start <= begin
+                    && end <= span.end
+                    && crate::native_rules::semantic_id(
+                        diagnostic["check_name"].as_str().unwrap_or(""),
+                    ) == crate::native_rules::semantic_id(code)
+            })
+            && map_range(rendered, Span { start: begin, end }).is_none()
+        {
+            suppressed.push(diagnostic.clone());
+            continue;
+        }
         // Plugin-owned declarations may intentionally replace inherited
         // members with unrelated virtual types (for example per-model Django
         // managers). Newer checkers validate those generated declarations as
         // ordinary Python overrides. Only unanchored generated bytes qualify:
         // every user-authored or source-anchored override remains reportable.
         if matches!(
-            diagnostic["check_name"].as_str(),
-            Some("invalid-attribute-override" | "invalid-mutable-override")
+            crate::native_rules::semantic_id(diagnostic["check_name"].as_str().unwrap_or("")),
+            "invalid-attribute-override" | "invalid-mutable-override"
         ) && map_range(rendered, Span { start: begin, end }).is_none()
         {
             suppressed.push(diagnostic.clone());
@@ -1546,6 +1623,62 @@ mod tests {
     }
 
     #[test]
+    fn generated_exceptions_preserve_user_errors_and_other_native_rules() -> Result<()> {
+        let source = source("user = 1\n");
+        let inserted = "generated = factory()\nother = 2\n";
+        let call = Span { start: 12, end: 21 };
+        let mut edits = Edits::default();
+        edits.insert_with_diagnostic_exceptions(
+            0,
+            inserted.into(),
+            vec![(call, "invalid-assignment".into())],
+        );
+        let rendered = render(&source, &edits)?;
+        for rendered in std::iter::once(rendered.clone()).chain(rendered.split_cells(
+            &source.text,
+            &[Span {
+                start: 0,
+                end: source.text.len() - 1,
+            }],
+        )?) {
+            let hidden = diagnostic(&rendered, "invalid-assignment", call.start, call.end);
+            let user = diagnostic(
+                &rendered,
+                "invalid-assignment",
+                inserted.len(),
+                inserted.len() + 4,
+            );
+            let (mapped, suppressed) = map_diagnostics(
+                &source,
+                &rendered,
+                &[hidden.clone(), user],
+                &BTreeMap::new(),
+                &[],
+            )?;
+            assert_eq!(suppressed, vec![hidden]);
+            assert_eq!(mapped.len(), 1);
+            assert_eq!(mapped[0]["location"]["positions"]["begin"]["line"], 1);
+            for (code, span) in [
+                ("invalid-argument-type", call),
+                ("invalid-assignment", Span { start: 22, end: 27 }),
+                (
+                    "invalid-assignment",
+                    Span {
+                        start: 11,
+                        end: call.end,
+                    },
+                ),
+            ] {
+                let error = diagnostic(&rendered, code, span.start, span.end);
+                assert!(
+                    map_diagnostics(&source, &rendered, &[error], &BTreeMap::new(), &[]).is_err()
+                );
+            }
+        }
+        Ok(())
+    }
+
+    #[test]
     fn generated_override_checks_never_hide_user_overrides_or_other_rules() -> Result<()> {
         let source = source("class Child(Base):\n    original: str\n");
         let mut edits = Edits::default();
@@ -1556,7 +1689,12 @@ mod tests {
         let rendered = render(&source, &edits)?;
         let generated = rendered.text.find("generated").unwrap();
         let original = rendered.text.find("original").unwrap();
-        for code in ["invalid-attribute-override", "invalid-mutable-override"] {
+        for code in [
+            "invalid-attribute-override",
+            "invalid-mutable-override",
+            "incompatible-attribute-override",
+            "incompatible-mutable-override",
+        ] {
             let hidden = diagnostic(&rendered, code, generated, generated + 9);
             let user = diagnostic(&rendered, code, original, original + 8);
             let (mapped, suppressed) = map_diagnostics(
@@ -1568,6 +1706,7 @@ mod tests {
             )?;
             assert_eq!(suppressed, vec![hidden]);
             assert_eq!(mapped.len(), 1);
+            assert_eq!(mapped[0]["check_name"], code);
             assert_eq!(mapped[0]["location"]["positions"]["begin"]["line"], 2);
             assert_eq!(mapped[0]["location"]["positions"]["begin"]["column"], 5);
         }

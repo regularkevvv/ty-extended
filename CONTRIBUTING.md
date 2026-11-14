@@ -1,19 +1,20 @@
 # Contributing
 
-The Rust companion is developed in `companion/`. Official ty is developed by
-[Astral](https://github.com/astral-sh/ruff/tree/main/crates/ty); the companion talks
+The application is developed in `companion/`; our plugin host, protocol and SDK
+crates live in `crates/`. Official ty is developed by
+[Astral](https://github.com/astral-sh/ruff/tree/main/crates/ty); ty-extended talks
 to a separately installed checker through its public command line and LSP.
 
 ```shell
-git clone --recurse-submodules https://github.com/regularkevvv/ty-extended.git
+git clone https://github.com/regularkevvv/ty-extended.git
 cd ty-extended
 cargo +1.98.0 build --locked --manifest-path companion/Cargo.toml
 ```
 
-The pinned `ruff` submodule supplies parser, notebook, plugin-host and protocol
-crates. Changing companion behavior generally does not require changing it.
-Changes to those shared crates belong in `ruff-extended`, followed by an explicit
-submodule update. Do not merge each upstream ty release into this repository.
+Ruff parser and notebook libraries are ordinary crates.io dependencies, pinned
+in the application manifest and workspace lockfile. No submodule or vendored
+Ruff source is required. Changes to our plugin crates belong in this repository.
+Official ty remains a separate runtime dependency with independent versions.
 
 ## Validation
 
@@ -40,7 +41,7 @@ build/test phase.
 
 ## Packaging and releases
 
-The Python distribution uses Maturin to package the companion executable and
+The Python distribution uses Maturin to package the ty-extended executable and
 `ty_extended` SDK module. It depends on official ty and must not install its files
 or the `ty` command. See [publishing](docs/release-publishing.md).
 

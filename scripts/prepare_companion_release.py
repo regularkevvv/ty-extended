@@ -1,4 +1,4 @@
-"""Bump the companion's independent version without moving its source dependencies."""
+"""Bump ty-extended's independent version without moving its source dependencies."""
 
 from __future__ import annotations
 
@@ -40,7 +40,7 @@ def main() -> None:
         stdout=subprocess.DEVNULL,
     )
     print(
-        f"Prepared companion {version}; update CHANGELOG.md and regenerate release.yml with cargo-dist 0.31.0."
+        f"Prepared ty-extended {version}; update CHANGELOG.md and regenerate release.yml with cargo-dist 0.31.0."
     )
 
 

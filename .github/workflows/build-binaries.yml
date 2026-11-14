@@ -13,7 +13,9 @@ name: Build binaries
       - .github/workflows/build-binaries.yml
       - companion/**
       - python/**
-      - ruff
+      - crates/**
+      - Cargo.toml
+      - Cargo.lock
       - scripts/test_plugin_wheel.py
       - build_backend.py
 concurrency:
@@ -39,7 +41,6 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
-          submodules: recursive
           persist-credentials: false
       - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97
         with:
@@ -88,7 +89,6 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
-          submodules: recursive
           persist-credentials: false
       - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97
         with:
@@ -103,7 +103,7 @@ jobs:
           sccache: false
           maturin-version: v1.16.0
           target: x86_64
-          args: --release --locked --target-dir companion/target --out dist --interpreter python3.13 --compatibility pypi
+          args: --release --locked --target-dir companion/target --out dist --compatibility pypi
           rust-toolchain: 1.98.0
         env:
           RUSTFLAGS: -C linker=rust-lld -C linker-flavor=ld64.lld -C link-arg=--icf=safe
@@ -146,7 +146,6 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
-          submodules: recursive
           persist-credentials: false
       - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97
         with:
@@ -162,7 +161,7 @@ jobs:
           maturin-version: v1.16.0
           target: aarch64
           rust-toolchain: 1.98.0
-          args: --release --locked --target-dir companion/target --out dist --interpreter python3.13 --compatibility pypi
+          args: --release --locked --target-dir companion/target --out dist --compatibility pypi
         env:
           CFLAGS: -fno-profile-generate -fno-profile-use
           CXXFLAGS: -fno-profile-generate -fno-profile-use
@@ -217,7 +216,6 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
-          submodules: recursive
           persist-credentials: false
       - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97
         with:
@@ -240,7 +238,7 @@ jobs:
           maturin-version: v1.16.0
           target: ${{ matrix.platform.target }}
           rust-toolchain: 1.98.0
-          args: --release --locked --target-dir companion/target --out dist --interpreter python3.13 --compatibility pypi
+          args: --release --locked --target-dir companion/target --out dist --compatibility pypi
         env:
           XWIN_VERSION: 16
       - name: Audit standalone binary wheel tags
@@ -304,7 +302,6 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
-          submodules: recursive
           persist-credentials: false
       - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97
         with:
@@ -321,7 +318,7 @@ jobs:
           target: ${{ matrix.target }}
           rust-toolchain: 1.98.0
           manylinux: "2_17"
-          args: --release --locked --target-dir companion/target --out dist --interpreter python3.13 --compatibility pypi
+          args: --release --locked --target-dir companion/target --out dist --compatibility pypi
       - name: Audit standalone binary wheel tags
         shell: bash
         run: |
@@ -376,7 +373,6 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
-          submodules: recursive
           persist-credentials: false
       - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97
         with:
@@ -393,7 +389,7 @@ jobs:
           rust-toolchain: 1.98.0
           manylinux: "2_17"
           docker-options: -e JEMALLOC_SYS_WITH_LG_PAGE=16
-          args: --release --locked --target-dir companion/target --out dist --interpreter python3.13 --compatibility pypi
+          args: --release --locked --target-dir companion/target --out dist --compatibility pypi
       - name: Audit standalone binary wheel tags
         shell: bash
         run: |
@@ -449,7 +445,6 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
-          submodules: recursive
           persist-credentials: false
       - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97
         with:
@@ -465,7 +460,7 @@ jobs:
           maturin-version: v1.16.0
           target: ${{ matrix.target }}
           manylinux: musllinux_1_2
-          args: --release --locked --target-dir companion/target --out dist --interpreter python3.13 --compatibility pypi
+          args: --release --locked --target-dir companion/target --out dist --compatibility pypi
           rust-toolchain: 1.98.0
       - name: Audit standalone binary wheel tags
         shell: bash
@@ -524,7 +519,6 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
-          submodules: recursive
           persist-credentials: false
       - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97
         with:
@@ -539,7 +533,7 @@ jobs:
           maturin-version: v1.16.0
           target: ${{ matrix.platform.target }}
           manylinux: musllinux_1_2
-          args: --release --locked --target-dir companion/target --out dist --interpreter python3.13 --compatibility pypi
+          args: --release --locked --target-dir companion/target --out dist --compatibility pypi
           docker-options: ${{ matrix.platform.maturin_docker_options }}
           rust-toolchain: 1.98.0
       - name: Audit standalone binary wheel tags

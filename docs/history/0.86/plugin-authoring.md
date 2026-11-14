@@ -1,5 +1,5 @@
 > Historical documentation for ty-extended 0.86.x, which shipped a modified checker.
-> Current releases use the [Monty companion](../../plugin-runtime.md).
+> Current releases use the [ty-extended runtime](../../plugin-runtime.md).
 
 # Build a Semantic Plugin
 

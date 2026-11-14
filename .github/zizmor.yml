@@ -1,6 +1,0 @@
-rules:
-  secrets-outside-env:
-    ignore:
-      # TODO: move these secrets to the release environment
-      - publish-docs.yml
-      - publish-versions.yml

@@ -1,6 +1,6 @@
 //! Preserve the user's ty options while relocating analysis-only source paths.
 use anyhow::{Context, Result, ensure};
-use globset::{Candidate, GlobBuilder, GlobMatcher};
+use globset::{Candidate, GlobBuilder, GlobMatcher, GlobSet};
 use std::{
     collections::BTreeMap,
     path::{Path, PathBuf},
@@ -62,7 +62,20 @@ impl Pattern {
             .map_or((false, pattern), |p| (true, p));
         let directory_only = pattern.ends_with('/');
         let pattern = pattern.trim_end_matches('/');
-        let pattern = relocated(pattern, base, base, base);
+        let absolute = relocated(pattern, base, base, base);
+        // The configuration directory is a literal path, even when its name
+        // contains brackets or other glob punctuation. Only the user-supplied
+        // suffix carries pattern syntax.
+        let pattern = if Path::new(pattern).is_relative()
+            && let Some(anchor) = base
+                .ancestors()
+                .find(|anchor| Path::new(&absolute).starts_with(anchor))
+        {
+            let prefix = anchor.to_string_lossy();
+            format!("{}{}", globset::escape(&prefix), &absolute[prefix.len()..])
+        } else {
+            absolute
+        };
         let matcher = GlobBuilder::new(&pattern)
             .literal_separator(true)
             .backslash_escape(false)
@@ -74,6 +87,7 @@ impl Pattern {
             negated,
         })
     }
+    #[cfg(test)]
     fn matches(&self, ancestors: &[Candidate<'_>]) -> bool {
         ancestors.iter().enumerate().any(|(index, candidate)| {
             (!self.directory_only || index > 0) && self.matcher.is_match_candidate(candidate)
@@ -82,14 +96,111 @@ impl Pattern {
 }
 
 #[derive(Clone)]
+struct Patterns {
+    patterns: Vec<Pattern>,
+    matcher: GlobSet,
+}
+impl Patterns {
+    fn new(patterns: Vec<Pattern>) -> Result<Self> {
+        let matcher = GlobSet::new(patterns.iter().map(|pattern| pattern.matcher.glob()))?;
+        Ok(Self { patterns, matcher })
+    }
+
+    /// Match all patterns together, retaining the last matching rule across
+    /// every ancestor. Rule order, rather than ancestor order, determines the
+    /// winner when an exclusion is followed by a negated exclusion.
+    fn last_index(&self, ancestors: &[Candidate<'_>], depth_offset: usize) -> Option<usize> {
+        let mut matches = Vec::new();
+        let mut last = None;
+        for (depth, candidate) in ancestors.iter().enumerate() {
+            self.matcher.matches_candidate_into(candidate, &mut matches);
+            if let Some(index) = matches
+                .iter()
+                .rev()
+                .copied()
+                .find(|&index| depth + depth_offset > 0 || !self.patterns[index].directory_only)
+            {
+                last = Some(last.map_or(index, |previous: usize| previous.max(index)));
+            }
+        }
+        last
+    }
+    fn last_match(&self, ancestors: &[Candidate<'_>]) -> Option<&Pattern> {
+        self.last_index(ancestors, 0)
+            .map(|index| &self.patterns[index])
+    }
+}
+
+#[derive(Clone)]
 pub struct Selection {
-    includes: Option<Vec<Pattern>>,
-    excludes: Vec<Pattern>,
+    includes: Option<Patterns>,
+    excludes: Patterns,
     root: PathBuf,
     respect_ignore: bool,
     exclude_scripts: bool,
 }
+
+/// Immutable per-wave parent matches. File names and PEP 723 text are still
+/// tested independently, with the same global pattern ordering as Selection.
+pub struct PreparedSelection<'a> {
+    selection: &'a Selection,
+    parents: std::collections::HashMap<PathBuf, (Option<usize>, Option<usize>)>,
+}
+
+impl PreparedSelection<'_> {
+    pub fn includes(&self, path: &Path, text: &str) -> bool {
+        let Some((included, excluded)) = path.parent().and_then(|parent| self.parents.get(parent))
+        else {
+            return self.selection.includes(path, text);
+        };
+        if self.selection.exclude_scripts && text.lines().any(|line| line.trim() == "# /// script")
+        {
+            return false;
+        }
+        let candidate = Candidate::new(path);
+        let candidates = std::slice::from_ref(&candidate);
+        if self.selection.includes.as_ref().is_some_and(|patterns| {
+            (*included)
+                .max(patterns.last_index(candidates, 0))
+                .is_none()
+        }) {
+            return false;
+        }
+        (*excluded)
+            .max(self.selection.excludes.last_index(candidates, 0))
+            .is_none_or(|index| self.selection.excludes.patterns[index].negated)
+    }
+
+    pub fn includes_explicit(&self, path: &Path, text: &str, force_exclude: bool) -> bool {
+        !force_exclude || self.includes(path, text)
+    }
+}
+
 impl Selection {
+    pub fn prepare_paths<'a, 'p>(
+        &'a self,
+        paths: impl IntoIterator<Item = &'p Path>,
+    ) -> PreparedSelection<'a> {
+        let mut parents = std::collections::HashMap::new();
+        for path in paths {
+            if let Some(parent) = path.parent()
+                && let std::collections::hash_map::Entry::Vacant(entry) =
+                    parents.entry(parent.to_owned())
+            {
+                let ancestors = parent.ancestors().map(Candidate::new).collect::<Vec<_>>();
+                entry.insert((
+                    self.includes
+                        .as_ref()
+                        .and_then(|patterns| patterns.last_index(&ancestors, 1)),
+                    self.excludes.last_index(&ancestors, 1),
+                ));
+            }
+        }
+        PreparedSelection {
+            selection: self,
+            parents,
+        }
+    }
     fn new(table: &Table, base: &Path, root: &Path) -> Result<Self> {
         let src = table.get("src").and_then(Value::as_table);
         let patterns = |key: &str| -> Result<Option<Vec<Pattern>>> {
@@ -114,8 +225,8 @@ impl Selection {
             .collect::<Result<Vec<_>>>()?;
         excludes.extend(patterns("exclude")?.unwrap_or_default());
         Ok(Self {
-            includes: patterns("include")?,
-            excludes,
+            includes: patterns("include")?.map(Patterns::new).transpose()?,
+            excludes: Patterns::new(excludes)?,
             root: root.to_owned(),
             respect_ignore: src
                 .and_then(|t| t.get("respect-ignore-files"))
@@ -144,17 +255,13 @@ impl Selection {
         if self
             .includes
             .as_ref()
-            .is_some_and(|patterns| !patterns.iter().any(|p| p.matches(&ancestors)))
+            .is_some_and(|patterns| patterns.last_match(&ancestors).is_none())
         {
             return false;
         }
-        let mut excluded = false;
-        for pattern in &self.excludes {
-            if pattern.matches(&ancestors) {
-                excluded = !pattern.negated;
-            }
-        }
-        !excluded
+        self.excludes
+            .last_match(&ancestors)
+            .is_none_or(|pattern| pattern.negated)
     }
     pub fn includes_explicit(&self, path: &Path, text: &str, force_exclude: bool) -> bool {
         !force_exclude || self.includes(path, text)
@@ -166,9 +273,8 @@ impl Selection {
         if !self.respect_ignore {
             return std::collections::BTreeSet::new();
         }
-        let mut all = std::collections::BTreeSet::new();
-        let mut visible = std::collections::BTreeSet::new();
-        for (respect, paths) in [(false, &mut all), (true, &mut visible)] {
+        let scan = |respect| {
+            let mut paths = std::collections::BTreeSet::new();
             let mut walker = ignore::WalkBuilder::new(root);
             walker
                 .hidden(false)
@@ -195,7 +301,18 @@ impl Selection {
                     paths.insert(entry.into_path());
                 }
             }
-        }
+            paths
+        };
+        // The two scans are independent. Keep the same walkers, rule flags,
+        // pruning and error handling, then compare their complete file sets.
+        let (all, visible) = std::thread::scope(|scope| {
+            let all = scope.spawn(|| scan(false));
+            let visible = scan(true);
+            (
+                all.join().expect("unfiltered ignore scan panicked"),
+                visible,
+            )
+        });
         all.difference(&visible).cloned().collect()
     }
 }
@@ -361,7 +478,7 @@ fn editor_options(options: &BTreeMap<String, String>) -> Result<serde_json::Valu
     ))
 }
 
-/// The checked-in schema supplies serialization shape, not filesystem or glob
+/// The owned editor-options contract supplies serialization shape, not filesystem or glob
 /// semantics; those remain the native checker's responsibility.
 fn editor_schema() -> Result<&'static serde_json::Value> {
     static SCHEMA: std::sync::OnceLock<std::result::Result<serde_json::Value, String>> =
@@ -369,13 +486,13 @@ fn editor_schema() -> Result<&'static serde_json::Value> {
     SCHEMA
         .get_or_init(|| {
             let schema: serde_json::Value =
-                serde_json::from_str(include_str!("../../ruff/ty.schema.json"))
+                serde_json::from_str(include_str!("editor-options.schema.json"))
                     .map_err(|error| error.to_string())?;
             audit_editor_schema(&schema, &schema).map_err(|error| error.to_string())?;
             Ok(schema)
         })
         .as_ref()
-        .map_err(|error| anyhow::anyhow!("unsupported pinned ty configuration schema: {error}"))
+        .map_err(|error| anyhow::anyhow!("unsupported editor options contract: {error}"))
 }
 
 fn audit_editor_schema(schema: &serde_json::Value, root: &serde_json::Value) -> Result<()> {
@@ -1079,7 +1196,7 @@ fn plugin_registrations(
             .unwrap_or("wasm");
         ensure!(
             runtime == "monty",
-            "Plugin `{id}` uses {runtime}; this companion requires a Monty artifact and runtime='monty'"
+            "Plugin `{id}` uses {runtime}; ty-extended requires a Monty artifact and runtime='monty'"
         );
         if let Some(overlay) = &overlay
             && !overlay.is_dir()
@@ -1311,7 +1428,7 @@ fn plugin_registrations(
                 .and_then(Value::as_str)
                 .unwrap_or("in-process")
                 == "in-process",
-            "This companion embeds Monty; plugins.monty-mode=worker is not supported. Select in-process. Worker execution belongs to historical checker-based releases."
+            "ty-extended embeds Monty; plugins.monty-mode=worker is not supported. Select in-process. Worker execution belongs to historical checker-based releases."
         );
     }
     // Manifest host validation is atomic upstream: a malformed environment
@@ -1379,15 +1496,12 @@ fn plugin_registrations(
 /// preserves requires-python/interpreter/default behavior across checker releases
 /// without duplicating PEP 440 or hard-coding the checker's latest stable version.
 fn resolve_python_version(
-    view: &Path,
+    generated: &Path,
     table: &Table,
     options: &BTreeMap<String, String>,
     project_metadata: &Table,
 ) -> Result<String> {
-    let directory = view
-        .parent()
-        .context("generated view parent")?
-        .join("environment-probe");
+    let directory = generated.join("environment-probe");
     std::fs::create_dir_all(&directory)?;
     let mut metadata = project_metadata.clone();
     let mut tool = Table::new();
@@ -1436,6 +1550,24 @@ fn resolve_python_version(
         "unexpected resolved Python version {version}"
     );
     Ok(version.to_owned())
+}
+
+/// Per-file override patterns retain the disk projection until their native
+/// configuration can be anchored independently of the original workspace.
+pub fn supports_memory_projection(root: &Path, options: &BTreeMap<String, String>) -> Result<bool> {
+    let (table, _, _) = discovered(root, options.get("ty-config"))?;
+    if table.contains_key("overrides") {
+        return Ok(false);
+    }
+    if let Some(overrides) = options.get("cli-config") {
+        for text in serde_json::from_str::<Vec<String>>(overrides)? {
+            let table: Table = toml::from_str(&text).context("invalid --config override")?;
+            if table.contains_key("overrides") {
+                return Ok(false);
+            }
+        }
+    }
+    Ok(true)
 }
 
 pub fn load(
@@ -1577,6 +1709,18 @@ pub fn load(
     }
     let terminal = serde_json::to_value(table.get("terminal"))?;
     let selection = Selection::new(&table, &base, root)?;
+    let memory_projection = view == root
+        && options
+            .get("memory-projection")
+            .is_some_and(|value| value == "true");
+    if memory_projection {
+        // Selection above applies the original include/exclude rules before
+        // analysis. Native discovery and rich-diagnostic queries receive only
+        // those selected documents; final workspace checks install their exact
+        // source list separately. Disk-view exclusions cannot be re-anchored to
+        // the generated directory when sources remain in the original project.
+        table.remove("src");
+    }
     let registration = plugin_registrations(&table, &base, root, options, source.as_deref())?;
     let plugins = registration.plugins;
     let stub_roots = registration.roots;
@@ -1742,9 +1886,10 @@ pub fn load(
     // The upstream server does not know which files were explicit CLI paths.
     // Preserve that selection in the generated configuration as exact file
     // exceptions; directory descendants continue to obey ordinary exclusions.
-    if options
-        .get("force-exclude")
-        .is_none_or(|value| value != "true")
+    if !memory_projection
+        && options
+            .get("force-exclude")
+            .is_none_or(|value| value != "true")
         && let Some(paths) = options.get("explicit-files")
     {
         let paths: Vec<PathBuf> = serde_json::from_str(paths)?;
@@ -1794,9 +1939,14 @@ pub fn load(
     }
     let python_version = match configured_python_version {
         Some(version) => version,
-        None if is_editor => resolve_python_version(view, &table, options, &metadata)?,
+        None if is_editor => resolve_python_version(
+            stubs.parent().context("generated stub parent")?,
+            &table,
+            options,
+            &metadata,
+        )?,
         None => resolve_python_version(
-            view,
+            stubs.parent().context("generated stub parent")?,
             &table,
             options,
             &project_metadata(root, root, None, false)?,
@@ -1891,7 +2041,12 @@ pub fn load(
                 .and_then(|project| project.get("requires-python"))
                 .is_some()
         {
-            let version = resolve_python_version(view, &native_base, options, &metadata)?;
+            let version = resolve_python_version(
+                stubs.parent().context("generated stub parent")?,
+                &native_base,
+                options,
+                &metadata,
+            )?;
             native_base
                 .get_mut("environment")
                 .and_then(Value::as_table_mut)
@@ -2435,6 +2590,106 @@ mod tests {
         }
     }
     #[test]
+    fn grouped_source_patterns_match_ordered_reference() -> Result<()> {
+        let include_cases = [
+            None,
+            Some(vec![]),
+            Some(vec!["src"]),
+            Some(vec!["src/[ab]*.py", "lib/**"]),
+            Some(vec!["!src/**"]),
+        ];
+        let exclude_cases = [
+            vec![],
+            vec!["src/generated/", "!src/generated/keep.py"],
+            vec!["!src/generated/keep.py", "src/generated/"],
+            vec!["**/*.py", "!src/**", "src/generated/**"],
+            vec!["src/a.py/", "src/a.py", "!src/a.py/"],
+            vec!["**/.venv/", "!src/.venv/**"],
+            vec!["src/[ab]*.py", "!src/apple.py", "src/apple.py"],
+            vec!["../shared/**", "!../shared/keep.py"],
+        ];
+        for root in [
+            "/workspace",
+            "/workspace [literal] café",
+            "relative/workspace",
+        ] {
+            let root = Path::new(root);
+            for includes in &include_cases {
+                for excludes in &exclude_cases {
+                    for exclude_scripts in [false, true] {
+                        let strings = |items: &[&str]| {
+                            Value::Array(items.iter().map(|s| Value::String((*s).into())).collect())
+                        };
+                        let mut src = Table::new();
+                        if let Some(includes) = includes {
+                            src.insert("include".into(), strings(includes));
+                        }
+                        src.insert("exclude".into(), strings(excludes));
+                        src.insert("exclude-scripts".into(), Value::Boolean(exclude_scripts));
+                        let table = Table::from_iter([("src".into(), Value::Table(src))]);
+                        let selection = Selection::new(&table, root, root)?;
+                        for directory in ["src", "src/generated", "lib", "src/.venv", "../shared"] {
+                            for file in [
+                                "a.py",
+                                "apple.py",
+                                "banana.py",
+                                "keep.py",
+                                "雪.py",
+                                "a.py/child.py",
+                            ] {
+                                let path = root.join(directory).join(file);
+                                let ancestors: Vec<_> =
+                                    path.ancestors().map(Candidate::new).collect();
+                                for text in ["x = 1", "  # /// script\n# dependencies=[]\n"] {
+                                    let script = exclude_scripts
+                                        && text.lines().any(|line| line.trim() == "# /// script");
+                                    let included =
+                                        selection.includes.as_ref().is_none_or(|patterns| {
+                                            patterns.patterns.iter().any(|p| p.matches(&ancestors))
+                                        });
+                                    let excluded = selection
+                                        .excludes
+                                        .patterns
+                                        .iter()
+                                        .rfind(|p| p.matches(&ancestors))
+                                        .is_some_and(|p| !p.negated);
+                                    let prepared =
+                                        selection.prepare_paths(std::iter::once(path.as_path()));
+                                    let unknown =
+                                        selection.prepare_paths(std::iter::empty::<&Path>());
+                                    for cached in [&prepared, &unknown] {
+                                        assert_eq!(
+                                            cached.includes(&path, text),
+                                            !script && included && !excluded
+                                        );
+                                        for force_exclude in [false, true] {
+                                            assert_eq!(
+                                                cached.includes_explicit(
+                                                    &path,
+                                                    text,
+                                                    force_exclude
+                                                ),
+                                                !force_exclude
+                                                    || (!script && included && !excluded)
+                                            );
+                                        }
+                                    }
+                                    assert_eq!(
+                                        selection.includes(&path, text),
+                                        !script && included && !excluded,
+                                        "path={path:?}, includes={includes:?}, excludes={excludes:?}, script={exclude_scripts}"
+                                    );
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        Ok(())
+    }
+
+    #[test]
     fn source_filters_match_directories_negation_and_scripts() -> Result<()> {
         let root = Path::new("/workspace");
         let table: Table = toml::from_str(
@@ -2450,6 +2705,20 @@ mod tests {
             "# /// script\n# dependencies=[]\n# ///\n"
         ));
         assert!(!selection.includes(&root.join("src/.venv/a.py"), "x=1"));
+        Ok(())
+    }
+
+    #[test]
+    fn source_pattern_anchors_are_literal() -> Result<()> {
+        let root = Path::new("/workspace [literal] café");
+        let table: Table =
+            toml::from_str("[src]\ninclude=['src/[ab]*.py']\nexclude=['src/absent.py']\n")?;
+        let selection = Selection::new(&table, root, root)?;
+        assert!(selection.includes(&root.join("src/apple.py"), ""));
+        assert!(selection.includes(&root.join("src/banana.py"), ""));
+        assert!(!selection.includes(&root.join("src/cherry.py"), ""));
+        assert!(!selection.includes(&root.join("src/absent.py"), ""));
+        assert!(!selection.includes(Path::new("/workspace l café/src/apple.py"), ""));
         Ok(())
     }
 

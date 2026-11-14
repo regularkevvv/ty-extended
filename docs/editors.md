@@ -1,8 +1,8 @@
-# Companion editor setup
+# ty-extended editor setup
 
 For Monty plugins, configure your editor's executable path or language-server command
-to run `ty-extended server`. Use an absolute path to the companion in the project
-environment. Astral's `ty` command starts the official checker without companion plugins.
+to run `ty-extended server`. Use an absolute path to ty-extended in the project
+environment. Astral's `ty` command starts the official checker without ty-extended plugins.
 
 For Neovim 0.11 and later:
 
@@ -12,7 +12,7 @@ vim.lsp.enable("ty")
 ```
 
 The integration descriptions below explain the upstream editor adapters. Override
-their server executable with the companion path when enabling Monty plugins.
+their server executable with ty-extended path when enabling Monty plugins.
 
 ## Upstream editor adapters
 
@@ -27,7 +27,7 @@ The Astral team maintains an official VS Code extension.
 
 Install the [ty extension](https://marketplace.visualstudio.com/items?itemName=astral-sh.ty) from the VS Code Marketplace.
 
-In a trusted workspace, select the companion explicitly in `settings.json`:
+In a trusted workspace, select ty-extended explicitly in `settings.json`:
 
 ```json
 {
@@ -36,7 +36,7 @@ In a trusted workspace, select the companion explicitly in `settings.json`:
 ```
 
 On Windows, select `.venv/Scripts/ty-extended.exe`. The extension's default
-discovery selects official `ty`; the explicit path enables companion plugins.
+discovery selects official `ty`; the explicit path enables ty-extended plugins.
 
 The extension automatically disables the language server from the [Python
 extension](https://marketplace.visualstudio.com/items?itemName=ms-python.python)

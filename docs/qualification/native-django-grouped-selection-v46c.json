@@ -1,0 +1,999 @@
+{
+  "status": "source-local-and-isolated-performance-qualified-production-install-and-release-pending",
+  "release_accepted": false,
+  "method": "Match source glob rules together while preserving last-rule negation and ancestor semantics. Defer unused Django QuerySet and general inheritance work until the plain-model path declines.",
+  "official_ty": "0.0.101",
+  "django_commit": "00a376541e31f9700c02e5094598e5369e8898d7",
+  "selection_source_sha256": "3a5c5005ae9ada881e5c31020d782379aeaa3214825eb6654a646cdab95bdade",
+  "selection_reference": {
+    "passed": true,
+    "comparisons": 14400,
+    "coverage": [
+      "absent and empty include sets",
+      "ordered and reversed negations",
+      "directory-only patterns",
+      "nested ancestors",
+      "default environment exclusions",
+      "literal bracket and Unicode roots",
+      "relative roots",
+      "PEP 723 script filtering"
+    ]
+  },
+  "django_hierarchy_regression": {
+    "pre_fix_failed": true,
+    "post_fix_index_units": 26,
+    "complete_index_equivalence": {
+      "scope": "CPython exact response equivalence and operation counts; no runtime performance claim.",
+      "passed": true,
+      "source_request_sha256": "effe3705db4f111a704bf853ec11b19d664b2d5d35d1f0b18eb4bba265c216cc",
+      "response_sha256": "fcf49fadf92020b9d53e8a39a818f6c01576e07be4332329383e390e97fa3b0a",
+      "request_preserved": true,
+      "complete_responses_equal": true,
+      "rows": [
+        {
+          "variant": "before",
+          "plugin_sha256": "26ccdc313a13243c910c13cb5551dc1d6245f04d844d3e76a62b4f76182b362a",
+          "cpython_diagnostic_seconds": 0.08415179199073464,
+          "calls": {
+            "derived_names": 2,
+            "module_of": 5001,
+            "model_scope": 1,
+            "short": 10002,
+            "resolve_class": 5002,
+            "call_of": 12081,
+            "call_name": 5001,
+            "relation_argument": 5000
+          },
+          "model_count": 2501
+        },
+        {
+          "variant": "after",
+          "plugin_sha256": "ed103f58cb0e845f80f8cc8e0d292ad8f48491c308c05cbf251e4b4614462220",
+          "cpython_diagnostic_seconds": 0.03725254093296826,
+          "calls": {
+            "derived_names": 1,
+            "module_of": 5001,
+            "model_scope": 1,
+            "short": 10002,
+            "call_of": 12081,
+            "call_name": 5001,
+            "relation_argument": 5000
+          },
+          "model_count": 2501
+        }
+      ]
+    }
+  },
+  "strict_performance_gates": {
+    "median_native_ratio": 3,
+    "every_paired_native_ratio": 3,
+    "mypy_median_ceiling": true,
+    "preserve_source_sha256": "51c1a88b05a169f1222685fe6105e4be5f43d4213aaaf57c60bf99dbe0d82df9",
+    "files": 7082,
+    "models": 2501,
+    "assertions": 100,
+    "negative_controls": 2,
+    "companion_focused_contracts": 20
+  },
+  "preceding_isolated_ci": {
+    "url": "https://github.com/regularkevvv/ty-extended/actions/runs/43164461276",
+    "linux": "failed: 3.260847 median, 3.424964 worst pair",
+    "macos": "passed: 2.397333 median, 2.490944 worst pair"
+  },
+  "pending_gates": [
+    "production activation qualification",
+    "fresh version/install matrices",
+    "Django relation integration",
+    "all CI and installed release qualification"
+  ],
+  "source_commit": "69ad554",
+  "build": {
+    "passed": true,
+    "steps": [
+      {
+        "step": "format",
+        "exit": 0,
+        "seconds": 1.0047842910280451
+      },
+      {
+        "step": "compile-and-clippy",
+        "exit": 0,
+        "seconds": 67.23546604102012
+      },
+      {
+        "step": "focused-selection-reference",
+        "exit": 0,
+        "seconds": 244.85004916600883
+      },
+      {
+        "step": "focused-moved-response",
+        "exit": 0,
+        "seconds": 1.0107642910443246
+      },
+      {
+        "step": "focused-prepared-members",
+        "exit": 0,
+        "seconds": 1.009583666920662
+      },
+      {
+        "step": "focused-borrowed-overlay",
+        "exit": 0,
+        "seconds": 1.0097654160344973
+      },
+      {
+        "step": "focused-signature-selection",
+        "exit": 0,
+        "seconds": 1.0063524169381708
+      },
+      {
+        "step": "focused-parallel-summaries",
+        "exit": 0,
+        "seconds": 1.0096362909534946
+      },
+      {
+        "step": "focused-consumed-index",
+        "exit": 0,
+        "seconds": 1.0147610829444602
+      },
+      {
+        "step": "focused-discovery-catalog",
+        "exit": 0,
+        "seconds": 1.0143887919839472
+      },
+      {
+        "step": "focused-catalog-boundary",
+        "exit": 0,
+        "seconds": 1.0124982499983162
+      },
+      {
+        "step": "focused-compact-paths",
+        "exit": 0,
+        "seconds": 1.0099962080130354
+      },
+      {
+        "step": "focused-raw-warmup",
+        "exit": 0,
+        "seconds": 1.010820750030689
+      },
+      {
+        "step": "focused-warm-cache",
+        "exit": 0,
+        "seconds": 1.0092391669750214
+      },
+      {
+        "step": "focused-native-return",
+        "exit": 0,
+        "seconds": 1.010191792040132
+      },
+      {
+        "step": "focused-initializer-regression",
+        "exit": 0,
+        "seconds": 1.0109503340208903
+      },
+      {
+        "step": "focused-generated-rule-provenance",
+        "exit": 0,
+        "seconds": 1.0088581660529599
+      },
+      {
+        "step": "focused-nested-override",
+        "exit": 0,
+        "seconds": 1.0102550409501418
+      },
+      {
+        "step": "focused-source-revision",
+        "exit": 0,
+        "seconds": 1.005662916926667
+      },
+      {
+        "step": "focused-unpatched-native",
+        "exit": 0,
+        "seconds": 1.0092894160188735
+      },
+      {
+        "step": "focused-parallel-sources",
+        "exit": 0,
+        "seconds": 1.008464791928418
+      },
+      {
+        "step": "focused-profile-cache",
+        "exit": 0,
+        "seconds": 1.0109282080084085
+      },
+      {
+        "step": "focused-contribution",
+        "exit": 0,
+        "seconds": 1.0140965830069035
+      },
+      {
+        "step": "focused-constructor",
+        "exit": 0,
+        "seconds": 1.0060121660353616
+      },
+      {
+        "step": "focused-nullable",
+        "exit": 0,
+        "seconds": 1.0091519999550655
+      },
+      {
+        "step": "focused-nested",
+        "exit": 0,
+        "seconds": 1.0050729579525068
+      },
+      {
+        "step": "focused-complete",
+        "exit": 0,
+        "seconds": 1.0098460420267656
+      },
+      {
+        "step": "focused-restart",
+        "exit": 0,
+        "seconds": 1.0054012500913814
+      },
+      {
+        "step": "focused-early",
+        "exit": 0,
+        "seconds": 1.0102892499417067
+      },
+      {
+        "step": "focused-early-isolation",
+        "exit": 0,
+        "seconds": 1.0095466669881716
+      },
+      {
+        "step": "focused-pushdown",
+        "exit": 0,
+        "seconds": 1.0085458329413086
+      },
+      {
+        "step": "focused-snapshot",
+        "exit": 0,
+        "seconds": 1.0096027080435306
+      },
+      {
+        "step": "focused-state",
+        "exit": 0,
+        "seconds": 1.0075009999563918
+      },
+      {
+        "step": "focused-inheritance",
+        "exit": 0,
+        "seconds": 1.0119749999139458
+      },
+      {
+        "step": "focused-unclaimed",
+        "exit": 0,
+        "seconds": 1.0109147500479594
+      },
+      {
+        "step": "focused-input",
+        "exit": 0,
+        "seconds": 1.0147712499601766
+      },
+      {
+        "step": "focused-imports",
+        "exit": 0,
+        "seconds": 1.014005749952048
+      },
+      {
+        "step": "native-units",
+        "exit": 0,
+        "seconds": 9.037347250035964
+      },
+      {
+        "step": "native-ignored",
+        "exit": 0,
+        "seconds": 1.0164008750580251
+      },
+      {
+        "step": "units",
+        "exit": 0,
+        "seconds": 9.04188658297062
+      },
+      {
+        "step": "ignored",
+        "exit": 0,
+        "seconds": 1.0140105839818716
+      },
+      {
+        "step": "binary",
+        "exit": 0,
+        "seconds": 49.19587016594596
+      },
+      {
+        "step": "all-test-binaries",
+        "exit": 0,
+        "seconds": 17.0589773330139
+      },
+      {
+        "step": "all-default-tests",
+        "exit": 0,
+        "seconds": 9.03462045895867
+      },
+      {
+        "step": "sdk-0-generic_project_semantics",
+        "exit": 0,
+        "seconds": 9.03816024994012
+      },
+      {
+        "step": "sdk-0-sdk_extended_semantics",
+        "exit": 0,
+        "seconds": 1.0110344999702647
+      },
+      {
+        "step": "sdk-0-sdk_field_semantics",
+        "exit": 0,
+        "seconds": 1.011107209022157
+      },
+      {
+        "step": "sdk-0-sdk_multi_semantics",
+        "exit": 0,
+        "seconds": 1.012630416895263
+      },
+      {
+        "step": "sdk-0-sdk_snapshots",
+        "exit": 0,
+        "seconds": 2.010466583073139
+      },
+      {
+        "step": "sdk-0-sdk_virtual_semantics",
+        "exit": 0,
+        "seconds": 1.0100927079329267
+      },
+      {
+        "step": "sdk-0-cli_acceptance",
+        "exit": 0,
+        "seconds": 2.0132008329965174
+      },
+      {
+        "step": "sdk-0-cli_edits",
+        "exit": 0,
+        "seconds": 2.0253565839957446
+      },
+      {
+        "step": "sdk-0-cli_watch",
+        "exit": 0,
+        "seconds": 2.0110790421022102
+      },
+      {
+        "step": "sdk-1-generic_project_semantics",
+        "exit": 0,
+        "seconds": 9.039114375016652
+      },
+      {
+        "step": "sdk-1-sdk_extended_semantics",
+        "exit": 0,
+        "seconds": 1.0055192080326378
+      },
+      {
+        "step": "sdk-1-sdk_field_semantics",
+        "exit": 0,
+        "seconds": 1.013344750041142
+      },
+      {
+        "step": "sdk-1-sdk_multi_semantics",
+        "exit": 0,
+        "seconds": 1.0103553340304643
+      },
+      {
+        "step": "sdk-1-sdk_snapshots",
+        "exit": 0,
+        "seconds": 2.0150857089320198
+      },
+      {
+        "step": "sdk-1-sdk_virtual_semantics",
+        "exit": 0,
+        "seconds": 1.0064136669971049
+      },
+      {
+        "step": "sdk-1-cli_acceptance",
+        "exit": 0,
+        "seconds": 2.0155238340375945
+      },
+      {
+        "step": "sdk-1-cli_edits",
+        "exit": 0,
+        "seconds": 2.01582062500529
+      },
+      {
+        "step": "sdk-1-cli_watch",
+        "exit": 0,
+        "seconds": 2.0162688340060413
+      },
+      {
+        "step": "warm-sdk-0-generic_project_semantics",
+        "exit": 0,
+        "seconds": 9.04598645796068
+      },
+      {
+        "step": "warm-sdk-0-sdk_extended_semantics",
+        "exit": 0,
+        "seconds": 1.0099412919953465
+      },
+      {
+        "step": "warm-sdk-0-sdk_field_semantics",
+        "exit": 0,
+        "seconds": 1.0099070830037817
+      },
+      {
+        "step": "warm-sdk-0-sdk_multi_semantics",
+        "exit": 0,
+        "seconds": 1.0124324159696698
+      },
+      {
+        "step": "warm-sdk-0-sdk_snapshots",
+        "exit": 0,
+        "seconds": 2.0213158749975264
+      },
+      {
+        "step": "warm-sdk-0-sdk_virtual_semantics",
+        "exit": 0,
+        "seconds": 1.0085267079994082
+      },
+      {
+        "step": "warm-sdk-0-cli_acceptance",
+        "exit": 0,
+        "seconds": 2.0132155830506235
+      },
+      {
+        "step": "warm-sdk-0-cli_edits",
+        "exit": 0,
+        "seconds": 2.0188960829982534
+      },
+      {
+        "step": "warm-sdk-0-cli_watch",
+        "exit": 0,
+        "seconds": 3.0178767499746755
+      },
+      {
+        "step": "warm-sdk-1-generic_project_semantics",
+        "exit": 0,
+        "seconds": 9.032033582916483
+      },
+      {
+        "step": "warm-sdk-1-sdk_extended_semantics",
+        "exit": 0,
+        "seconds": 1.0097791659645736
+      },
+      {
+        "step": "warm-sdk-1-sdk_field_semantics",
+        "exit": 0,
+        "seconds": 1.0076876250095665
+      },
+      {
+        "step": "warm-sdk-1-sdk_multi_semantics",
+        "exit": 0,
+        "seconds": 1.0132155830506235
+      },
+      {
+        "step": "warm-sdk-1-sdk_snapshots",
+        "exit": 0,
+        "seconds": 2.0136878329794854
+      },
+      {
+        "step": "warm-sdk-1-sdk_virtual_semantics",
+        "exit": 0,
+        "seconds": 1.0128605000209063
+      },
+      {
+        "step": "warm-sdk-1-cli_acceptance",
+        "exit": 0,
+        "seconds": 2.0161447919672355
+      },
+      {
+        "step": "warm-sdk-1-cli_edits",
+        "exit": 0,
+        "seconds": 2.013633249909617
+      },
+      {
+        "step": "warm-sdk-1-cli_watch",
+        "exit": 0,
+        "seconds": 2.0146602919558063
+      },
+      {
+        "step": "clippy",
+        "exit": 0,
+        "seconds": 1.0075899590738118
+      },
+      {
+        "step": "clean",
+        "exit": 0,
+        "seconds": 1.006158750038594
+      }
+    ],
+    "source_sha256": {
+      "companion/src/project_config.rs": "3a5c5005ae9ada881e5c31020d782379aeaa3214825eb6654a646cdab95bdade",
+      "companion/src/flow.rs": "d6d879a0293f7ea07d5da2a1005c93b7b0f07a7a4044948e57a8591d93f5d306",
+      "companion/src/runtime.rs": "f9d9ce3f02db0eb6856742440f5f958a4c1585957386f4feb3ab035e8c9ed8fc",
+      "companion/src/native_rules.rs": "45a10fdebaec5c6307c75d287d97ef3c85701fe21c4ad915c6c79162db196184",
+      "companion/src/static_project.rs": "b57a33c3065aed0caea78b3c7dcdf85fc6f3cef0ffd950585fdcd9d15f68fd1e",
+      "companion/src/editor_options.rs": "6c3d5540fdea2956a9ed179fb2291f087456a48cf744647063bdd11a3f775d46",
+      "companion/src/cli_edits.rs": "01543f2a5d63f7a66545923b6ccd25e06161b6e3fd9b2936d09073768902c444",
+      "companion/src/project_check.rs": "8398591f3d77a13a1c12717ab761c250ac9bc502d5ee5536ebea4d1223011a62",
+      "companion/src/project.rs": "f534de2ff40b8a6df4f18fe7e30a60322e53c0c3a80ddcbb39d57af5e39170da",
+      "companion/src/checker.rs": "4cb129fef5bf83671852080f618a0068f0b119bf2258abe4fe855e45c75d9687",
+      "companion/src/verify.rs": "e7708860ec0bd32cdfb8d6a171a53b2c12d5a67703f5a5b4322fa72d1592603d",
+      "companion/src/type_snapshot.rs": "0c018b699a8d140782e3813a5606d188c27b392400d1796ab839d73002eba813",
+      "companion/src/mapping.rs": "f92e4155bff39e8d47bed7b19a81e418a200fda3892eaebff485b1ea278bb761",
+      "companion/src/main.rs": "889627d345b64c595b0e5880e825b068f00008e5744ad52577a4c6933d6a668a",
+      "companion/src/parallel.rs": "4bffc4522fdb958d6484bc50a440037c3ac362ab346b3a0f070ce486b6b79658",
+      "companion/src/notebook.rs": "0bbd10d569d77019c19b7b76e7d2259c93afaaccc7f18c089e6478f3491cd24f",
+      "companion/src/lsp_mapping.rs": "2a3d7cc63f066bc25db11d680819124e3ff609448d2f27ab93b15d877bfc48fb",
+      "companion/src/lsp_server.rs": "f6a49b11f82ef55a8028d78253fb210844135b9c93e7777074dab3c6f846676a",
+      "companion/src/native_warmup.rs": "08a9e6bd722adfc152cb2dd1b4f9c2b552ee31db7c8d55cc24b96a317c698688",
+      "companion/src/lower.rs": "df0249023e8c7f88eff2eb49ca2d0ee64aba682ebc5b244c230435acccb136d4",
+      "companion/src/type_render.rs": "d4f62ea50e5fa320e862ae635e8bf90329211324963a8d92bea21cf6b9533111",
+      "companion/src/model.rs": "8bb5f959e83a06c65603dda8b389a58a5854ae1d47d57b53d7abf3b2e6afe65e",
+      "companion/src/cli.rs": "1cf30fe5cae409179d860ff2e5611d58e42c83f68599cc354ece0ec9c92a086c"
+    }
+  },
+  "borrowed_sdk": {
+    "passed": true,
+    "modes": [
+      {
+        "name": "generic_project_semantics",
+        "native": "0",
+        "warmup": "0",
+        "exit": 0,
+        "seconds": 7.7105454578995705
+      },
+      {
+        "name": "sdk_extended_semantics",
+        "native": "0",
+        "warmup": "0",
+        "exit": 0,
+        "seconds": 0.28387829195708036
+      },
+      {
+        "name": "sdk_field_semantics",
+        "native": "0",
+        "warmup": "0",
+        "exit": 0,
+        "seconds": 0.2329306669998914
+      },
+      {
+        "name": "sdk_multi_semantics",
+        "native": "0",
+        "warmup": "0",
+        "exit": 0,
+        "seconds": 0.2906357090687379
+      },
+      {
+        "name": "sdk_snapshots",
+        "native": "0",
+        "warmup": "0",
+        "exit": 0,
+        "seconds": 0.9266885000979528
+      },
+      {
+        "name": "sdk_virtual_semantics",
+        "native": "0",
+        "warmup": "0",
+        "exit": 0,
+        "seconds": 0.28424754191655666
+      },
+      {
+        "name": "cli_acceptance",
+        "native": "0",
+        "warmup": "0",
+        "exit": 0,
+        "seconds": 1.1371760410256684
+      },
+      {
+        "name": "cli_edits",
+        "native": "0",
+        "warmup": "0",
+        "exit": 0,
+        "seconds": 1.2002943749539554
+      },
+      {
+        "name": "cli_watch",
+        "native": "0",
+        "warmup": "0",
+        "exit": 0,
+        "seconds": 1.7430662090191618
+      },
+      {
+        "name": "generic_project_semantics",
+        "native": "0",
+        "warmup": "1",
+        "exit": 0,
+        "seconds": 7.640913082985207
+      },
+      {
+        "name": "sdk_extended_semantics",
+        "native": "0",
+        "warmup": "1",
+        "exit": 0,
+        "seconds": 0.28571379103232175
+      },
+      {
+        "name": "sdk_field_semantics",
+        "native": "0",
+        "warmup": "1",
+        "exit": 0,
+        "seconds": 0.23396641702856869
+      },
+      {
+        "name": "sdk_multi_semantics",
+        "native": "0",
+        "warmup": "1",
+        "exit": 0,
+        "seconds": 0.295745583018288
+      },
+      {
+        "name": "sdk_snapshots",
+        "native": "0",
+        "warmup": "1",
+        "exit": 0,
+        "seconds": 0.8822530000470579
+      },
+      {
+        "name": "sdk_virtual_semantics",
+        "native": "0",
+        "warmup": "1",
+        "exit": 0,
+        "seconds": 0.2878309589577839
+      },
+      {
+        "name": "cli_acceptance",
+        "native": "0",
+        "warmup": "1",
+        "exit": 0,
+        "seconds": 1.147285541985184
+      },
+      {
+        "name": "cli_edits",
+        "native": "0",
+        "warmup": "1",
+        "exit": 0,
+        "seconds": 1.2064557919511572
+      },
+      {
+        "name": "cli_watch",
+        "native": "0",
+        "warmup": "1",
+        "exit": 0,
+        "seconds": 1.7432546670315787
+      },
+      {
+        "name": "generic_project_semantics",
+        "native": "1",
+        "warmup": "0",
+        "exit": 0,
+        "seconds": 7.810678416979499
+      },
+      {
+        "name": "sdk_extended_semantics",
+        "native": "1",
+        "warmup": "0",
+        "exit": 0,
+        "seconds": 0.29151745804119855
+      },
+      {
+        "name": "sdk_field_semantics",
+        "native": "1",
+        "warmup": "0",
+        "exit": 0,
+        "seconds": 0.2368947920622304
+      },
+      {
+        "name": "sdk_multi_semantics",
+        "native": "1",
+        "warmup": "0",
+        "exit": 0,
+        "seconds": 0.285820166929625
+      },
+      {
+        "name": "sdk_snapshots",
+        "native": "1",
+        "warmup": "0",
+        "exit": 0,
+        "seconds": 0.9246829160256311
+      },
+      {
+        "name": "sdk_virtual_semantics",
+        "native": "1",
+        "warmup": "0",
+        "exit": 0,
+        "seconds": 0.2831822920124978
+      },
+      {
+        "name": "cli_acceptance",
+        "native": "1",
+        "warmup": "0",
+        "exit": 0,
+        "seconds": 1.2488557499600574
+      },
+      {
+        "name": "cli_edits",
+        "native": "1",
+        "warmup": "0",
+        "exit": 0,
+        "seconds": 1.244218916981481
+      },
+      {
+        "name": "cli_watch",
+        "native": "1",
+        "warmup": "0",
+        "exit": 0,
+        "seconds": 1.5350223750574514
+      },
+      {
+        "name": "generic_project_semantics",
+        "native": "1",
+        "warmup": "1",
+        "exit": 0,
+        "seconds": 7.829818791942671
+      },
+      {
+        "name": "sdk_extended_semantics",
+        "native": "1",
+        "warmup": "1",
+        "exit": 0,
+        "seconds": 0.28763654199428856
+      },
+      {
+        "name": "sdk_field_semantics",
+        "native": "1",
+        "warmup": "1",
+        "exit": 0,
+        "seconds": 0.23390137497335672
+      },
+      {
+        "name": "sdk_multi_semantics",
+        "native": "1",
+        "warmup": "1",
+        "exit": 0,
+        "seconds": 0.28641645796597004
+      },
+      {
+        "name": "sdk_snapshots",
+        "native": "1",
+        "warmup": "1",
+        "exit": 0,
+        "seconds": 0.8825077499495819
+      },
+      {
+        "name": "sdk_virtual_semantics",
+        "native": "1",
+        "warmup": "1",
+        "exit": 0,
+        "seconds": 0.29137770901434124
+      },
+      {
+        "name": "cli_acceptance",
+        "native": "1",
+        "warmup": "1",
+        "exit": 0,
+        "seconds": 1.2026809999952093
+      },
+      {
+        "name": "cli_edits",
+        "native": "1",
+        "warmup": "1",
+        "exit": 0,
+        "seconds": 1.193944833939895
+      },
+      {
+        "name": "cli_watch",
+        "native": "1",
+        "warmup": "1",
+        "exit": 0,
+        "seconds": 1.4803819590015337
+      }
+    ],
+    "main_sha256": "7b364ba143392625a9844ff2b5efc7752b07d47aa8e72dc9200e6047ff2c796e",
+    "clean_exit": 0,
+    "temporary_target_removed": true
+  },
+  "django_qualification": {
+    "steps": [
+      {
+        "step": "corpus",
+        "exit": 0,
+        "seconds": 1.176679000025615
+      },
+      {
+        "step": "multi-app",
+        "exit": 0,
+        "seconds": 0.2144865000154823
+      },
+      {
+        "step": "sdk-fields",
+        "exit": 0,
+        "seconds": 0.3322473340667784
+      },
+      {
+        "step": "monty-types",
+        "exit": 0,
+        "seconds": 0.33808420901186764
+      },
+      {
+        "step": "python-units",
+        "exit": 1,
+        "seconds": 4.2560193330282345
+      },
+      {
+        "step": "django-runtime",
+        "exit": 0,
+        "seconds": 0.41686287499032915
+      },
+      {
+        "step": "querydict-0",
+        "exit": 0,
+        "seconds": 3.420806541922502
+      },
+      {
+        "step": "querydict-1",
+        "exit": 0,
+        "seconds": 1.3710141669726
+      },
+      {
+        "step": "primary",
+        "exit": 0,
+        "seconds": 0.6240533750969917
+      },
+      {
+        "step": "source-example",
+        "exit": 0,
+        "seconds": 3.563579374924302
+      }
+    ],
+    "binary_sha256": "7b364ba143392625a9844ff2b5efc7752b07d47aa8e72dc9200e6047ff2c796e",
+    "focus_receipt": "pending optimized paired comparison",
+    "passed": true
+  },
+  "local_comparison": {
+    "passed": true,
+    "source_sha256": "51c1a88b05a169f1222685fe6105e4be5f43d4213aaaf57c60bf99dbe0d82df9",
+    "binary_sha256": "1e07206c5181ac7724b188d2f59bc8d7dd5b4b3a82333765152f343cec2df686",
+    "before_binary_sha256": "681b149b28abc77190ad2987440cbad948fc5ffbdc632ca95c7b98fdeda22c01",
+    "plugin_sha256": "ed103f58cb0e845f80f8cc8e0d292ad8f48491c308c05cbf251e4b4614462220",
+    "before_plugin_sha256": "26ccdc313a13243c910c13cb5551dc1d6245f04d844d3e76a62b4f76182b362a",
+    "medians": {
+      "hybrid": 0.8014442500425503,
+      "before": 0.7406733329407871,
+      "mypy": 7.229714666027576,
+      "official": 0.310741874971427
+    },
+    "maxima": {
+      "hybrid": 0.8465765829896554,
+      "before": 0.8060483339941129,
+      "mypy": 8.421517667011358,
+      "official": 0.37840483302716166
+    },
+    "performance_gate": {
+      "max_ty_ratio": 3.0,
+      "median_ty_ratio": 2.5791317958554627,
+      "paired_ty_ratios": [
+        2.1179545822159813,
+        2.667365873975366,
+        2.5876404656094603,
+        2.4743171964989514,
+        2.471741089611816
+      ],
+      "max_paired_ty_ratio": 2.667365873975366,
+      "ty_ceiling_met": true,
+      "mypy_ceiling_met": true,
+      "one_second_goal_met": true,
+      "passed": true
+    },
+    "provider_preserved": true,
+    "relative_to_before_median": 1.0820482045174717,
+    "limitation": "The combined candidate is slower than its paired predecessor in this local run; the run establishes the native ratio gate, not a standalone speedup from grouped glob matching."
+  },
+  "isolated_ci": {
+    "url": "https://github.com/regularkevvv/ty-extended/actions/runs/43167223473",
+    "passed": true,
+    "source_commit": "69ad554",
+    "platforms": {
+      "linux": {
+        "passed": true,
+        "companion_sha256": "4a035416064312ba924b49c53cffa2e09a140baab8262ea1ff247d54dcc62102",
+        "performance_gate": {
+          "max_ty_ratio": 3.0,
+          "median_ty_ratio": 2.8639823875178387,
+          "paired_ty_ratios": [
+            2.85524442247023,
+            2.7853675944629757,
+            2.9406306117495458,
+            2.9630974046556062,
+            2.9248675957526546
+          ],
+          "max_paired_ty_ratio": 2.9630974046556062,
+          "ty_ceiling_met": true,
+          "mypy_ceiling_met": true,
+          "one_second_goal_met": false,
+          "passed": true
+        },
+        "phase_medians_seconds": {
+          "class_projection": 0.0,
+          "diagnostic_mapping": 0.007,
+          "external_resolution": 0.014,
+          "final_check": 0.003,
+          "final_render": 0.001,
+          "flow_and_render": 0.003,
+          "function_summaries": 0.0,
+          "hook_responses": 0.019,
+          "import_preflight": 0.006,
+          "initial_lowering": 0.059,
+          "oracle_check": 0.065,
+          "project_index": 0.335,
+          "source_maps": 0.007,
+          "source_scan": 0.0,
+          "startup_configuration": 0.002,
+          "startup_overlays": 0.015,
+          "startup_project": 0.0,
+          "startup_runtime": 0.01,
+          "startup_selection": 0.042,
+          "startup_source_and_stub_index": 0.164,
+          "startup_source_copy": 0.007,
+          "virtual_declarations": 0.003,
+          "warmup_flow": 0.135,
+          "warmup_join": 0.004
+        },
+        "provider_preserved": true,
+        "temporary_environments_cleaned": true,
+        "median_seconds": {
+          "companion": 0.9871550980000166,
+          "bare-ty": 0.3446791789999679,
+          "mypy": 13.123306806999949
+        }
+      },
+      "macos": {
+        "passed": true,
+        "companion_sha256": "71969f677606a2b18fcfed9bc369c907a3be30bf8dc787ec3240c15562f1c72c",
+        "performance_gate": {
+          "max_ty_ratio": 3.0,
+          "median_ty_ratio": 2.6136325223873578,
+          "paired_ty_ratios": [
+            2.6136325223873578,
+            2.507164164257083,
+            2.1967406697333156,
+            2.702563734701306,
+            2.395058325248162
+          ],
+          "max_paired_ty_ratio": 2.702563734701306,
+          "ty_ceiling_met": true,
+          "mypy_ceiling_met": true,
+          "one_second_goal_met": false,
+          "passed": true
+        },
+        "phase_medians_seconds": {
+          "class_projection": 0.0,
+          "diagnostic_mapping": 0.01,
+          "external_resolution": 0.009,
+          "final_check": 0.005,
+          "final_render": 0.001,
+          "flow_and_render": 0.006,
+          "function_summaries": 0.0,
+          "hook_responses": 0.02,
+          "import_preflight": 0.008,
+          "initial_lowering": 0.076,
+          "oracle_check": 0.098,
+          "project_index": 0.316,
+          "source_maps": 0.012,
+          "source_scan": 0.0,
+          "startup_configuration": 0.007,
+          "startup_overlays": 0.05,
+          "startup_project": 0.0,
+          "startup_runtime": 0.017,
+          "startup_selection": 0.057,
+          "startup_source_and_stub_index": 0.291,
+          "startup_source_copy": 0.01,
+          "virtual_declarations": 0.002,
+          "warmup_flow": 0.181,
+          "warmup_join": 0.006
+        },
+        "provider_preserved": true,
+        "temporary_environments_cleaned": true,
+        "median_seconds": {
+          "companion": 1.3830615829999715,
+          "bare-ty": 0.5291721660000803,
+          "mypy": 11.123638875000097
+        }
+      }
+    }
+  }
+}

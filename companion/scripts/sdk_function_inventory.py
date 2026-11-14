@@ -7,9 +7,7 @@ import argparse
 import hashlib
 import json
 import os
-import re
 import subprocess
-import textwrap
 from pathlib import Path
 
 from lsp_acceptance import Client
@@ -112,14 +110,8 @@ def main() -> int:
     args = parser.parse_args()
     args.output.mkdir(parents=True)
     repo = Path(__file__).resolve().parents[2]
-    original = repo / "ruff/crates/ty_python_semantic/src/types/class/static_literal.rs"
-    block = original.read_text(encoding="utf-8").split(
-        "fn project_index_includes_module_level_functions()", 1
-    )[1]
-    sources = {
-        name: textwrap.dedent(raw).strip() + "\n"
-        for name, raw in re.findall(r'"/src/([^"]+)",\s*r#"(.*?)"#', block, re.S)
-    }
+    original = repo / "companion/tests/fixtures/sdk_contracts.json"
+    sources = json.loads(original.read_text())["cases"]["functions"]
     assert set(sources) == {"marking.py", "things.py", "entries.py"}
     manifest = {
         "id": "index-recorder",
@@ -137,8 +129,8 @@ def main() -> int:
     )
     result = {
         "passed": False,
-        "original_source": str(original),
-        "original_source_sha256": digest(original),
+        "fixture_catalog": str(original),
+        "fixture_catalog_sha256": digest(original),
         "binaries": {
             name: {
                 "path": str(getattr(args, name)),

@@ -1,0 +1,5883 @@
+{
+  "schema": 1,
+  "observed_at": "2026-11-09T04:47:00.590654+00:00",
+  "status": "Local experimental v11 Django source on the v10 companion; target unmet, no merge or release acceptance. A subsequent early-hook experiment is unqualified.",
+  "host": "macOS-27.0.1-arm64-arm-64bit-Mach-O",
+  "versions": {
+    "official_ty": "0.0.99",
+    "django_types": "0.24.0",
+    "django": "6.1.3",
+    "python": "3.13.0",
+    "mypy": "2.4.1",
+    "mypy_django_stubs": "6.1.2"
+  },
+  "experimental_environment": {
+    "TY_COMPANION_NATIVE_FIELDS": "1",
+    "TY_COMPANION_MEMORY_PROJECTION": "1"
+  },
+  "root_source": {
+    "base_commit": "b61e9618c9db3defac8fc8fe36191f3417ce6d4c",
+    "uncommitted": true,
+    "sha256": {
+      "companion/src/project_config.rs": "24f468df508a496b12be2a2907a92f2f7b54f8d6d5f4047553483f8207fa5b34",
+      "companion/src/flow.rs": "ad9f14b8e81261c836b3f2211f26d112178cd4c8f0607c12d66653fdb208c250",
+      "companion/src/runtime.rs": "cb59b3f4163f73e1eb5e4eb72b3bc931c9e213e32ab2381318d4445aef34ee50",
+      "companion/src/static_project.rs": "2cf4c4a73ddc32996ed016abeb33132522b707ffb234831d5efba8b45a09ca35",
+      "companion/src/editor_options.rs": "6c3d5540fdea2956a9ed179fb2291f087456a48cf744647063bdd11a3f775d46",
+      "companion/src/cli_edits.rs": "01543f2a5d63f7a66545923b6ccd25e06161b6e3fd9b2936d09073768902c444",
+      "companion/src/project_check.rs": "e92c2b352968fe4ebc529e68569a18330876a986a8385615c5dd36955fa95009",
+      "companion/src/project.rs": "4c2ba9614f2667a70bee4ddcd11e6ad1411b9450a43fddc248900275933f55a0",
+      "companion/src/checker.rs": "a335f03c95ef3a4190c47006e274a7bfc596c4f32d5a78e28d0c2725e3763ab3",
+      "companion/src/verify.rs": "e7708860ec0bd32cdfb8d6a171a53b2c12d5a67703f5a5b4322fa72d1592603d",
+      "companion/src/type_snapshot.rs": "0c018b699a8d140782e3813a5606d188c27b392400d1796ab839d73002eba813",
+      "companion/src/mapping.rs": "eb6f154ffc98dea9ac9469e8fbf5fc34fb3e26422004e53c9716e0867de153a1",
+      "companion/src/main.rs": "9924ddd0e2dad85a4ffd635a54f5adb33cd7bd0d05772971435053909ba8198f",
+      "companion/src/notebook.rs": "0bbd10d569d77019c19b7b76e7d2259c93afaaccc7f18c089e6478f3491cd24f",
+      "companion/src/lsp_mapping.rs": "2a3d7cc63f066bc25db11d680819124e3ff609448d2f27ab93b15d877bfc48fb",
+      "companion/src/lsp_server.rs": "f6a49b11f82ef55a8028d78253fb210844135b9c93e7777074dab3c6f846676a",
+      "companion/src/lower.rs": "6c0ed3cb717017c8d106b09e6dee4cc6a83994f7f1ca6fdca02c92e407db037e",
+      "companion/src/type_render.rs": "d4f62ea50e5fa320e862ae635e8bf90329211324963a8d92bea21cf6b9533111",
+      "companion/src/model.rs": "910d42537fa63b97809bb99dba3a504202f2ddb692ccf07c5ecedfc9fd3273f0",
+      "companion/src/cli.rs": "1cf30fe5cae409179d860ff2e5611d58e42c83f68599cc354ece0ec9c92a086c"
+    },
+    "ruff_gitlink": "7014a751a69f00d359f21fb9be6df67fb4dde4dc",
+    "ruff_sdk_or_checker_modified": false
+  },
+  "django_source": {
+    "base_commit": "2d59e00825ed2e0018cecf8997e65a3312aa9286",
+    "uncommitted": true,
+    "monty_sha256": "1c428e39459a6354894b6ec2019bc6e5471ef4c12eb8e8149ffcaa254ace090d",
+    "vendor_tree_sha256": "54d401a46ba9cc2cc477b7fc42fd8964bc5bd6b44753e53e135ee187635ad19b",
+    "manifest_sha256": {
+      "ty-plugin.json": "a62448a5c0a5e8bfcb8c92941f9ea0341a6ca7f5978d3769509400d311306f5c",
+      "ty-plugin-monty.json": "a62448a5c0a5e8bfcb8c92941f9ea0341a6ca7f5978d3769509400d311306f5c"
+    }
+  },
+  "build": {
+    "passed": true,
+    "source_sha256": {
+      "companion/src/project_config.rs": "24f468df508a496b12be2a2907a92f2f7b54f8d6d5f4047553483f8207fa5b34",
+      "companion/src/flow.rs": "ad9f14b8e81261c836b3f2211f26d112178cd4c8f0607c12d66653fdb208c250",
+      "companion/src/runtime.rs": "cb59b3f4163f73e1eb5e4eb72b3bc931c9e213e32ab2381318d4445aef34ee50",
+      "companion/src/static_project.rs": "2cf4c4a73ddc32996ed016abeb33132522b707ffb234831d5efba8b45a09ca35",
+      "companion/src/editor_options.rs": "6c3d5540fdea2956a9ed179fb2291f087456a48cf744647063bdd11a3f775d46",
+      "companion/src/cli_edits.rs": "01543f2a5d63f7a66545923b6ccd25e06161b6e3fd9b2936d09073768902c444",
+      "companion/src/project_check.rs": "e92c2b352968fe4ebc529e68569a18330876a986a8385615c5dd36955fa95009",
+      "companion/src/project.rs": "4c2ba9614f2667a70bee4ddcd11e6ad1411b9450a43fddc248900275933f55a0",
+      "companion/src/checker.rs": "a335f03c95ef3a4190c47006e274a7bfc596c4f32d5a78e28d0c2725e3763ab3",
+      "companion/src/verify.rs": "e7708860ec0bd32cdfb8d6a171a53b2c12d5a67703f5a5b4322fa72d1592603d",
+      "companion/src/type_snapshot.rs": "0c018b699a8d140782e3813a5606d188c27b392400d1796ab839d73002eba813",
+      "companion/src/mapping.rs": "eb6f154ffc98dea9ac9469e8fbf5fc34fb3e26422004e53c9716e0867de153a1",
+      "companion/src/main.rs": "9924ddd0e2dad85a4ffd635a54f5adb33cd7bd0d05772971435053909ba8198f",
+      "companion/src/notebook.rs": "0bbd10d569d77019c19b7b76e7d2259c93afaaccc7f18c089e6478f3491cd24f",
+      "companion/src/lsp_mapping.rs": "2a3d7cc63f066bc25db11d680819124e3ff609448d2f27ab93b15d877bfc48fb",
+      "companion/src/lsp_server.rs": "f6a49b11f82ef55a8028d78253fb210844135b9c93e7777074dab3c6f846676a",
+      "companion/src/lower.rs": "6c0ed3cb717017c8d106b09e6dee4cc6a83994f7f1ca6fdca02c92e407db037e",
+      "companion/src/type_render.rs": "d4f62ea50e5fa320e862ae635e8bf90329211324963a8d92bea21cf6b9533111",
+      "companion/src/model.rs": "910d42537fa63b97809bb99dba3a504202f2ddb692ccf07c5ecedfc9fd3273f0",
+      "companion/src/cli.rs": "1cf30fe5cae409179d860ff2e5611d58e42c83f68599cc354ece0ec9c92a086c"
+    },
+    "build_exit": 0,
+    "build_seconds": 313.04880024993327,
+    "stopped": [],
+    "binary_sha256": "27a0d6f7d0db0c00b5a24a1fffa52ac1fdf50d0499fbf1a62aaafa8bb82360ea",
+    "clean_exit": 0,
+    "clean_seconds": 0.40168041607830673
+  },
+  "comparison": {
+    "passed": true,
+    "performance_goal_met": false,
+    "method": "Five rotated serial fresh processes; warm filesystem caches permitted; empty MyPy cache each run; 4 GiB sampled RSS / 90 seconds; host load under16; exact source bytes and mtimes preserved.",
+    "files": 7082,
+    "models": 2501,
+    "assertions": 100,
+    "source_sha256": "51c1a88b05a169f1222685fe6105e4be5f43d4213aaaf57c60bf99dbe0d82df9",
+    "binary_sha256": "27a0d6f7d0db0c00b5a24a1fffa52ac1fdf50d0499fbf1a62aaafa8bb82360ea",
+    "plugin_sha256": "1c428e39459a6354894b6ec2019bc6e5471ef4c12eb8e8149ffcaa254ace090d",
+    "records": [
+      {
+        "backend": "bare-ty",
+        "label": "0/official",
+        "command": [
+          "$WORK/official-django-comparison/native-environment/bin/ty",
+          "check",
+          "--python",
+          "$WORK/official-django-comparison/native-environment/bin/python",
+          "--python-version",
+          "3.13",
+          "--output-format",
+          "gitlab",
+          "--no-progress",
+          "--color",
+          "never",
+          "--config-file",
+          "$WORK/official-django-comparison/official.toml",
+          "$WORK/stress/project"
+        ],
+        "seconds": 0.3879700420657173,
+        "exit": 0,
+        "diagnostic_codes": {},
+        "user_cpu_seconds": 0.46002499999999996,
+        "system_cpu_seconds": 0.516447,
+        "sampled_process_tree_peak_rss_kib": 94400,
+        "stopped": null,
+        "monitor_error": null,
+        "parse_error": null,
+        "load_before": [
+          4.56396484375,
+          6.2421875,
+          7.435546875
+        ],
+        "load_after": [
+          4.56396484375,
+          6.2421875,
+          7.435546875
+        ],
+        "source_sha256": "51c1a88b05a169f1222685fe6105e4be5f43d4213aaaf57c60bf99dbe0d82df9",
+        "source_preserved": true,
+        "variant": "official",
+        "phases": {}
+      },
+      {
+        "backend": "companion",
+        "label": "0/hybrid",
+        "command": [
+          "$HYBRID/release-v10",
+          "check",
+          "--python",
+          "$WORK/environment/bin/python",
+          "--python-version",
+          "3.13",
+          "--output-format",
+          "gitlab",
+          "--no-progress",
+          "--color",
+          "never",
+          "$WORK/stress/project",
+          "--ty",
+          "$WORK/environment/bin/ty",
+          "--config-file",
+          "$HYBRID/stress.toml"
+        ],
+        "seconds": 2.4569817499723285,
+        "exit": 0,
+        "diagnostic_codes": {},
+        "user_cpu_seconds": 1.813778,
+        "system_cpu_seconds": 1.322138,
+        "sampled_process_tree_peak_rss_kib": 421600,
+        "stopped": null,
+        "monitor_error": null,
+        "parse_error": null,
+        "load_before": [
+          4.56396484375,
+          6.2421875,
+          7.435546875
+        ],
+        "load_after": [
+          4.6787109375,
+          6.23779296875,
+          7.4267578125
+        ],
+        "source_sha256": "51c1a88b05a169f1222685fe6105e4be5f43d4213aaaf57c60bf99dbe0d82df9",
+        "source_preserved": true,
+        "variant": "hybrid",
+        "phases": {
+          "startup_source_copy": 0.006,
+          "startup_configuration": 0.003,
+          "startup_runtime": 0.008,
+          "startup_overlays": 0.143,
+          "startup_selection": 0.084,
+          "startup_source_and_stub_index": 0.355,
+          "startup_project": 0.0,
+          "source_scan": 0.0,
+          "external_resolution": 0.006,
+          "function_summaries": 0.0,
+          "project_index": 0.396,
+          "virtual_declarations": 0.002,
+          "class_projection": 0.018,
+          "initial_lowering": 0.202,
+          "flow_and_render": 0.226,
+          "import_preflight": 0.014,
+          "oracle_check": 0.424,
+          "hook_responses": 0.12200000000000001,
+          "final_render": 0.001,
+          "final_check": 0.279,
+          "diagnostic_mapping": 0.007,
+          "source_maps": 0.008
+        }
+      },
+      {
+        "backend": "mypy",
+        "label": "0/mypy",
+        "command": [
+          "$WORK/mypy-reference/bin/mypy",
+          "--config-file",
+          "$WORK/stress/mypy.ini",
+          "--output",
+          "json",
+          "--no-incremental",
+          "$WORK/stress/project",
+          "--cache-dir",
+          "$HYBRID/release-comparison-v11/runs/0/mypy/scratch/mypy-cache"
+        ],
+        "seconds": 8.29981175006833,
+        "exit": 0,
+        "diagnostic_codes": {},
+        "user_cpu_seconds": 6.211093,
+        "system_cpu_seconds": 2.026638,
+        "sampled_process_tree_peak_rss_kib": 504880,
+        "stopped": null,
+        "monitor_error": null,
+        "parse_error": null,
+        "load_before": [
+          4.6787109375,
+          6.23779296875,
+          7.4267578125
+        ],
+        "load_after": [
+          4.4072265625,
+          6.1298828125,
+          7.37451171875
+        ],
+        "source_sha256": "51c1a88b05a169f1222685fe6105e4be5f43d4213aaaf57c60bf99dbe0d82df9",
+        "source_preserved": true,
+        "variant": "mypy",
+        "phases": {}
+      },
+      {
+        "backend": "companion",
+        "label": "0/previous",
+        "command": [
+          "$WORK/factory-release-v13b",
+          "check",
+          "--python",
+          "$WORK/environment/bin/python",
+          "--python-version",
+          "3.13",
+          "--output-format",
+          "gitlab",
+          "--no-progress",
+          "--color",
+          "never",
+          "$WORK/stress/project",
+          "--ty",
+          "$WORK/environment/bin/ty",
+          "--config-file",
+          "$WORK/stress/local-django.toml"
+        ],
+        "seconds": 5.464511167025194,
+        "exit": 0,
+        "diagnostic_codes": {},
+        "user_cpu_seconds": 4.247621,
+        "system_cpu_seconds": 1.876624,
+        "sampled_process_tree_peak_rss_kib": 1187040,
+        "stopped": null,
+        "monitor_error": null,
+        "parse_error": null,
+        "load_before": [
+          4.4072265625,
+          6.1298828125,
+          7.37451171875
+        ],
+        "load_after": [
+          4.21435546875,
+          6.06103515625,
+          7.3427734375
+        ],
+        "source_sha256": "51c1a88b05a169f1222685fe6105e4be5f43d4213aaaf57c60bf99dbe0d82df9",
+        "source_preserved": true,
+        "variant": "previous",
+        "phases": {
+          "startup_source_copy": 0.007,
+          "startup_configuration": 0.008,
+          "startup_runtime": 0.016,
+          "startup_overlays": 0.119,
+          "startup_selection": 0.087,
+          "startup_source_and_stub_index": 0.428,
+          "startup_project": 0.0,
+          "source_scan": 0.182,
+          "external_resolution": 0.009,
+          "function_summaries": 0.0,
+          "project_index": 0.777,
+          "virtual_declarations": 0.127,
+          "class_projection": 0.522,
+          "initial_lowering": 0.437,
+          "flow_and_render": 0.156,
+          "import_preflight": 0.07300000000000001,
+          "oracle_check": 0.673,
+          "hook_responses": 0.08499999999999999,
+          "final_render": 0.014,
+          "final_check": 1.409,
+          "diagnostic_mapping": 0.012,
+          "source_maps": 0.012
+        }
+      },
+      {
+        "backend": "mypy",
+        "label": "1/mypy",
+        "command": [
+          "$WORK/mypy-reference/bin/mypy",
+          "--config-file",
+          "$WORK/stress/mypy.ini",
+          "--output",
+          "json",
+          "--no-incremental",
+          "$WORK/stress/project",
+          "--cache-dir",
+          "$HYBRID/release-comparison-v11/runs/1/mypy/scratch/mypy-cache"
+        ],
+        "seconds": 8.090254167094827,
+        "exit": 0,
+        "diagnostic_codes": {},
+        "user_cpu_seconds": 6.383723,
+        "system_cpu_seconds": 1.9896319999999998,
+        "sampled_process_tree_peak_rss_kib": 506016,
+        "stopped": null,
+        "monitor_error": null,
+        "parse_error": null,
+        "load_before": [
+          4.21435546875,
+          6.06103515625,
+          7.3427734375
+        ],
+        "load_after": [
+          4.4755859375,
+          6.0576171875,
+          7.326171875
+        ],
+        "source_sha256": "51c1a88b05a169f1222685fe6105e4be5f43d4213aaaf57c60bf99dbe0d82df9",
+        "source_preserved": true,
+        "variant": "mypy",
+        "phases": {}
+      },
+      {
+        "backend": "companion",
+        "label": "1/previous",
+        "command": [
+          "$WORK/factory-release-v13b",
+          "check",
+          "--python",
+          "$WORK/environment/bin/python",
+          "--python-version",
+          "3.13",
+          "--output-format",
+          "gitlab",
+          "--no-progress",
+          "--color",
+          "never",
+          "$WORK/stress/project",
+          "--ty",
+          "$WORK/environment/bin/ty",
+          "--config-file",
+          "$WORK/stress/local-django.toml"
+        ],
+        "seconds": 6.007955499924719,
+        "exit": 0,
+        "diagnostic_codes": {},
+        "user_cpu_seconds": 4.377053,
+        "system_cpu_seconds": 2.516915,
+        "sampled_process_tree_peak_rss_kib": 1182448,
+        "stopped": null,
+        "monitor_error": null,
+        "parse_error": null,
+        "load_before": [
+          4.4755859375,
+          6.0576171875,
+          7.326171875
+        ],
+        "load_after": [
+          5.078125,
+          6.15625,
+          7.353515625
+        ],
+        "source_sha256": "51c1a88b05a169f1222685fe6105e4be5f43d4213aaaf57c60bf99dbe0d82df9",
+        "source_preserved": true,
+        "variant": "previous",
+        "phases": {
+          "startup_source_copy": 0.006,
+          "startup_configuration": 0.002,
+          "startup_runtime": 0.006,
+          "startup_overlays": 0.121,
+          "startup_selection": 0.085,
+          "startup_source_and_stub_index": 0.5,
+          "startup_project": 0.0,
+          "source_scan": 0.251,
+          "external_resolution": 0.009,
+          "function_summaries": 0.0,
+          "project_index": 0.788,
+          "virtual_declarations": 0.135,
+          "class_projection": 0.524,
+          "initial_lowering": 0.439,
+          "flow_and_render": 0.16,
+          "import_preflight": 0.07200000000000001,
+          "oracle_check": 0.917,
+          "hook_responses": 0.088,
+          "final_render": 0.014,
+          "final_check": 1.516,
+          "diagnostic_mapping": 0.019,
+          "source_maps": 0.013
+        }
+      },
+      {
+        "backend": "bare-ty",
+        "label": "1/official",
+        "command": [
+          "$WORK/official-django-comparison/native-environment/bin/ty",
+          "check",
+          "--python",
+          "$WORK/official-django-comparison/native-environment/bin/python",
+          "--python-version",
+          "3.13",
+          "--output-format",
+          "gitlab",
+          "--no-progress",
+          "--color",
+          "never",
+          "--config-file",
+          "$WORK/official-django-comparison/official.toml",
+          "$WORK/stress/project"
+        ],
+        "seconds": 0.382491541095078,
+        "exit": 0,
+        "diagnostic_codes": {},
+        "user_cpu_seconds": 0.463178,
+        "system_cpu_seconds": 0.486952,
+        "sampled_process_tree_peak_rss_kib": 89968,
+        "stopped": null,
+        "monitor_error": null,
+        "parse_error": null,
+        "load_before": [
+          5.078125,
+          6.15625,
+          7.353515625
+        ],
+        "load_after": [
+          5.078125,
+          6.15625,
+          7.353515625
+        ],
+        "source_sha256": "51c1a88b05a169f1222685fe6105e4be5f43d4213aaaf57c60bf99dbe0d82df9",
+        "source_preserved": true,
+        "variant": "official",
+        "phases": {}
+      },
+      {
+        "backend": "companion",
+        "label": "1/hybrid",
+        "command": [
+          "$HYBRID/release-v10",
+          "check",
+          "--python",
+          "$WORK/environment/bin/python",
+          "--python-version",
+          "3.13",
+          "--output-format",
+          "gitlab",
+          "--no-progress",
+          "--color",
+          "never",
+          "$WORK/stress/project",
+          "--ty",
+          "$WORK/environment/bin/ty",
+          "--config-file",
+          "$HYBRID/stress.toml"
+        ],
+        "seconds": 2.709868708043359,
+        "exit": 0,
+        "diagnostic_codes": {},
+        "user_cpu_seconds": 1.872005,
+        "system_cpu_seconds": 1.727542,
+        "sampled_process_tree_peak_rss_kib": 421712,
+        "stopped": null,
+        "monitor_error": null,
+        "parse_error": null,
+        "load_before": [
+          5.078125,
+          6.15625,
+          7.353515625
+        ],
+        "load_after": [
+          5.15185546875,
+          6.1533203125,
+          7.34521484375
+        ],
+        "source_sha256": "51c1a88b05a169f1222685fe6105e4be5f43d4213aaaf57c60bf99dbe0d82df9",
+        "source_preserved": true,
+        "variant": "hybrid",
+        "phases": {
+          "startup_source_copy": 0.008,
+          "startup_configuration": 0.007,
+          "startup_runtime": 0.016,
+          "startup_overlays": 0.125,
+          "startup_selection": 0.088,
+          "startup_source_and_stub_index": 0.427,
+          "startup_project": 0.0,
+          "source_scan": 0.0,
+          "external_resolution": 0.008,
+          "function_summaries": 0.0,
+          "project_index": 0.417,
+          "virtual_declarations": 0.003,
+          "class_projection": 0.018,
+          "initial_lowering": 0.203,
+          "flow_and_render": 0.24100000000000002,
+          "import_preflight": 0.014,
+          "oracle_check": 0.538,
+          "hook_responses": 0.129,
+          "final_render": 0.001,
+          "final_check": 0.293,
+          "diagnostic_mapping": 0.006,
+          "source_maps": 0.008
+        }
+      },
+      {
+        "backend": "companion",
+        "label": "2/hybrid",
+        "command": [
+          "$HYBRID/release-v10",
+          "check",
+          "--python",
+          "$WORK/environment/bin/python",
+          "--python-version",
+          "3.13",
+          "--output-format",
+          "gitlab",
+          "--no-progress",
+          "--color",
+          "never",
+          "$WORK/stress/project",
+          "--ty",
+          "$WORK/environment/bin/ty",
+          "--config-file",
+          "$HYBRID/stress.toml"
+        ],
+        "seconds": 2.608622750034556,
+        "exit": 0,
+        "diagnostic_codes": {},
+        "user_cpu_seconds": 1.869345,
+        "system_cpu_seconds": 1.375932,
+        "sampled_process_tree_peak_rss_kib": 427936,
+        "stopped": null,
+        "monitor_error": null,
+        "parse_error": null,
+        "load_before": [
+          5.15185546875,
+          6.1533203125,
+          7.34521484375
+        ],
+        "load_after": [
+          5.2998046875,
+          6.1669921875,
+          7.3427734375
+        ],
+        "source_sha256": "51c1a88b05a169f1222685fe6105e4be5f43d4213aaaf57c60bf99dbe0d82df9",
+        "source_preserved": true,
+        "variant": "hybrid",
+        "phases": {
+          "startup_source_copy": 0.006,
+          "startup_configuration": 0.002,
+          "startup_runtime": 0.006,
+          "startup_overlays": 0.1,
+          "startup_selection": 0.088,
+          "startup_source_and_stub_index": 0.443,
+          "startup_project": 0.0,
+          "source_scan": 0.0,
+          "external_resolution": 0.007,
+          "function_summaries": 0.0,
+          "project_index": 0.399,
+          "virtual_declarations": 0.002,
+          "class_projection": 0.017,
+          "initial_lowering": 0.199,
+          "flow_and_render": 0.24099999999999996,
+          "import_preflight": 0.015,
+          "oracle_check": 0.487,
+          "hook_responses": 0.128,
+          "final_render": 0.001,
+          "final_check": 0.301,
+          "diagnostic_mapping": 0.006,
+          "source_maps": 0.008
+        }
+      },
+      {
+        "backend": "bare-ty",
+        "label": "2/official",
+        "command": [
+          "$WORK/official-django-comparison/native-environment/bin/ty",
+          "check",
+          "--python",
+          "$WORK/official-django-comparison/native-environment/bin/python",
+          "--python-version",
+          "3.13",
+          "--output-format",
+          "gitlab",
+          "--no-progress",
+          "--color",
+          "never",
+          "--config-file",
+          "$WORK/official-django-comparison/official.toml",
+          "$WORK/stress/project"
+        ],
+        "seconds": 0.4198177920188755,
+        "exit": 0,
+        "diagnostic_codes": {},
+        "user_cpu_seconds": 0.45769499999999996,
+        "system_cpu_seconds": 0.706159,
+        "sampled_process_tree_peak_rss_kib": 93296,
+        "stopped": null,
+        "monitor_error": null,
+        "parse_error": null,
+        "load_before": [
+          5.2998046875,
+          6.1669921875,
+          7.3427734375
+        ],
+        "load_after": [
+          5.2998046875,
+          6.1669921875,
+          7.3427734375
+        ],
+        "source_sha256": "51c1a88b05a169f1222685fe6105e4be5f43d4213aaaf57c60bf99dbe0d82df9",
+        "source_preserved": true,
+        "variant": "official",
+        "phases": {}
+      },
+      {
+        "backend": "companion",
+        "label": "2/previous",
+        "command": [
+          "$WORK/factory-release-v13b",
+          "check",
+          "--python",
+          "$WORK/environment/bin/python",
+          "--python-version",
+          "3.13",
+          "--output-format",
+          "gitlab",
+          "--no-progress",
+          "--color",
+          "never",
+          "$WORK/stress/project",
+          "--ty",
+          "$WORK/environment/bin/ty",
+          "--config-file",
+          "$WORK/stress/local-django.toml"
+        ],
+        "seconds": 5.876111499965191,
+        "exit": 0,
+        "diagnostic_codes": {},
+        "user_cpu_seconds": 4.363485,
+        "system_cpu_seconds": 2.130376,
+        "sampled_process_tree_peak_rss_kib": 1186464,
+        "stopped": null,
+        "monitor_error": null,
+        "parse_error": null,
+        "load_before": [
+          5.2998046875,
+          6.1669921875,
+          7.3427734375
+        ],
+        "load_after": [
+          5.435546875,
+          6.1806640625,
+          7.34033203125
+        ],
+        "source_sha256": "51c1a88b05a169f1222685fe6105e4be5f43d4213aaaf57c60bf99dbe0d82df9",
+        "source_preserved": true,
+        "variant": "previous",
+        "phases": {
+          "startup_source_copy": 0.006,
+          "startup_configuration": 0.002,
+          "startup_runtime": 0.006,
+          "startup_overlays": 0.095,
+          "startup_selection": 0.087,
+          "startup_source_and_stub_index": 0.516,
+          "startup_project": 0.0,
+          "source_scan": 0.256,
+          "external_resolution": 0.009,
+          "function_summaries": 0.0,
+          "project_index": 0.782,
+          "virtual_declarations": 0.134,
+          "class_projection": 0.521,
+          "initial_lowering": 0.435,
+          "flow_and_render": 0.156,
+          "import_preflight": 0.07400000000000001,
+          "oracle_check": 0.854,
+          "hook_responses": 0.086,
+          "final_render": 0.014,
+          "final_check": 1.503,
+          "diagnostic_mapping": 0.012,
+          "source_maps": 0.012
+        }
+      },
+      {
+        "backend": "mypy",
+        "label": "2/mypy",
+        "command": [
+          "$WORK/mypy-reference/bin/mypy",
+          "--config-file",
+          "$WORK/stress/mypy.ini",
+          "--output",
+          "json",
+          "--no-incremental",
+          "$WORK/stress/project",
+          "--cache-dir",
+          "$HYBRID/release-comparison-v11/runs/2/mypy/scratch/mypy-cache"
+        ],
+        "seconds": 8.812932999921031,
+        "exit": 0,
+        "diagnostic_codes": {},
+        "user_cpu_seconds": 6.685725,
+        "system_cpu_seconds": 2.228044,
+        "sampled_process_tree_peak_rss_kib": 506640,
+        "stopped": null,
+        "monitor_error": null,
+        "parse_error": null,
+        "load_before": [
+          5.720703125,
+          6.22705078125,
+          7.349609375
+        ],
+        "load_after": [
+          5.98291015625,
+          6.27294921875,
+          7.35888671875
+        ],
+        "source_sha256": "51c1a88b05a169f1222685fe6105e4be5f43d4213aaaf57c60bf99dbe0d82df9",
+        "source_preserved": true,
+        "variant": "mypy",
+        "phases": {}
+      },
+      {
+        "backend": "companion",
+        "label": "3/previous",
+        "command": [
+          "$WORK/factory-release-v13b",
+          "check",
+          "--python",
+          "$WORK/environment/bin/python",
+          "--python-version",
+          "3.13",
+          "--output-format",
+          "gitlab",
+          "--no-progress",
+          "--color",
+          "never",
+          "$WORK/stress/project",
+          "--ty",
+          "$WORK/environment/bin/ty",
+          "--config-file",
+          "$WORK/stress/local-django.toml"
+        ],
+        "seconds": 6.3732899581082165,
+        "exit": 0,
+        "diagnostic_codes": {},
+        "user_cpu_seconds": 4.455012,
+        "system_cpu_seconds": 2.465473,
+        "sampled_process_tree_peak_rss_kib": 1190640,
+        "stopped": null,
+        "monitor_error": null,
+        "parse_error": null,
+        "load_before": [
+          5.98291015625,
+          6.27294921875,
+          7.35888671875
+        ],
+        "load_after": [
+          5.83740234375,
+          6.23095703125,
+          7.33056640625
+        ],
+        "source_sha256": "51c1a88b05a169f1222685fe6105e4be5f43d4213aaaf57c60bf99dbe0d82df9",
+        "source_preserved": true,
+        "variant": "previous",
+        "phases": {
+          "startup_source_copy": 0.006,
+          "startup_configuration": 0.002,
+          "startup_runtime": 0.006,
+          "startup_overlays": 0.131,
+          "startup_selection": 0.089,
+          "startup_source_and_stub_index": 0.536,
+          "startup_project": 0.0,
+          "source_scan": 0.215,
+          "external_resolution": 0.01,
+          "function_summaries": 0.0,
+          "project_index": 0.791,
+          "virtual_declarations": 0.134,
+          "class_projection": 0.529,
+          "initial_lowering": 0.433,
+          "flow_and_render": 0.161,
+          "import_preflight": 0.076,
+          "oracle_check": 0.9420000000000001,
+          "hook_responses": 0.089,
+          "final_render": 0.015,
+          "final_check": 1.768,
+          "diagnostic_mapping": 0.019,
+          "source_maps": 0.014
+        }
+      },
+      {
+        "backend": "mypy",
+        "label": "3/mypy",
+        "command": [
+          "$WORK/mypy-reference/bin/mypy",
+          "--config-file",
+          "$WORK/stress/mypy.ini",
+          "--output",
+          "json",
+          "--no-incremental",
+          "$WORK/stress/project",
+          "--cache-dir",
+          "$HYBRID/release-comparison-v11/runs/3/mypy/scratch/mypy-cache"
+        ],
+        "seconds": 8.566456041997299,
+        "exit": 0,
+        "diagnostic_codes": {},
+        "user_cpu_seconds": 6.578501,
+        "system_cpu_seconds": 2.14575,
+        "sampled_process_tree_peak_rss_kib": 505408,
+        "stopped": null,
+        "monitor_error": null,
+        "parse_error": null,
+        "load_before": [
+          5.83740234375,
+          6.23095703125,
+          7.33056640625
+        ],
+        "load_after": [
+          8.35400390625,
+          6.75146484375,
+          7.501953125
+        ],
+        "source_sha256": "51c1a88b05a169f1222685fe6105e4be5f43d4213aaaf57c60bf99dbe0d82df9",
+        "source_preserved": true,
+        "variant": "mypy",
+        "phases": {}
+      },
+      {
+        "backend": "companion",
+        "label": "3/hybrid",
+        "command": [
+          "$HYBRID/release-v10",
+          "check",
+          "--python",
+          "$WORK/environment/bin/python",
+          "--python-version",
+          "3.13",
+          "--output-format",
+          "gitlab",
+          "--no-progress",
+          "--color",
+          "never",
+          "$WORK/stress/project",
+          "--ty",
+          "$WORK/environment/bin/ty",
+          "--config-file",
+          "$HYBRID/stress.toml"
+        ],
+        "seconds": 2.8445941660320386,
+        "exit": 0,
+        "diagnostic_codes": {},
+        "user_cpu_seconds": 1.851447,
+        "system_cpu_seconds": 1.624363,
+        "sampled_process_tree_peak_rss_kib": 424016,
+        "stopped": null,
+        "monitor_error": null,
+        "parse_error": null,
+        "load_before": [
+          8.35400390625,
+          6.75146484375,
+          7.501953125
+        ],
+        "load_after": [
+          8.35400390625,
+          6.75146484375,
+          7.501953125
+        ],
+        "source_sha256": "51c1a88b05a169f1222685fe6105e4be5f43d4213aaaf57c60bf99dbe0d82df9",
+        "source_preserved": true,
+        "variant": "hybrid",
+        "phases": {
+          "startup_source_copy": 0.019,
+          "startup_configuration": 0.008,
+          "startup_runtime": 0.016,
+          "startup_overlays": 0.178,
+          "startup_selection": 0.09,
+          "startup_source_and_stub_index": 0.45,
+          "startup_project": 0.0,
+          "source_scan": 0.0,
+          "external_resolution": 0.007,
+          "function_summaries": 0.0,
+          "project_index": 0.418,
+          "virtual_declarations": 0.003,
+          "class_projection": 0.018,
+          "initial_lowering": 0.198,
+          "flow_and_render": 0.24899999999999997,
+          "import_preflight": 0.014,
+          "oracle_check": 0.537,
+          "hook_responses": 0.147,
+          "final_render": 0.001,
+          "final_check": 0.305,
+          "diagnostic_mapping": 0.007,
+          "source_maps": 0.008
+        }
+      },
+      {
+        "backend": "bare-ty",
+        "label": "3/official",
+        "command": [
+          "$WORK/official-django-comparison/native-environment/bin/ty",
+          "check",
+          "--python",
+          "$WORK/official-django-comparison/native-environment/bin/python",
+          "--python-version",
+          "3.13",
+          "--output-format",
+          "gitlab",
+          "--no-progress",
+          "--color",
+          "never",
+          "--config-file",
+          "$WORK/official-django-comparison/official.toml",
+          "$WORK/stress/project"
+        ],
+        "seconds": 0.4652255839901045,
+        "exit": 0,
+        "diagnostic_codes": {},
+        "user_cpu_seconds": 0.447445,
+        "system_cpu_seconds": 0.881567,
+        "sampled_process_tree_peak_rss_kib": 91392,
+        "stopped": null,
+        "monitor_error": null,
+        "parse_error": null,
+        "load_before": [
+          8.5654296875,
+          6.82177734375,
+          7.52197265625
+        ],
+        "load_after": [
+          8.5654296875,
+          6.82177734375,
+          7.52197265625
+        ],
+        "source_sha256": "51c1a88b05a169f1222685fe6105e4be5f43d4213aaaf57c60bf99dbe0d82df9",
+        "source_preserved": true,
+        "variant": "official",
+        "phases": {}
+      },
+      {
+        "backend": "bare-ty",
+        "label": "4/official",
+        "command": [
+          "$WORK/official-django-comparison/native-environment/bin/ty",
+          "check",
+          "--python",
+          "$WORK/official-django-comparison/native-environment/bin/python",
+          "--python-version",
+          "3.13",
+          "--output-format",
+          "gitlab",
+          "--no-progress",
+          "--color",
+          "never",
+          "--config-file",
+          "$WORK/official-django-comparison/official.toml",
+          "$WORK/stress/project"
+        ],
+        "seconds": 0.3962926249951124,
+        "exit": 0,
+        "diagnostic_codes": {},
+        "user_cpu_seconds": 0.442087,
+        "system_cpu_seconds": 0.8285899999999999,
+        "sampled_process_tree_peak_rss_kib": 90976,
+        "stopped": null,
+        "monitor_error": null,
+        "parse_error": null,
+        "load_before": [
+          8.5654296875,
+          6.82177734375,
+          7.52197265625
+        ],
+        "load_after": [
+          8.5654296875,
+          6.82177734375,
+          7.52197265625
+        ],
+        "source_sha256": "51c1a88b05a169f1222685fe6105e4be5f43d4213aaaf57c60bf99dbe0d82df9",
+        "source_preserved": true,
+        "variant": "official",
+        "phases": {}
+      },
+      {
+        "backend": "companion",
+        "label": "4/previous",
+        "command": [
+          "$WORK/factory-release-v13b",
+          "check",
+          "--python",
+          "$WORK/environment/bin/python",
+          "--python-version",
+          "3.13",
+          "--output-format",
+          "gitlab",
+          "--no-progress",
+          "--color",
+          "never",
+          "$WORK/stress/project",
+          "--ty",
+          "$WORK/environment/bin/ty",
+          "--config-file",
+          "$WORK/stress/local-django.toml"
+        ],
+        "seconds": 5.989612165954895,
+        "exit": 0,
+        "diagnostic_codes": {},
+        "user_cpu_seconds": 4.3819609999999996,
+        "system_cpu_seconds": 2.069419,
+        "sampled_process_tree_peak_rss_kib": 1183344,
+        "stopped": null,
+        "monitor_error": null,
+        "parse_error": null,
+        "load_before": [
+          8.5654296875,
+          6.82177734375,
+          7.52197265625
+        ],
+        "load_after": [
+          8.52001953125,
+          6.84130859375,
+          7.5244140625
+        ],
+        "source_sha256": "51c1a88b05a169f1222685fe6105e4be5f43d4213aaaf57c60bf99dbe0d82df9",
+        "source_preserved": true,
+        "variant": "previous",
+        "phases": {
+          "startup_source_copy": 0.007,
+          "startup_configuration": 0.002,
+          "startup_runtime": 0.007,
+          "startup_overlays": 0.112,
+          "startup_selection": 0.089,
+          "startup_source_and_stub_index": 0.499,
+          "startup_project": 0.0,
+          "source_scan": 0.246,
+          "external_resolution": 0.009,
+          "function_summaries": 0.0,
+          "project_index": 0.866,
+          "virtual_declarations": 0.143,
+          "class_projection": 0.538,
+          "initial_lowering": 0.454,
+          "flow_and_render": 0.166,
+          "import_preflight": 0.07200000000000001,
+          "oracle_check": 0.7489999999999999,
+          "hook_responses": 0.089,
+          "final_render": 0.014,
+          "final_check": 1.562,
+          "diagnostic_mapping": 0.013,
+          "source_maps": 0.012
+        }
+      },
+      {
+        "backend": "mypy",
+        "label": "4/mypy",
+        "command": [
+          "$WORK/mypy-reference/bin/mypy",
+          "--config-file",
+          "$WORK/stress/mypy.ini",
+          "--output",
+          "json",
+          "--no-incremental",
+          "$WORK/stress/project",
+          "--cache-dir",
+          "$HYBRID/release-comparison-v11/runs/4/mypy/scratch/mypy-cache"
+        ],
+        "seconds": 8.433734958991408,
+        "exit": 0,
+        "diagnostic_codes": {},
+        "user_cpu_seconds": 6.501488,
+        "system_cpu_seconds": 2.124896,
+        "sampled_process_tree_peak_rss_kib": 508976,
+        "stopped": null,
+        "monitor_error": null,
+        "parse_error": null,
+        "load_before": [
+          8.52001953125,
+          6.84130859375,
+          7.5244140625
+        ],
+        "load_after": [
+          8.99365234375,
+          6.9951171875,
+          7.5703125
+        ],
+        "source_sha256": "51c1a88b05a169f1222685fe6105e4be5f43d4213aaaf57c60bf99dbe0d82df9",
+        "source_preserved": true,
+        "variant": "mypy",
+        "phases": {}
+      },
+      {
+        "backend": "companion",
+        "label": "4/hybrid",
+        "command": [
+          "$HYBRID/release-v10",
+          "check",
+          "--python",
+          "$WORK/environment/bin/python",
+          "--python-version",
+          "3.13",
+          "--output-format",
+          "gitlab",
+          "--no-progress",
+          "--color",
+          "never",
+          "$WORK/stress/project",
+          "--ty",
+          "$WORK/environment/bin/ty",
+          "--config-file",
+          "$HYBRID/stress.toml"
+        ],
+        "seconds": 2.743833167012781,
+        "exit": 0,
+        "diagnostic_codes": {},
+        "user_cpu_seconds": 1.853418,
+        "system_cpu_seconds": 1.617735,
+        "sampled_process_tree_peak_rss_kib": 429696,
+        "stopped": null,
+        "monitor_error": null,
+        "parse_error": null,
+        "load_before": [
+          8.99365234375,
+          6.9951171875,
+          7.5703125
+        ],
+        "load_after": [
+          9.5546875,
+          7.14453125,
+          7.61962890625
+        ],
+        "source_sha256": "51c1a88b05a169f1222685fe6105e4be5f43d4213aaaf57c60bf99dbe0d82df9",
+        "source_preserved": true,
+        "variant": "hybrid",
+        "phases": {
+          "startup_source_copy": 0.006,
+          "startup_configuration": 0.002,
+          "startup_runtime": 0.007,
+          "startup_overlays": 0.128,
+          "startup_selection": 0.087,
+          "startup_source_and_stub_index": 0.446,
+          "startup_project": 0.0,
+          "source_scan": 0.0,
+          "external_resolution": 0.008,
+          "function_summaries": 0.0,
+          "project_index": 0.413,
+          "virtual_declarations": 0.005,
+          "class_projection": 0.019,
+          "initial_lowering": 0.2,
+          "flow_and_render": 0.24299999999999997,
+          "import_preflight": 0.014,
+          "oracle_check": 0.5650000000000001,
+          "hook_responses": 0.13,
+          "final_render": 0.001,
+          "final_check": 0.293,
+          "diagnostic_mapping": 0.007,
+          "source_maps": 0.008
+        }
+      },
+      {
+        "backend": "companion",
+        "label": "negative/hybrid",
+        "command": [
+          "$HYBRID/release-v10",
+          "check",
+          "--python",
+          "$WORK/environment/bin/python",
+          "--python-version",
+          "3.13",
+          "--output-format",
+          "gitlab",
+          "--no-progress",
+          "--color",
+          "never",
+          "$WORK/stress/project",
+          "--ty",
+          "$WORK/environment/bin/ty",
+          "--config-file",
+          "$HYBRID/stress.toml"
+        ],
+        "seconds": 2.7598392909858376,
+        "exit": 1,
+        "diagnostic_codes": {
+          "invalid-assignment": 2
+        },
+        "user_cpu_seconds": 1.867209,
+        "system_cpu_seconds": 1.533393,
+        "sampled_process_tree_peak_rss_kib": 421632,
+        "stopped": null,
+        "monitor_error": null,
+        "parse_error": null,
+        "load_before": [
+          9.5546875,
+          7.14453125,
+          7.61962890625
+        ],
+        "load_after": [
+          9.75048828125,
+          7.22509765625,
+          7.64501953125
+        ],
+        "source_sha256": "1d6a6430d5c3eaec3a1d648f4c95b35912d6efc7d7c15370efadb0d6f41164ef",
+        "source_preserved": true,
+        "variant": "hybrid",
+        "phases": {
+          "startup_source_copy": 0.006,
+          "startup_configuration": 0.002,
+          "startup_runtime": 0.007,
+          "startup_overlays": 0.094,
+          "startup_selection": 0.085,
+          "startup_source_and_stub_index": 0.439,
+          "startup_project": 0.0,
+          "source_scan": 0.0,
+          "external_resolution": 0.008,
+          "function_summaries": 0.0,
+          "project_index": 0.413,
+          "virtual_declarations": 0.003,
+          "class_projection": 0.019,
+          "initial_lowering": 0.203,
+          "flow_and_render": 0.258,
+          "import_preflight": 0.015,
+          "oracle_check": 0.5670000000000001,
+          "hook_responses": 0.134,
+          "final_render": 0.001,
+          "final_check": 0.325,
+          "diagnostic_mapping": 0.01,
+          "source_maps": 0.009
+        },
+        "verified_negative_locations": [
+          {
+            "path": "checks.py",
+            "line": 103
+          },
+          {
+            "path": "filler00000.py",
+            "line": 1
+          }
+        ]
+      },
+      {
+        "backend": "companion",
+        "label": "negative/previous",
+        "command": [
+          "$WORK/factory-release-v13b",
+          "check",
+          "--python",
+          "$WORK/environment/bin/python",
+          "--python-version",
+          "3.13",
+          "--output-format",
+          "gitlab",
+          "--no-progress",
+          "--color",
+          "never",
+          "$WORK/stress/project",
+          "--ty",
+          "$WORK/environment/bin/ty",
+          "--config-file",
+          "$WORK/stress/local-django.toml"
+        ],
+        "seconds": 6.37984416692052,
+        "exit": 1,
+        "diagnostic_codes": {
+          "invalid-assignment": 2
+        },
+        "user_cpu_seconds": 4.475628,
+        "system_cpu_seconds": 2.629889,
+        "sampled_process_tree_peak_rss_kib": 1188656,
+        "stopped": null,
+        "monitor_error": null,
+        "parse_error": null,
+        "load_before": [
+          9.75048828125,
+          7.22509765625,
+          7.64501953125
+        ],
+        "load_after": [
+          9.85009765625,
+          7.28759765625,
+          7.66455078125
+        ],
+        "source_sha256": "1d6a6430d5c3eaec3a1d648f4c95b35912d6efc7d7c15370efadb0d6f41164ef",
+        "source_preserved": true,
+        "variant": "previous",
+        "phases": {
+          "startup_source_copy": 0.006,
+          "startup_configuration": 0.002,
+          "startup_runtime": 0.007,
+          "startup_overlays": 0.097,
+          "startup_selection": 0.086,
+          "startup_source_and_stub_index": 0.508,
+          "startup_project": 0.0,
+          "source_scan": 0.251,
+          "external_resolution": 0.01,
+          "function_summaries": 0.0,
+          "project_index": 0.781,
+          "virtual_declarations": 0.143,
+          "class_projection": 0.533,
+          "initial_lowering": 0.436,
+          "flow_and_render": 0.196,
+          "import_preflight": 0.109,
+          "oracle_check": 1.137,
+          "hook_responses": 0.11299999999999999,
+          "final_render": 0.014,
+          "final_check": 1.575,
+          "diagnostic_mapping": 0.021,
+          "source_maps": 0.014
+        },
+        "verified_negative_locations": [
+          {
+            "path": "checks.py",
+            "line": 103
+          },
+          {
+            "path": "filler00000.py",
+            "line": 1
+          }
+        ]
+      },
+      {
+        "backend": "mypy",
+        "label": "negative/mypy",
+        "command": [
+          "$WORK/mypy-reference/bin/mypy",
+          "--config-file",
+          "$WORK/stress/mypy.ini",
+          "--output",
+          "json",
+          "--no-incremental",
+          "$WORK/stress/project",
+          "--cache-dir",
+          "$HYBRID/release-comparison-v11/runs/negative/mypy/scratch/mypy-cache"
+        ],
+        "seconds": 8.37490287492983,
+        "exit": 1,
+        "diagnostic_codes": {
+          "assignment": 2
+        },
+        "user_cpu_seconds": 6.476691,
+        "system_cpu_seconds": 2.100636,
+        "sampled_process_tree_peak_rss_kib": 505760,
+        "stopped": null,
+        "monitor_error": null,
+        "parse_error": null,
+        "load_before": [
+          9.85009765625,
+          7.28759765625,
+          7.66455078125
+        ],
+        "load_after": [
+          9.77978515625,
+          7.359375,
+          7.685546875
+        ],
+        "source_sha256": "1d6a6430d5c3eaec3a1d648f4c95b35912d6efc7d7c15370efadb0d6f41164ef",
+        "source_preserved": true,
+        "variant": "mypy",
+        "phases": {},
+        "verified_negative_locations": [
+          {
+            "path": "checks.py",
+            "line": 103
+          },
+          {
+            "path": "filler00000.py",
+            "line": 1
+          }
+        ]
+      },
+      {
+        "backend": "bare-ty",
+        "label": "negative/official",
+        "command": [
+          "$WORK/official-django-comparison/native-environment/bin/ty",
+          "check",
+          "--python",
+          "$WORK/official-django-comparison/native-environment/bin/python",
+          "--python-version",
+          "3.13",
+          "--output-format",
+          "gitlab",
+          "--no-progress",
+          "--color",
+          "never",
+          "--config-file",
+          "$WORK/official-django-comparison/official.toml",
+          "$WORK/stress/project"
+        ],
+        "seconds": 0.3959023329662159,
+        "exit": 1,
+        "diagnostic_codes": {
+          "invalid-assignment": 2
+        },
+        "user_cpu_seconds": 0.445596,
+        "system_cpu_seconds": 0.47178299999999995,
+        "sampled_process_tree_peak_rss_kib": 92096,
+        "stopped": null,
+        "monitor_error": null,
+        "parse_error": null,
+        "load_before": [
+          9.77978515625,
+          7.359375,
+          7.685546875
+        ],
+        "load_after": [
+          9.77978515625,
+          7.359375,
+          7.685546875
+        ],
+        "source_sha256": "1d6a6430d5c3eaec3a1d648f4c95b35912d6efc7d7c15370efadb0d6f41164ef",
+        "source_preserved": true,
+        "variant": "official",
+        "phases": {},
+        "verified_negative_locations": [
+          {
+            "path": "checks.py",
+            "line": 103
+          },
+          {
+            "path": "filler00000.py",
+            "line": 1
+          }
+        ]
+      },
+      {
+        "backend": "companion",
+        "label": "focus/hybrid",
+        "command": [
+          "$HYBRID/release-v10",
+          "check",
+          "--python",
+          "$WORK/environment/bin/python",
+          "--python-version",
+          "3.13",
+          "--output-format",
+          "gitlab",
+          "--no-progress",
+          "--color",
+          "never",
+          "$WORK/stress/project",
+          "--ty",
+          "$WORK/environment/bin/ty",
+          "--config-file",
+          "$HYBRID/stress.toml"
+        ],
+        "seconds": 2.8002167920349166,
+        "exit": 1,
+        "diagnostic_codes": {
+          "invalid-argument-type": 1,
+          "invalid-assignment": 3,
+          "plugin-configuration": 5,
+          "unknown-argument": 1
+        },
+        "user_cpu_seconds": 1.984879,
+        "system_cpu_seconds": 1.485668,
+        "sampled_process_tree_peak_rss_kib": 425440,
+        "stopped": null,
+        "monitor_error": null,
+        "parse_error": null,
+        "load_before": [
+          9.77978515625,
+          7.359375,
+          7.685546875
+        ],
+        "load_after": [
+          10.11767578125,
+          7.46923828125,
+          7.72216796875
+        ],
+        "source_sha256": "0c9a80c961e8a08ee05c07bc22f5e624e5b02be801c85248af2bd6463719f181",
+        "source_preserved": true,
+        "variant": "hybrid",
+        "phases": {
+          "startup_source_copy": 0.006,
+          "startup_configuration": 0.002,
+          "startup_runtime": 0.006,
+          "startup_overlays": 0.092,
+          "startup_selection": 0.086,
+          "startup_source_and_stub_index": 0.43,
+          "startup_project": 0.0,
+          "source_scan": 0.0,
+          "external_resolution": 0.007,
+          "function_summaries": 0.0,
+          "project_index": 0.403,
+          "virtual_declarations": 0.002,
+          "class_projection": 0.018,
+          "initial_lowering": 0.199,
+          "flow_and_render": 0.33299999999999996,
+          "import_preflight": 0.015,
+          "oracle_check": 0.543,
+          "hook_responses": 0.175,
+          "final_render": 0.001,
+          "final_check": 0.304,
+          "diagnostic_mapping": 0.009,
+          "source_maps": 0.009
+        }
+      },
+      {
+        "backend": "companion",
+        "label": "focus/previous",
+        "command": [
+          "$WORK/factory-release-v13b",
+          "check",
+          "--python",
+          "$WORK/environment/bin/python",
+          "--python-version",
+          "3.13",
+          "--output-format",
+          "gitlab",
+          "--no-progress",
+          "--color",
+          "never",
+          "$WORK/stress/project",
+          "--ty",
+          "$WORK/environment/bin/ty",
+          "--config-file",
+          "$WORK/stress/local-django.toml"
+        ],
+        "seconds": 6.4048725420143455,
+        "exit": 1,
+        "diagnostic_codes": {
+          "invalid-argument-type": 1,
+          "invalid-assignment": 3,
+          "plugin-configuration": 5,
+          "unknown-argument": 1
+        },
+        "user_cpu_seconds": 4.761584,
+        "system_cpu_seconds": 2.248438,
+        "sampled_process_tree_peak_rss_kib": 1200976,
+        "stopped": null,
+        "monitor_error": null,
+        "parse_error": null,
+        "load_before": [
+          10.11767578125,
+          7.46923828125,
+          7.72216796875
+        ],
+        "load_after": [
+          11.06884765625,
+          7.71044921875,
+          7.8056640625
+        ],
+        "source_sha256": "0c9a80c961e8a08ee05c07bc22f5e624e5b02be801c85248af2bd6463719f181",
+        "source_preserved": true,
+        "variant": "previous",
+        "phases": {
+          "startup_source_copy": 0.006,
+          "startup_configuration": 0.002,
+          "startup_runtime": 0.006,
+          "startup_overlays": 0.094,
+          "startup_selection": 0.088,
+          "startup_source_and_stub_index": 0.439,
+          "startup_project": 0.0,
+          "source_scan": 0.188,
+          "external_resolution": 0.012,
+          "function_summaries": 0.0,
+          "project_index": 0.801,
+          "virtual_declarations": 0.158,
+          "class_projection": 0.532,
+          "initial_lowering": 0.447,
+          "flow_and_render": 0.491,
+          "import_preflight": 0.10500000000000001,
+          "oracle_check": 1.015,
+          "hook_responses": 0.128,
+          "final_render": 0.014,
+          "final_check": 1.493,
+          "diagnostic_mapping": 0.016,
+          "source_maps": 0.014
+        }
+      },
+      {
+        "backend": "mypy",
+        "label": "focus/mypy",
+        "command": [
+          "$WORK/mypy-reference/bin/mypy",
+          "--config-file",
+          "$WORK/stress/mypy.ini",
+          "--output",
+          "json",
+          "--no-incremental",
+          "$WORK/stress/project",
+          "--cache-dir",
+          "$HYBRID/release-comparison-v11/runs/focus/mypy/scratch/mypy-cache"
+        ],
+        "seconds": 8.58629804092925,
+        "exit": 1,
+        "diagnostic_codes": {
+          "assignment": 3,
+          "misc": 6
+        },
+        "user_cpu_seconds": 6.505684,
+        "system_cpu_seconds": 2.151277,
+        "sampled_process_tree_peak_rss_kib": 506336,
+        "stopped": null,
+        "monitor_error": null,
+        "parse_error": null,
+        "load_before": [
+          11.62353515625,
+          7.880859375,
+          7.865234375
+        ],
+        "load_after": [
+          11.5732421875,
+          7.9326171875,
+          7.88330078125
+        ],
+        "source_sha256": "0c9a80c961e8a08ee05c07bc22f5e624e5b02be801c85248af2bd6463719f181",
+        "source_preserved": true,
+        "variant": "mypy",
+        "phases": {}
+      },
+      {
+        "backend": "bare-ty",
+        "label": "focus/official",
+        "command": [
+          "$WORK/official-django-comparison/native-environment/bin/ty",
+          "check",
+          "--python",
+          "$WORK/official-django-comparison/native-environment/bin/python",
+          "--python-version",
+          "3.13",
+          "--output-format",
+          "gitlab",
+          "--no-progress",
+          "--color",
+          "never",
+          "--config-file",
+          "$WORK/official-django-comparison/official.toml",
+          "$WORK/stress/project"
+        ],
+        "seconds": 0.38774529204238206,
+        "exit": 1,
+        "diagnostic_codes": {
+          "type-assertion-failure": 4,
+          "unresolved-attribute": 1,
+          "invalid-assignment": 2
+        },
+        "user_cpu_seconds": 0.44912599999999997,
+        "system_cpu_seconds": 0.465489,
+        "sampled_process_tree_peak_rss_kib": 95376,
+        "stopped": null,
+        "monitor_error": null,
+        "parse_error": null,
+        "load_before": [
+          11.5732421875,
+          7.9326171875,
+          7.88330078125
+        ],
+        "load_after": [
+          11.60693359375,
+          8.0,
+          7.9072265625
+        ],
+        "source_sha256": "0c9a80c961e8a08ee05c07bc22f5e624e5b02be801c85248af2bd6463719f181",
+        "source_preserved": true,
+        "variant": "official",
+        "phases": {}
+      }
+    ],
+    "focus": {
+      "hybrid": {
+        "matched": 20,
+        "total": 20,
+        "cases": [
+          {
+            "feature": "fields",
+            "case": "char-read",
+            "expected": "pass",
+            "matched": true,
+            "diagnostics": []
+          },
+          {
+            "feature": "managers",
+            "case": "get-result",
+            "expected": "pass",
+            "matched": true,
+            "diagnostics": []
+          },
+          {
+            "feature": "managers",
+            "case": "filter-result",
+            "expected": "pass",
+            "matched": true,
+            "diagnostics": []
+          },
+          {
+            "feature": "managers",
+            "case": "first-result",
+            "expected": "pass",
+            "matched": true,
+            "diagnostics": []
+          },
+          {
+            "feature": "managers",
+            "case": "count-result",
+            "expected": "pass",
+            "matched": true,
+            "diagnostics": []
+          },
+          {
+            "feature": "relations",
+            "case": "string-target",
+            "expected": "pass",
+            "matched": true,
+            "diagnostics": []
+          },
+          {
+            "feature": "relations",
+            "case": "string-target-id-domain",
+            "expected": "fail",
+            "matched": true,
+            "diagnostics": [
+              {
+                "code": "invalid-assignment",
+                "message": "invalid-assignment: Object of type `int | None` is not assignable to `str`"
+              }
+            ]
+          },
+          {
+            "feature": "relations",
+            "case": "reverse-manager",
+            "expected": "pass",
+            "matched": true,
+            "diagnostics": []
+          },
+          {
+            "feature": "rows",
+            "case": "values-field",
+            "expected": "pass",
+            "matched": true,
+            "diagnostics": []
+          },
+          {
+            "feature": "rows",
+            "case": "flat-values-list",
+            "expected": "pass",
+            "matched": true,
+            "diagnostics": []
+          },
+          {
+            "feature": "constructors",
+            "case": "valid",
+            "expected": "pass",
+            "matched": true,
+            "diagnostics": []
+          },
+          {
+            "feature": "fields",
+            "case": "invalid-write",
+            "expected": "fail",
+            "matched": true,
+            "diagnostics": [
+              {
+                "code": "invalid-assignment",
+                "message": "invalid-assignment: Invalid assignment to data descriptor attribute `name` on type `Item2500`: Expected `str | Combinable`, found `list[int]`"
+              }
+            ]
+          },
+          {
+            "feature": "fields",
+            "case": "wrong-read-assignment",
+            "expected": "fail",
+            "matched": true,
+            "diagnostics": [
+              {
+                "code": "invalid-assignment",
+                "message": "invalid-assignment: Object of type `str` is not assignable to `int`"
+              }
+            ]
+          },
+          {
+            "feature": "constructors",
+            "case": "invalid-value",
+            "expected": "fail",
+            "matched": true,
+            "diagnostics": [
+              {
+                "code": "invalid-argument-type",
+                "message": "invalid-argument-type: Argument is incorrect: Expected `str`, found `list[str]`"
+              }
+            ]
+          },
+          {
+            "feature": "constructors",
+            "case": "unknown-field",
+            "expected": "fail",
+            "matched": true,
+            "diagnostics": [
+              {
+                "code": "unknown-argument",
+                "message": "unknown-argument: Argument `missing_name` does not match any known parameter of function `benchapp.models.Item2500`"
+              }
+            ]
+          },
+          {
+            "feature": "creation",
+            "case": "invalid-value",
+            "expected": "fail",
+            "matched": true,
+            "diagnostics": [
+              {
+                "code": "plugin-configuration",
+                "message": "plugin-configuration: Invalid Django lookup value for `name` on `benchapp.models.Item2500.name`; expected `str`: django-ty.invalid-lookup-value"
+              }
+            ]
+          },
+          {
+            "feature": "queries",
+            "case": "unknown-field",
+            "expected": "fail",
+            "matched": true,
+            "diagnostics": [
+              {
+                "code": "plugin-configuration",
+                "message": "plugin-configuration: Unknown Django lookup `missing_name` for model `benchapp.models.Item2500`: django-ty.unknown-lookup"
+              }
+            ]
+          },
+          {
+            "feature": "queries",
+            "case": "unknown-lookup",
+            "expected": "fail",
+            "matched": true,
+            "diagnostics": [
+              {
+                "code": "plugin-configuration",
+                "message": "plugin-configuration: Unknown Django lookup `name__missing` for model `benchapp.models.Item2500`: django-ty.unknown-lookup"
+              }
+            ]
+          },
+          {
+            "feature": "queries",
+            "case": "unknown-ordering-field",
+            "expected": "fail",
+            "matched": true,
+            "diagnostics": [
+              {
+                "code": "plugin-configuration",
+                "message": "plugin-configuration: Unknown Django lookup `missing_name` for model `benchapp.models.Item2500`: django-ty.unknown-lookup"
+              }
+            ]
+          },
+          {
+            "feature": "queries",
+            "case": "unknown-selected-field",
+            "expected": "fail",
+            "matched": true,
+            "diagnostics": [
+              {
+                "code": "plugin-configuration",
+                "message": "plugin-configuration: Unknown Django lookup `missing_name` for model `benchapp.models.Item2500`: django-ty.unknown-lookup"
+              }
+            ]
+          }
+        ],
+        "unmarked": []
+      },
+      "previous": {
+        "matched": 20,
+        "total": 20,
+        "cases": [
+          {
+            "feature": "fields",
+            "case": "char-read",
+            "expected": "pass",
+            "matched": true,
+            "diagnostics": []
+          },
+          {
+            "feature": "managers",
+            "case": "get-result",
+            "expected": "pass",
+            "matched": true,
+            "diagnostics": []
+          },
+          {
+            "feature": "managers",
+            "case": "filter-result",
+            "expected": "pass",
+            "matched": true,
+            "diagnostics": []
+          },
+          {
+            "feature": "managers",
+            "case": "first-result",
+            "expected": "pass",
+            "matched": true,
+            "diagnostics": []
+          },
+          {
+            "feature": "managers",
+            "case": "count-result",
+            "expected": "pass",
+            "matched": true,
+            "diagnostics": []
+          },
+          {
+            "feature": "relations",
+            "case": "string-target",
+            "expected": "pass",
+            "matched": true,
+            "diagnostics": []
+          },
+          {
+            "feature": "relations",
+            "case": "string-target-id-domain",
+            "expected": "fail",
+            "matched": true,
+            "diagnostics": [
+              {
+                "code": "invalid-assignment",
+                "message": "invalid-assignment: Object of type `int | None` is not assignable to `str`"
+              }
+            ]
+          },
+          {
+            "feature": "relations",
+            "case": "reverse-manager",
+            "expected": "pass",
+            "matched": true,
+            "diagnostics": []
+          },
+          {
+            "feature": "rows",
+            "case": "values-field",
+            "expected": "pass",
+            "matched": true,
+            "diagnostics": []
+          },
+          {
+            "feature": "rows",
+            "case": "flat-values-list",
+            "expected": "pass",
+            "matched": true,
+            "diagnostics": []
+          },
+          {
+            "feature": "constructors",
+            "case": "valid",
+            "expected": "pass",
+            "matched": true,
+            "diagnostics": []
+          },
+          {
+            "feature": "fields",
+            "case": "invalid-write",
+            "expected": "fail",
+            "matched": true,
+            "diagnostics": [
+              {
+                "code": "invalid-assignment",
+                "message": "invalid-assignment: Object of type `list[int]` is not assignable to attribute `name` of type `str`"
+              }
+            ]
+          },
+          {
+            "feature": "fields",
+            "case": "wrong-read-assignment",
+            "expected": "fail",
+            "matched": true,
+            "diagnostics": [
+              {
+                "code": "invalid-assignment",
+                "message": "invalid-assignment: Object of type `str` is not assignable to `int`"
+              }
+            ]
+          },
+          {
+            "feature": "constructors",
+            "case": "invalid-value",
+            "expected": "fail",
+            "matched": true,
+            "diagnostics": [
+              {
+                "code": "invalid-argument-type",
+                "message": "invalid-argument-type: Argument is incorrect: Expected `str`, found `list[str]`"
+              }
+            ]
+          },
+          {
+            "feature": "constructors",
+            "case": "unknown-field",
+            "expected": "fail",
+            "matched": true,
+            "diagnostics": [
+              {
+                "code": "unknown-argument",
+                "message": "unknown-argument: Argument `missing_name` does not match any known parameter"
+              }
+            ]
+          },
+          {
+            "feature": "creation",
+            "case": "invalid-value",
+            "expected": "fail",
+            "matched": true,
+            "diagnostics": [
+              {
+                "code": "plugin-configuration",
+                "message": "plugin-configuration: Invalid Django lookup value for `name` on `benchapp.models.Item2500.name`; expected `str`: django-ty.invalid-lookup-value"
+              }
+            ]
+          },
+          {
+            "feature": "queries",
+            "case": "unknown-field",
+            "expected": "fail",
+            "matched": true,
+            "diagnostics": [
+              {
+                "code": "plugin-configuration",
+                "message": "plugin-configuration: Unknown Django lookup `missing_name` for model `benchapp.models.Item2500`: django-ty.unknown-lookup"
+              }
+            ]
+          },
+          {
+            "feature": "queries",
+            "case": "unknown-lookup",
+            "expected": "fail",
+            "matched": true,
+            "diagnostics": [
+              {
+                "code": "plugin-configuration",
+                "message": "plugin-configuration: Unknown Django lookup `name__missing` for model `benchapp.models.Item2500`: django-ty.unknown-lookup"
+              }
+            ]
+          },
+          {
+            "feature": "queries",
+            "case": "unknown-ordering-field",
+            "expected": "fail",
+            "matched": true,
+            "diagnostics": [
+              {
+                "code": "plugin-configuration",
+                "message": "plugin-configuration: Unknown Django lookup `missing_name` for model `benchapp.models.Item2500`: django-ty.unknown-lookup"
+              }
+            ]
+          },
+          {
+            "feature": "queries",
+            "case": "unknown-selected-field",
+            "expected": "fail",
+            "matched": true,
+            "diagnostics": [
+              {
+                "code": "plugin-configuration",
+                "message": "plugin-configuration: Unknown Django lookup `missing_name` for model `benchapp.models.Item2500`: django-ty.unknown-lookup"
+              }
+            ]
+          }
+        ],
+        "unmarked": []
+      },
+      "mypy": {
+        "matched": 19,
+        "total": 20,
+        "cases": [
+          {
+            "feature": "fields",
+            "case": "char-read",
+            "expected": "pass",
+            "matched": true,
+            "diagnostics": []
+          },
+          {
+            "feature": "managers",
+            "case": "get-result",
+            "expected": "pass",
+            "matched": true,
+            "diagnostics": []
+          },
+          {
+            "feature": "managers",
+            "case": "filter-result",
+            "expected": "pass",
+            "matched": true,
+            "diagnostics": []
+          },
+          {
+            "feature": "managers",
+            "case": "first-result",
+            "expected": "pass",
+            "matched": true,
+            "diagnostics": []
+          },
+          {
+            "feature": "managers",
+            "case": "count-result",
+            "expected": "pass",
+            "matched": true,
+            "diagnostics": []
+          },
+          {
+            "feature": "relations",
+            "case": "string-target",
+            "expected": "pass",
+            "matched": true,
+            "diagnostics": []
+          },
+          {
+            "feature": "relations",
+            "case": "string-target-id-domain",
+            "expected": "fail",
+            "matched": true,
+            "diagnostics": [
+              {
+                "code": "assignment",
+                "message": "Incompatible types in assignment (expression has type \"int\", variable has type \"str\")"
+              }
+            ]
+          },
+          {
+            "feature": "relations",
+            "case": "reverse-manager",
+            "expected": "pass",
+            "matched": true,
+            "diagnostics": []
+          },
+          {
+            "feature": "rows",
+            "case": "values-field",
+            "expected": "pass",
+            "matched": true,
+            "diagnostics": []
+          },
+          {
+            "feature": "rows",
+            "case": "flat-values-list",
+            "expected": "pass",
+            "matched": true,
+            "diagnostics": []
+          },
+          {
+            "feature": "constructors",
+            "case": "valid",
+            "expected": "pass",
+            "matched": true,
+            "diagnostics": []
+          },
+          {
+            "feature": "fields",
+            "case": "invalid-write",
+            "expected": "fail",
+            "matched": true,
+            "diagnostics": [
+              {
+                "code": "assignment",
+                "message": "Incompatible types in assignment (expression has type \"list[int]\", variable has type \"str | int | Combinable\")"
+              }
+            ]
+          },
+          {
+            "feature": "fields",
+            "case": "wrong-read-assignment",
+            "expected": "fail",
+            "matched": true,
+            "diagnostics": [
+              {
+                "code": "assignment",
+                "message": "Incompatible types in assignment (expression has type \"str\", variable has type \"int\")"
+              }
+            ]
+          },
+          {
+            "feature": "constructors",
+            "case": "invalid-value",
+            "expected": "fail",
+            "matched": true,
+            "diagnostics": [
+              {
+                "code": "misc",
+                "message": "Incompatible type for \"name\" of \"Item2500\" (got \"list[Any]\", expected \"str | int | Combinable\")"
+              }
+            ]
+          },
+          {
+            "feature": "constructors",
+            "case": "unknown-field",
+            "expected": "fail",
+            "matched": true,
+            "diagnostics": [
+              {
+                "code": "misc",
+                "message": "Unexpected attribute \"missing_name\" for model \"Item2500\""
+              }
+            ]
+          },
+          {
+            "feature": "creation",
+            "case": "invalid-value",
+            "expected": "fail",
+            "matched": true,
+            "diagnostics": [
+              {
+                "code": "misc",
+                "message": "Incompatible type for \"name\" of \"Item2500\" (got \"list[Any]\", expected \"str | int | Combinable\")"
+              }
+            ]
+          },
+          {
+            "feature": "queries",
+            "case": "unknown-field",
+            "expected": "fail",
+            "matched": true,
+            "diagnostics": [
+              {
+                "code": "misc",
+                "message": "Cannot resolve keyword 'missing_name' into field. Choices are: id, name, parent, parent_id"
+              }
+            ]
+          },
+          {
+            "feature": "queries",
+            "case": "unknown-lookup",
+            "expected": "fail",
+            "matched": false,
+            "diagnostics": []
+          },
+          {
+            "feature": "queries",
+            "case": "unknown-ordering-field",
+            "expected": "fail",
+            "matched": true,
+            "diagnostics": [
+              {
+                "code": "misc",
+                "message": "Cannot resolve keyword 'missing_name' into field. Choices are: id, name, parent, parent_id"
+              }
+            ]
+          },
+          {
+            "feature": "queries",
+            "case": "unknown-selected-field",
+            "expected": "fail",
+            "matched": true,
+            "diagnostics": [
+              {
+                "code": "misc",
+                "message": "Invalid field in \"only()\": Item2500 has no field named 'missing_name'"
+              }
+            ]
+          }
+        ],
+        "unmarked": []
+      },
+      "official": {
+        "matched": 8,
+        "total": 20,
+        "cases": [
+          {
+            "feature": "fields",
+            "case": "char-read",
+            "expected": "pass",
+            "matched": true,
+            "diagnostics": []
+          },
+          {
+            "feature": "managers",
+            "case": "get-result",
+            "expected": "pass",
+            "matched": true,
+            "diagnostics": []
+          },
+          {
+            "feature": "managers",
+            "case": "filter-result",
+            "expected": "pass",
+            "matched": true,
+            "diagnostics": []
+          },
+          {
+            "feature": "managers",
+            "case": "first-result",
+            "expected": "pass",
+            "matched": true,
+            "diagnostics": []
+          },
+          {
+            "feature": "managers",
+            "case": "count-result",
+            "expected": "pass",
+            "matched": true,
+            "diagnostics": []
+          },
+          {
+            "feature": "relations",
+            "case": "string-target",
+            "expected": "pass",
+            "matched": false,
+            "diagnostics": [
+              {
+                "code": "type-assertion-failure",
+                "message": "type-assertion-failure: Type `Unknown` does not match asserted type `Item2499`"
+              }
+            ]
+          },
+          {
+            "feature": "relations",
+            "case": "string-target-id-domain",
+            "expected": "fail",
+            "matched": false,
+            "diagnostics": []
+          },
+          {
+            "feature": "relations",
+            "case": "reverse-manager",
+            "expected": "pass",
+            "matched": false,
+            "diagnostics": [
+              {
+                "code": "type-assertion-failure",
+                "message": "type-assertion-failure: Type `Unknown` does not match asserted type `Item2500`"
+              },
+              {
+                "code": "unresolved-attribute",
+                "message": "unresolved-attribute: Object of type `Item2499` has no attribute `item2500_set`"
+              }
+            ]
+          },
+          {
+            "feature": "rows",
+            "case": "values-field",
+            "expected": "pass",
+            "matched": false,
+            "diagnostics": [
+              {
+                "code": "type-assertion-failure",
+                "message": "type-assertion-failure: Type `Any` does not match asserted type `str`"
+              }
+            ]
+          },
+          {
+            "feature": "rows",
+            "case": "flat-values-list",
+            "expected": "pass",
+            "matched": false,
+            "diagnostics": [
+              {
+                "code": "type-assertion-failure",
+                "message": "type-assertion-failure: Type `Any` does not match asserted type `str`"
+              }
+            ]
+          },
+          {
+            "feature": "constructors",
+            "case": "valid",
+            "expected": "pass",
+            "matched": true,
+            "diagnostics": []
+          },
+          {
+            "feature": "fields",
+            "case": "invalid-write",
+            "expected": "fail",
+            "matched": true,
+            "diagnostics": [
+              {
+                "code": "invalid-assignment",
+                "message": "invalid-assignment: Invalid assignment to data descriptor attribute `name` on type `Item2500`: Expected `str | Combinable`, found `list[int]`"
+              }
+            ]
+          },
+          {
+            "feature": "fields",
+            "case": "wrong-read-assignment",
+            "expected": "fail",
+            "matched": true,
+            "diagnostics": [
+              {
+                "code": "invalid-assignment",
+                "message": "invalid-assignment: Object of type `str` is not assignable to `int`"
+              }
+            ]
+          },
+          {
+            "feature": "constructors",
+            "case": "invalid-value",
+            "expected": "fail",
+            "matched": false,
+            "diagnostics": []
+          },
+          {
+            "feature": "constructors",
+            "case": "unknown-field",
+            "expected": "fail",
+            "matched": false,
+            "diagnostics": []
+          },
+          {
+            "feature": "creation",
+            "case": "invalid-value",
+            "expected": "fail",
+            "matched": false,
+            "diagnostics": []
+          },
+          {
+            "feature": "queries",
+            "case": "unknown-field",
+            "expected": "fail",
+            "matched": false,
+            "diagnostics": []
+          },
+          {
+            "feature": "queries",
+            "case": "unknown-lookup",
+            "expected": "fail",
+            "matched": false,
+            "diagnostics": []
+          },
+          {
+            "feature": "queries",
+            "case": "unknown-ordering-field",
+            "expected": "fail",
+            "matched": false,
+            "diagnostics": []
+          },
+          {
+            "feature": "queries",
+            "case": "unknown-selected-field",
+            "expected": "fail",
+            "matched": false,
+            "diagnostics": []
+          }
+        ],
+        "unmarked": []
+      }
+    },
+    "negative_controls": {
+      "hybrid": {
+        "backend": "companion",
+        "label": "negative/hybrid",
+        "command": [
+          "$HYBRID/release-v10",
+          "check",
+          "--python",
+          "$WORK/environment/bin/python",
+          "--python-version",
+          "3.13",
+          "--output-format",
+          "gitlab",
+          "--no-progress",
+          "--color",
+          "never",
+          "$WORK/stress/project",
+          "--ty",
+          "$WORK/environment/bin/ty",
+          "--config-file",
+          "$HYBRID/stress.toml"
+        ],
+        "seconds": 2.7598392909858376,
+        "exit": 1,
+        "diagnostic_codes": {
+          "invalid-assignment": 2
+        },
+        "user_cpu_seconds": 1.867209,
+        "system_cpu_seconds": 1.533393,
+        "sampled_process_tree_peak_rss_kib": 421632,
+        "stopped": null,
+        "monitor_error": null,
+        "parse_error": null,
+        "load_before": [
+          9.5546875,
+          7.14453125,
+          7.61962890625
+        ],
+        "load_after": [
+          9.75048828125,
+          7.22509765625,
+          7.64501953125
+        ],
+        "source_sha256": "1d6a6430d5c3eaec3a1d648f4c95b35912d6efc7d7c15370efadb0d6f41164ef",
+        "source_preserved": true,
+        "variant": "hybrid",
+        "phases": {
+          "startup_source_copy": 0.006,
+          "startup_configuration": 0.002,
+          "startup_runtime": 0.007,
+          "startup_overlays": 0.094,
+          "startup_selection": 0.085,
+          "startup_source_and_stub_index": 0.439,
+          "startup_project": 0.0,
+          "source_scan": 0.0,
+          "external_resolution": 0.008,
+          "function_summaries": 0.0,
+          "project_index": 0.413,
+          "virtual_declarations": 0.003,
+          "class_projection": 0.019,
+          "initial_lowering": 0.203,
+          "flow_and_render": 0.258,
+          "import_preflight": 0.015,
+          "oracle_check": 0.5670000000000001,
+          "hook_responses": 0.134,
+          "final_render": 0.001,
+          "final_check": 0.325,
+          "diagnostic_mapping": 0.01,
+          "source_maps": 0.009
+        },
+        "verified_negative_locations": [
+          {
+            "path": "checks.py",
+            "line": 103
+          },
+          {
+            "path": "filler00000.py",
+            "line": 1
+          }
+        ]
+      },
+      "previous": {
+        "backend": "companion",
+        "label": "negative/previous",
+        "command": [
+          "$WORK/factory-release-v13b",
+          "check",
+          "--python",
+          "$WORK/environment/bin/python",
+          "--python-version",
+          "3.13",
+          "--output-format",
+          "gitlab",
+          "--no-progress",
+          "--color",
+          "never",
+          "$WORK/stress/project",
+          "--ty",
+          "$WORK/environment/bin/ty",
+          "--config-file",
+          "$WORK/stress/local-django.toml"
+        ],
+        "seconds": 6.37984416692052,
+        "exit": 1,
+        "diagnostic_codes": {
+          "invalid-assignment": 2
+        },
+        "user_cpu_seconds": 4.475628,
+        "system_cpu_seconds": 2.629889,
+        "sampled_process_tree_peak_rss_kib": 1188656,
+        "stopped": null,
+        "monitor_error": null,
+        "parse_error": null,
+        "load_before": [
+          9.75048828125,
+          7.22509765625,
+          7.64501953125
+        ],
+        "load_after": [
+          9.85009765625,
+          7.28759765625,
+          7.66455078125
+        ],
+        "source_sha256": "1d6a6430d5c3eaec3a1d648f4c95b35912d6efc7d7c15370efadb0d6f41164ef",
+        "source_preserved": true,
+        "variant": "previous",
+        "phases": {
+          "startup_source_copy": 0.006,
+          "startup_configuration": 0.002,
+          "startup_runtime": 0.007,
+          "startup_overlays": 0.097,
+          "startup_selection": 0.086,
+          "startup_source_and_stub_index": 0.508,
+          "startup_project": 0.0,
+          "source_scan": 0.251,
+          "external_resolution": 0.01,
+          "function_summaries": 0.0,
+          "project_index": 0.781,
+          "virtual_declarations": 0.143,
+          "class_projection": 0.533,
+          "initial_lowering": 0.436,
+          "flow_and_render": 0.196,
+          "import_preflight": 0.109,
+          "oracle_check": 1.137,
+          "hook_responses": 0.11299999999999999,
+          "final_render": 0.014,
+          "final_check": 1.575,
+          "diagnostic_mapping": 0.021,
+          "source_maps": 0.014
+        },
+        "verified_negative_locations": [
+          {
+            "path": "checks.py",
+            "line": 103
+          },
+          {
+            "path": "filler00000.py",
+            "line": 1
+          }
+        ]
+      },
+      "mypy": {
+        "backend": "mypy",
+        "label": "negative/mypy",
+        "command": [
+          "$WORK/mypy-reference/bin/mypy",
+          "--config-file",
+          "$WORK/stress/mypy.ini",
+          "--output",
+          "json",
+          "--no-incremental",
+          "$WORK/stress/project",
+          "--cache-dir",
+          "$HYBRID/release-comparison-v11/runs/negative/mypy/scratch/mypy-cache"
+        ],
+        "seconds": 8.37490287492983,
+        "exit": 1,
+        "diagnostic_codes": {
+          "assignment": 2
+        },
+        "user_cpu_seconds": 6.476691,
+        "system_cpu_seconds": 2.100636,
+        "sampled_process_tree_peak_rss_kib": 505760,
+        "stopped": null,
+        "monitor_error": null,
+        "parse_error": null,
+        "load_before": [
+          9.85009765625,
+          7.28759765625,
+          7.66455078125
+        ],
+        "load_after": [
+          9.77978515625,
+          7.359375,
+          7.685546875
+        ],
+        "source_sha256": "1d6a6430d5c3eaec3a1d648f4c95b35912d6efc7d7c15370efadb0d6f41164ef",
+        "source_preserved": true,
+        "variant": "mypy",
+        "phases": {},
+        "verified_negative_locations": [
+          {
+            "path": "checks.py",
+            "line": 103
+          },
+          {
+            "path": "filler00000.py",
+            "line": 1
+          }
+        ]
+      },
+      "official": {
+        "backend": "bare-ty",
+        "label": "negative/official",
+        "command": [
+          "$WORK/official-django-comparison/native-environment/bin/ty",
+          "check",
+          "--python",
+          "$WORK/official-django-comparison/native-environment/bin/python",
+          "--python-version",
+          "3.13",
+          "--output-format",
+          "gitlab",
+          "--no-progress",
+          "--color",
+          "never",
+          "--config-file",
+          "$WORK/official-django-comparison/official.toml",
+          "$WORK/stress/project"
+        ],
+        "seconds": 0.3959023329662159,
+        "exit": 1,
+        "diagnostic_codes": {
+          "invalid-assignment": 2
+        },
+        "user_cpu_seconds": 0.445596,
+        "system_cpu_seconds": 0.47178299999999995,
+        "sampled_process_tree_peak_rss_kib": 92096,
+        "stopped": null,
+        "monitor_error": null,
+        "parse_error": null,
+        "load_before": [
+          9.77978515625,
+          7.359375,
+          7.685546875
+        ],
+        "load_after": [
+          9.77978515625,
+          7.359375,
+          7.685546875
+        ],
+        "source_sha256": "1d6a6430d5c3eaec3a1d648f4c95b35912d6efc7d7c15370efadb0d6f41164ef",
+        "source_preserved": true,
+        "variant": "official",
+        "phases": {},
+        "verified_negative_locations": [
+          {
+            "path": "checks.py",
+            "line": 103
+          },
+          {
+            "path": "filler00000.py",
+            "line": 1
+          }
+        ]
+      }
+    },
+    "medians": {
+      "hybrid": 2.709868708043359,
+      "previous": 5.989612165954895,
+      "mypy": 8.433734958991408,
+      "official": 0.3962926249951124
+    },
+    "maxima": {
+      "hybrid": 2.8445941660320386,
+      "previous": 6.3732899581082165,
+      "mypy": 8.812932999921031,
+      "official": 0.4652255839901045
+    },
+    "focus_source_sha256": "0c9a80c961e8a08ee05c07bc22f5e624e5b02be801c85248af2bd6463719f181",
+    "mypy_ceiling_met": true
+  },
+  "official_ty_matrix": {
+    "passed": true,
+    "binary_sha256": "2844b21bee7e8f0440ed597a6c00101e64a5f8a7eb0d41c154ec63b78fe82307",
+    "plugin_sha256": "1c428e39459a6354894b6ec2019bc6e5471ef4c12eb8e8149ffcaa254ace090d",
+    "rows": [
+      {
+        "ty": "ty 0.0.84 (8dd9a7f7f 2026-09-24)",
+        "django_cases": 172,
+        "django_unmarked": 0,
+        "sdk_assertions": 31,
+        "sdk_controls": 5,
+        "sdk_modes": [
+          "disk",
+          "memory"
+        ],
+        "source_preserved": true,
+        "native_api_modes": [
+          "disk",
+          "memory"
+        ],
+        "native_api_controls": 4
+      },
+      {
+        "ty": "ty 0.0.85 (d7fc5ef88 2026-10-06)",
+        "django_cases": 172,
+        "django_unmarked": 0,
+        "sdk_assertions": 31,
+        "sdk_controls": 5,
+        "sdk_modes": [
+          "disk",
+          "memory"
+        ],
+        "source_preserved": true,
+        "native_api_modes": [
+          "disk",
+          "memory"
+        ],
+        "native_api_controls": 4
+      },
+      {
+        "ty": "ty 0.0.86 (d5da069f4 2026-10-09)",
+        "django_cases": 172,
+        "django_unmarked": 0,
+        "sdk_assertions": 31,
+        "sdk_controls": 5,
+        "sdk_modes": [
+          "disk",
+          "memory"
+        ],
+        "source_preserved": true,
+        "native_api_modes": [
+          "disk",
+          "memory"
+        ],
+        "native_api_controls": 4
+      },
+      {
+        "ty": "ty 0.0.87 (ea4c3d273 2026-10-13)",
+        "django_cases": 172,
+        "django_unmarked": 0,
+        "sdk_assertions": 31,
+        "sdk_controls": 5,
+        "sdk_modes": [
+          "disk",
+          "memory"
+        ],
+        "source_preserved": true,
+        "native_api_modes": [
+          "disk",
+          "memory"
+        ],
+        "native_api_controls": 4
+      },
+      {
+        "ty": "ty 0.0.88 (64e7f1860 2026-10-15)",
+        "django_cases": 172,
+        "django_unmarked": 0,
+        "sdk_assertions": 31,
+        "sdk_controls": 5,
+        "sdk_modes": [
+          "disk",
+          "memory"
+        ],
+        "source_preserved": true,
+        "native_api_modes": [
+          "disk",
+          "memory"
+        ],
+        "native_api_controls": 4
+      },
+      {
+        "ty": "ty 0.0.89 (82b0fd431 2026-10-16)",
+        "django_cases": 172,
+        "django_unmarked": 0,
+        "sdk_assertions": 31,
+        "sdk_controls": 5,
+        "sdk_modes": [
+          "disk",
+          "memory"
+        ],
+        "source_preserved": true,
+        "native_api_modes": [
+          "disk",
+          "memory"
+        ],
+        "native_api_controls": 4
+      },
+      {
+        "ty": "ty 0.0.90 (ebc8bbb31 2026-10-20)",
+        "django_cases": 172,
+        "django_unmarked": 0,
+        "sdk_assertions": 31,
+        "sdk_controls": 5,
+        "sdk_modes": [
+          "disk",
+          "memory"
+        ],
+        "source_preserved": true,
+        "native_api_modes": [
+          "disk",
+          "memory"
+        ],
+        "native_api_controls": 4
+      },
+      {
+        "ty": "ty 0.0.91 (67fbd2874 2026-10-22)",
+        "django_cases": 172,
+        "django_unmarked": 0,
+        "sdk_assertions": 31,
+        "sdk_controls": 5,
+        "sdk_modes": [
+          "disk",
+          "memory"
+        ],
+        "source_preserved": true,
+        "native_api_modes": [
+          "disk",
+          "memory"
+        ],
+        "native_api_controls": 4
+      },
+      {
+        "ty": "ty 0.0.92 (3933e6918 2026-10-26)",
+        "django_cases": 172,
+        "django_unmarked": 0,
+        "sdk_assertions": 31,
+        "sdk_controls": 5,
+        "sdk_modes": [
+          "disk",
+          "memory"
+        ],
+        "source_preserved": true,
+        "native_api_modes": [
+          "disk",
+          "memory"
+        ],
+        "native_api_controls": 4
+      },
+      {
+        "ty": "ty 0.0.93 (3db5e4df7 2026-10-28)",
+        "django_cases": 172,
+        "django_unmarked": 0,
+        "sdk_assertions": 31,
+        "sdk_controls": 5,
+        "sdk_modes": [
+          "disk",
+          "memory"
+        ],
+        "source_preserved": true,
+        "native_api_modes": [
+          "disk",
+          "memory"
+        ],
+        "native_api_controls": 4
+      },
+      {
+        "ty": "ty 0.0.94 (f8ea270e0 2026-10-28)",
+        "django_cases": 172,
+        "django_unmarked": 0,
+        "sdk_assertions": 31,
+        "sdk_controls": 5,
+        "sdk_modes": [
+          "disk",
+          "memory"
+        ],
+        "source_preserved": true,
+        "native_api_modes": [
+          "disk",
+          "memory"
+        ],
+        "native_api_controls": 4
+      },
+      {
+        "ty": "ty 0.0.95 (48c5ea1ba 2026-10-29)",
+        "django_cases": 172,
+        "django_unmarked": 0,
+        "sdk_assertions": 31,
+        "sdk_controls": 5,
+        "sdk_modes": [
+          "disk",
+          "memory"
+        ],
+        "source_preserved": true,
+        "native_api_modes": [
+          "disk",
+          "memory"
+        ],
+        "native_api_controls": 4
+      },
+      {
+        "ty": "ty 0.0.96 (53a7844b8 2026-11-02)",
+        "django_cases": 172,
+        "django_unmarked": 0,
+        "sdk_assertions": 31,
+        "sdk_controls": 5,
+        "sdk_modes": [
+          "disk",
+          "memory"
+        ],
+        "source_preserved": true,
+        "native_api_modes": [
+          "disk",
+          "memory"
+        ],
+        "native_api_controls": 4
+      },
+      {
+        "ty": "ty 0.0.97 (58e168c67 2026-11-04)",
+        "django_cases": 172,
+        "django_unmarked": 0,
+        "sdk_assertions": 31,
+        "sdk_controls": 5,
+        "sdk_modes": [
+          "disk",
+          "memory"
+        ],
+        "source_preserved": true,
+        "native_api_modes": [
+          "disk",
+          "memory"
+        ],
+        "native_api_controls": 4
+      },
+      {
+        "ty": "ty 0.0.98 (e8a6c9331 2026-11-05)",
+        "django_cases": 172,
+        "django_unmarked": 0,
+        "sdk_assertions": 31,
+        "sdk_controls": 5,
+        "sdk_modes": [
+          "disk",
+          "memory"
+        ],
+        "source_preserved": true,
+        "native_api_modes": [
+          "disk",
+          "memory"
+        ],
+        "native_api_controls": 4
+      },
+      {
+        "ty": "ty 0.0.99 (9b48f40c9 2026-11-06)",
+        "django_cases": 172,
+        "django_unmarked": 0,
+        "sdk_assertions": 31,
+        "sdk_controls": 5,
+        "sdk_modes": [
+          "disk",
+          "memory"
+        ],
+        "source_preserved": true,
+        "native_api_modes": [
+          "disk",
+          "memory"
+        ],
+        "native_api_controls": 4
+      }
+    ],
+    "explicit_package_cutoff": "2026-11-09T00:00:00Z, overriding the environment cutoff for exact published Ty versions",
+    "temporary_environment_cleaned": true
+  },
+  "sdk_matrix": [
+    {
+      "passed": true,
+      "candidate_sha256": "2844b21bee7e8f0440ed597a6c00101e64a5f8a7eb0d41c154ec63b78fe82307",
+      "native_version": "ty 0.0.84 (8dd9a7f7f 2026-09-24)",
+      "fixture_hashes": {
+        "plugin.plugin.json": "22dd0163dfec9c84b609819bd12899b829d4f92d118a2ca8520e1d450954b711",
+        "plugin.py": "5e60b275ec3c5a2666e7a2f21146058ddad5404b2f0518dfccda2e9750f4a7c6",
+        "demo.py": "6961fd2b3ba3346c850488d1453e1513bc572bcea39b16458fa51215314f3b0e"
+      },
+      "runs": [
+        {
+          "variant": "historical",
+          "exact_historical_diagnostics": true,
+          "source_preserved": true
+        },
+        {
+          "variant": "disk",
+          "exact_historical_diagnostics": true,
+          "source_preserved": true
+        },
+        {
+          "variant": "memory",
+          "exact_historical_diagnostics": true,
+          "source_preserved": true
+        }
+      ],
+      "assertions": 31,
+      "controls": 5,
+      "project_cleaned": true
+    },
+    {
+      "passed": true,
+      "candidate_sha256": "2844b21bee7e8f0440ed597a6c00101e64a5f8a7eb0d41c154ec63b78fe82307",
+      "native_version": "ty 0.0.85 (d7fc5ef88 2026-10-06)",
+      "fixture_hashes": {
+        "plugin.plugin.json": "22dd0163dfec9c84b609819bd12899b829d4f92d118a2ca8520e1d450954b711",
+        "plugin.py": "5e60b275ec3c5a2666e7a2f21146058ddad5404b2f0518dfccda2e9750f4a7c6",
+        "demo.py": "6961fd2b3ba3346c850488d1453e1513bc572bcea39b16458fa51215314f3b0e"
+      },
+      "runs": [
+        {
+          "variant": "historical",
+          "exact_historical_diagnostics": true,
+          "source_preserved": true
+        },
+        {
+          "variant": "disk",
+          "exact_historical_diagnostics": true,
+          "source_preserved": true
+        },
+        {
+          "variant": "memory",
+          "exact_historical_diagnostics": true,
+          "source_preserved": true
+        }
+      ],
+      "assertions": 31,
+      "controls": 5,
+      "project_cleaned": true
+    },
+    {
+      "passed": true,
+      "candidate_sha256": "2844b21bee7e8f0440ed597a6c00101e64a5f8a7eb0d41c154ec63b78fe82307",
+      "native_version": "ty 0.0.86 (d5da069f4 2026-10-09)",
+      "fixture_hashes": {
+        "plugin.plugin.json": "22dd0163dfec9c84b609819bd12899b829d4f92d118a2ca8520e1d450954b711",
+        "plugin.py": "5e60b275ec3c5a2666e7a2f21146058ddad5404b2f0518dfccda2e9750f4a7c6",
+        "demo.py": "6961fd2b3ba3346c850488d1453e1513bc572bcea39b16458fa51215314f3b0e"
+      },
+      "runs": [
+        {
+          "variant": "historical",
+          "exact_historical_diagnostics": true,
+          "source_preserved": true
+        },
+        {
+          "variant": "disk",
+          "exact_historical_diagnostics": true,
+          "source_preserved": true
+        },
+        {
+          "variant": "memory",
+          "exact_historical_diagnostics": true,
+          "source_preserved": true
+        }
+      ],
+      "assertions": 31,
+      "controls": 5,
+      "project_cleaned": true
+    },
+    {
+      "passed": true,
+      "candidate_sha256": "2844b21bee7e8f0440ed597a6c00101e64a5f8a7eb0d41c154ec63b78fe82307",
+      "native_version": "ty 0.0.87 (ea4c3d273 2026-10-13)",
+      "fixture_hashes": {
+        "plugin.plugin.json": "22dd0163dfec9c84b609819bd12899b829d4f92d118a2ca8520e1d450954b711",
+        "plugin.py": "5e60b275ec3c5a2666e7a2f21146058ddad5404b2f0518dfccda2e9750f4a7c6",
+        "demo.py": "6961fd2b3ba3346c850488d1453e1513bc572bcea39b16458fa51215314f3b0e"
+      },
+      "runs": [
+        {
+          "variant": "historical",
+          "exact_historical_diagnostics": true,
+          "source_preserved": true
+        },
+        {
+          "variant": "disk",
+          "exact_historical_diagnostics": true,
+          "source_preserved": true
+        },
+        {
+          "variant": "memory",
+          "exact_historical_diagnostics": true,
+          "source_preserved": true
+        }
+      ],
+      "assertions": 31,
+      "controls": 5,
+      "project_cleaned": true
+    },
+    {
+      "passed": true,
+      "candidate_sha256": "2844b21bee7e8f0440ed597a6c00101e64a5f8a7eb0d41c154ec63b78fe82307",
+      "native_version": "ty 0.0.88 (64e7f1860 2026-10-15)",
+      "fixture_hashes": {
+        "plugin.plugin.json": "22dd0163dfec9c84b609819bd12899b829d4f92d118a2ca8520e1d450954b711",
+        "plugin.py": "5e60b275ec3c5a2666e7a2f21146058ddad5404b2f0518dfccda2e9750f4a7c6",
+        "demo.py": "6961fd2b3ba3346c850488d1453e1513bc572bcea39b16458fa51215314f3b0e"
+      },
+      "runs": [
+        {
+          "variant": "historical",
+          "exact_historical_diagnostics": true,
+          "source_preserved": true
+        },
+        {
+          "variant": "disk",
+          "exact_historical_diagnostics": true,
+          "source_preserved": true
+        },
+        {
+          "variant": "memory",
+          "exact_historical_diagnostics": true,
+          "source_preserved": true
+        }
+      ],
+      "assertions": 31,
+      "controls": 5,
+      "project_cleaned": true
+    },
+    {
+      "passed": true,
+      "candidate_sha256": "2844b21bee7e8f0440ed597a6c00101e64a5f8a7eb0d41c154ec63b78fe82307",
+      "native_version": "ty 0.0.89 (82b0fd431 2026-10-16)",
+      "fixture_hashes": {
+        "plugin.plugin.json": "22dd0163dfec9c84b609819bd12899b829d4f92d118a2ca8520e1d450954b711",
+        "plugin.py": "5e60b275ec3c5a2666e7a2f21146058ddad5404b2f0518dfccda2e9750f4a7c6",
+        "demo.py": "6961fd2b3ba3346c850488d1453e1513bc572bcea39b16458fa51215314f3b0e"
+      },
+      "runs": [
+        {
+          "variant": "historical",
+          "exact_historical_diagnostics": true,
+          "source_preserved": true
+        },
+        {
+          "variant": "disk",
+          "exact_historical_diagnostics": true,
+          "source_preserved": true
+        },
+        {
+          "variant": "memory",
+          "exact_historical_diagnostics": true,
+          "source_preserved": true
+        }
+      ],
+      "assertions": 31,
+      "controls": 5,
+      "project_cleaned": true
+    },
+    {
+      "passed": true,
+      "candidate_sha256": "2844b21bee7e8f0440ed597a6c00101e64a5f8a7eb0d41c154ec63b78fe82307",
+      "native_version": "ty 0.0.90 (ebc8bbb31 2026-10-20)",
+      "fixture_hashes": {
+        "plugin.plugin.json": "22dd0163dfec9c84b609819bd12899b829d4f92d118a2ca8520e1d450954b711",
+        "plugin.py": "5e60b275ec3c5a2666e7a2f21146058ddad5404b2f0518dfccda2e9750f4a7c6",
+        "demo.py": "6961fd2b3ba3346c850488d1453e1513bc572bcea39b16458fa51215314f3b0e"
+      },
+      "runs": [
+        {
+          "variant": "historical",
+          "exact_historical_diagnostics": true,
+          "source_preserved": true
+        },
+        {
+          "variant": "disk",
+          "exact_historical_diagnostics": true,
+          "source_preserved": true
+        },
+        {
+          "variant": "memory",
+          "exact_historical_diagnostics": true,
+          "source_preserved": true
+        }
+      ],
+      "assertions": 31,
+      "controls": 5,
+      "project_cleaned": true
+    },
+    {
+      "passed": true,
+      "candidate_sha256": "2844b21bee7e8f0440ed597a6c00101e64a5f8a7eb0d41c154ec63b78fe82307",
+      "native_version": "ty 0.0.91 (67fbd2874 2026-10-22)",
+      "fixture_hashes": {
+        "plugin.plugin.json": "22dd0163dfec9c84b609819bd12899b829d4f92d118a2ca8520e1d450954b711",
+        "plugin.py": "5e60b275ec3c5a2666e7a2f21146058ddad5404b2f0518dfccda2e9750f4a7c6",
+        "demo.py": "6961fd2b3ba3346c850488d1453e1513bc572bcea39b16458fa51215314f3b0e"
+      },
+      "runs": [
+        {
+          "variant": "historical",
+          "exact_historical_diagnostics": true,
+          "source_preserved": true
+        },
+        {
+          "variant": "disk",
+          "exact_historical_diagnostics": true,
+          "source_preserved": true
+        },
+        {
+          "variant": "memory",
+          "exact_historical_diagnostics": true,
+          "source_preserved": true
+        }
+      ],
+      "assertions": 31,
+      "controls": 5,
+      "project_cleaned": true
+    },
+    {
+      "passed": true,
+      "candidate_sha256": "2844b21bee7e8f0440ed597a6c00101e64a5f8a7eb0d41c154ec63b78fe82307",
+      "native_version": "ty 0.0.92 (3933e6918 2026-10-26)",
+      "fixture_hashes": {
+        "plugin.plugin.json": "22dd0163dfec9c84b609819bd12899b829d4f92d118a2ca8520e1d450954b711",
+        "plugin.py": "5e60b275ec3c5a2666e7a2f21146058ddad5404b2f0518dfccda2e9750f4a7c6",
+        "demo.py": "6961fd2b3ba3346c850488d1453e1513bc572bcea39b16458fa51215314f3b0e"
+      },
+      "runs": [
+        {
+          "variant": "historical",
+          "exact_historical_diagnostics": true,
+          "source_preserved": true
+        },
+        {
+          "variant": "disk",
+          "exact_historical_diagnostics": true,
+          "source_preserved": true
+        },
+        {
+          "variant": "memory",
+          "exact_historical_diagnostics": true,
+          "source_preserved": true
+        }
+      ],
+      "assertions": 31,
+      "controls": 5,
+      "project_cleaned": true
+    },
+    {
+      "passed": true,
+      "candidate_sha256": "2844b21bee7e8f0440ed597a6c00101e64a5f8a7eb0d41c154ec63b78fe82307",
+      "native_version": "ty 0.0.93 (3db5e4df7 2026-10-28)",
+      "fixture_hashes": {
+        "plugin.plugin.json": "22dd0163dfec9c84b609819bd12899b829d4f92d118a2ca8520e1d450954b711",
+        "plugin.py": "5e60b275ec3c5a2666e7a2f21146058ddad5404b2f0518dfccda2e9750f4a7c6",
+        "demo.py": "6961fd2b3ba3346c850488d1453e1513bc572bcea39b16458fa51215314f3b0e"
+      },
+      "runs": [
+        {
+          "variant": "historical",
+          "exact_historical_diagnostics": true,
+          "source_preserved": true
+        },
+        {
+          "variant": "disk",
+          "exact_historical_diagnostics": true,
+          "source_preserved": true
+        },
+        {
+          "variant": "memory",
+          "exact_historical_diagnostics": true,
+          "source_preserved": true
+        }
+      ],
+      "assertions": 31,
+      "controls": 5,
+      "project_cleaned": true
+    },
+    {
+      "passed": true,
+      "candidate_sha256": "2844b21bee7e8f0440ed597a6c00101e64a5f8a7eb0d41c154ec63b78fe82307",
+      "native_version": "ty 0.0.94 (f8ea270e0 2026-10-28)",
+      "fixture_hashes": {
+        "plugin.plugin.json": "22dd0163dfec9c84b609819bd12899b829d4f92d118a2ca8520e1d450954b711",
+        "plugin.py": "5e60b275ec3c5a2666e7a2f21146058ddad5404b2f0518dfccda2e9750f4a7c6",
+        "demo.py": "6961fd2b3ba3346c850488d1453e1513bc572bcea39b16458fa51215314f3b0e"
+      },
+      "runs": [
+        {
+          "variant": "historical",
+          "exact_historical_diagnostics": true,
+          "source_preserved": true
+        },
+        {
+          "variant": "disk",
+          "exact_historical_diagnostics": true,
+          "source_preserved": true
+        },
+        {
+          "variant": "memory",
+          "exact_historical_diagnostics": true,
+          "source_preserved": true
+        }
+      ],
+      "assertions": 31,
+      "controls": 5,
+      "project_cleaned": true
+    },
+    {
+      "passed": true,
+      "candidate_sha256": "2844b21bee7e8f0440ed597a6c00101e64a5f8a7eb0d41c154ec63b78fe82307",
+      "native_version": "ty 0.0.95 (48c5ea1ba 2026-10-29)",
+      "fixture_hashes": {
+        "plugin.plugin.json": "22dd0163dfec9c84b609819bd12899b829d4f92d118a2ca8520e1d450954b711",
+        "plugin.py": "5e60b275ec3c5a2666e7a2f21146058ddad5404b2f0518dfccda2e9750f4a7c6",
+        "demo.py": "6961fd2b3ba3346c850488d1453e1513bc572bcea39b16458fa51215314f3b0e"
+      },
+      "runs": [
+        {
+          "variant": "historical",
+          "exact_historical_diagnostics": true,
+          "source_preserved": true
+        },
+        {
+          "variant": "disk",
+          "exact_historical_diagnostics": true,
+          "source_preserved": true
+        },
+        {
+          "variant": "memory",
+          "exact_historical_diagnostics": true,
+          "source_preserved": true
+        }
+      ],
+      "assertions": 31,
+      "controls": 5,
+      "project_cleaned": true
+    },
+    {
+      "passed": true,
+      "candidate_sha256": "2844b21bee7e8f0440ed597a6c00101e64a5f8a7eb0d41c154ec63b78fe82307",
+      "native_version": "ty 0.0.96 (53a7844b8 2026-11-02)",
+      "fixture_hashes": {
+        "plugin.plugin.json": "22dd0163dfec9c84b609819bd12899b829d4f92d118a2ca8520e1d450954b711",
+        "plugin.py": "5e60b275ec3c5a2666e7a2f21146058ddad5404b2f0518dfccda2e9750f4a7c6",
+        "demo.py": "6961fd2b3ba3346c850488d1453e1513bc572bcea39b16458fa51215314f3b0e"
+      },
+      "runs": [
+        {
+          "variant": "historical",
+          "exact_historical_diagnostics": true,
+          "source_preserved": true
+        },
+        {
+          "variant": "disk",
+          "exact_historical_diagnostics": true,
+          "source_preserved": true
+        },
+        {
+          "variant": "memory",
+          "exact_historical_diagnostics": true,
+          "source_preserved": true
+        }
+      ],
+      "assertions": 31,
+      "controls": 5,
+      "project_cleaned": true
+    },
+    {
+      "passed": true,
+      "candidate_sha256": "2844b21bee7e8f0440ed597a6c00101e64a5f8a7eb0d41c154ec63b78fe82307",
+      "native_version": "ty 0.0.97 (58e168c67 2026-11-04)",
+      "fixture_hashes": {
+        "plugin.plugin.json": "22dd0163dfec9c84b609819bd12899b829d4f92d118a2ca8520e1d450954b711",
+        "plugin.py": "5e60b275ec3c5a2666e7a2f21146058ddad5404b2f0518dfccda2e9750f4a7c6",
+        "demo.py": "6961fd2b3ba3346c850488d1453e1513bc572bcea39b16458fa51215314f3b0e"
+      },
+      "runs": [
+        {
+          "variant": "historical",
+          "exact_historical_diagnostics": true,
+          "source_preserved": true
+        },
+        {
+          "variant": "disk",
+          "exact_historical_diagnostics": true,
+          "source_preserved": true
+        },
+        {
+          "variant": "memory",
+          "exact_historical_diagnostics": true,
+          "source_preserved": true
+        }
+      ],
+      "assertions": 31,
+      "controls": 5,
+      "project_cleaned": true
+    },
+    {
+      "passed": true,
+      "candidate_sha256": "2844b21bee7e8f0440ed597a6c00101e64a5f8a7eb0d41c154ec63b78fe82307",
+      "native_version": "ty 0.0.98 (e8a6c9331 2026-11-05)",
+      "fixture_hashes": {
+        "plugin.plugin.json": "22dd0163dfec9c84b609819bd12899b829d4f92d118a2ca8520e1d450954b711",
+        "plugin.py": "5e60b275ec3c5a2666e7a2f21146058ddad5404b2f0518dfccda2e9750f4a7c6",
+        "demo.py": "6961fd2b3ba3346c850488d1453e1513bc572bcea39b16458fa51215314f3b0e"
+      },
+      "runs": [
+        {
+          "variant": "historical",
+          "exact_historical_diagnostics": true,
+          "source_preserved": true
+        },
+        {
+          "variant": "disk",
+          "exact_historical_diagnostics": true,
+          "source_preserved": true
+        },
+        {
+          "variant": "memory",
+          "exact_historical_diagnostics": true,
+          "source_preserved": true
+        }
+      ],
+      "assertions": 31,
+      "controls": 5,
+      "project_cleaned": true
+    },
+    {
+      "passed": true,
+      "candidate_sha256": "2844b21bee7e8f0440ed597a6c00101e64a5f8a7eb0d41c154ec63b78fe82307",
+      "native_version": "ty 0.0.99 (9b48f40c9 2026-11-06)",
+      "fixture_hashes": {
+        "plugin.plugin.json": "22dd0163dfec9c84b609819bd12899b829d4f92d118a2ca8520e1d450954b711",
+        "plugin.py": "5e60b275ec3c5a2666e7a2f21146058ddad5404b2f0518dfccda2e9750f4a7c6",
+        "demo.py": "6961fd2b3ba3346c850488d1453e1513bc572bcea39b16458fa51215314f3b0e"
+      },
+      "runs": [
+        {
+          "variant": "historical",
+          "exact_historical_diagnostics": true,
+          "source_preserved": true
+        },
+        {
+          "variant": "disk",
+          "exact_historical_diagnostics": true,
+          "source_preserved": true
+        },
+        {
+          "variant": "memory",
+          "exact_historical_diagnostics": true,
+          "source_preserved": true
+        }
+      ],
+      "assertions": 31,
+      "controls": 5,
+      "project_cleaned": true
+    }
+  ],
+  "correctness": {
+    "root_tests": {
+      "regular": 226,
+      "ignored_integrations": 3,
+      "modes": [
+        "default",
+        "native-fields"
+      ],
+      "passed": true,
+      "focused_regressions": 7,
+      "format_and_clippy": true,
+      "target_cleaned": true
+    },
+    "django_cases": 172,
+    "django_unmarked": 0,
+    "focused_orm_cases": 20,
+    "same_model_name_cases": 4,
+    "monty_functions": 89,
+    "sdk_type_declarations": 46,
+    "invalid_payload_controls": 7,
+    "django_runtime_contracts": 83,
+    "querydict_cases_each_mode": 9,
+    "python_tests": {
+      "total": 47,
+      "passed": 46,
+      "failed": 1,
+      "failure": "CheckedEvidenceTest.test_current_evidence_passes: official-contract evidence is stale: sha256",
+      "release_gate_passed": false
+    },
+    "latest_qualification_steps": {
+      "steps": [
+        {
+          "step": "corpus",
+          "exit": 0,
+          "seconds": 1.4956890000030398
+        },
+        {
+          "step": "multi-app",
+          "exit": 0,
+          "seconds": 0.43356991605833173
+        },
+        {
+          "step": "sdk-fields",
+          "exit": 0,
+          "seconds": 0.44630337494891137
+        },
+        {
+          "step": "monty-types",
+          "exit": 0,
+          "seconds": 0.30898141697980464
+        },
+        {
+          "step": "python-units",
+          "exit": 1,
+          "seconds": 4.306090916041285
+        },
+        {
+          "step": "focus",
+          "exit": 0,
+          "seconds": 5.117136749904603
+        },
+        {
+          "step": "django-runtime",
+          "exit": 0,
+          "seconds": 0.43741941603366286
+        },
+        {
+          "step": "querydict-0",
+          "exit": 0,
+          "seconds": 3.6405548329930753
+        },
+        {
+          "step": "querydict-1",
+          "exit": 0,
+          "seconds": 2.9843489999184385
+        }
+      ],
+      "binary_sha256": "2844b21bee7e8f0440ed597a6c00101e64a5f8a7eb0d41c154ec63b78fe82307"
+    }
+  },
+  "vendor_reproduction_and_tamper_controls": {
+    "passed": true,
+    "cases": [
+      {
+        "case": "reproduce-eight-adapter-tree",
+        "exit": 0,
+        "stdout": "verified 731 static files: 54d401a46ba9cc2cc477b7fc42fd8964bc5bd6b44753e53e135ee187635ad19b\n",
+        "stderr": ""
+      },
+      {
+        "case": "check-eight-adapter-tree",
+        "exit": 0,
+        "stdout": "verified 731 static files: 54d401a46ba9cc2cc477b7fc42fd8964bc5bd6b44753e53e135ee187635ad19b\n",
+        "stderr": ""
+      },
+      {
+        "case": "reject-output-tamper",
+        "exit": 1,
+        "stdout": "",
+        "stderr": "vendored tree differs; inspect it before regenerating\n"
+      },
+      {
+        "case": "reject-input-tamper-before-writing",
+        "exit": 1,
+        "stdout": "",
+        "stderr": "native input differs from the reviewed pinned tree\n"
+      },
+      {
+        "case": "reject-input-overwrite",
+        "exit": 2,
+        "stdout": "",
+        "stderr": "usage: vendor_native_django.py [-h] --django-types-root DJANGO_TYPES_ROOT\n                               --legacy-root LEGACY_ROOT [--output OUTPUT]\n                               [--write]\nvendor_native_django.py: error: output must be separate from both input trees\n"
+      }
+    ],
+    "receipt_sha256": "220e6aa7e329cc543795f103b43a44a78bb100ee41fd9be241edb528ef80692e",
+    "temporary_files_cleaned": true
+  },
+  "local_source_archives": {
+    "root-source-v10.tar.gz": "507199213f352d07209ea58ededc479c034f9b850e8fe82ec8e6d3603b7470a9",
+    "django-source-v11.tar.gz": "6f364e297fc08def49e16c959653872d82802fe724caee4e4d5f4dbffae015de",
+    "api-regression-v11.tar.gz": "2af80abd284e29a1cb8f4cdd3cab48034b72c25a81bc368f6e3f93f077a3b5c1"
+  },
+  "release_gates_open": [
+    "One-second fresh-process target",
+    "Complete static API compatibility audit of native declaration base",
+    "Fresh official-contract artifact receipt; old checked-in receipt remains stale",
+    "Automatic consumer activation and properly versioned installed wheels",
+    "Installed wheel editor and Django/Python matrix acceptance",
+    "Hosted CI for current source; no new code commit or publication"
+  ],
+  "native_api_matrix": [
+    {
+      "passed": true,
+      "scope": "Experimental checkout source; installed artifacts not qualified",
+      "candidate_sha256": "2844b21bee7e8f0440ed597a6c00101e64a5f8a7eb0d41c154ec63b78fe82307",
+      "plugin_sha256": "1c428e39459a6354894b6ec2019bc6e5471ef4c12eb8e8149ffcaa254ace090d",
+      "native_version": "ty 0.0.84 (8dd9a7f7f 2026-09-24)",
+      "runs": [
+        {
+          "mode": "0",
+          "controls": {
+            "9": "plugin-configuration",
+            "10": "plugin-configuration",
+            "17": "invalid-assignment",
+            "18": "invalid-argument-type"
+          },
+          "run": {
+            "command": [
+              "$HYBRID/iteration-v10",
+              "check",
+              "--ty",
+              "$HYBRID/official-matrix-v11/environment/bin/ty",
+              "--python",
+              "$WORK/environment/bin/python",
+              "--config-file",
+              "$HYBRID/official-matrix-v11/api-84/project/ty.toml",
+              "--output-format",
+              "gitlab",
+              "--no-progress",
+              "--color",
+              "never",
+              "$HYBRID/official-matrix-v11/api-84/project"
+            ],
+            "exit": 1,
+            "seconds": 0.7222445830702782,
+            "peak_process_tree_rss_kib": 147360,
+            "peak_processes_pid_ppid_rss_kib": [
+              [
+                70315,
+                70311,
+                103008
+              ],
+              [
+                70319,
+                70315,
+                44352
+              ]
+            ],
+            "stopped": null,
+            "source_sha256": "f56afc9a51a6957e7997b0d40270ded562eb7f1ded5eab12706d45ff6a68a7ad",
+            "source_preserved": true,
+            "stdout": "$HYBRID/official-matrix-v11/api-84/disk/stdout.json",
+            "stderr": "$HYBRID/official-matrix-v11/api-84/disk/stderr.log"
+          }
+        },
+        {
+          "mode": "1",
+          "controls": {
+            "9": "plugin-configuration",
+            "10": "plugin-configuration",
+            "17": "invalid-assignment",
+            "18": "invalid-argument-type"
+          },
+          "run": {
+            "command": [
+              "$HYBRID/iteration-v10",
+              "check",
+              "--ty",
+              "$HYBRID/official-matrix-v11/environment/bin/ty",
+              "--python",
+              "$WORK/environment/bin/python",
+              "--config-file",
+              "$HYBRID/official-matrix-v11/api-84/project/ty.toml",
+              "--output-format",
+              "gitlab",
+              "--no-progress",
+              "--color",
+              "never",
+              "$HYBRID/official-matrix-v11/api-84/project"
+            ],
+            "exit": 1,
+            "seconds": 0.4843472921056673,
+            "peak_process_tree_rss_kib": 77584,
+            "peak_processes_pid_ppid_rss_kib": [
+              [
+                70326,
+                70311,
+                53232
+              ],
+              [
+                70329,
+                70326,
+                24352
+              ]
+            ],
+            "stopped": null,
+            "source_sha256": "f56afc9a51a6957e7997b0d40270ded562eb7f1ded5eab12706d45ff6a68a7ad",
+            "source_preserved": true,
+            "stdout": "$HYBRID/official-matrix-v11/api-84/memory/stdout.json",
+            "stderr": "$HYBRID/official-matrix-v11/api-84/memory/stderr.log"
+          }
+        }
+      ],
+      "runtime": {
+        "implicit_id": "BigAutoField",
+        "explicit_id": "AutoField",
+        "acheck_password": true,
+        "aget_user": true,
+        "alogout": true,
+        "password_none_is_false": true,
+        "aupdate_session_auth_hash": true,
+        "pk_rejected": true,
+        "custom_id_rejected": true
+      },
+      "project_cleaned": true
+    },
+    {
+      "passed": true,
+      "scope": "Experimental checkout source; installed artifacts not qualified",
+      "candidate_sha256": "2844b21bee7e8f0440ed597a6c00101e64a5f8a7eb0d41c154ec63b78fe82307",
+      "plugin_sha256": "1c428e39459a6354894b6ec2019bc6e5471ef4c12eb8e8149ffcaa254ace090d",
+      "native_version": "ty 0.0.85 (d7fc5ef88 2026-10-06)",
+      "runs": [
+        {
+          "mode": "0",
+          "controls": {
+            "9": "plugin-configuration",
+            "10": "plugin-configuration",
+            "17": "invalid-assignment",
+            "18": "invalid-argument-type"
+          },
+          "run": {
+            "command": [
+              "$HYBRID/iteration-v10",
+              "check",
+              "--ty",
+              "$HYBRID/official-matrix-v11/environment/bin/ty",
+              "--python",
+              "$WORK/environment/bin/python",
+              "--config-file",
+              "$HYBRID/official-matrix-v11/api-85/project/ty.toml",
+              "--output-format",
+              "gitlab",
+              "--no-progress",
+              "--color",
+              "never",
+              "$HYBRID/official-matrix-v11/api-85/project"
+            ],
+            "exit": 1,
+            "seconds": 0.47267066698987037,
+            "peak_process_tree_rss_kib": 104720,
+            "peak_processes_pid_ppid_rss_kib": [
+              [
+                70537,
+                70533,
+                84944
+              ],
+              [
+                70540,
+                70537,
+                19776
+              ]
+            ],
+            "stopped": null,
+            "source_sha256": "f56afc9a51a6957e7997b0d40270ded562eb7f1ded5eab12706d45ff6a68a7ad",
+            "source_preserved": true,
+            "stdout": "$HYBRID/official-matrix-v11/api-85/disk/stdout.json",
+            "stderr": "$HYBRID/official-matrix-v11/api-85/disk/stderr.log"
+          }
+        },
+        {
+          "mode": "1",
+          "controls": {
+            "9": "plugin-configuration",
+            "10": "plugin-configuration",
+            "17": "invalid-assignment",
+            "18": "invalid-argument-type"
+          },
+          "run": {
+            "command": [
+              "$HYBRID/iteration-v10",
+              "check",
+              "--ty",
+              "$HYBRID/official-matrix-v11/environment/bin/ty",
+              "--python",
+              "$WORK/environment/bin/python",
+              "--config-file",
+              "$HYBRID/official-matrix-v11/api-85/project/ty.toml",
+              "--output-format",
+              "gitlab",
+              "--no-progress",
+              "--color",
+              "never",
+              "$HYBRID/official-matrix-v11/api-85/project"
+            ],
+            "exit": 1,
+            "seconds": 0.4736412500496954,
+            "peak_process_tree_rss_kib": 97376,
+            "peak_processes_pid_ppid_rss_kib": [
+              [
+                70542,
+                70533,
+                53152
+              ],
+              [
+                70545,
+                70542,
+                44224
+              ]
+            ],
+            "stopped": null,
+            "source_sha256": "f56afc9a51a6957e7997b0d40270ded562eb7f1ded5eab12706d45ff6a68a7ad",
+            "source_preserved": true,
+            "stdout": "$HYBRID/official-matrix-v11/api-85/memory/stdout.json",
+            "stderr": "$HYBRID/official-matrix-v11/api-85/memory/stderr.log"
+          }
+        }
+      ],
+      "runtime": {
+        "implicit_id": "BigAutoField",
+        "explicit_id": "AutoField",
+        "acheck_password": true,
+        "aget_user": true,
+        "alogout": true,
+        "password_none_is_false": true,
+        "aupdate_session_auth_hash": true,
+        "pk_rejected": true,
+        "custom_id_rejected": true
+      },
+      "project_cleaned": true
+    },
+    {
+      "passed": true,
+      "scope": "Experimental checkout source; installed artifacts not qualified",
+      "candidate_sha256": "2844b21bee7e8f0440ed597a6c00101e64a5f8a7eb0d41c154ec63b78fe82307",
+      "plugin_sha256": "1c428e39459a6354894b6ec2019bc6e5471ef4c12eb8e8149ffcaa254ace090d",
+      "native_version": "ty 0.0.86 (d5da069f4 2026-10-09)",
+      "runs": [
+        {
+          "mode": "0",
+          "controls": {
+            "9": "plugin-configuration",
+            "10": "plugin-configuration",
+            "17": "invalid-assignment",
+            "18": "invalid-argument-type"
+          },
+          "run": {
+            "command": [
+              "$HYBRID/iteration-v10",
+              "check",
+              "--ty",
+              "$HYBRID/official-matrix-v11/environment/bin/ty",
+              "--python",
+              "$WORK/environment/bin/python",
+              "--config-file",
+              "$HYBRID/official-matrix-v11/api-86/project/ty.toml",
+              "--output-format",
+              "gitlab",
+              "--no-progress",
+              "--color",
+              "never",
+              "$HYBRID/official-matrix-v11/api-86/project"
+            ],
+            "exit": 1,
+            "seconds": 0.47453287499956787,
+            "peak_process_tree_rss_kib": 103200,
+            "peak_processes_pid_ppid_rss_kib": [
+              [
+                70767,
+                70763,
+                84560
+              ],
+              [
+                70771,
+                70767,
+                18640
+              ]
+            ],
+            "stopped": null,
+            "source_sha256": "f56afc9a51a6957e7997b0d40270ded562eb7f1ded5eab12706d45ff6a68a7ad",
+            "source_preserved": true,
+            "stdout": "$HYBRID/official-matrix-v11/api-86/disk/stdout.json",
+            "stderr": "$HYBRID/official-matrix-v11/api-86/disk/stderr.log"
+          }
+        },
+        {
+          "mode": "1",
+          "controls": {
+            "9": "plugin-configuration",
+            "10": "plugin-configuration",
+            "17": "invalid-assignment",
+            "18": "invalid-argument-type"
+          },
+          "run": {
+            "command": [
+              "$HYBRID/iteration-v10",
+              "check",
+              "--ty",
+              "$HYBRID/official-matrix-v11/environment/bin/ty",
+              "--python",
+              "$WORK/environment/bin/python",
+              "--config-file",
+              "$HYBRID/official-matrix-v11/api-86/project/ty.toml",
+              "--output-format",
+              "gitlab",
+              "--no-progress",
+              "--color",
+              "never",
+              "$HYBRID/official-matrix-v11/api-86/project"
+            ],
+            "exit": 1,
+            "seconds": 0.47299487504642457,
+            "peak_process_tree_rss_kib": 104816,
+            "peak_processes_pid_ppid_rss_kib": [
+              [
+                70773,
+                70763,
+                57344
+              ],
+              [
+                70776,
+                70773,
+                47472
+              ]
+            ],
+            "stopped": null,
+            "source_sha256": "f56afc9a51a6957e7997b0d40270ded562eb7f1ded5eab12706d45ff6a68a7ad",
+            "source_preserved": true,
+            "stdout": "$HYBRID/official-matrix-v11/api-86/memory/stdout.json",
+            "stderr": "$HYBRID/official-matrix-v11/api-86/memory/stderr.log"
+          }
+        }
+      ],
+      "runtime": {
+        "implicit_id": "BigAutoField",
+        "explicit_id": "AutoField",
+        "acheck_password": true,
+        "aget_user": true,
+        "alogout": true,
+        "password_none_is_false": true,
+        "aupdate_session_auth_hash": true,
+        "pk_rejected": true,
+        "custom_id_rejected": true
+      },
+      "project_cleaned": true
+    },
+    {
+      "passed": true,
+      "scope": "Experimental checkout source; installed artifacts not qualified",
+      "candidate_sha256": "2844b21bee7e8f0440ed597a6c00101e64a5f8a7eb0d41c154ec63b78fe82307",
+      "plugin_sha256": "1c428e39459a6354894b6ec2019bc6e5471ef4c12eb8e8149ffcaa254ace090d",
+      "native_version": "ty 0.0.87 (ea4c3d273 2026-10-13)",
+      "runs": [
+        {
+          "mode": "0",
+          "controls": {
+            "9": "plugin-configuration",
+            "10": "plugin-configuration",
+            "17": "invalid-assignment",
+            "18": "invalid-argument-type"
+          },
+          "run": {
+            "command": [
+              "$HYBRID/iteration-v10",
+              "check",
+              "--ty",
+              "$HYBRID/official-matrix-v11/environment/bin/ty",
+              "--python",
+              "$WORK/environment/bin/python",
+              "--config-file",
+              "$HYBRID/official-matrix-v11/api-87/project/ty.toml",
+              "--output-format",
+              "gitlab",
+              "--no-progress",
+              "--color",
+              "never",
+              "$HYBRID/official-matrix-v11/api-87/project"
+            ],
+            "exit": 1,
+            "seconds": 0.4721476670820266,
+            "peak_process_tree_rss_kib": 104864,
+            "peak_processes_pid_ppid_rss_kib": [
+              [
+                71063,
+                71058,
+                84928
+              ],
+              [
+                71066,
+                71063,
+                19936
+              ]
+            ],
+            "stopped": null,
+            "source_sha256": "f56afc9a51a6957e7997b0d40270ded562eb7f1ded5eab12706d45ff6a68a7ad",
+            "source_preserved": true,
+            "stdout": "$HYBRID/official-matrix-v11/api-87/disk/stdout.json",
+            "stderr": "$HYBRID/official-matrix-v11/api-87/disk/stderr.log"
+          }
+        },
+        {
+          "mode": "1",
+          "controls": {
+            "9": "plugin-configuration",
+            "10": "plugin-configuration",
+            "17": "invalid-assignment",
+            "18": "invalid-argument-type"
+          },
+          "run": {
+            "command": [
+              "$HYBRID/iteration-v10",
+              "check",
+              "--ty",
+              "$HYBRID/official-matrix-v11/environment/bin/ty",
+              "--python",
+              "$WORK/environment/bin/python",
+              "--config-file",
+              "$HYBRID/official-matrix-v11/api-87/project/ty.toml",
+              "--output-format",
+              "gitlab",
+              "--no-progress",
+              "--color",
+              "never",
+              "$HYBRID/official-matrix-v11/api-87/project"
+            ],
+            "exit": 1,
+            "seconds": 0.4744418329792097,
+            "peak_process_tree_rss_kib": 100256,
+            "peak_processes_pid_ppid_rss_kib": [
+              [
+                71069,
+                71058,
+                53952
+              ],
+              [
+                71072,
+                71069,
+                46304
+              ]
+            ],
+            "stopped": null,
+            "source_sha256": "f56afc9a51a6957e7997b0d40270ded562eb7f1ded5eab12706d45ff6a68a7ad",
+            "source_preserved": true,
+            "stdout": "$HYBRID/official-matrix-v11/api-87/memory/stdout.json",
+            "stderr": "$HYBRID/official-matrix-v11/api-87/memory/stderr.log"
+          }
+        }
+      ],
+      "runtime": {
+        "implicit_id": "BigAutoField",
+        "explicit_id": "AutoField",
+        "acheck_password": true,
+        "aget_user": true,
+        "alogout": true,
+        "password_none_is_false": true,
+        "aupdate_session_auth_hash": true,
+        "pk_rejected": true,
+        "custom_id_rejected": true
+      },
+      "project_cleaned": true
+    },
+    {
+      "passed": true,
+      "scope": "Experimental checkout source; installed artifacts not qualified",
+      "candidate_sha256": "2844b21bee7e8f0440ed597a6c00101e64a5f8a7eb0d41c154ec63b78fe82307",
+      "plugin_sha256": "1c428e39459a6354894b6ec2019bc6e5471ef4c12eb8e8149ffcaa254ace090d",
+      "native_version": "ty 0.0.88 (64e7f1860 2026-10-15)",
+      "runs": [
+        {
+          "mode": "0",
+          "controls": {
+            "9": "plugin-configuration",
+            "10": "plugin-configuration",
+            "17": "invalid-assignment",
+            "18": "invalid-argument-type"
+          },
+          "run": {
+            "command": [
+              "$HYBRID/iteration-v10",
+              "check",
+              "--ty",
+              "$HYBRID/official-matrix-v11/environment/bin/ty",
+              "--python",
+              "$WORK/environment/bin/python",
+              "--config-file",
+              "$HYBRID/official-matrix-v11/api-88/project/ty.toml",
+              "--output-format",
+              "gitlab",
+              "--no-progress",
+              "--color",
+              "never",
+              "$HYBRID/official-matrix-v11/api-88/project"
+            ],
+            "exit": 1,
+            "seconds": 0.4719703750452027,
+            "peak_process_tree_rss_kib": 104464,
+            "peak_processes_pid_ppid_rss_kib": [
+              [
+                71468,
+                71445,
+                84576
+              ],
+              [
+                71485,
+                71468,
+                19888
+              ]
+            ],
+            "stopped": null,
+            "source_sha256": "f56afc9a51a6957e7997b0d40270ded562eb7f1ded5eab12706d45ff6a68a7ad",
+            "source_preserved": true,
+            "stdout": "$HYBRID/official-matrix-v11/api-88/disk/stdout.json",
+            "stderr": "$HYBRID/official-matrix-v11/api-88/disk/stderr.log"
+          }
+        },
+        {
+          "mode": "1",
+          "controls": {
+            "9": "plugin-configuration",
+            "10": "plugin-configuration",
+            "17": "invalid-assignment",
+            "18": "invalid-argument-type"
+          },
+          "run": {
+            "command": [
+              "$HYBRID/iteration-v10",
+              "check",
+              "--ty",
+              "$HYBRID/official-matrix-v11/environment/bin/ty",
+              "--python",
+              "$WORK/environment/bin/python",
+              "--config-file",
+              "$HYBRID/official-matrix-v11/api-88/project/ty.toml",
+              "--output-format",
+              "gitlab",
+              "--no-progress",
+              "--color",
+              "never",
+              "$HYBRID/official-matrix-v11/api-88/project"
+            ],
+            "exit": 1,
+            "seconds": 0.4730727080022916,
+            "peak_process_tree_rss_kib": 93008,
+            "peak_processes_pid_ppid_rss_kib": [
+              [
+                71622,
+                71445,
+                53184
+              ],
+              [
+                71733,
+                71622,
+                39824
+              ]
+            ],
+            "stopped": null,
+            "source_sha256": "f56afc9a51a6957e7997b0d40270ded562eb7f1ded5eab12706d45ff6a68a7ad",
+            "source_preserved": true,
+            "stdout": "$HYBRID/official-matrix-v11/api-88/memory/stdout.json",
+            "stderr": "$HYBRID/official-matrix-v11/api-88/memory/stderr.log"
+          }
+        }
+      ],
+      "runtime": {
+        "implicit_id": "BigAutoField",
+        "explicit_id": "AutoField",
+        "acheck_password": true,
+        "aget_user": true,
+        "alogout": true,
+        "password_none_is_false": true,
+        "aupdate_session_auth_hash": true,
+        "pk_rejected": true,
+        "custom_id_rejected": true
+      },
+      "project_cleaned": true
+    },
+    {
+      "passed": true,
+      "scope": "Experimental checkout source; installed artifacts not qualified",
+      "candidate_sha256": "2844b21bee7e8f0440ed597a6c00101e64a5f8a7eb0d41c154ec63b78fe82307",
+      "plugin_sha256": "1c428e39459a6354894b6ec2019bc6e5471ef4c12eb8e8149ffcaa254ace090d",
+      "native_version": "ty 0.0.89 (82b0fd431 2026-10-16)",
+      "runs": [
+        {
+          "mode": "0",
+          "controls": {
+            "9": "plugin-configuration",
+            "10": "plugin-configuration",
+            "17": "invalid-assignment",
+            "18": "invalid-argument-type"
+          },
+          "run": {
+            "command": [
+              "$HYBRID/iteration-v10",
+              "check",
+              "--ty",
+              "$HYBRID/official-matrix-v11/environment/bin/ty",
+              "--python",
+              "$WORK/environment/bin/python",
+              "--config-file",
+              "$HYBRID/official-matrix-v11/api-89/project/ty.toml",
+              "--output-format",
+              "gitlab",
+              "--no-progress",
+              "--color",
+              "never",
+              "$HYBRID/official-matrix-v11/api-89/project"
+            ],
+            "exit": 1,
+            "seconds": 0.4747528750449419,
+            "peak_process_tree_rss_kib": 104256,
+            "peak_processes_pid_ppid_rss_kib": [
+              [
+                72203,
+                72197,
+                84560
+              ],
+              [
+                72206,
+                72203,
+                19696
+              ]
+            ],
+            "stopped": null,
+            "source_sha256": "f56afc9a51a6957e7997b0d40270ded562eb7f1ded5eab12706d45ff6a68a7ad",
+            "source_preserved": true,
+            "stdout": "$HYBRID/official-matrix-v11/api-89/disk/stdout.json",
+            "stderr": "$HYBRID/official-matrix-v11/api-89/disk/stderr.log"
+          }
+        },
+        {
+          "mode": "1",
+          "controls": {
+            "9": "plugin-configuration",
+            "10": "plugin-configuration",
+            "17": "invalid-assignment",
+            "18": "invalid-argument-type"
+          },
+          "run": {
+            "command": [
+              "$HYBRID/iteration-v10",
+              "check",
+              "--ty",
+              "$HYBRID/official-matrix-v11/environment/bin/ty",
+              "--python",
+              "$WORK/environment/bin/python",
+              "--config-file",
+              "$HYBRID/official-matrix-v11/api-89/project/ty.toml",
+              "--output-format",
+              "gitlab",
+              "--no-progress",
+              "--color",
+              "never",
+              "$HYBRID/official-matrix-v11/api-89/project"
+            ],
+            "exit": 1,
+            "seconds": 0.4886650829575956,
+            "peak_process_tree_rss_kib": 91920,
+            "peak_processes_pid_ppid_rss_kib": [
+              [
+                72208,
+                72197,
+                53408
+              ],
+              [
+                72211,
+                72208,
+                38512
+              ]
+            ],
+            "stopped": null,
+            "source_sha256": "f56afc9a51a6957e7997b0d40270ded562eb7f1ded5eab12706d45ff6a68a7ad",
+            "source_preserved": true,
+            "stdout": "$HYBRID/official-matrix-v11/api-89/memory/stdout.json",
+            "stderr": "$HYBRID/official-matrix-v11/api-89/memory/stderr.log"
+          }
+        }
+      ],
+      "runtime": {
+        "implicit_id": "BigAutoField",
+        "explicit_id": "AutoField",
+        "acheck_password": true,
+        "aget_user": true,
+        "alogout": true,
+        "password_none_is_false": true,
+        "aupdate_session_auth_hash": true,
+        "pk_rejected": true,
+        "custom_id_rejected": true
+      },
+      "project_cleaned": true
+    },
+    {
+      "passed": true,
+      "scope": "Experimental checkout source; installed artifacts not qualified",
+      "candidate_sha256": "2844b21bee7e8f0440ed597a6c00101e64a5f8a7eb0d41c154ec63b78fe82307",
+      "plugin_sha256": "1c428e39459a6354894b6ec2019bc6e5471ef4c12eb8e8149ffcaa254ace090d",
+      "native_version": "ty 0.0.90 (ebc8bbb31 2026-10-20)",
+      "runs": [
+        {
+          "mode": "0",
+          "controls": {
+            "9": "plugin-configuration",
+            "10": "plugin-configuration",
+            "17": "invalid-assignment",
+            "18": "invalid-argument-type"
+          },
+          "run": {
+            "command": [
+              "$HYBRID/iteration-v10",
+              "check",
+              "--ty",
+              "$HYBRID/official-matrix-v11/environment/bin/ty",
+              "--python",
+              "$WORK/environment/bin/python",
+              "--config-file",
+              "$HYBRID/official-matrix-v11/api-90/project/ty.toml",
+              "--output-format",
+              "gitlab",
+              "--no-progress",
+              "--color",
+              "never",
+              "$HYBRID/official-matrix-v11/api-90/project"
+            ],
+            "exit": 1,
+            "seconds": 0.46686566702555865,
+            "peak_process_tree_rss_kib": 104352,
+            "peak_processes_pid_ppid_rss_kib": [
+              [
+                72363,
+                72359,
+                84912
+              ],
+              [
+                72366,
+                72363,
+                19440
+              ]
+            ],
+            "stopped": null,
+            "source_sha256": "f56afc9a51a6957e7997b0d40270ded562eb7f1ded5eab12706d45ff6a68a7ad",
+            "source_preserved": true,
+            "stdout": "$HYBRID/official-matrix-v11/api-90/disk/stdout.json",
+            "stderr": "$HYBRID/official-matrix-v11/api-90/disk/stderr.log"
+          }
+        },
+        {
+          "mode": "1",
+          "controls": {
+            "9": "plugin-configuration",
+            "10": "plugin-configuration",
+            "17": "invalid-assignment",
+            "18": "invalid-argument-type"
+          },
+          "run": {
+            "command": [
+              "$HYBRID/iteration-v10",
+              "check",
+              "--ty",
+              "$HYBRID/official-matrix-v11/environment/bin/ty",
+              "--python",
+              "$WORK/environment/bin/python",
+              "--config-file",
+              "$HYBRID/official-matrix-v11/api-90/project/ty.toml",
+              "--output-format",
+              "gitlab",
+              "--no-progress",
+              "--color",
+              "never",
+              "$HYBRID/official-matrix-v11/api-90/project"
+            ],
+            "exit": 1,
+            "seconds": 0.47045754198916256,
+            "peak_process_tree_rss_kib": 101648,
+            "peak_processes_pid_ppid_rss_kib": [
+              [
+                72374,
+                72359,
+                53888
+              ],
+              [
+                72377,
+                72374,
+                47760
+              ]
+            ],
+            "stopped": null,
+            "source_sha256": "f56afc9a51a6957e7997b0d40270ded562eb7f1ded5eab12706d45ff6a68a7ad",
+            "source_preserved": true,
+            "stdout": "$HYBRID/official-matrix-v11/api-90/memory/stdout.json",
+            "stderr": "$HYBRID/official-matrix-v11/api-90/memory/stderr.log"
+          }
+        }
+      ],
+      "runtime": {
+        "implicit_id": "BigAutoField",
+        "explicit_id": "AutoField",
+        "acheck_password": true,
+        "aget_user": true,
+        "alogout": true,
+        "password_none_is_false": true,
+        "aupdate_session_auth_hash": true,
+        "pk_rejected": true,
+        "custom_id_rejected": true
+      },
+      "project_cleaned": true
+    },
+    {
+      "passed": true,
+      "scope": "Experimental checkout source; installed artifacts not qualified",
+      "candidate_sha256": "2844b21bee7e8f0440ed597a6c00101e64a5f8a7eb0d41c154ec63b78fe82307",
+      "plugin_sha256": "1c428e39459a6354894b6ec2019bc6e5471ef4c12eb8e8149ffcaa254ace090d",
+      "native_version": "ty 0.0.91 (67fbd2874 2026-10-22)",
+      "runs": [
+        {
+          "mode": "0",
+          "controls": {
+            "9": "plugin-configuration",
+            "10": "plugin-configuration",
+            "17": "invalid-assignment",
+            "18": "invalid-argument-type"
+          },
+          "run": {
+            "command": [
+              "$HYBRID/iteration-v10",
+              "check",
+              "--ty",
+              "$HYBRID/official-matrix-v11/environment/bin/ty",
+              "--python",
+              "$WORK/environment/bin/python",
+              "--config-file",
+              "$HYBRID/official-matrix-v11/api-91/project/ty.toml",
+              "--output-format",
+              "gitlab",
+              "--no-progress",
+              "--color",
+              "never",
+              "$HYBRID/official-matrix-v11/api-91/project"
+            ],
+            "exit": 1,
+            "seconds": 0.47376354201696813,
+            "peak_process_tree_rss_kib": 104288,
+            "peak_processes_pid_ppid_rss_kib": [
+              [
+                72553,
+                72548,
+                84880
+              ],
+              [
+                72556,
+                72553,
+                19408
+              ]
+            ],
+            "stopped": null,
+            "source_sha256": "f56afc9a51a6957e7997b0d40270ded562eb7f1ded5eab12706d45ff6a68a7ad",
+            "source_preserved": true,
+            "stdout": "$HYBRID/official-matrix-v11/api-91/disk/stdout.json",
+            "stderr": "$HYBRID/official-matrix-v11/api-91/disk/stderr.log"
+          }
+        },
+        {
+          "mode": "1",
+          "controls": {
+            "9": "plugin-configuration",
+            "10": "plugin-configuration",
+            "17": "invalid-assignment",
+            "18": "invalid-argument-type"
+          },
+          "run": {
+            "command": [
+              "$HYBRID/iteration-v10",
+              "check",
+              "--ty",
+              "$HYBRID/official-matrix-v11/environment/bin/ty",
+              "--python",
+              "$WORK/environment/bin/python",
+              "--config-file",
+              "$HYBRID/official-matrix-v11/api-91/project/ty.toml",
+              "--output-format",
+              "gitlab",
+              "--no-progress",
+              "--color",
+              "never",
+              "$HYBRID/official-matrix-v11/api-91/project"
+            ],
+            "exit": 1,
+            "seconds": 0.46836437506135553,
+            "peak_process_tree_rss_kib": 97056,
+            "peak_processes_pid_ppid_rss_kib": [
+              [
+                72559,
+                72548,
+                53360
+              ],
+              [
+                72562,
+                72559,
+                43696
+              ]
+            ],
+            "stopped": null,
+            "source_sha256": "f56afc9a51a6957e7997b0d40270ded562eb7f1ded5eab12706d45ff6a68a7ad",
+            "source_preserved": true,
+            "stdout": "$HYBRID/official-matrix-v11/api-91/memory/stdout.json",
+            "stderr": "$HYBRID/official-matrix-v11/api-91/memory/stderr.log"
+          }
+        }
+      ],
+      "runtime": {
+        "implicit_id": "BigAutoField",
+        "explicit_id": "AutoField",
+        "acheck_password": true,
+        "aget_user": true,
+        "alogout": true,
+        "password_none_is_false": true,
+        "aupdate_session_auth_hash": true,
+        "pk_rejected": true,
+        "custom_id_rejected": true
+      },
+      "project_cleaned": true
+    },
+    {
+      "passed": true,
+      "scope": "Experimental checkout source; installed artifacts not qualified",
+      "candidate_sha256": "2844b21bee7e8f0440ed597a6c00101e64a5f8a7eb0d41c154ec63b78fe82307",
+      "plugin_sha256": "1c428e39459a6354894b6ec2019bc6e5471ef4c12eb8e8149ffcaa254ace090d",
+      "native_version": "ty 0.0.92 (3933e6918 2026-10-26)",
+      "runs": [
+        {
+          "mode": "0",
+          "controls": {
+            "9": "plugin-configuration",
+            "10": "plugin-configuration",
+            "17": "invalid-assignment",
+            "18": "invalid-argument-type"
+          },
+          "run": {
+            "command": [
+              "$HYBRID/iteration-v10",
+              "check",
+              "--ty",
+              "$HYBRID/official-matrix-v11/environment/bin/ty",
+              "--python",
+              "$WORK/environment/bin/python",
+              "--config-file",
+              "$HYBRID/official-matrix-v11/api-92/project/ty.toml",
+              "--output-format",
+              "gitlab",
+              "--no-progress",
+              "--color",
+              "never",
+              "$HYBRID/official-matrix-v11/api-92/project"
+            ],
+            "exit": 1,
+            "seconds": 0.46778862504288554,
+            "peak_process_tree_rss_kib": 116608,
+            "peak_processes_pid_ppid_rss_kib": [
+              [
+                72871,
+                72867,
+                84544
+              ],
+              [
+                72874,
+                72871,
+                32064
+              ]
+            ],
+            "stopped": null,
+            "source_sha256": "f56afc9a51a6957e7997b0d40270ded562eb7f1ded5eab12706d45ff6a68a7ad",
+            "source_preserved": true,
+            "stdout": "$HYBRID/official-matrix-v11/api-92/disk/stdout.json",
+            "stderr": "$HYBRID/official-matrix-v11/api-92/disk/stderr.log"
+          }
+        },
+        {
+          "mode": "1",
+          "controls": {
+            "9": "plugin-configuration",
+            "10": "plugin-configuration",
+            "17": "invalid-assignment",
+            "18": "invalid-argument-type"
+          },
+          "run": {
+            "command": [
+              "$HYBRID/iteration-v10",
+              "check",
+              "--ty",
+              "$HYBRID/official-matrix-v11/environment/bin/ty",
+              "--python",
+              "$WORK/environment/bin/python",
+              "--config-file",
+              "$HYBRID/official-matrix-v11/api-92/project/ty.toml",
+              "--output-format",
+              "gitlab",
+              "--no-progress",
+              "--color",
+              "never",
+              "$HYBRID/official-matrix-v11/api-92/project"
+            ],
+            "exit": 1,
+            "seconds": 0.4697714999783784,
+            "peak_process_tree_rss_kib": 127024,
+            "peak_processes_pid_ppid_rss_kib": [
+              [
+                72876,
+                72867,
+                64816
+              ],
+              [
+                72879,
+                72876,
+                45072
+              ],
+              [
+                72880,
+                72876,
+                17136
+              ]
+            ],
+            "stopped": null,
+            "source_sha256": "f56afc9a51a6957e7997b0d40270ded562eb7f1ded5eab12706d45ff6a68a7ad",
+            "source_preserved": true,
+            "stdout": "$HYBRID/official-matrix-v11/api-92/memory/stdout.json",
+            "stderr": "$HYBRID/official-matrix-v11/api-92/memory/stderr.log"
+          }
+        }
+      ],
+      "runtime": {
+        "implicit_id": "BigAutoField",
+        "explicit_id": "AutoField",
+        "acheck_password": true,
+        "aget_user": true,
+        "alogout": true,
+        "password_none_is_false": true,
+        "aupdate_session_auth_hash": true,
+        "pk_rejected": true,
+        "custom_id_rejected": true
+      },
+      "project_cleaned": true
+    },
+    {
+      "passed": true,
+      "scope": "Experimental checkout source; installed artifacts not qualified",
+      "candidate_sha256": "2844b21bee7e8f0440ed597a6c00101e64a5f8a7eb0d41c154ec63b78fe82307",
+      "plugin_sha256": "1c428e39459a6354894b6ec2019bc6e5471ef4c12eb8e8149ffcaa254ace090d",
+      "native_version": "ty 0.0.93 (3db5e4df7 2026-10-28)",
+      "runs": [
+        {
+          "mode": "0",
+          "controls": {
+            "9": "plugin-configuration",
+            "10": "plugin-configuration",
+            "17": "invalid-assignment",
+            "18": "invalid-argument-type"
+          },
+          "run": {
+            "command": [
+              "$HYBRID/iteration-v10",
+              "check",
+              "--ty",
+              "$HYBRID/official-matrix-v11/environment/bin/ty",
+              "--python",
+              "$WORK/environment/bin/python",
+              "--config-file",
+              "$HYBRID/official-matrix-v11/api-93/project/ty.toml",
+              "--output-format",
+              "gitlab",
+              "--no-progress",
+              "--color",
+              "never",
+              "$HYBRID/official-matrix-v11/api-93/project"
+            ],
+            "exit": 1,
+            "seconds": 0.467558000003919,
+            "peak_process_tree_rss_kib": 114544,
+            "peak_processes_pid_ppid_rss_kib": [
+              [
+                73146,
+                73142,
+                84560
+              ],
+              [
+                73149,
+                73146,
+                29984
+              ]
+            ],
+            "stopped": null,
+            "source_sha256": "f56afc9a51a6957e7997b0d40270ded562eb7f1ded5eab12706d45ff6a68a7ad",
+            "source_preserved": true,
+            "stdout": "$HYBRID/official-matrix-v11/api-93/disk/stdout.json",
+            "stderr": "$HYBRID/official-matrix-v11/api-93/disk/stderr.log"
+          }
+        },
+        {
+          "mode": "1",
+          "controls": {
+            "9": "plugin-configuration",
+            "10": "plugin-configuration",
+            "17": "invalid-assignment",
+            "18": "invalid-argument-type"
+          },
+          "run": {
+            "command": [
+              "$HYBRID/iteration-v10",
+              "check",
+              "--ty",
+              "$HYBRID/official-matrix-v11/environment/bin/ty",
+              "--python",
+              "$WORK/environment/bin/python",
+              "--config-file",
+              "$HYBRID/official-matrix-v11/api-93/project/ty.toml",
+              "--output-format",
+              "gitlab",
+              "--no-progress",
+              "--color",
+              "never",
+              "$HYBRID/official-matrix-v11/api-93/project"
+            ],
+            "exit": 1,
+            "seconds": 0.4683411669684574,
+            "peak_process_tree_rss_kib": 86592,
+            "peak_processes_pid_ppid_rss_kib": [
+              [
+                73151,
+                73142,
+                65056
+              ],
+              [
+                73155,
+                73151,
+                21536
+              ]
+            ],
+            "stopped": null,
+            "source_sha256": "f56afc9a51a6957e7997b0d40270ded562eb7f1ded5eab12706d45ff6a68a7ad",
+            "source_preserved": true,
+            "stdout": "$HYBRID/official-matrix-v11/api-93/memory/stdout.json",
+            "stderr": "$HYBRID/official-matrix-v11/api-93/memory/stderr.log"
+          }
+        }
+      ],
+      "runtime": {
+        "implicit_id": "BigAutoField",
+        "explicit_id": "AutoField",
+        "acheck_password": true,
+        "aget_user": true,
+        "alogout": true,
+        "password_none_is_false": true,
+        "aupdate_session_auth_hash": true,
+        "pk_rejected": true,
+        "custom_id_rejected": true
+      },
+      "project_cleaned": true
+    },
+    {
+      "passed": true,
+      "scope": "Experimental checkout source; installed artifacts not qualified",
+      "candidate_sha256": "2844b21bee7e8f0440ed597a6c00101e64a5f8a7eb0d41c154ec63b78fe82307",
+      "plugin_sha256": "1c428e39459a6354894b6ec2019bc6e5471ef4c12eb8e8149ffcaa254ace090d",
+      "native_version": "ty 0.0.94 (f8ea270e0 2026-10-28)",
+      "runs": [
+        {
+          "mode": "0",
+          "controls": {
+            "9": "plugin-configuration",
+            "10": "plugin-configuration",
+            "17": "invalid-assignment",
+            "18": "invalid-argument-type"
+          },
+          "run": {
+            "command": [
+              "$HYBRID/iteration-v10",
+              "check",
+              "--ty",
+              "$HYBRID/official-matrix-v11/environment/bin/ty",
+              "--python",
+              "$WORK/environment/bin/python",
+              "--config-file",
+              "$HYBRID/official-matrix-v11/api-94/project/ty.toml",
+              "--output-format",
+              "gitlab",
+              "--no-progress",
+              "--color",
+              "never",
+              "$HYBRID/official-matrix-v11/api-94/project"
+            ],
+            "exit": 1,
+            "seconds": 0.47050637495703995,
+            "peak_process_tree_rss_kib": 117040,
+            "peak_processes_pid_ppid_rss_kib": [
+              [
+                73947,
+                73943,
+                84560
+              ],
+              [
+                73952,
+                73947,
+                32480
+              ]
+            ],
+            "stopped": null,
+            "source_sha256": "f56afc9a51a6957e7997b0d40270ded562eb7f1ded5eab12706d45ff6a68a7ad",
+            "source_preserved": true,
+            "stdout": "$HYBRID/official-matrix-v11/api-94/disk/stdout.json",
+            "stderr": "$HYBRID/official-matrix-v11/api-94/disk/stderr.log"
+          }
+        },
+        {
+          "mode": "1",
+          "controls": {
+            "9": "plugin-configuration",
+            "10": "plugin-configuration",
+            "17": "invalid-assignment",
+            "18": "invalid-argument-type"
+          },
+          "run": {
+            "command": [
+              "$HYBRID/iteration-v10",
+              "check",
+              "--ty",
+              "$HYBRID/official-matrix-v11/environment/bin/ty",
+              "--python",
+              "$WORK/environment/bin/python",
+              "--config-file",
+              "$HYBRID/official-matrix-v11/api-94/project/ty.toml",
+              "--output-format",
+              "gitlab",
+              "--no-progress",
+              "--color",
+              "never",
+              "$HYBRID/official-matrix-v11/api-94/project"
+            ],
+            "exit": 1,
+            "seconds": 0.47060954198241234,
+            "peak_process_tree_rss_kib": 124064,
+            "peak_processes_pid_ppid_rss_kib": [
+              [
+                73956,
+                73943,
+                64960
+              ],
+              [
+                73959,
+                73956,
+                45760
+              ],
+              [
+                73960,
+                73956,
+                13344
+              ]
+            ],
+            "stopped": null,
+            "source_sha256": "f56afc9a51a6957e7997b0d40270ded562eb7f1ded5eab12706d45ff6a68a7ad",
+            "source_preserved": true,
+            "stdout": "$HYBRID/official-matrix-v11/api-94/memory/stdout.json",
+            "stderr": "$HYBRID/official-matrix-v11/api-94/memory/stderr.log"
+          }
+        }
+      ],
+      "runtime": {
+        "implicit_id": "BigAutoField",
+        "explicit_id": "AutoField",
+        "acheck_password": true,
+        "aget_user": true,
+        "alogout": true,
+        "password_none_is_false": true,
+        "aupdate_session_auth_hash": true,
+        "pk_rejected": true,
+        "custom_id_rejected": true
+      },
+      "project_cleaned": true
+    },
+    {
+      "passed": true,
+      "scope": "Experimental checkout source; installed artifacts not qualified",
+      "candidate_sha256": "2844b21bee7e8f0440ed597a6c00101e64a5f8a7eb0d41c154ec63b78fe82307",
+      "plugin_sha256": "1c428e39459a6354894b6ec2019bc6e5471ef4c12eb8e8149ffcaa254ace090d",
+      "native_version": "ty 0.0.95 (48c5ea1ba 2026-10-29)",
+      "runs": [
+        {
+          "mode": "0",
+          "controls": {
+            "9": "plugin-configuration",
+            "10": "plugin-configuration",
+            "17": "invalid-assignment",
+            "18": "invalid-argument-type"
+          },
+          "run": {
+            "command": [
+              "$HYBRID/iteration-v10",
+              "check",
+              "--ty",
+              "$HYBRID/official-matrix-v11/environment/bin/ty",
+              "--python",
+              "$WORK/environment/bin/python",
+              "--config-file",
+              "$HYBRID/official-matrix-v11/api-95/project/ty.toml",
+              "--output-format",
+              "gitlab",
+              "--no-progress",
+              "--color",
+              "never",
+              "$HYBRID/official-matrix-v11/api-95/project"
+            ],
+            "exit": 1,
+            "seconds": 0.46989354107063264,
+            "peak_process_tree_rss_kib": 115984,
+            "peak_processes_pid_ppid_rss_kib": [
+              [
+                74114,
+                74108,
+                84544
+              ],
+              [
+                74117,
+                74114,
+                31440
+              ]
+            ],
+            "stopped": null,
+            "source_sha256": "f56afc9a51a6957e7997b0d40270ded562eb7f1ded5eab12706d45ff6a68a7ad",
+            "source_preserved": true,
+            "stdout": "$HYBRID/official-matrix-v11/api-95/disk/stdout.json",
+            "stderr": "$HYBRID/official-matrix-v11/api-95/disk/stderr.log"
+          }
+        },
+        {
+          "mode": "1",
+          "controls": {
+            "9": "plugin-configuration",
+            "10": "plugin-configuration",
+            "17": "invalid-assignment",
+            "18": "invalid-argument-type"
+          },
+          "run": {
+            "command": [
+              "$HYBRID/iteration-v10",
+              "check",
+              "--ty",
+              "$HYBRID/official-matrix-v11/environment/bin/ty",
+              "--python",
+              "$WORK/environment/bin/python",
+              "--config-file",
+              "$HYBRID/official-matrix-v11/api-95/project/ty.toml",
+              "--output-format",
+              "gitlab",
+              "--no-progress",
+              "--color",
+              "never",
+              "$HYBRID/official-matrix-v11/api-95/project"
+            ],
+            "exit": 1,
+            "seconds": 0.4705447079613805,
+            "peak_process_tree_rss_kib": 85488,
+            "peak_processes_pid_ppid_rss_kib": [
+              [
+                74119,
+                74108,
+                64912
+              ],
+              [
+                74122,
+                74119,
+                0
+              ],
+              [
+                74123,
+                74119,
+                20576
+              ]
+            ],
+            "stopped": null,
+            "source_sha256": "f56afc9a51a6957e7997b0d40270ded562eb7f1ded5eab12706d45ff6a68a7ad",
+            "source_preserved": true,
+            "stdout": "$HYBRID/official-matrix-v11/api-95/memory/stdout.json",
+            "stderr": "$HYBRID/official-matrix-v11/api-95/memory/stderr.log"
+          }
+        }
+      ],
+      "runtime": {
+        "implicit_id": "BigAutoField",
+        "explicit_id": "AutoField",
+        "acheck_password": true,
+        "aget_user": true,
+        "alogout": true,
+        "password_none_is_false": true,
+        "aupdate_session_auth_hash": true,
+        "pk_rejected": true,
+        "custom_id_rejected": true
+      },
+      "project_cleaned": true
+    },
+    {
+      "passed": true,
+      "scope": "Experimental checkout source; installed artifacts not qualified",
+      "candidate_sha256": "2844b21bee7e8f0440ed597a6c00101e64a5f8a7eb0d41c154ec63b78fe82307",
+      "plugin_sha256": "1c428e39459a6354894b6ec2019bc6e5471ef4c12eb8e8149ffcaa254ace090d",
+      "native_version": "ty 0.0.96 (53a7844b8 2026-11-02)",
+      "runs": [
+        {
+          "mode": "0",
+          "controls": {
+            "9": "plugin-configuration",
+            "10": "plugin-configuration",
+            "17": "invalid-assignment",
+            "18": "invalid-argument-type"
+          },
+          "run": {
+            "command": [
+              "$HYBRID/iteration-v10",
+              "check",
+              "--ty",
+              "$HYBRID/official-matrix-v11/environment/bin/ty",
+              "--python",
+              "$WORK/environment/bin/python",
+              "--config-file",
+              "$HYBRID/official-matrix-v11/api-96/project/ty.toml",
+              "--output-format",
+              "gitlab",
+              "--no-progress",
+              "--color",
+              "never",
+              "$HYBRID/official-matrix-v11/api-96/project"
+            ],
+            "exit": 1,
+            "seconds": 0.4664124170085415,
+            "peak_process_tree_rss_kib": 113264,
+            "peak_processes_pid_ppid_rss_kib": [
+              [
+                74273,
+                74260,
+                84560
+              ],
+              [
+                74277,
+                74273,
+                28704
+              ]
+            ],
+            "stopped": null,
+            "source_sha256": "f56afc9a51a6957e7997b0d40270ded562eb7f1ded5eab12706d45ff6a68a7ad",
+            "source_preserved": true,
+            "stdout": "$HYBRID/official-matrix-v11/api-96/disk/stdout.json",
+            "stderr": "$HYBRID/official-matrix-v11/api-96/disk/stderr.log"
+          }
+        },
+        {
+          "mode": "1",
+          "controls": {
+            "9": "plugin-configuration",
+            "10": "plugin-configuration",
+            "17": "invalid-assignment",
+            "18": "invalid-argument-type"
+          },
+          "run": {
+            "command": [
+              "$HYBRID/iteration-v10",
+              "check",
+              "--ty",
+              "$HYBRID/official-matrix-v11/environment/bin/ty",
+              "--python",
+              "$WORK/environment/bin/python",
+              "--config-file",
+              "$HYBRID/official-matrix-v11/api-96/project/ty.toml",
+              "--output-format",
+              "gitlab",
+              "--no-progress",
+              "--color",
+              "never",
+              "$HYBRID/official-matrix-v11/api-96/project"
+            ],
+            "exit": 1,
+            "seconds": 0.47177875007037073,
+            "peak_process_tree_rss_kib": 84176,
+            "peak_processes_pid_ppid_rss_kib": [
+              [
+                74279,
+                74260,
+                64800
+              ],
+              [
+                74282,
+                74279,
+                0
+              ],
+              [
+                74283,
+                74279,
+                19376
+              ]
+            ],
+            "stopped": null,
+            "source_sha256": "f56afc9a51a6957e7997b0d40270ded562eb7f1ded5eab12706d45ff6a68a7ad",
+            "source_preserved": true,
+            "stdout": "$HYBRID/official-matrix-v11/api-96/memory/stdout.json",
+            "stderr": "$HYBRID/official-matrix-v11/api-96/memory/stderr.log"
+          }
+        }
+      ],
+      "runtime": {
+        "implicit_id": "BigAutoField",
+        "explicit_id": "AutoField",
+        "acheck_password": true,
+        "aget_user": true,
+        "alogout": true,
+        "password_none_is_false": true,
+        "aupdate_session_auth_hash": true,
+        "pk_rejected": true,
+        "custom_id_rejected": true
+      },
+      "project_cleaned": true
+    },
+    {
+      "passed": true,
+      "scope": "Experimental checkout source; installed artifacts not qualified",
+      "candidate_sha256": "2844b21bee7e8f0440ed597a6c00101e64a5f8a7eb0d41c154ec63b78fe82307",
+      "plugin_sha256": "1c428e39459a6354894b6ec2019bc6e5471ef4c12eb8e8149ffcaa254ace090d",
+      "native_version": "ty 0.0.97 (58e168c67 2026-11-04)",
+      "runs": [
+        {
+          "mode": "0",
+          "controls": {
+            "9": "plugin-configuration",
+            "10": "plugin-configuration",
+            "17": "invalid-assignment",
+            "18": "invalid-argument-type"
+          },
+          "run": {
+            "command": [
+              "$HYBRID/iteration-v10",
+              "check",
+              "--ty",
+              "$HYBRID/official-matrix-v11/environment/bin/ty",
+              "--python",
+              "$WORK/environment/bin/python",
+              "--config-file",
+              "$HYBRID/official-matrix-v11/api-97/project/ty.toml",
+              "--output-format",
+              "gitlab",
+              "--no-progress",
+              "--color",
+              "never",
+              "$HYBRID/official-matrix-v11/api-97/project"
+            ],
+            "exit": 1,
+            "seconds": 0.4737002078909427,
+            "peak_process_tree_rss_kib": 119072,
+            "peak_processes_pid_ppid_rss_kib": [
+              [
+                75211,
+                74999,
+                84912
+              ],
+              [
+                75214,
+                75211,
+                34160
+              ]
+            ],
+            "stopped": null,
+            "source_sha256": "f56afc9a51a6957e7997b0d40270ded562eb7f1ded5eab12706d45ff6a68a7ad",
+            "source_preserved": true,
+            "stdout": "$HYBRID/official-matrix-v11/api-97/disk/stdout.json",
+            "stderr": "$HYBRID/official-matrix-v11/api-97/disk/stderr.log"
+          }
+        },
+        {
+          "mode": "1",
+          "controls": {
+            "9": "plugin-configuration",
+            "10": "plugin-configuration",
+            "17": "invalid-assignment",
+            "18": "invalid-argument-type"
+          },
+          "run": {
+            "command": [
+              "$HYBRID/iteration-v10",
+              "check",
+              "--ty",
+              "$HYBRID/official-matrix-v11/environment/bin/ty",
+              "--python",
+              "$WORK/environment/bin/python",
+              "--config-file",
+              "$HYBRID/official-matrix-v11/api-97/project/ty.toml",
+              "--output-format",
+              "gitlab",
+              "--no-progress",
+              "--color",
+              "never",
+              "$HYBRID/official-matrix-v11/api-97/project"
+            ],
+            "exit": 1,
+            "seconds": 0.4696905000600964,
+            "peak_process_tree_rss_kib": 87120,
+            "peak_processes_pid_ppid_rss_kib": [
+              [
+                75216,
+                74999,
+                65040
+              ],
+              [
+                75221,
+                75216,
+                22080
+              ]
+            ],
+            "stopped": null,
+            "source_sha256": "f56afc9a51a6957e7997b0d40270ded562eb7f1ded5eab12706d45ff6a68a7ad",
+            "source_preserved": true,
+            "stdout": "$HYBRID/official-matrix-v11/api-97/memory/stdout.json",
+            "stderr": "$HYBRID/official-matrix-v11/api-97/memory/stderr.log"
+          }
+        }
+      ],
+      "runtime": {
+        "implicit_id": "BigAutoField",
+        "explicit_id": "AutoField",
+        "acheck_password": true,
+        "aget_user": true,
+        "alogout": true,
+        "password_none_is_false": true,
+        "aupdate_session_auth_hash": true,
+        "pk_rejected": true,
+        "custom_id_rejected": true
+      },
+      "project_cleaned": true
+    },
+    {
+      "passed": true,
+      "scope": "Experimental checkout source; installed artifacts not qualified",
+      "candidate_sha256": "2844b21bee7e8f0440ed597a6c00101e64a5f8a7eb0d41c154ec63b78fe82307",
+      "plugin_sha256": "1c428e39459a6354894b6ec2019bc6e5471ef4c12eb8e8149ffcaa254ace090d",
+      "native_version": "ty 0.0.98 (e8a6c9331 2026-11-05)",
+      "runs": [
+        {
+          "mode": "0",
+          "controls": {
+            "9": "plugin-configuration",
+            "10": "plugin-configuration",
+            "17": "invalid-assignment",
+            "18": "invalid-argument-type"
+          },
+          "run": {
+            "command": [
+              "$HYBRID/iteration-v10",
+              "check",
+              "--ty",
+              "$HYBRID/official-matrix-v11/environment/bin/ty",
+              "--python",
+              "$WORK/environment/bin/python",
+              "--config-file",
+              "$HYBRID/official-matrix-v11/api-98/project/ty.toml",
+              "--output-format",
+              "gitlab",
+              "--no-progress",
+              "--color",
+              "never",
+              "$HYBRID/official-matrix-v11/api-98/project"
+            ],
+            "exit": 1,
+            "seconds": 0.4714224999770522,
+            "peak_process_tree_rss_kib": 120912,
+            "peak_processes_pid_ppid_rss_kib": [
+              [
+                75432,
+                75428,
+                84576
+              ],
+              [
+                75436,
+                75432,
+                36336
+              ]
+            ],
+            "stopped": null,
+            "source_sha256": "f56afc9a51a6957e7997b0d40270ded562eb7f1ded5eab12706d45ff6a68a7ad",
+            "source_preserved": true,
+            "stdout": "$HYBRID/official-matrix-v11/api-98/disk/stdout.json",
+            "stderr": "$HYBRID/official-matrix-v11/api-98/disk/stderr.log"
+          }
+        },
+        {
+          "mode": "1",
+          "controls": {
+            "9": "plugin-configuration",
+            "10": "plugin-configuration",
+            "17": "invalid-assignment",
+            "18": "invalid-argument-type"
+          },
+          "run": {
+            "command": [
+              "$HYBRID/iteration-v10",
+              "check",
+              "--ty",
+              "$HYBRID/official-matrix-v11/environment/bin/ty",
+              "--python",
+              "$WORK/environment/bin/python",
+              "--config-file",
+              "$HYBRID/official-matrix-v11/api-98/project/ty.toml",
+              "--output-format",
+              "gitlab",
+              "--no-progress",
+              "--color",
+              "never",
+              "$HYBRID/official-matrix-v11/api-98/project"
+            ],
+            "exit": 1,
+            "seconds": 0.46870425005909055,
+            "peak_process_tree_rss_kib": 86096,
+            "peak_processes_pid_ppid_rss_kib": [
+              [
+                75438,
+                75428,
+                64832
+              ],
+              [
+                75443,
+                75438,
+                0
+              ],
+              [
+                75447,
+                75438,
+                21264
+              ]
+            ],
+            "stopped": null,
+            "source_sha256": "f56afc9a51a6957e7997b0d40270ded562eb7f1ded5eab12706d45ff6a68a7ad",
+            "source_preserved": true,
+            "stdout": "$HYBRID/official-matrix-v11/api-98/memory/stdout.json",
+            "stderr": "$HYBRID/official-matrix-v11/api-98/memory/stderr.log"
+          }
+        }
+      ],
+      "runtime": {
+        "implicit_id": "BigAutoField",
+        "explicit_id": "AutoField",
+        "acheck_password": true,
+        "aget_user": true,
+        "alogout": true,
+        "password_none_is_false": true,
+        "aupdate_session_auth_hash": true,
+        "pk_rejected": true,
+        "custom_id_rejected": true
+      },
+      "project_cleaned": true
+    },
+    {
+      "passed": true,
+      "scope": "Experimental checkout source; installed artifacts not qualified",
+      "candidate_sha256": "2844b21bee7e8f0440ed597a6c00101e64a5f8a7eb0d41c154ec63b78fe82307",
+      "plugin_sha256": "1c428e39459a6354894b6ec2019bc6e5471ef4c12eb8e8149ffcaa254ace090d",
+      "native_version": "ty 0.0.99 (9b48f40c9 2026-11-06)",
+      "runs": [
+        {
+          "mode": "0",
+          "controls": {
+            "9": "plugin-configuration",
+            "10": "plugin-configuration",
+            "17": "invalid-assignment",
+            "18": "invalid-argument-type"
+          },
+          "run": {
+            "command": [
+              "$HYBRID/iteration-v10",
+              "check",
+              "--ty",
+              "$HYBRID/official-matrix-v11/environment/bin/ty",
+              "--python",
+              "$WORK/environment/bin/python",
+              "--config-file",
+              "$HYBRID/official-matrix-v11/api-99/project/ty.toml",
+              "--output-format",
+              "gitlab",
+              "--no-progress",
+              "--color",
+              "never",
+              "$HYBRID/official-matrix-v11/api-99/project"
+            ],
+            "exit": 1,
+            "seconds": 0.46686433302238584,
+            "peak_process_tree_rss_kib": 118224,
+            "peak_processes_pid_ppid_rss_kib": [
+              [
+                75743,
+                75632,
+                84624
+              ],
+              [
+                75746,
+                75743,
+                33600
+              ]
+            ],
+            "stopped": null,
+            "source_sha256": "f56afc9a51a6957e7997b0d40270ded562eb7f1ded5eab12706d45ff6a68a7ad",
+            "source_preserved": true,
+            "stdout": "$HYBRID/official-matrix-v11/api-99/disk/stdout.json",
+            "stderr": "$HYBRID/official-matrix-v11/api-99/disk/stderr.log"
+          }
+        },
+        {
+          "mode": "1",
+          "controls": {
+            "9": "plugin-configuration",
+            "10": "plugin-configuration",
+            "17": "invalid-assignment",
+            "18": "invalid-argument-type"
+          },
+          "run": {
+            "command": [
+              "$HYBRID/iteration-v10",
+              "check",
+              "--ty",
+              "$HYBRID/official-matrix-v11/environment/bin/ty",
+              "--python",
+              "$WORK/environment/bin/python",
+              "--config-file",
+              "$HYBRID/official-matrix-v11/api-99/project/ty.toml",
+              "--output-format",
+              "gitlab",
+              "--no-progress",
+              "--color",
+              "never",
+              "$HYBRID/official-matrix-v11/api-99/project"
+            ],
+            "exit": 1,
+            "seconds": 0.469463707995601,
+            "peak_process_tree_rss_kib": 91584,
+            "peak_processes_pid_ppid_rss_kib": [
+              [
+                75748,
+                75632,
+                64896
+              ],
+              [
+                75752,
+                75748,
+                26688
+              ]
+            ],
+            "stopped": null,
+            "source_sha256": "f56afc9a51a6957e7997b0d40270ded562eb7f1ded5eab12706d45ff6a68a7ad",
+            "source_preserved": true,
+            "stdout": "$HYBRID/official-matrix-v11/api-99/memory/stdout.json",
+            "stderr": "$HYBRID/official-matrix-v11/api-99/memory/stderr.log"
+          }
+        }
+      ],
+      "runtime": {
+        "implicit_id": "BigAutoField",
+        "explicit_id": "AutoField",
+        "acheck_password": true,
+        "aget_user": true,
+        "alogout": true,
+        "password_none_is_false": true,
+        "aupdate_session_auth_hash": true,
+        "pk_rejected": true,
+        "custom_id_rejected": true
+      },
+      "project_cleaned": true
+    }
+  ],
+  "native_api_tdd": {
+    "before": {
+      "passed": false,
+      "runtime": {
+        "implicit_id": "BigAutoField",
+        "explicit_id": "AutoField",
+        "acheck_password": true,
+        "aget_user": true,
+        "alogout": true,
+        "pk_rejected": true,
+        "custom_id_rejected": true
+      },
+      "expected_diagnostic_lines": [
+        9,
+        10,
+        15,
+        16
+      ],
+      "actual_diagnostic_lines": [
+        3,
+        7,
+        9,
+        10,
+        12,
+        15
+      ],
+      "diagnostics": [
+        {
+          "check_name": "import-not-found",
+          "description": "import-not-found: Module `django.contrib.auth` has no member `aget_user`",
+          "fingerprint": "5508a96f577f03203fb18b5be367fad2ff752bb507015d7cd620bf2c5273d035",
+          "location": {
+            "path": "$HYBRID/native-api-before-v10/project/checks.py",
+            "positions": {
+              "begin": {
+                "column": 33,
+                "line": 3
+              },
+              "end": {
+                "column": 42,
+                "line": 3
+              }
+            }
+          },
+          "severity": "major"
+        },
+        {
+          "check_name": "import-not-found",
+          "description": "import-not-found: Module `django.contrib.auth` has no member `alogout`",
+          "fingerprint": "55a8f7771299c00b8aecd5e6284ca2cd6568351be3d8ef7e0485d02151526804",
+          "location": {
+            "path": "$HYBRID/native-api-before-v10/project/checks.py",
+            "positions": {
+              "begin": {
+                "column": 44,
+                "line": 3
+              },
+              "end": {
+                "column": 51,
+                "line": 3
+              }
+            }
+          },
+          "severity": "major"
+        },
+        {
+          "check_name": "not-subscriptable",
+          "description": "not-subscriptable: Cannot specialize non-generic class `AutoField`",
+          "fingerprint": "fd996af4d17514d6c10991b7693b6912beb8007a587e363305c3f8c265d81312",
+          "location": {
+            "path": "$HYBRID/native-api-before-v10/project/checks.py",
+            "positions": {
+              "begin": {
+                "column": 1,
+                "line": 10
+              },
+              "end": {
+                "column": 29,
+                "line": 10
+              }
+            }
+          },
+          "severity": "major"
+        },
+        {
+          "check_name": "not-subscriptable",
+          "description": "not-subscriptable: Cannot specialize non-generic class `AutoField`",
+          "fingerprint": "6b90e9ed1f72db004dc65354b5dff6100cc554dff178f614341aecead286a30b",
+          "location": {
+            "path": "$HYBRID/native-api-before-v10/project/checks.py",
+            "positions": {
+              "begin": {
+                "column": 1,
+                "line": 9
+              },
+              "end": {
+                "column": 31,
+                "line": 9
+              }
+            }
+          },
+          "severity": "major"
+        },
+        {
+          "check_name": "not-subscriptable",
+          "description": "not-subscriptable: Cannot specialize non-generic class `AutoField`",
+          "fingerprint": "4b1ea0cc9073cd544a1b88a9fbb38ff74904e684e9fe0d39ba3663795dfe772a",
+          "location": {
+            "path": "$HYBRID/native-api-before-v10/project/checks.py",
+            "positions": {
+              "begin": {
+                "column": 13,
+                "line": 7
+              },
+              "end": {
+                "column": 43,
+                "line": 7
+              }
+            }
+          },
+          "severity": "major"
+        },
+        {
+          "check_name": "type-assertion-failure",
+          "description": "type-assertion-failure: Type `Unknown` does not match asserted type `BigAutoField`",
+          "fingerprint": "a69581801205c5245f09eeee3ff6be6972b869975092f23857dc70f7342c5bea",
+          "location": {
+            "path": "$HYBRID/native-api-before-v10/project/checks.py",
+            "positions": {
+              "begin": {
+                "column": 1,
+                "line": 7
+              },
+              "end": {
+                "column": 65,
+                "line": 7
+              }
+            }
+          },
+          "severity": "major"
+        },
+        {
+          "check_name": "type-assertion-failure",
+          "description": "type-assertion-failure: Type `Unknown` does not match asserted type `bool`",
+          "fingerprint": "6e89bf2df30dffffa5a7ef211afde1a5499ea0a36329300aa88a1c1f77bc5d9f",
+          "location": {
+            "path": "$HYBRID/native-api-before-v10/project/checks.py",
+            "positions": {
+              "begin": {
+                "column": 5,
+                "line": 12
+              },
+              "end": {
+                "column": 62,
+                "line": 12
+              }
+            }
+          },
+          "severity": "major"
+        },
+        {
+          "check_name": "unresolved-attribute",
+          "description": "unresolved-attribute: Object of type `AbstractBaseUser` has no attribute `acheck_password`",
+          "fingerprint": "33f4bf61ad3a5c8cf0461ac59c49ed619f2f5e094240eb0a8121db0e11cdaacc",
+          "location": {
+            "path": "$HYBRID/native-api-before-v10/project/checks.py",
+            "positions": {
+              "begin": {
+                "column": 23,
+                "line": 12
+              },
+              "end": {
+                "column": 43,
+                "line": 12
+              }
+            }
+          },
+          "severity": "major"
+        },
+        {
+          "check_name": "unresolved-attribute",
+          "description": "unresolved-attribute: Object of type `AbstractBaseUser` has no attribute `acheck_password`",
+          "fingerprint": "cfb931d06549a3fb164bba638963bf5df1641f357df76ae9265ba7bd1659f956",
+          "location": {
+            "path": "$HYBRID/native-api-before-v10/project/checks.py",
+            "positions": {
+              "begin": {
+                "column": 24,
+                "line": 15
+              },
+              "end": {
+                "column": 44,
+                "line": 15
+              }
+            }
+          },
+          "severity": "major"
+        }
+      ],
+      "run": {
+        "command": [
+          "$HYBRID/iteration-v10",
+          "check",
+          "--ty",
+          "$WORK/environment/bin/ty",
+          "--python",
+          "$WORK/environment/bin/python",
+          "--config-file",
+          "$HYBRID/native-api-before-v10/project/ty.toml",
+          "--output-format",
+          "gitlab",
+          "--no-progress",
+          "--color",
+          "never",
+          "$HYBRID/native-api-before-v10/project"
+        ],
+        "exit": 1,
+        "seconds": 0.4690743329701945,
+        "peak_process_tree_rss_kib": 100240,
+        "peak_processes_pid_ppid_rss_kib": [
+          [
+            52640,
+            52638,
+            54592
+          ],
+          [
+            52643,
+            52640,
+            45648
+          ]
+        ],
+        "stopped": null,
+        "source_sha256": "9c576038bfa4ed3962987ad65e2a072b042eb322f0eb110f5a7db5f35b60e756",
+        "source_preserved": true,
+        "stdout": "$HYBRID/native-api-before-v10/stdout.json",
+        "stderr": "$HYBRID/native-api-before-v10/stderr.log"
+      },
+      "candidate_sha256": "2844b21bee7e8f0440ed597a6c00101e64a5f8a7eb0d41c154ec63b78fe82307",
+      "plugin_sha256": "6ef756fb61ebdf0b42be7061d4ad6c55d2cdfa02313b01378266b349964bcb99"
+    },
+    "after": {
+      "passed": true,
+      "runtime": {
+        "implicit_id": "BigAutoField",
+        "explicit_id": "AutoField",
+        "acheck_password": true,
+        "aget_user": true,
+        "alogout": true,
+        "pk_rejected": true,
+        "custom_id_rejected": true
+      },
+      "expected_diagnostic_lines": [
+        9,
+        10,
+        15,
+        16
+      ],
+      "actual_diagnostic_lines": [
+        9,
+        10,
+        15,
+        16
+      ],
+      "diagnostics": [
+        {
+          "check_name": "invalid-argument-type",
+          "description": "invalid-argument-type: Argument to function `alogout` is incorrect: Expected `HttpRequest`, found `Literal[1]`",
+          "fingerprint": "b7da87e6600ac7d0b2547d052c4ff986404d5c5748437e916962a3beccc124fe",
+          "location": {
+            "path": "$HYBRID/native-api-after-v11/project/checks.py",
+            "positions": {
+              "begin": {
+                "column": 19,
+                "line": 16
+              },
+              "end": {
+                "column": 20,
+                "line": 16
+              }
+            }
+          },
+          "severity": "major"
+        },
+        {
+          "check_name": "invalid-assignment",
+          "description": "invalid-assignment: Object of type `bool` is not assignable to `str`",
+          "fingerprint": "d5758dde60cb263aef58d57dccc4229e010daa012ae55915510a34e1f20728a4",
+          "location": {
+            "path": "$HYBRID/native-api-after-v11/project/checks.py",
+            "positions": {
+              "begin": {
+                "column": 18,
+                "line": 15
+              },
+              "end": {
+                "column": 56,
+                "line": 15
+              }
+            }
+          },
+          "severity": "major"
+        },
+        {
+          "check_name": "plugin-configuration",
+          "description": "plugin-configuration: Unknown Django lookup `id` for model `models.Custom`: django-ty.unknown-lookup",
+          "fingerprint": "65737499b5b0cda68d35f333d6922eeec0930c2521f2ddae89eb9f29259322d3",
+          "location": {
+            "path": "$HYBRID/native-api-after-v11/project/checks.py",
+            "positions": {
+              "begin": {
+                "column": 1,
+                "line": 10
+              },
+              "end": {
+                "column": 29,
+                "line": 10
+              }
+            }
+          },
+          "severity": "major"
+        },
+        {
+          "check_name": "plugin-configuration",
+          "description": "plugin-configuration: Unknown Django lookup `pk` for model `models.Implicit`: django-ty.unknown-lookup",
+          "fingerprint": "3ea5eb2ae33f72fb1e7f587c92980ad7c9e7a279140f787009df55beedd73b0e",
+          "location": {
+            "path": "$HYBRID/native-api-after-v11/project/checks.py",
+            "positions": {
+              "begin": {
+                "column": 1,
+                "line": 9
+              },
+              "end": {
+                "column": 31,
+                "line": 9
+              }
+            }
+          },
+          "severity": "major"
+        }
+      ],
+      "run": {
+        "command": [
+          "$HYBRID/iteration-v10",
+          "check",
+          "--ty",
+          "$WORK/environment/bin/ty",
+          "--python",
+          "$WORK/environment/bin/python",
+          "--config-file",
+          "$HYBRID/native-api-after-v11/project/ty.toml",
+          "--output-format",
+          "gitlab",
+          "--no-progress",
+          "--color",
+          "never",
+          "$HYBRID/native-api-after-v11/project"
+        ],
+        "exit": 1,
+        "seconds": 0.7053831669036299,
+        "peak_process_tree_rss_kib": 123776,
+        "peak_processes_pid_ppid_rss_kib": [
+          [
+            57118,
+            57115,
+            65792
+          ],
+          [
+            57123,
+            57118,
+            57984
+          ]
+        ],
+        "stopped": null,
+        "source_sha256": "9c576038bfa4ed3962987ad65e2a072b042eb322f0eb110f5a7db5f35b60e756",
+        "source_preserved": true,
+        "stdout": "$HYBRID/native-api-after-v11/stdout.json",
+        "stderr": "$HYBRID/native-api-after-v11/stderr.log"
+      },
+      "candidate_sha256": "2844b21bee7e8f0440ed597a6c00101e64a5f8a7eb0d41c154ec63b78fe82307",
+      "plugin_sha256": "1c428e39459a6354894b6ec2019bc6e5471ef4c12eb8e8149ffcaa254ace090d"
+    },
+    "regression_scope": "Metadata DEFAULT_AUTO_FIELD, non-generic AutoField, real field names versus pk alias/custom primary key, async-auth API availability and typed negative controls. Production fixture adds a real unusable-password None check."
+  },
+  "known_limitations": [
+    "Complete static API and inherited API inventory remains open; the targeted API probe is not universal coverage.",
+    "Django/Python installed-wheel matrix and normal consumer activation are unqualified.",
+    "No current source commit, hosted CI acceptance, merge or publication."
+  ]
+}

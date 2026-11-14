@@ -1,0 +1,23 @@
+[package]
+name = "ty_plugin_examples"
+version = "0.0.0"
+publish = false
+edition.workspace = true
+rust-version.workspace = true
+homepage.workspace = true
+documentation.workspace = true
+repository.workspace = true
+authors.workspace = true
+license.workspace = true
+
+[lib]
+doctest = false
+
+# Example plugins deliberately depend on the authoring SDK only. This crate must not gain a
+# dependency on `ty_python_semantic`, `ty_plugin_host`, Salsa, or any other checker internal:
+# staying SDK-only is the property Phase 7 exists to demonstrate.
+[dependencies]
+ty_plugin_sdk = { workspace = true }
+
+[lints]
+workspace = true

@@ -1,4 +1,4 @@
-# Installing the Monty companion
+# Installing ty-extended
 
 The `ty-extended` distribution installs the `ty-extended` command and depends on
 Astral's official `ty` package. They coexist in one environment.
@@ -10,9 +10,9 @@ uv run ty-extended check
 
 Use `uvx ty-extended check` for an isolated run, `uv tool install ty-extended` for a
 persistent tool environment, or `pip install ty-extended` in an existing environment.
-`python -m ty_extended check` provides the same companion entry point.
+`python -m ty_extended check` provides the same ty-extended entry point.
 
-The companion finds official ty through `--ty PATH`, `TY_COMPANION_TY`, an adjacent
+ty-extended finds official ty through `--ty PATH`, `TY_COMPANION_TY`, an adjacent
 installed `ty` executable, or `PATH`. The adjacent lookup supports isolated tool
 environments without requiring a global ty installation.
 
@@ -48,7 +48,7 @@ host sources, schema, Python SDK and wheel build backend.
 ## Migrating from the old distribution
 
 Versions through 0.86.x installed a modified `ty` binary and the Python package
-`ty`. Remove that distribution before installing the companion and official ty,
+`ty`. Remove that distribution before installing ty-extended and official ty,
 so an old installation cannot overwrite Astral's executable or module.
 
 ```shell
@@ -63,10 +63,10 @@ With pip, use `python -m pip uninstall ty-extended`, then
 
 Change plugin-enabled commands and editor launchers from `ty` to `ty-extended`.
 Existing checker settings and Monty registrations remain in `ty.toml` or
-`[tool.ty]`; the companion separates plugin settings before passing checker
+`[tool.ty]`; ty-extended separates plugin settings before passing checker
 configuration to official ty. Update Python SDK imports to `ty_extended.plugin_sdk`.
 
-WASM artifacts and worker execution are unsupported by the companion. Install a
+WASM artifacts and worker execution are unsupported by ty-extended. Install a
 Monty version of each plugin. The [historical runtime guide](history/0.86/plugin-runtime.md)
 describes the older package, and [compatibility](compatibility.md) describes the
 current version policy.
