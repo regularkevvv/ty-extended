@@ -16,7 +16,7 @@ use serde_json::{Value, json};
 use std::{
     collections::{BTreeMap, BTreeSet},
     path::{Path, PathBuf},
-    process::Command,
+    process::{Child, Command, Stdio},
     sync::Arc,
     time::Instant,
 };
@@ -464,7 +464,15 @@ fn check(binary: &Path, root: &Path, config: &Path, paths: &[PathBuf]) -> Result
     if paths.is_empty() {
         return Ok(Vec::new());
     }
-    let output = Command::new(binary)
+    let output = native_check_command(binary, root, config, paths)
+        .output()
+        .context("run official checker")?;
+    native_diagnostics(output.status, &output.stdout, &output.stderr)
+}
+
+fn native_check_command(binary: &Path, root: &Path, config: &Path, paths: &[PathBuf]) -> Command {
+    let mut command = Command::new(binary);
+    command
         .args(["check", "--output-format", "gitlab", "--config-file"])
         .arg(crate::checker::native_cli_path(config))
         .args(
@@ -473,17 +481,22 @@ fn check(binary: &Path, root: &Path, config: &Path, paths: &[PathBuf]) -> Result
                 .map(|path| crate::checker::native_cli_path(path)),
         )
         .current_dir(root)
-        .env("TY_UV", "0")
-        .output()
-        .context("run official checker")?;
+        .env("TY_UV", "0");
+    command
+}
+
+fn native_diagnostics(
+    status: std::process::ExitStatus,
+    stdout: &[u8],
+    stderr: &[u8],
+) -> Result<Vec<Value>> {
     ensure!(
-        matches!(output.status.code(), Some(0 | 1)),
-        "official checker {}: {} {}",
-        output.status,
-        String::from_utf8_lossy(&output.stdout),
-        String::from_utf8_lossy(&output.stderr)
+        matches!(status.code(), Some(0 | 1)),
+        "official checker {status}: {} {}",
+        String::from_utf8_lossy(stdout),
+        String::from_utf8_lossy(stderr)
     );
-    serde_json::from_slice(&output.stdout).context("checker diagnostic JSON")
+    serde_json::from_slice(stdout).context("checker diagnostic JSON")
 }
 
 /// Compress an already selected set of generated files without broadening it.
@@ -570,6 +583,11 @@ fn check_compacted_files(
     config: &Path,
     paths: &[PathBuf],
 ) -> Result<Vec<Value>> {
+    let config = selected_checker_config(config)?;
+    check(binary, root, &config, paths)
+}
+
+fn selected_checker_config(config: &Path) -> Result<PathBuf> {
     let mut table: toml::Table = std::fs::read_to_string(config)?.parse()?;
     let src = table
         .entry("src")
@@ -582,7 +600,7 @@ fn check_compacted_files(
     src.insert("exclude-scripts".into(), false.into());
     let config = config.with_file_name("selected-checker.toml");
     write(&config, &toml::to_string(&table)?)?;
-    check(binary, root, &config, paths)
+    Ok(config)
 }
 fn path_of(d: &Value, root: &Path) -> PathBuf {
     let p = PathBuf::from(d["location"]["path"].as_str().unwrap_or(""));
@@ -811,9 +829,67 @@ struct NativeCliProjection<'a> {
     bootstrap_imports: bool,
 }
 
+/// Temporary output files avoid pipe backpressure while the host indexes source.
+/// This owner always reaps its child, including failed preparation and discarded work.
+struct NativeCliProcess {
+    child: Child,
+    stdout: std::fs::File,
+    stderr: std::fs::File,
+    started: Instant,
+}
+
+impl NativeCliProcess {
+    fn start(binary: &Path, root: &Path, config: &Path, paths: &[PathBuf]) -> Result<Self> {
+        let config = selected_checker_config(config)?;
+        let parent = config.parent().context("native CLI output directory")?;
+        let stdout = tempfile::tempfile_in(parent)?;
+        let stderr = tempfile::tempfile_in(parent)?;
+        let started = Instant::now();
+        let child = native_check_command(binary, root, &config, paths)
+            .stdout(Stdio::from(stdout.try_clone()?))
+            .stderr(Stdio::from(stderr.try_clone()?))
+            .spawn()
+            .context("start official checker")?;
+        Ok(Self {
+            child,
+            stdout,
+            stderr,
+            started,
+        })
+    }
+
+    fn finish(&mut self) -> Result<Vec<Value>> {
+        use std::io::{Read, Seek};
+        let status = self.child.wait().context("wait for official checker")?;
+        self.stdout.rewind()?;
+        self.stderr.rewind()?;
+        let mut stdout = Vec::new();
+        let mut stderr = Vec::new();
+        self.stdout.read_to_end(&mut stdout)?;
+        self.stderr.read_to_end(&mut stderr)?;
+        if std::env::var_os("TY_COMPANION_TRACE_PHASES").is_some() {
+            eprintln!(
+                "companion native cli check: {:.6}s (elapsed through collection)",
+                self.started.elapsed().as_secs_f64()
+            );
+        }
+        native_diagnostics(status, &stdout, &stderr)
+    }
+}
+
+impl Drop for NativeCliProcess {
+    fn drop(&mut self) {
+        // kill operates on this owned Child, never a process discovered by PID.
+        // wait also reaps a child that completed between validation and kill.
+        let _ = self.child.kill();
+        let _ = self.child.wait();
+    }
+}
+
 struct NativeCliCheck {
     root: PathBuf,
-    thread: Option<std::thread::JoinHandle<Result<Vec<Value>>>>,
+    process: NativeCliProcess,
+    overlay_mapping: Option<(PathBuf, PathBuf)>,
     originals: Arc<std::collections::HashMap<PathBuf, (crate::model::FileRevision, Arc<Source>)>>,
     file_revisions: Arc<std::collections::HashMap<PathBuf, crate::model::FileRevision>>,
     directories: BTreeMap<PathBuf, crate::model::FileRevision>,
@@ -1182,40 +1258,16 @@ impl NativeCliCheck {
         for (path, text) in &extra_sources {
             write(path, text)?;
         }
-        let binary = binary.to_owned();
-        let root = root.to_owned();
-        let config = actual_config;
         let mut paths = compact_paths;
         paths.extend(extra_sources.keys().cloned());
-        let checked_root = root.clone();
-        let thread = std::thread::Builder::new()
-            .name("native-cli-check".into())
-            .spawn(move || {
-                let start = Instant::now();
-                let result = check_compacted_files(&binary, &root, &config, &paths).map(
-                    |mut diagnostics| {
-                        if let Some((overlay, provider)) = &overlay_mapping {
-                            for diagnostic in &mut diagnostics {
-                                let path = path_of(diagnostic, &root);
-                                if let Ok(relative) = path.strip_prefix(overlay) {
-                                    diagnostic["location"]["path"] = json!(provider.join(relative));
-                                }
-                            }
-                        }
-                        diagnostics
-                    },
-                );
-                if std::env::var_os("TY_COMPANION_TRACE_PHASES").is_some() {
-                    eprintln!(
-                        "companion native cli check: {:.6}s",
-                        start.elapsed().as_secs_f64()
-                    );
-                }
-                result
-            })?;
+        if paths.is_empty() {
+            return Ok(None);
+        }
+        let process = NativeCliProcess::start(binary, root, &actual_config, &paths)?;
         Ok(Some(Self {
-            root: checked_root,
-            thread: Some(thread),
+            root: root.to_owned(),
+            process,
+            overlay_mapping,
             originals,
             file_revisions,
             directories,
@@ -1233,13 +1285,9 @@ impl NativeCliCheck {
         config: &Path,
         extras: &BTreeMap<PathBuf, String>,
     ) -> Option<Vec<Value>> {
-        let diagnostics = self.thread.take()?.join().ok()?.ok()?;
         let extras_match = if let Some(imports) = &self.bootstrap_imports {
             pure_import_probe(extras, &config.with_file_name("type-imports.py"))
                 .is_some_and(|required| required.is_subset(imports))
-                && diagnostics
-                    .iter()
-                    .all(|diagnostic| self.selected.contains(&path_of(diagnostic, &self.root)))
                 && self.extra_sources.iter().all(|(path, source)| {
                     std::fs::read_to_string(path).is_ok_and(|actual| actual == *source)
                 })
@@ -1287,6 +1335,17 @@ impl NativeCliCheck {
             }
             return None;
         }
+        let mut diagnostics = self.process.finish().ok()?;
+        // The child may run while files change. Preserve the original post-check
+        // validation in addition to the early rejection above.
+        if std::fs::read(config).ok()? != self.configuration
+            || (self.bootstrap_imports.is_some()
+                && self.extra_sources.iter().any(|(path, source)| {
+                    !std::fs::read_to_string(path).is_ok_and(|actual| actual == *source)
+                }))
+        {
+            return None;
+        }
         let originals = self.file_revisions.iter().collect::<Vec<_>>();
         let valid = crate::parallel::map_ordered(
             &originals,
@@ -1313,6 +1372,21 @@ impl NativeCliCheck {
                 return None;
             }
         }
+        if let Some((overlay, provider)) = &self.overlay_mapping {
+            for diagnostic in &mut diagnostics {
+                let path = path_of(diagnostic, &self.root);
+                if let Ok(relative) = path.strip_prefix(overlay) {
+                    diagnostic["location"]["path"] = json!(provider.join(relative));
+                }
+            }
+        }
+        if self.bootstrap_imports.is_some()
+            && diagnostics
+                .iter()
+                .any(|diagnostic| !self.selected.contains(&path_of(diagnostic, &self.root)))
+        {
+            return None;
+        }
         Some(diagnostics)
     }
 
@@ -1329,14 +1403,6 @@ impl NativeCliCheck {
             originals.insert(path, (*revision, Arc::clone(&module.source)));
         }
         true
-    }
-}
-
-impl Drop for NativeCliCheck {
-    fn drop(&mut self) {
-        if let Some(thread) = self.thread.take() {
-            let _ = thread.join();
-        }
     }
 }
 
@@ -5204,6 +5270,95 @@ mod tests {
             } else {
                 assert!(actual.is_none(), "{case} must retain normal checking");
             }
+        }
+        Ok(())
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn rejected_native_cli_cancels_and_reaps_its_checker() -> anyhow::Result<()> {
+        use super::*;
+        use std::os::unix::fs::PermissionsExt;
+        struct Cleanup(PathBuf);
+        impl Drop for Cleanup {
+            fn drop(&mut self) {
+                let _ = std::fs::remove_dir_all(&self.0);
+            }
+        }
+        let directory = Cleanup(
+            std::env::temp_dir().join(format!("ty-cancel-native-cli-{}", std::process::id())),
+        );
+        for case in ["extra-import", "source-change", "abandoned"] {
+            let root = directory.0.join(case).join("project");
+            let out = directory.0.join(case).join("output");
+            let path = root.join("main.py");
+            write(&path, "value: int = 1\n")?;
+            let root = root.canonicalize()?;
+            let path = path.canonicalize()?;
+            let config = out.join("checker.toml");
+            write(&config, "[environment]\npython-version='3.13'\n")?;
+            let binary = out.join("slow-checker");
+            write(
+                &binary,
+                "#!/bin/sh\nprintf '%s' \"$$\" > \"$0.started\"\nexec sleep 5\n",
+            )?;
+            std::fs::set_permissions(&binary, std::fs::Permissions::from_mode(0o755))?;
+            let project = Project::load(&root, std::slice::from_ref(&path), &json!({}), json!({}))?;
+            let mut inputs = NativeCheckInputs {
+                sources: project
+                    .modules
+                    .values()
+                    .map(|module| {
+                        (
+                            PathBuf::from(&module.source.path),
+                            module.source.text.clone(),
+                        )
+                    })
+                    .collect(),
+                paths: vec![path],
+                generation: 0,
+                virtual_types: None,
+                support_sources: BTreeMap::new(),
+            };
+            let worker =
+                NativeCliCheck::start(&binary, &root, &config, &inputs.paths, &project, &[], None)?
+                    .context("slow native checker")?;
+            let started = binary.with_file_name("slow-checker.started");
+            let deadline = Instant::now() + std::time::Duration::from_secs(2);
+            while !started.exists() && Instant::now() < deadline {
+                std::thread::sleep(std::time::Duration::from_millis(5));
+            }
+            let pid = std::fs::read_to_string(started)?;
+            let mut extras = BTreeMap::new();
+            if case == "extra-import" {
+                extras.insert(out.join("type-imports.py"), "import typing\n".to_owned());
+            } else if case == "source-change" {
+                inputs
+                    .sources
+                    .values_mut()
+                    .next()
+                    .unwrap()
+                    .push_str("changed = True\n");
+            }
+            let before = Instant::now();
+            if case == "abandoned" {
+                drop(worker);
+            } else {
+                assert!(worker.finish(&inputs, &config, &extras).is_none());
+            }
+            assert!(
+                before.elapsed() < std::time::Duration::from_secs(2),
+                "{case}: waited for a checker whose result cannot be used"
+            );
+            assert!(
+                !Command::new("kill")
+                    .args(["-0", pid.trim()])
+                    .stdout(std::process::Stdio::null())
+                    .stderr(std::process::Stdio::null())
+                    .status()?
+                    .success(),
+                "{case}: checker still running"
+            );
         }
         Ok(())
     }

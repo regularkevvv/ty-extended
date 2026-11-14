@@ -1,0 +1,21 @@
+{
+  "status": "Targeted cancellation regression passed; full workspace, version and optimized performance qualification pending.",
+  "before": {
+    "log_sha256": "335b83f7719598ea69f7643b3b6d570578d8e4bf0868ca9ab5fae36cafeb7b36",
+    "test_passed": false,
+    "seconds": 5.02,
+    "failure": "Waited for a checker whose result cannot be used"
+  },
+  "after": {
+    "log_sha256": "4eb372025b4908a415427646870570eb0ff2711650853c515d762f9875ea5a8f",
+    "test_passed": true,
+    "seconds": 0.04,
+    "cases": [
+      "extra import invalidation",
+      "source invalidation",
+      "abandoned speculative check"
+    ],
+    "owned_checker_reaped": true
+  },
+  "scope": "Reject known-invalid reuse before waiting; cancel and reap only the owned checker child. Valid results still require config, file, directory, probe, source and diagnostic-origin checks, including validation after the child finishes. Temporary output handles are automatically removed."
+}

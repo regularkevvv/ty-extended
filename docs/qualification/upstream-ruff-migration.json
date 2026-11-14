@@ -1,5 +1,5 @@
 {
-  "status": "Source, packaging, Docker, compatibility and dedicated30-repeat hosted performance qualification passed. Public-artifact acceptance follows publication.",
+  "status": "Earlier runtime and hosted30-repeat gates passed. Newly reproduced discarded speculative check bottleneck requires a fix and fresh qualification before release.",
   "version": "0.90.0",
   "official_ty": "0.0.104",
   "django_commit": "9deb4ee8321cbe49f8dc82eefceba5c276ef2980",
@@ -860,6 +860,20 @@
           "invalid-assignment"
         ],
         "passed": true
+      }
+    ],
+    "valid_comparison": false,
+    "checker_selection_error": "Direct standalone executable fell back to PATH Ty0.0.73 while installed ty-extended selected adjacent Ty0.0.104. The2.11/2.82s observations are not comparisons against the same checker and cannot qualify performance.",
+    "installed_exact_command_reproduction": [
+      {
+        "explicit_project": false,
+        "seconds": 12.93902204115875,
+        "exit": 0
+      },
+      {
+        "explicit_project": true,
+        "seconds": 12.653918375028297,
+        "exit": 0
       }
     ]
   }
