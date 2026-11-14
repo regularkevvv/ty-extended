@@ -33,17 +33,21 @@ def source_hash(project):
     return digest.hexdigest()
 
 
-def performance_gate(samples, max_ty_ratio=3.0, *, aggregate_ratios=False):
-    """Check the native ceiling while preserving every observation."""
-    if not math.isfinite(max_ty_ratio) or max_ty_ratio <= 0:
-        raise ValueError("The Ty ratio limit must be finite and positive")
-    if set(samples) != {"companion", "bare-ty", "mypy"}:
-        raise ValueError("All three checker samples are required")
+def validate_samples(samples, required):
+    if set(samples) != required:
+        raise ValueError("All checker samples are required")
     counts = {len(values) for values in samples.values()}
     if len(counts) != 1 or counts == {0}:
         raise ValueError("Checker samples must have equal nonzero counts")
     if any(not math.isfinite(t) or t <= 0 for ts in samples.values() for t in ts):
         raise ValueError("Timings must be finite and positive")
+
+
+def performance_gate(samples, max_ty_ratio=3.0, *, aggregate_ratios=False):
+    """Check the native ceiling while preserving every observation."""
+    if not math.isfinite(max_ty_ratio) or max_ty_ratio <= 0:
+        raise ValueError("The Ty ratio limit must be finite and positive")
+    validate_samples(samples, {"companion", "bare-ty", "mypy"})
     medians = {name: statistics.median(ts) for name, ts in samples.items()}
     means = {name: statistics.mean(ts) for name, ts in samples.items()}
     ratios = [a / b for a, b in zip(samples["companion"], samples["bare-ty"])]
@@ -68,6 +72,30 @@ def performance_gate(samples, max_ty_ratio=3.0, *, aggregate_ratios=False):
         "mypy_ceiling_met": mypy_met,
         "one_second_goal_met": max(samples["companion"]) <= 1.0,
         "passed": ty_met and mypy_met,
+    }
+
+
+def regression_gate(samples, max_reference_ratio=1.05):
+    """Compare the accepted implementation on the same runner and inputs."""
+    validate_samples(samples, {"companion", "performance-reference", "bare-ty", "mypy"})
+    gate = performance_gate(
+        {
+            "companion": samples["companion"],
+            "bare-ty": samples["performance-reference"],
+            "mypy": samples["mypy"],
+        },
+        max_reference_ratio,
+        aggregate_ratios=True,
+    )
+    return {
+        "policy": "same-runner-reference-mean-and-median",
+        "max_reference_ratio": max_reference_ratio,
+        "mean_reference_ratio": gate["mean_ty_ratio"],
+        "median_reference_ratio": gate["median_ty_ratio"],
+        "paired_reference_ratios": gate["paired_ty_ratios"],
+        "reference_ceiling_met": gate["ty_ceiling_met"],
+        "mypy_ceiling_met": gate["mypy_ceiling_met"],
+        "passed": gate["passed"],
     }
 
 
@@ -357,6 +385,12 @@ def main():
     parser.add_argument("--repeats", type=int, default=3)
     parser.add_argument("--max-ty-ratio", type=float, default=3.0)
     parser.add_argument(
+        "--performance-reference",
+        type=Path,
+        help="Accepted ty-extended executable; gate same-runner regressions and report the native ceiling separately",
+    )
+    parser.add_argument("--max-reference-ratio", type=float, default=1.05)
+    parser.add_argument(
         "--aggregate-ratios",
         action="store_true",
         help="Gate both mean and median ratios; report every paired ratio without trimming samples",
@@ -417,6 +451,8 @@ def main():
         and args.max_memory_mib > 0
         and math.isfinite(args.max_ty_ratio)
         and args.max_ty_ratio > 0
+        and math.isfinite(args.max_reference_ratio)
+        and args.max_reference_ratio > 0
     ):
         parser.error("Invalid workload or resource limits")
     for name in ("companion", "official", "mypy", "python", "plugin", "output"):
@@ -426,6 +462,12 @@ def main():
         args.official_python = args.official_python.absolute()
     args.output.mkdir(parents=True, exist_ok=False)
     commands = prepare(args)
+    if args.performance_reference:
+        args.performance_reference = args.performance_reference.absolute()
+        commands["performance-reference"] = [
+            str(args.performance_reference),
+            *commands["companion"][1:],
+        ]
     report = {
         "passed": False,
         "performance_target_met": False,
@@ -454,7 +496,20 @@ def main():
             for name in ("companion", "official", "mypy")
         },
         "records": [],
+        "performance_policy": "same-runner-reference-mean-and-median"
+        if args.performance_reference
+        else "native-ty-ceiling",
     }
+    if args.performance_reference:
+        report["binaries"]["performance-reference"] = {
+            "path": str(args.performance_reference),
+            "version": subprocess.check_output(
+                [str(args.performance_reference), "--version"], text=True
+            ).strip(),
+            "sha256": hashlib.sha256(
+                args.performance_reference.read_bytes()
+            ).hexdigest(),
+        }
     metadata_code = "import json,sys; from importlib.metadata import distributions; print(json.dumps({'python':sys.version,'packages':{d.metadata['Name']:d.version for d in distributions()}}))"
     report["environments"] = {
         name: json.loads(
@@ -503,19 +558,25 @@ def main():
             )
             for backend in backends
         }
+        samples = {
+            backend: [
+                row["seconds"] for row in report["records"] if row["backend"] == backend
+            ]
+            for backend in backends
+        }
         report["performance_gate"] = performance_gate(
-            {
-                backend: [
-                    row["seconds"]
-                    for row in report["records"]
-                    if row["backend"] == backend
-                ]
-                for backend in backends
-            },
+            {backend: samples[backend] for backend in ("companion", "bare-ty", "mypy")},
             args.max_ty_ratio,
             aggregate_ratios=args.aggregate_ratios,
         )
         report["performance_target_met"] = report["performance_gate"]["passed"]
+        if args.performance_reference:
+            report["reference_performance_gate"] = regression_gate(
+                samples, args.max_reference_ratio
+            )
+            report["performance_target_met"] = report["reference_performance_gate"][
+                "passed"
+            ]
         checks = args.project / "checks.py"
         filler = args.project / "filler00000.py"
         original = checks.read_text(), filler.read_text()
@@ -527,9 +588,7 @@ def main():
             filler.write_text("wrong: int = 'ordinary Python error'\n")
             report["negative_controls"] = []
             for backend in (
-                ("companion", "bare-ty", "mypy")
-                if args.official_python
-                else ("companion", "mypy")
+                tuple(commands) if args.official_python else ("companion", "mypy")
             ):
                 row = invoke(args, backend, commands[backend], f"negative/{backend}")
                 report["negative_controls"].append(row)
@@ -549,7 +608,10 @@ def main():
                     "performance_target_met",
                     "median_seconds",
                     "performance_gate",
+                    "performance_policy",
+                    "reference_performance_gate",
                 )
+                if key in report
             },
             indent=2,
         )

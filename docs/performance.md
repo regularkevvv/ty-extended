@@ -18,7 +18,9 @@ The local distributed-stress timing gate **fails**: **3.401x by means** and **3.
 
 A separate controlled comparison rotates the preceding and final Monty 1.6 executables and native Ty over the identical distributed-stress project for **30 runs each**. Means are **0.693, 0.688 and 0.212 seconds**; medians are **0.690, 0.676 and 0.203 seconds**. The final/preceding ratio of means is **0.993**. Every observation is retained.
 
-The final [30-repeat hosted qualification](qualification/performance-ci-monty16-0.90.0.json) passes all five workloads on **Linux and macOS**. Linux's largest ratios are **3.443x by means** and **3.446x by medians**. macOS's largest ratios are **2.925x by means** and **2.959x by medians**. These are workload qualifications, not bounds for every individual run or project.
+The reviewed source's [30-repeat hosted qualification](qualification/performance-ci-monty16-0.90.0.json) passes all five workloads on **Linux and macOS**. Linux's largest ratios are **3.443x by means** and **3.446x by medians**. macOS's largest ratios are **2.925x by means** and **2.959x by medians**. These are workload qualifications, not bounds for every individual run or project.
+
+The subsequent main-branch run **failed** the same native-ratio gate on Linux: distributed stress averaged **0.514 seconds**, versus native Ty's **0.133 seconds**, or **3.852x by means and 3.840x by medians**. Correctness passed. The [complete compressed receipt](qualification/performance-main-before-0.90.0.json.gz) retains all 900 Linux/macOS timings and the original failed gate. Absolute timings from these separate runners do not establish an implementation regression.
 
 The [preceding Monty 1.6 hosted series](qualification/performance-ci-monty16-before-0.90.0.json) failed the Linux distributed-stress gate at **3.539x by means and 3.587x by medians**. Its local series also failed at **3.561x and 3.597x**. Those failures are retained. The final source removes unused explicit-file selection preparation and a duplicate project attachment. Earlier [discarded-check results](qualification/native-check-cancellation-0.90.0.json), [failed CI series](qualification/performance-ci-repeat-0.90.0.json) and [passing preceding candidate](qualification/performance-ci-cancel-0.90.0.json) remain historical evidence.
 
@@ -34,7 +36,9 @@ Every comparison preserves source and provider bytes and modification times. Fai
 
 The maintainer accepted the [30-run baseline](qualification/native-django-accepted-baseline-v62.json), averaging **0.776 seconds**, against native Ty's **0.237 seconds** and MyPy's **7.451 seconds** on distributed stress. Its ratios are 3.28x by means and 3.40x by medians.
 
-The current gate requires **both mean and median** to be at most **3.5x** native Ty and no slower than MyPy. Every paired observation is also reported. Earlier receipts that failed the strict three-times/every-pair policy retain that result; the explicit baseline acceptance superseded that policy.
+The maintainer subsequently accepted the current performance for release. Hosted CI compares the candidate with immutable reference commit `7c3e9516b43016dea8a0f2396cd7fcbed742e63e`, built with the same pinned Rust toolchain on the same runner. Both run the identical workload, official Ty, plugin and Python environment in rotated order for 30 repetitions. **Both mean and median must be within 5% of the reference and no slower than MyPy.** The 5% allowance accommodates measurement variation; it is not a claim of improvement. Each completed Cargo target is cleaned before timing.
+
+Native Ty remains a separate comparison. Its complete 3.5x gate result, every native ratio and every paired observation remain in the report, including failures. The report's `performance_policy` and `reference_performance_gate` identify the hosted regression policy; `performance_target_met` uses that policy when a reference executable is supplied. Without a reference, the harness still enforces its native-Ty ceiling. Historical receipts keep the policies and results under which they ran.
 
 ## Why the earlier run took over a minute
 
@@ -51,6 +55,8 @@ python3 companion/scripts/native_django_benchmark.py \
   --companion /path/to/ty-extended --production-defaults --matrix \
   --repeats 10 --output /tmp/new-native-comparison
 ```
+
+To reproduce the hosted regression policy, first build the pinned reference with `python3 companion/scripts/performance_reference.py --output /tmp/ty-performance-reference --work-dir /tmp/new-reference-build`, then add `--performance-reference /tmp/ty-performance-reference` to the comparison command. This builds and cleans a disposable checkout; it does not alter the candidate checkout.
 
 The harness installs separate candidate, native and MyPy environments and pins the Django plugin source. Native Ty includes django-types. For an independently installed plugin wheel:
 

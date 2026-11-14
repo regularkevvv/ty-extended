@@ -18,6 +18,7 @@ from pathlib import Path
 from types import SimpleNamespace
 
 from compare_checkers import invoke, source_hash
+from performance_reference import MAX_REFERENCE_RATIO, REFERENCE_COMMIT
 
 DJANGO_COMMIT = "6e55703a95b48015f6fead73452b0c92cba99f32"
 SCRIPTS = Path(__file__).resolve().parent
@@ -132,6 +133,7 @@ def focus(output: Path, benchmark: dict) -> dict:
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--companion", required=True, type=Path)
+    parser.add_argument("--performance-reference", type=Path)
     parser.add_argument("--output", required=True, type=Path)
     parser.add_argument("--production-defaults", action="store_true")
     parser.add_argument("--repeats", type=int, default=10)
@@ -161,6 +163,16 @@ def main() -> int:
         "companion_sha256": hashlib.sha256(args.companion.read_bytes()).hexdigest(),
         "production_defaults": args.production_defaults,
     }
+    if args.performance_reference:
+        provenance = json.loads(
+            args.performance_reference.with_suffix(".provenance.json").read_text()
+        )
+        assert provenance["source_commit"] == REFERENCE_COMMIT
+        assert (
+            provenance["binary_sha256"]
+            == hashlib.sha256(args.performance_reference.read_bytes()).hexdigest()
+        )
+        report["performance_reference"] = provenance
     environments = [output / name for name in ("candidate", "native", "reference")]
     try:
         source = output / "django-source"
@@ -249,6 +261,15 @@ def main() -> int:
                 "--output",
                 target,
             ]
+            if args.performance_reference:
+                command.extend(
+                    [
+                        "--performance-reference",
+                        args.performance_reference.resolve(),
+                        "--max-reference-ratio",
+                        str(MAX_REFERENCE_RATIO),
+                    ]
+                )
             result = subprocess.run(list(map(str, command)), check=False)
             benchmark = json.loads((target / "benchmark.json").read_text())
             assert benchmark["passed"], (
@@ -256,6 +277,11 @@ def main() -> int:
             )
             current["benchmark_exit"] = result.returncode
             current["performance_gate"] = benchmark["performance_gate"]
+            current["performance_policy"] = benchmark["performance_policy"]
+            if args.performance_reference:
+                current["reference_performance_gate"] = benchmark[
+                    "reference_performance_gate"
+                ]
             phases = collections.defaultdict(list)
             native_cli_reuses = 0
             for row in benchmark["records"]:
@@ -289,7 +315,7 @@ def main() -> int:
             if name == "stress":
                 current["focus"] = focus(target, benchmark)
             current["passed"] = (
-                result.returncode == 0 and benchmark["performance_gate"]["passed"]
+                result.returncode == 0 and benchmark["performance_target_met"]
             )
             current["median_seconds"] = benchmark["median_seconds"]
             current["source_sha256"] = benchmark["source_sha256"]
