@@ -1,5 +1,5 @@
 {
-  "status": "Local and earlier hosted gates passed. Final10-repeat timing series failed on two runners; dedicated30-repeat qualification pending. No release published.",
+  "status": "Source, packaging, Docker, compatibility and dedicated30-repeat hosted performance qualification passed. Public-artifact acceptance follows publication.",
   "version": "0.90.0",
   "official_ty": "0.0.104",
   "django_commit": "9deb4ee8321cbe49f8dc82eefceba5c276ef2980",
@@ -747,5 +747,120 @@
       }
     }
   },
-  "subsequent_timing_failures": "performance-ci-repeat-0.90.0.json"
+  "subsequent_timing_failures": "performance-ci-repeat-0.90.0.json",
+  "hosted_final": {
+    "commit": "e99e876e9234f720aff737f20865c9d8d6c798aa",
+    "workflow_run": "https://github.com/regularkevvv/ty-extended/actions/runs/43589094447",
+    "performance_receipt": "performance-ci-30-0.90.0.json",
+    "passed": true
+  },
+  "separate_resource_fixture": {
+    "passed": true,
+    "records": [
+      {
+        "threads": "1",
+        "checker": "bare",
+        "seconds": 0.5951899162027985,
+        "exit": 0,
+        "diagnostics": 0
+      },
+      {
+        "threads": "1",
+        "checker": "extended",
+        "seconds": 2.8156153329182416,
+        "exit": 0,
+        "diagnostics": 0
+      },
+      {
+        "threads": "0",
+        "checker": "bare",
+        "seconds": 0.42942520789802074,
+        "exit": 0,
+        "diagnostics": 0
+      },
+      {
+        "threads": "0",
+        "checker": "extended",
+        "seconds": 2.114316332852468,
+        "exit": 0,
+        "diagnostics": 0
+      }
+    ],
+    "project_archived_and_cleaned": true,
+    "scope": "Unregistered standalone model module with a long foreign-key chain; conservative native CLI reuse rejection on extra import probes falls back to a second check. Not covered by the five-shape timing gate; earlier monitored runs took12.66/12.72s, not explained by the later direct phase trace. No universal subsecond or ratio guarantee.",
+    "earlier_monitored_runs": [
+      {
+        "command": [
+          "/private/tmp/ty-companion-subsecond-work/native-hybrid/django-candidate-upstream-ruff/bin/ty-extended",
+          "check",
+          "--color",
+          "never",
+          "--no-progress",
+          "--output-format",
+          "gitlab",
+          "/private/tmp/ty-companion-subsecond-work/native-hybrid/django-scalability-final/project"
+        ],
+        "exit": 0,
+        "seconds": 12.658499291865155,
+        "peak_process_tree_rss_kib": 511632,
+        "peak_processes_pid_ppid_rss_kib": [
+          [
+            49782,
+            49778,
+            240128
+          ],
+          [
+            49978,
+            49782,
+            271504
+          ]
+        ],
+        "stopped": null,
+        "source_sha256": "069fe1c62de246d2b1e5db53e9a116c34a96d7a25335206d1bc6e3bef156364d",
+        "source_preserved": true,
+        "stdout": "/private/tmp/ty-companion-subsecond-work/native-hybrid/django-scalability-final/positive/stdout.json",
+        "stderr": "/private/tmp/ty-companion-subsecond-work/native-hybrid/django-scalability-final/positive/stderr.log",
+        "negative": false,
+        "diagnostic_codes": [],
+        "passed": true
+      },
+      {
+        "command": [
+          "/private/tmp/ty-companion-subsecond-work/native-hybrid/django-candidate-upstream-ruff/bin/ty-extended",
+          "check",
+          "--color",
+          "never",
+          "--no-progress",
+          "--output-format",
+          "gitlab",
+          "/private/tmp/ty-companion-subsecond-work/native-hybrid/django-scalability-final/project"
+        ],
+        "exit": 1,
+        "seconds": 12.7226164159365,
+        "peak_process_tree_rss_kib": 504048,
+        "peak_processes_pid_ppid_rss_kib": [
+          [
+            49989,
+            49778,
+            240192
+          ],
+          [
+            50160,
+            49989,
+            263856
+          ]
+        ],
+        "stopped": null,
+        "source_sha256": "e4b72635b0655910fa86b5c3c32a84d2c67587942bc13fb4c3b0c08d45c271fe",
+        "source_preserved": true,
+        "stdout": "/private/tmp/ty-companion-subsecond-work/native-hybrid/django-scalability-final/negative/stdout.json",
+        "stderr": "/private/tmp/ty-companion-subsecond-work/native-hybrid/django-scalability-final/negative/stderr.log",
+        "negative": true,
+        "diagnostic_codes": [
+          "invalid-assignment"
+        ],
+        "passed": true
+      }
+    ]
+  }
 }
