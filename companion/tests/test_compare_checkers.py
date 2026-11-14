@@ -15,6 +15,30 @@ import compare_checkers
 
 
 class PerformanceGateTests(unittest.TestCase):
+    def test_reference_comparisons_require_complete_four_round_blocks(self):
+        for repeats in (0, 1, 2, 10, 30):
+            with self.subTest(repeats=repeats), self.assertRaises(ValueError):
+                compare_checkers.validate_repeats(repeats, reference=True)
+        for repeats in (4, 8, 12, 32):
+            compare_checkers.validate_repeats(repeats, reference=True)
+        compare_checkers.validate_repeats(30, reference=False)
+
+    def test_all_32_rounds_balance_every_position_and_predecessor(self):
+        import collections
+
+        backends = ["companion", "bare-ty", "mypy", "performance-reference"]
+        orders = [compare_checkers.invocation_order(backends, i) for i in range(32)]
+        for backend in backends:
+            self.assertEqual(
+                [sum(order.index(backend) == j for order in orders) for j in range(4)],
+                [8, 8, 8, 8],
+            )
+        counts = collections.Counter(
+            (a, b) for order in orders for a, b in zip(order, order[1:])
+        )
+        self.assertEqual(len(counts), 12)
+        self.assertEqual(set(counts.values()), {8})
+
     def test_accepted_average_gate_reports_faster_mean_and_slower_median_honestly(self):
         gate = compare_checkers.regression_gate(
             {

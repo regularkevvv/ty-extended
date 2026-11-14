@@ -127,6 +127,16 @@ def regression_gate(
     }
 
 
+def validate_repeats(repeats, *, reference=False):
+    if repeats < 1:
+        raise ValueError("--repeats must be positive")
+    if reference and repeats % 4:
+        raise ValueError(
+            "Reference comparisons require --repeats to be a multiple of four "
+            "so every position and predecessor is balanced"
+        )
+
+
 def invocation_order(backends, repeat):
     if len(backends) == 4:
         # Balanced Latin square: every backend occupies each position once,
@@ -456,6 +466,10 @@ def main():
     parser.add_argument("--timeout", type=int, default=180)
     parser.add_argument("--max-memory-mib", type=int, default=4096)
     args = parser.parse_args()
+    try:
+        validate_repeats(args.repeats, reference=bool(args.performance_reference))
+    except ValueError as error:
+        parser.error(str(error))
     if os.name != "posix":
         parser.error("Process-tree RSS and wait4 timing require POSIX")
     if args.production_defaults:
@@ -525,7 +539,7 @@ def main():
             for key in ("files", "models", "model_modules", "queries")
         },
         "source_sha256": source_hash(args.project),
-        "method": "Fresh processes; warm filesystem caches; MyPy --no-incremental and disposable cache; counterbalanced serial runs when comparing four backends; process-tree RSS sampled every 100ms.",
+        "method": "Fresh processes; warm filesystem caches; MyPy --no-incremental and disposable cache; complete counterbalanced four-round blocks when comparing four backends; process-tree RSS sampled every 100ms.",
         "binaries": {
             name: {
                 "path": str(getattr(args, name)),

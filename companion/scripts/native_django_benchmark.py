@@ -17,7 +17,7 @@ import venv
 from pathlib import Path
 from types import SimpleNamespace
 
-from compare_checkers import invoke, source_hash
+from compare_checkers import invoke, source_hash, validate_repeats
 from performance_reference import (
     MAX_REFERENCE_NOISE_SECONDS,
     MAX_REFERENCE_RATIO,
@@ -145,8 +145,10 @@ def main() -> int:
         "--matrix", action="store_true", help="Run all five existing workload shapes"
     )
     args = parser.parse_args()
-    if args.repeats < 1:
-        parser.error("--repeats must be positive")
+    try:
+        validate_repeats(args.repeats, reference=bool(args.performance_reference))
+    except ValueError as error:
+        parser.error(str(error))
     args.output.mkdir(parents=True, exist_ok=False)
     output = args.output.resolve()
     flags = (
