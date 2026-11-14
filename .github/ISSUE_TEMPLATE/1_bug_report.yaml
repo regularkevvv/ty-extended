@@ -4,13 +4,13 @@ body:
   - type: markdown
     attributes:
       value: |
-        Report issues with the ty-extended Monty companion here.
+        Report issues with ty-extended and its plugins here.
 
         **Before reporting, search [existing issues](https://github.com/regularkevvv/ty-extended/issues?q=is:issue) including closed reports.**
 
         If you are seeing a type error on your code that you didn't expect, does the [reference documentation](https://docs.astral.sh/ty/reference/rules/) for that error code explain the problem?
 
-        See the companion's [compatibility policy](https://github.com/regularkevvv/ty-extended/blob/main/docs/compatibility.md) and [FAQ](https://github.com/regularkevvv/ty-extended/blob/main/docs/faq.md).
+        See the [compatibility policy](https://github.com/regularkevvv/ty-extended/blob/main/docs/compatibility.md) and [FAQ](https://github.com/regularkevvv/ty-extended/blob/main/docs/faq.md).
 
   - type: textarea
     attributes:
@@ -21,23 +21,23 @@ body:
         Include the command you invoked (e.g., `ty-extended check`), installed plugin versions,
         and relevant settings from `ty.toml` or `pyproject.toml`.
 
-        For behavior involving only official ty, an [Astral playground](https://play.ty.dev) link can help. The playground does not run companion plugins.
+        For behavior involving only official ty, an [Astral playground](https://play.ty.dev) link can help. The playground does not run ty-extended plugins.
 
     validations:
       required: true
 
   - type: input
     attributes:
-      label: Companion version
+      label: ty-extended version
       description: Output of `ty-extended --version`.
-      placeholder: e.g., ty-extended 0.87.0
+      placeholder: e.g., ty-extended 0.90.0
     validations:
       required: false
 
   - type: input
     attributes:
       label: Official ty version
-      description: Output of `ty --version`. Official ty and the companion have independent versions.
-      placeholder: e.g., ty 0.0.99
+      description: Output of `ty --version`. Official ty and ty-extended have independent versions.
+      placeholder: e.g., ty 0.0.104
     validations:
       required: false

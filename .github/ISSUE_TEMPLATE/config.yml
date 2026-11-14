@@ -1,8 +1,8 @@
 blank_issues_enabled: true
 contact_links:
-  - name: Companion documentation
+  - name: ty-extended documentation
     url: https://github.com/regularkevvv/ty-extended#readme
-    about: Installation, Monty plugins, migration and version compatibility.
+    about: Installation, plugins, migration and version compatibility.
   - name: Official ty documentation
     url: https://docs.astral.sh/ty
     about: Astral's checker documentation and typing rules.
