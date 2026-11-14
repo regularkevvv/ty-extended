@@ -15,6 +15,52 @@ import compare_checkers
 
 
 class PerformanceGateTests(unittest.TestCase):
+    def test_reference_policy_reports_native_gap_without_relaxing_reference(self):
+        samples = {
+            "companion": [0.6] * 3,
+            "performance-reference": [0.6] * 3,
+            "bare-ty": [0.1] * 3,
+            "mypy": [3.0] * 3,
+        }
+        self.assertTrue(compare_checkers.regression_gate(samples)["passed"])
+        self.assertFalse(
+            compare_checkers.performance_gate(
+                {k: samples[k] for k in ("companion", "bare-ty", "mypy")},
+                3.5,
+                aggregate_ratios=True,
+            )["passed"]
+        )
+
+    def test_reference_policy_rejects_mean_and_median_regressions(self):
+        for candidate in ([0.6, 0.6, 0.8], [0.5, 0.7, 0.7]):
+            with self.subTest(candidate=candidate):
+                gate = compare_checkers.regression_gate(
+                    {
+                        "companion": candidate,
+                        "performance-reference": [0.6] * 3,
+                        "bare-ty": [0.3] * 3,
+                        "mypy": [3.0] * 3,
+                    }
+                )
+                self.assertFalse(gate["passed"])
+                self.assertEqual(len(gate["paired_reference_ratios"]), 3)
+
+    def test_reference_policy_keeps_mypy_ceiling_and_rejects_missing_samples(self):
+        samples = {
+            "companion": [0.6],
+            "performance-reference": [0.6],
+            "bare-ty": [0.3],
+            "mypy": [0.5],
+        }
+        self.assertFalse(compare_checkers.regression_gate(samples)["passed"])
+        for invalid in (
+            {**samples, "performance-reference": []},
+            {**samples, "performance-reference": [float("nan")]},
+            {k: v for k, v in samples.items() if k != "performance-reference"},
+        ):
+            with self.subTest(invalid=invalid), self.assertRaises(ValueError):
+                compare_checkers.regression_gate(invalid)
+
     def test_exact_three_times_passes_and_reports_one_second_goal_separately(self):
         gate = compare_checkers.performance_gate(
             {"companion": [1.5, 1.8], "bare-ty": [0.5, 0.6], "mypy": [5, 6]}
