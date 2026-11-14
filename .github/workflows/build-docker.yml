@@ -21,7 +21,7 @@ permissions:
   contents: read
 jobs:
   docker-build:
-    name: Build companion Docker image for ${{ matrix.platform }}
+    name: Build ty-extended Docker image for ${{ matrix.platform }}
     runs-on: ${{ github.repository == 'astral-sh/ty' && 'github-ubuntu-24.04-x86_64-4' || 'ubuntu-latest' }}
     env:
       DOCKERHUB_TOKEN_RO_AVAILABLE: ${{ secrets.DOCKERHUB_TOKEN_RO != '' }}
@@ -87,7 +87,7 @@ jobs:
             ${{ inputs.plan != '' && !fromJson(inputs.plan).announcement_tag_is_implicit && format('type=image,name={0},push-by-digest=true,name-canonical=true,push=true',
             env.TY_BASE_IMG) || 'type=docker' }}
           tags: ${{ env.TY_BASE_IMG }}:ci-${{ env.PLATFORM_TUPLE }}
-      - name: Verify companion and official checker in the image
+      - name: Verify ty-extended and official checker in the image
         if:
           ${{ matrix.platform == 'linux/amd64' && (inputs.plan == '' || fromJson(inputs.plan).announcement_tag_is_implicit)
           }}
@@ -125,7 +125,7 @@ jobs:
       contents: read
       packages: write
   docker-publish:
-    name: Publish companion Docker image
+    name: Publish ty-extended Docker image
     runs-on: ${{ github.repository == 'astral-sh/ty' && 'github-ubuntu-24.04-x86_64-4' || 'ubuntu-latest' }}
     environment:
       name: release
@@ -281,7 +281,7 @@ jobs:
           subject-name: ${{ env.TY_BASE_IMG }}
           subject-digest: ${{ steps.build-and-push.outputs.digest }}
   docker-republish:
-    name: Annotate companion Docker image
+    name: Annotate ty-extended Docker image
     runs-on: ${{ github.repository == 'astral-sh/ty' && 'github-ubuntu-24.04-x86_64-4' || 'ubuntu-latest' }}
     environment:
       name: release

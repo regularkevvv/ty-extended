@@ -4,21 +4,23 @@ ty-extended checks analysis copies with unchanged official Ty. Total time includ
 
 ## Current native comparison
 
-The [upstream Ruff migration receipt](qualification/upstream-ruff-migration.json) records ten rotated fresh-process runs per checker across five workload shapes on macOS arm64. Both Ty stacks use official **Ty 0.0.104** and Django **6.1.3**. Native Ty uses **django-types 0.24.0**; MyPy **2.4.1** uses **django-stubs 6.1.2**. The Django plugin source is pinned by commit in the receipt.
+The [final cancellation receipt](qualification/native-check-cancellation-0.90.0.json) records ten rotated fresh-process runs per checker across five workloads on macOS arm64. Both Ty stacks use official **Ty 0.0.104** and Django **6.1.3**. The candidate uses the restored Django-ty 0.8 provider; native Ty uses **django-types 0.24.0**. MyPy **2.4.1** uses **django-stubs 6.1.2**.
 
-| Files / models / model modules | ty-extended mean | Native Ty mean | MyPy mean | Ratio of means |
-| ------------------------------ | ---------------: | -------------: | --------: | -------------: |
-| 100 / 25 / 5                   |          0.105 s |        0.039 s |   1.519 s |          2.72x |
-| 1,000 / 250 / 25               |          0.193 s |        0.065 s |   2.160 s |          2.97x |
-| 7,082 / 250 / 25               |          0.581 s |        0.207 s |   4.416 s |          2.81x |
-| 7,082 / 2,501 / 1              |          0.747 s |        0.340 s |   7.474 s |          2.20x |
-| 7,082 / 2,501 / 250            |          0.789 s |        0.226 s |   7.485 s |          3.49x |
+| Workload           | ty-extended mean | Native Ty mean | MyPy mean | Ratio of means |
+| ------------------ | ---------------: | -------------: | --------: | -------------: |
+| small              |          0.111 s |        0.039 s |   1.378 s |         2.835x |
+| distributed        |          0.201 s |        0.068 s |   1.966 s |         2.962x |
+| many-files         |          0.552 s |        0.199 s |   4.131 s |         2.780x |
+| stress             |          0.711 s |        0.339 s |   6.767 s |         2.098x |
+| distributed-stress |          0.694 s |        0.197 s |   6.547 s |         3.525x |
 
-All five workloads pass the current mean and median gates. The distributed-stress median is **0.735 seconds**, versus **0.219 seconds** for native Ty. Its largest recorded sample is **1.090 seconds** and its worst paired ratio is **4.90x**. These results establish neither a one-second worst-case bound nor a three-times bound on every run.
+The last local ten-repeat series **fails** the 3.5x gate: distributed stress is 3.525x by means and 3.519x by medians. Its 0.694-second mean is below one second and below MyPy. That failure is retained; it is not relabeled as passing.
 
-Ten alternating comparisons per workload against the accepted binary, using identical Ty and Django plugin inputs, show no material regression: candidate/baseline mean ratios range from 0.949 to 1.006. All timings, including slow samples, remain in the receipt. The dedicated [30-repeat hosted series](qualification/performance-ci-30-0.90.0.json) passes all five workloads on Linux and macOS. The largest ratios of means are 3.38x and 3.09x respectively; individual slow observations remain recorded. A preceding 10-repeat CI series failed the ratio gate on two runners; [both complete failed series](qualification/performance-ci-repeat-0.90.0.json) are retained. The ceiling remains 3.5x. Public-package checks remain separate from source/CI measurements.
+A separate controlled comparison rotates the prior executable, the final executable and native Ty over the identical distributed-stress project for **30 runs each**. Means are **0.679, 0.678 and 0.212 seconds** respectively. The final/prior ratio is **0.998**; the final/native ratio is **3.192**. Medians are **0.670, 0.669 and 0.204 seconds**. This comparison shows no regression from the discarded-check fix and preserves every observation.
 
-A separate resource fixture with 7,082 files and a standalone module containing 2,501 chained models takes 12.66–12.94 seconds with installed Ty 0.0.104. A trace attributes nearly 11 seconds to an early check whose import preflight later prevents reuse. An initially faster comparison accidentally selected an older Ty from PATH and is explicitly marked invalid in the receipt. This fixture passes correctness and memory bounds but exceeds the timing target; it requires fresh qualification after correcting discarded-check handling. The five-workload gate does not establish that every project is subsecond or within 3.5x.
+The dedicated [30-repeat hosted qualification](qualification/performance-ci-cancel-0.90.0.json) passes all five workloads on **both Linux and macOS**, with the same restored provider. Largest ratios of means are **3.425x** and **2.842x**; largest median ratios are **3.431x** and **2.936x**. Hosted gates require both aggregates to stay at or below 3.5x and MyPy. Earlier [failed CI series](qualification/performance-ci-repeat-0.90.0.json), the [preceding hosted series](qualification/performance-ci-30-0.90.0.json) and the local miss remain separate evidence. These are workload qualifications, not bounds for every run or project.
+
+A separate resource fixture uses 7,082 files and a standalone module with 2,501 chained models. Its installed one-thread run originally took about **12.7 seconds**. A trace showed nearly 11 seconds spent waiting for a speculative native check before rejecting its result. The fix cancels and reaps known-invalid work promptly. Three explicit Ty 0.0.104 runs now average **2.235 seconds** with one thread and **1.969 seconds** with default parallelism, versus native Ty's **0.528** and **0.406 seconds**. Rendering requires a `models` import outside the early check's coverage, so the validated second-check path remains necessary. This fixture passes correctness and resource bounds but still exceeds the timing target. An exploratory comparison that selected an older Ty from PATH is explicitly marked invalid in the receipt.
 
 ## Correctness
 

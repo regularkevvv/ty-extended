@@ -11,33 +11,16 @@ Entries below 0.74.0 say "extension" where they now would say "plugin"; the term
 
 ## 0.90.0
 
-- Qualify one optimized executable against every official Ty release from 0.0.84 through 0.0.104: 378 passing compatibility gates.
-
-- Publish protocol and Rust SDK 0.0.12 from the independent workspace.
-
-- Add plugin support around unchanged official Ty, with plugins written in the Python subset supported by Monty.
-
-- Own the plugin host, protocol and SDK in this repository. Use published upstream Ruff crates and remove the fork submodule.
-
-- Delegate ordinary Django typing to official Ty and reduce repeated parsing, copying and plugin work.
-
-- Preserve the accepted performance baseline across all five local workloads; record ten-repeat comparisons against Ty 0.0.104 and MyPy.
-
-- Preserve projection mode during function inference and import resolution so borrowed provider files remain unchanged.
-
-- Keep ty-extended and official Ty versions independent, and update packaging and release automation for standalone source builds.
-
-- Preserve fully qualified imported class identities in generic member hooks, including same-named models in different modules and local shadowing.
-
-- Share repeated concrete descriptor bases while retaining each field's distinct class identity.
-
-- Reuse native workspace diagnostics for eligible projections and add an experimental sparse memory projection for fresh CLI checks. Preserve original bytes, timestamps and file selection.
-
-- Synchronize every projected buffer before pull diagnostics, including imported peers. Preserve explicit-file rich diagnostics in paths containing spaces, brackets or Unicode, and retain disk projection for per-file rule overrides.
-
-- Combine import, nominal schema and type-query preflights into one native synchronization, retaining validation and restart behavior when a declaration cannot be used.
-
-- Record fresh-process comparisons with the published companion, MyPy and bare official ty; the one-second target remains unmet.
+- Own the plugin host, protocol, SDK and examples in this repository. Depend on five published Ruff crates and remove the fork submodule; no Ruff source is vendored.
+- Extend separately installed, unchanged official Ty with Python plugins supported by Monty. Keep ty-extended releases independent of official Ty versions.
+- Qualify groups of official Ty versions with one unchanged executable and complete CLI/editor/SDK gates.
+- Preserve the accepted native Django performance implementation through scoped indexes, shared type factories, lazy row construction and native inference.
+- Cancel and reap speculative checker processes when their results cannot be reused. Validate accepted results against source, configuration, directory and probe changes after checking.
+- Retain in-memory declaration providers during preparatory inference and preserve fully qualified class identities across modules.
+- Recognize documented diagnostic renames in historical comparisons while preserving consumer-facing native rule IDs and newly split rules.
+- Publish protocol and Rust SDK 0.0.12 from the independent workspace. Build standalone wheels, native archives and source distributions without a Ruff checkout.
+- Remove unused upstream fuzzing, signing, documentation, version-publishing and notification workflows. Retain this project's compatibility, packaging and release gates.
+- Record every performance observation and negative control, including failed series and invalid comparisons. Measurements qualify the documented workloads, not universal worst-case bounds.
 
 ## 0.89.0
 

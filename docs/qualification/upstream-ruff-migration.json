@@ -1,5 +1,5 @@
 {
-  "status": "Earlier runtime and hosted30-repeat gates passed. Newly reproduced discarded speculative check bottleneck requires a fix and fresh qualification before release.",
+  "status": "Final runtime qualified:43source steps,378version gates, installed Django tests and hosted30-repeat matrices pass. Controlled30-repeat baseline comparison shows no regression. One local10-repeat ratio miss remains recorded. Public-artifact acceptance follows publication.",
   "version": "0.90.0",
   "official_ty": "0.0.104",
   "django_commit": "9deb4ee8321cbe49f8dc82eefceba5c276ef2980",
@@ -7,11 +7,51 @@
     "passed": true,
     "version": "0.90.0",
     "qualified_runtime_matches": true,
+    "runtime_sha256": {
+      "companion/src/project_config.rs": "ec984a1e53502d0c427fc9fedf5de88828296789ca9ae68e72cc2a706a4ab0da",
+      "companion/src/flow.rs": "d6d879a0293f7ea07d5da2a1005c93b7b0f07a7a4044948e57a8591d93f5d306",
+      "companion/src/runtime.rs": "aa976e6dc4db66ccbccf6c68b51b6a884bfb4168f570404be2d6e4b86e55dcae",
+      "companion/src/native_rules.rs": "0a47b5812759c43eb8bf552ebe135d851698549d1d639a5a6495d61cba0fd7b5",
+      "companion/src/static_project.rs": "b57a33c3065aed0caea78b3c7dcdf85fc6f3cef0ffd950585fdcd9d15f68fd1e",
+      "companion/src/editor_options.rs": "6c3d5540fdea2956a9ed179fb2291f087456a48cf744647063bdd11a3f775d46",
+      "companion/src/cli_edits.rs": "01543f2a5d63f7a66545923b6ccd25e06161b6e3fd9b2936d09073768902c444",
+      "companion/src/project_check.rs": "fe49e3607f68bef9ca554280c35b5b1c77553cd65293074f528ea4b5ebc562c6",
+      "companion/src/project.rs": "7f91cae56e3a682175851c79fffc9dcd2a315e3dbdf19df097872ba437941ac3",
+      "companion/src/checker.rs": "4cb129fef5bf83671852080f618a0068f0b119bf2258abe4fe855e45c75d9687",
+      "companion/src/verify.rs": "64fe7985a30297d45a133d854926cc8ab8dc77a85381b2feb28efad548c560b0",
+      "companion/src/type_snapshot.rs": "0c018b699a8d140782e3813a5606d188c27b392400d1796ab839d73002eba813",
+      "companion/src/mapping.rs": "f92e4155bff39e8d47bed7b19a81e418a200fda3892eaebff485b1ea278bb761",
+      "companion/src/main.rs": "889627d345b64c595b0e5880e825b068f00008e5744ad52577a4c6933d6a668a",
+      "companion/src/parallel.rs": "ea1b52946ab12fca3cdf9788be063f737ea8a0ab91203565b475f5daf3e314fe",
+      "companion/src/notebook.rs": "0bbd10d569d77019c19b7b76e7d2259c93afaaccc7f18c089e6478f3491cd24f",
+      "companion/src/lsp_mapping.rs": "2a3d7cc63f066bc25db11d680819124e3ff609448d2f27ab93b15d877bfc48fb",
+      "companion/src/lsp_server.rs": "f6a49b11f82ef55a8028d78253fb210844135b9c93e7777074dab3c6f846676a",
+      "companion/src/native_warmup.rs": "08a9e6bd722adfc152cb2dd1b4f9c2b552ee31db7c8d55cc24b96a317c698688",
+      "companion/src/lower.rs": "df0249023e8c7f88eff2eb49ca2d0ee64aba682ebc5b244c230435acccb136d4",
+      "companion/src/type_render.rs": "d4f62ea50e5fa320e862ae635e8bf90329211324963a8d92bea21cf6b9533111",
+      "companion/src/model.rs": "a7b09f8e510b1554fdbd747efff07bf3aaba40134f0af28c17dd49fb1564bb12",
+      "companion/src/cli.rs": "8364f031361e70478e46c265eec8d729a9123d51f51eeda1476539498b5c3441",
+      "companion/src/editor-options.schema.json": "3d9f43711e000488a6db80cb0a0a320172515a58f5ef6e1b52d78d8be43b608b",
+      "crates/ty_plugin_protocol/src/lib.rs": "4e86426f14a527dd185bedee9064ac9e848d0c20d43fe1f1d96538d3ecedbb76",
+      "crates/ty_plugin_host/src/monty.rs": "67dc69a7b7fe256ced58c94743ec06c214d573b94403b3989ac25599e46cd99c",
+      "crates/ty_plugin_host/src/lib.rs": "e336a4b9dc4e0b48d0a4f97aee52abcb40fa01455e73c3e15ededa68987f5ef6",
+      "crates/ty_plugin_examples/src/minidjango.rs": "aaba2e5a97fda85955f38a476a3ff25eb0ce88f256d00ce7acf05322b6d3f329",
+      "crates/ty_plugin_examples/src/lib.rs": "467b99d7c3cff493a5e722299e80f9385adbbc0493cafb2d37bee30183528edc",
+      "crates/ty_plugin_examples/src/stub_overlay.rs": "04faaf05ae80e3d2cb6e63834ff9a02fde17267c9d2121bcd1ab7ae89c1dcf62",
+      "crates/ty_plugin_examples/src/call_return.rs": "97a4c020c175cb69e6d230264696a45d311fdde7c19fd5550323a767e7643cd7",
+      "crates/ty_plugin_examples/src/class_transform.rs": "75ebb9989626e0737fcc4210900938314d20f4d93e665e272f2acbfeed695ce9",
+      "crates/ty_plugin_sdk/src/lib.rs": "57702c8d7e4e09b7c80d4a36c72d4afd232b5d700f11a6731ff2814daa6f478d",
+      "crates/ty_plugin_sdk/src/manifest.rs": "b37cd76ee1b3969c445b002340749bf6a9b803678a61587394cc436576e98f5b",
+      "crates/ty_plugin_sdk/src/dsl.rs": "97af9acec72fdbd06175c83e28ce6ad807710f230a130b00caac0315c9deba1c",
+      "crates/ty_plugin_sdk/src/wasm.rs": "9d2e6574c8671b62374fac98ef7d7a9f02a1f00a75d224ea9114ef0ba9599dd8",
+      "crates/ty_plugin_host/python/ty_plugin_sdk.py": "59d9c4cc97eaf85b1ce9c178551d1c64a024bd82e2d675fd0a7dd051cb2bd527",
+      "python/ty_extended/plugin_sdk.py": "48bcf42ceb9aab1e0f79efcf658737ab9fd2a5418fb1cf96d1a529d01af2fa11"
+    },
     "build_exit": 0,
-    "seconds": 375.35104049998336,
-    "wheel": "/private/tmp/ty-companion-subsecond-work/native-hybrid/build-wheel-upstream-ruff-r2/wheels/ty_extended-0.90.0-py3-none-macosx_11_0_arm64.whl",
-    "wheel_sha256": "0f32839c5a88144ecba5cdc66b87d8649611a60352e3c2b72d24948881a27522",
-    "binary_sha256": "57cb933bcdec42521c88566a57596130a6bebd69e77b87b8c0d15c69868dedcc",
+    "seconds": 325.0365534159355,
+    "wheel": "/private/tmp/ty-companion-subsecond-work/native-hybrid/build-wheel-upstream-ruff-r3/wheels/ty_extended-0.90.0-py3-none-macosx_11_0_arm64.whl",
+    "wheel_sha256": "ecd4a9afbc8e257adabe627797ac3dc5a3973e76b22387341a0ebc38eb2916fa",
+    "binary_sha256": "ac49795edb327c39e9d95a427c5a2be63e1aee8c0ad9582410c27d6aa60ea496",
     "clean_exit": 0
   },
   "direct_ruff_dependencies": {
@@ -29,7 +69,7 @@
   "rust_sdk_qualification": {
     "passed": true,
     "steps": 43,
-    "source_results": "qualify-upstream-ruff-r4/results.json",
+    "source_results": "qualify-upstream-ruff-r5/results.json",
     "official_ty": "0.0.104"
   },
   "editor_contract_equivalence": {
@@ -749,10 +789,10 @@
   },
   "subsequent_timing_failures": "performance-ci-repeat-0.90.0.json",
   "hosted_final": {
-    "commit": "e99e876e9234f720aff737f20865c9d8d6c798aa",
-    "workflow_run": "https://github.com/regularkevvv/ty-extended/actions/runs/43589094447",
-    "performance_receipt": "performance-ci-30-0.90.0.json",
-    "passed": true
+    "passed": true,
+    "commit": "61c3aa1ce10b76fa6690a1aa33edaa7649f0a6c4",
+    "workflow_run": "https://github.com/regularkevvv/ty-extended/actions/runs/43592945488",
+    "performance_receipt": "performance-ci-cancel-0.90.0.json"
   },
   "separate_resource_fixture": {
     "passed": true,
@@ -875,6 +915,111 @@
         "seconds": 12.653918375028297,
         "exit": 0
       }
-    ]
-  }
+    ],
+    "final_explicit_ty104": {
+      "passed": true,
+      "official_ty": "ty 0.0.104 (b4bb5b2c8 2026-11-13)",
+      "records": [
+        {
+          "threads": "1",
+          "repeat": 0,
+          "checker": "bare",
+          "seconds": 0.48434595903381705,
+          "exit": 0,
+          "diagnostics": 0
+        },
+        {
+          "threads": "1",
+          "repeat": 0,
+          "checker": "extended",
+          "seconds": 2.2623047078959644,
+          "exit": 0,
+          "diagnostics": 0
+        },
+        {
+          "threads": "1",
+          "repeat": 1,
+          "checker": "bare",
+          "seconds": 0.5479617910459638,
+          "exit": 0,
+          "diagnostics": 0
+        },
+        {
+          "threads": "1",
+          "repeat": 1,
+          "checker": "extended",
+          "seconds": 2.260131167015061,
+          "exit": 0,
+          "diagnostics": 0
+        },
+        {
+          "threads": "1",
+          "repeat": 2,
+          "checker": "bare",
+          "seconds": 0.5519843748770654,
+          "exit": 0,
+          "diagnostics": 0
+        },
+        {
+          "threads": "1",
+          "repeat": 2,
+          "checker": "extended",
+          "seconds": 2.1825318329501897,
+          "exit": 0,
+          "diagnostics": 0
+        },
+        {
+          "threads": "0",
+          "repeat": 0,
+          "checker": "bare",
+          "seconds": 0.4135854591149837,
+          "exit": 0,
+          "diagnostics": 0
+        },
+        {
+          "threads": "0",
+          "repeat": 0,
+          "checker": "extended",
+          "seconds": 1.9217070839367807,
+          "exit": 0,
+          "diagnostics": 0
+        },
+        {
+          "threads": "0",
+          "repeat": 1,
+          "checker": "bare",
+          "seconds": 0.401959584094584,
+          "exit": 0,
+          "diagnostics": 0
+        },
+        {
+          "threads": "0",
+          "repeat": 1,
+          "checker": "extended",
+          "seconds": 1.9824528750032187,
+          "exit": 0,
+          "diagnostics": 0
+        },
+        {
+          "threads": "0",
+          "repeat": 2,
+          "checker": "bare",
+          "seconds": 0.4022737080231309,
+          "exit": 0,
+          "diagnostics": 0
+        },
+        {
+          "threads": "0",
+          "repeat": 2,
+          "checker": "extended",
+          "seconds": 2.0038398751057684,
+          "exit": 0,
+          "diagnostics": 0
+        }
+      ],
+      "project_archived_and_cleaned": true
+    },
+    "resolution": "The13-second one-thread case now averages2.235s; missing models import coverage triggers the validated fallback. Cancellation avoids waiting for the unusable early check. This separate fixture still exceeds the five-shape timing target; no arbitrary-project bound is claimed."
+  },
+  "final_cancellation_receipt": "native-check-cancellation-0.90.0.json"
 }
