@@ -1640,13 +1640,6 @@ fn selected_paths(
             .map(|module| module.source.path.as_str())
             .collect::<std::collections::HashSet<_>>()
     });
-    let prepared_selection = selection.prepare_paths(
-        project
-            .modules
-            .values()
-            .filter(|module| !module.external)
-            .map(|module| Path::new(&module.source.path)),
-    );
     let selected: Vec<PathBuf> = if let Some(path) = options.get("files") {
         let names: Vec<String> = serde_json::from_slice(&std::fs::read(path)?)?;
         let mut paths = Vec::new();
@@ -1660,6 +1653,14 @@ fn selected_paths(
         }
         paths
     } else {
+        // Explicit file lists do not consume this parent-pattern cache.
+        let prepared_selection = selection.prepare_paths(
+            project
+                .modules
+                .values()
+                .filter(|module| !module.external)
+                .map(|module| Path::new(&module.source.path)),
+        );
         project
             .modules
             .values()
@@ -3381,10 +3382,6 @@ impl Session {
         }
         let index = {
             let attach_start = Instant::now();
-            self.runtime.clear_project_patches();
-            self.runtime.set_project_contributions(Vec::new());
-            self.runtime
-                .attach_project(Arc::new(project.clone()), config.clone());
             let mut request = project.build_request_for_files(self.index_files.as_ref());
             request["context"]["python-version"] = json!(self.runtime.python_version);
             request["context"]["platform"] = json!(self.runtime.platform);
@@ -3394,6 +3391,12 @@ impl Session {
                 && self.runtime.prepares_project_contributions_early()
                 && let Some(provider) = &self.borrowed_overlay
             {
+                // Only this early hook can observe the preliminary attachment.
+                // Every route installs the final project below before indexing.
+                self.runtime.clear_project_patches();
+                self.runtime.set_project_contributions(Vec::new());
+                self.runtime
+                    .attach_project(Arc::new(project.clone()), config.clone());
                 self.native_cli = Self::start_early_native_cli(
                     &mut self.runtime,
                     &mut project,
