@@ -2295,7 +2295,7 @@ impl Runtime {
         if matches!(kind, "build-project-index" | "analyze-classes")
             && std::env::var_os("TY_COMPANION_TRACE_PHASES").is_some()
         {
-            eprintln!("companion runtime {kind}: {:.6}s", elapsed.as_secs_f64());
+            eprintln!("ty-extended runtime {kind}: {:.6}s", elapsed.as_secs_f64());
         }
         self.executions += 1;
         let response = match result {
@@ -2641,7 +2641,7 @@ impl Runtime {
                 && std::env::var_os("TY_COMPANION_TRACE_PHASES").is_some()
             {
                 eprintln!(
-                    "companion index input selection: {:.6}s",
+                    "ty-extended index input selection: {:.6}s",
                     input_start.elapsed().as_secs_f64()
                 );
             }
@@ -2662,7 +2662,7 @@ impl Runtime {
                 (self.dispatch(&id, request)?, None)
             } else {
                 let decode_start = Instant::now();
-                // This disposable request comes from the companion's typed
+                // This disposable request comes from the ty-extended's typed
                 // source-summary builder. Consume its strings and containers
                 // instead of cloning them through borrowed deserialization.
                 // External and cached requests retain decode_request's exact
@@ -2673,7 +2673,7 @@ impl Runtime {
                         .context("invalid plugin request")?;
                 if std::env::var_os("TY_COMPANION_TRACE_PHASES").is_some() {
                     eprintln!(
-                        "companion index protocol decode: {:.6}s",
+                        "ty-extended index protocol decode: {:.6}s",
                         decode_start.elapsed().as_secs_f64()
                     );
                 }

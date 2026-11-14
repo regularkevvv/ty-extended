@@ -13,7 +13,7 @@ pub fn worker_limit() -> usize {
         .ok()
         .and_then(|value| value.parse::<std::num::NonZeroUsize>().ok())
         .map_or(available, |n| n.get().min(available));
-    // Bound work so a companion check can coexist with the user's other work.
+    // Bound work so a ty-extended check can coexist with the user's other work.
     limit.min(8)
 }
 

@@ -1,4 +1,4 @@
-//! Native flow projection for the bounded companion compatibility fixtures.
+//! Native flow projection for the bounded ty-extended compatibility fixtures.
 //!
 //! The real source AST is never rewritten. Each inferred member view becomes a
 //! source-mapped wrapper, so synthetic casts cannot change object identities or
@@ -359,7 +359,7 @@ impl Project<'_> {
 
     fn function(&mut self, function: &StmtFunctionDef, owner: Option<&str>) -> Result<()> {
         if function.is_async && self.runtime.project.is_none() {
-            bail!("Rust companion does not implement async function flow");
+            bail!("ty-extended does not implement async function flow");
         }
         let mut sub = Scope::default();
         sub.shadowed.extend(
@@ -723,10 +723,7 @@ impl Project<'_> {
                 }
             }
             Stmt::Pass(_) => {}
-            _ => bail!(
-                "Rust companion unsupported statement flow at {:?}",
-                span(stmt)
-            ),
+            _ => bail!("ty-extended unsupported statement flow at {:?}", span(stmt)),
         }
         Ok(())
     }
@@ -975,7 +972,7 @@ impl Project<'_> {
                 self.assignment(scope, &starred.value, None, None)?
             }
             _ => bail!(
-                "Rust companion unsupported assignment target at {:?}",
+                "ty-extended unsupported assignment target at {:?}",
                 span(target)
             ),
         }
@@ -1618,7 +1615,7 @@ impl Project<'_> {
                 && self.runtime.project.is_none()
                 && !self.analysis.classes.contains_key(&owner)
             {
-                bail!("Rust companion fresh-result needs a known constructor: {owner}");
+                bail!("ty-extended fresh-result needs a known constructor: {owner}");
             }
             let identity = self.fresh(scope, &owner, is_fresh);
             scope.objects.insert(span(call), identity);
@@ -2076,7 +2073,7 @@ impl Project<'_> {
                 }
             }
             _ => bail!(
-                "Rust companion unsupported expression flow at {:?}",
+                "ty-extended unsupported expression flow at {:?}",
                 span(expr)
             ),
         }

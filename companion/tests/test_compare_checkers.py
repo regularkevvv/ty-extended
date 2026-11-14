@@ -15,6 +15,36 @@ import compare_checkers
 
 
 class PerformanceGateTests(unittest.TestCase):
+    def test_small_reference_runs_allow_only_bounded_absolute_noise(self):
+        samples = {
+            "companion": [0.198] * 3,
+            "performance-reference": [0.185] * 3,
+            "bare-ty": [0.085] * 3,
+            "mypy": [1.8] * 3,
+        }
+        gate = compare_checkers.regression_gate(samples)
+        self.assertTrue(gate["passed"])
+        self.assertFalse(gate["relative_ceiling_met"])
+        self.assertEqual(gate["absolute_noise_floor_seconds"], 0.02)
+        samples["companion"] = [0.210] * 3
+        self.assertFalse(compare_checkers.regression_gate(samples)["passed"])
+        samples["companion"] = [0.64] * 3
+        samples["performance-reference"] = [0.60] * 3
+        self.assertFalse(compare_checkers.regression_gate(samples)["passed"])
+
+    def test_four_backend_order_balances_positions_and_predecessors(self):
+        backends = ["companion", "bare-ty", "mypy", "performance-reference"]
+        orders = [compare_checkers.invocation_order(backends, i) for i in range(4)]
+        for backend in backends:
+            self.assertEqual(
+                sorted(order.index(backend) for order in orders), list(range(4))
+            )
+        edges = [(a, b) for order in orders for a, b in zip(order, order[1:])]
+        self.assertEqual(
+            set(edges), {(a, b) for a in backends for b in backends if a != b}
+        )
+        self.assertEqual(len(edges), 12)
+
     def test_reference_policy_reports_native_gap_without_relaxing_reference(self):
         samples = {
             "companion": [0.6] * 3,

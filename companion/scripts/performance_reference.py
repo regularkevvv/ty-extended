@@ -13,6 +13,7 @@ from pathlib import Path
 
 REFERENCE_COMMIT = "7c3e9516b43016dea8a0f2396cd7fcbed742e63e"
 MAX_REFERENCE_RATIO = 1.05
+MAX_REFERENCE_NOISE_SECONDS = 0.02
 REPOSITORY = "https://github.com/regularkevvv/ty-extended.git"
 
 

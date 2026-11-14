@@ -256,7 +256,7 @@ jobs:
           "$LLVM_READOBJ" --coff-imports "target/${{ matrix.platform.target }}/release/ty-extended.exe" > "$IMPORTS_FILE"
 
           if grep -Eiq 'vcruntime[[:digit:]_]*\.dll|api-ms-win-crt-|python[[:digit:]_]*\.dll' "$IMPORTS_FILE"; then
-            echo "The standalone companion must not link Python or the dynamic Visual C++ runtime" >&2
+            echo "The standalone ty-extended executable must not link Python or the dynamic Visual C++ runtime" >&2
             exit 1
           fi
       - name: Test wheel

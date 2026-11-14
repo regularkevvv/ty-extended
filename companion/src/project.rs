@@ -384,7 +384,7 @@ impl Project {
         let mut mark = |name: &str| {
             if trace_load {
                 eprintln!(
-                    "companion project load {name}: {:.6}s",
+                    "ty-extended project load {name}: {:.6}s",
                     tick.elapsed().as_secs_f64()
                 );
             }

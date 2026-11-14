@@ -157,7 +157,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
-          name: companion-${{ matrix.os }}
+          name: compatibility-${{ matrix.os }}
           retention-days: 5
           path: |
             ${{ runner.temp }}/companion-ci-evidence/ci.json

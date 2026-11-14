@@ -45,7 +45,7 @@ def audit_binary_graph() -> None:
     found = {line.split()[0] for line in graph.splitlines()} & forbidden
     if found:
         raise RuntimeError(
-            f"Standalone companion has forbidden dependencies: {sorted(found)}"
+            f"Standalone ty-extended has forbidden dependencies: {sorted(found)}"
         )
 
 
@@ -60,17 +60,15 @@ def standalone_wheel(path: Path) -> str:
             )
         ]
         if len(executables) != 1:
-            raise RuntimeError(f"Expected one companion executable: {executables}")
+            raise RuntimeError(f"Expected one ty-extended executable: {executables}")
         if any(name.endswith((".so", ".pyd", ".dylib", ".dll")) for name in names):
             raise RuntimeError(
                 "A standalone wheel must not contain extension libraries"
             )
         if any(name.startswith("ty/") for name in names):
-            raise RuntimeError(
-                "The companion must not overwrite official ty's namespace"
-            )
+            raise RuntimeError("ty-extended must not overwrite official ty's namespace")
         if "ty_extended/plugin_sdk.py" not in names:
-            raise RuntimeError("The companion SDK is missing")
+            raise RuntimeError("The ty-extended SDK is missing")
     # wheel updates WHEEL and RECORD and removes the original archive. The
     # platform tag remains unchanged; only the verified-absent Python ABI is removed.
     return subprocess.check_output(

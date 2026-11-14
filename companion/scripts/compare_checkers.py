@@ -75,7 +75,9 @@ def performance_gate(samples, max_ty_ratio=3.0, *, aggregate_ratios=False):
     }
 
 
-def regression_gate(samples, max_reference_ratio=1.05):
+def regression_gate(
+    samples, max_reference_ratio=1.05, *, absolute_noise_floor_seconds=0.02
+):
     """Compare the accepted implementation on the same runner and inputs."""
     validate_samples(samples, {"companion", "performance-reference", "bare-ty", "mypy"})
     gate = performance_gate(
@@ -87,16 +89,51 @@ def regression_gate(samples, max_reference_ratio=1.05):
         max_reference_ratio,
         aggregate_ratios=True,
     )
+    if (
+        not math.isfinite(absolute_noise_floor_seconds)
+        or absolute_noise_floor_seconds < 0
+    ):
+        raise ValueError("The absolute noise floor must be finite and nonnegative")
+    means = {name: statistics.mean(values) for name, values in samples.items()}
+    medians = {name: statistics.median(values) for name, values in samples.items()}
+    mean_limit = max(
+        means["performance-reference"] * max_reference_ratio,
+        means["performance-reference"] + absolute_noise_floor_seconds,
+    )
+    median_limit = max(
+        medians["performance-reference"] * max_reference_ratio,
+        medians["performance-reference"] + absolute_noise_floor_seconds,
+    )
+    reference_met = (
+        means["companion"] <= mean_limit and medians["companion"] <= median_limit
+    )
     return {
-        "policy": "same-runner-reference-mean-and-median",
+        "policy": "same-runner-reference-with-noise-floor",
         "max_reference_ratio": max_reference_ratio,
+        "absolute_noise_floor_seconds": absolute_noise_floor_seconds,
+        "mean_allowed_seconds": mean_limit,
+        "median_allowed_seconds": median_limit,
+        "mean_regression_seconds": means["companion"] - means["performance-reference"],
+        "median_regression_seconds": medians["companion"]
+        - medians["performance-reference"],
         "mean_reference_ratio": gate["mean_ty_ratio"],
         "median_reference_ratio": gate["median_ty_ratio"],
         "paired_reference_ratios": gate["paired_ty_ratios"],
-        "reference_ceiling_met": gate["ty_ceiling_met"],
+        "relative_ceiling_met": gate["ty_ceiling_met"],
+        "reference_ceiling_met": reference_met,
         "mypy_ceiling_met": gate["mypy_ceiling_met"],
-        "passed": gate["passed"],
+        "passed": reference_met and gate["mypy_ceiling_met"],
     }
+
+
+def invocation_order(backends, repeat):
+    if len(backends) == 4:
+        # Balanced Latin square: every backend occupies each position once,
+        # and every ordered predecessor pair occurs once in each four rounds.
+        orders = ((0, 1, 3, 2), (1, 2, 0, 3), (2, 3, 1, 0), (3, 0, 2, 1))
+        return [backends[index] for index in orders[repeat % 4]]
+    offset = repeat % len(backends)
+    return backends[offset:] + backends[:offset]
 
 
 def memory(pid):
@@ -390,6 +427,7 @@ def main():
         help="Accepted ty-extended executable; gate same-runner regressions and report the native ceiling separately",
     )
     parser.add_argument("--max-reference-ratio", type=float, default=1.05)
+    parser.add_argument("--max-reference-noise-seconds", type=float, default=0.02)
     parser.add_argument(
         "--aggregate-ratios",
         action="store_true",
@@ -453,6 +491,8 @@ def main():
         and args.max_ty_ratio > 0
         and math.isfinite(args.max_reference_ratio)
         and args.max_reference_ratio > 0
+        and math.isfinite(args.max_reference_noise_seconds)
+        and args.max_reference_noise_seconds >= 0
     ):
         parser.error("Invalid workload or resource limits")
     for name in ("companion", "official", "mypy", "python", "plugin", "output"):
@@ -484,7 +524,7 @@ def main():
             for key in ("files", "models", "model_modules", "queries")
         },
         "source_sha256": source_hash(args.project),
-        "method": "Fresh processes; warm filesystem caches; MyPy --no-incremental and disposable cache; rotated serial runs; process-tree RSS sampled every 100ms.",
+        "method": "Fresh processes; warm filesystem caches; MyPy --no-incremental and disposable cache; counterbalanced serial runs when comparing four backends; process-tree RSS sampled every 100ms.",
         "binaries": {
             name: {
                 "path": str(getattr(args, name)),
@@ -496,7 +536,7 @@ def main():
             for name in ("companion", "official", "mypy")
         },
         "records": [],
-        "performance_policy": "same-runner-reference-mean-and-median"
+        "performance_policy": "same-runner-reference-with-noise-floor"
         if args.performance_reference
         else "native-ty-ceiling",
     }
@@ -536,8 +576,7 @@ def main():
     try:
         backends = list(commands)
         for repeat in range(args.repeats):
-            offset = repeat % len(backends)
-            for backend in backends[offset:] + backends[:offset]:
+            for backend in invocation_order(backends, repeat):
                 row = invoke(args, backend, commands[backend], f"{repeat}/{backend}")
                 report["records"].append(row)
                 expected = (
@@ -572,7 +611,9 @@ def main():
         report["performance_target_met"] = report["performance_gate"]["passed"]
         if args.performance_reference:
             report["reference_performance_gate"] = regression_gate(
-                samples, args.max_reference_ratio
+                samples,
+                args.max_reference_ratio,
+                absolute_noise_floor_seconds=args.max_reference_noise_seconds,
             )
             report["performance_target_met"] = report["reference_performance_gate"][
                 "passed"

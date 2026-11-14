@@ -9,7 +9,7 @@ class TyNotFound(FileNotFoundError): ...
 
 
 def find_ty_extended_bin() -> str:
-    """Return the companion binary path."""
+    """Return the ty-extended binary path."""
 
     ty_exe = "ty-extended" + sysconfig.get_config_var("EXE")
 

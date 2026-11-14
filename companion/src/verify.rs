@@ -1,4 +1,4 @@
-//! Native validation and benchmark driver. It starts only the Rust companion
+//! Native validation and benchmark driver. It starts only the Rust ty-extended
 //! executable and the two checker binaries; Python is fixture input, never a
 //! driver or transformation dependency.
 use anyhow::{Context, Result, bail, ensure};
@@ -105,8 +105,8 @@ fn companion_run(
         checker_mode,
     )
     .output()
-    .context("start Rust companion")?;
-    read_output(output, start.elapsed().as_secs_f64(), "Rust companion")
+    .context("start ty-extended")?;
+    read_output(output, start.elapsed().as_secs_f64(), "ty-extended")
 }
 
 /// Paths and fingerprint hashes differ between processes. Require diagnostic
@@ -286,7 +286,7 @@ pub fn run(
             &out.join("differential").join(&name),
             checker_mode,
         )
-        .with_context(|| format!("companion case {name}"))?;
+        .with_context(|| format!("ty-extended case {name}"))?;
         let matches = validate(&reference, &projected)?;
         if name == "comment_suppression" {
             ensure!(
@@ -422,7 +422,7 @@ pub fn run(
             let expected_negatives = codes == ["invalid-argument-type", "invalid-assignment"];
             fixture["runs"].as_array_mut().unwrap().push(json!({
                 "repetition":repetition,"warmup":repetition == 0,
-                "execution_order":if repetition % 2 == 0 {"fork then companion"} else {"companion then fork"},
+                "execution_order":if repetition % 2 == 0 {"reference then ty-extended"} else {"ty-extended then fork"},
                 "fork_wall_seconds":reference.wall,"companion_wall_seconds":projected.wall,
                 "matching_code_spans_and_reveals":matches,"two_expected_negative_controls":expected_negatives,
                 "fork_diagnostics":reference.value,"companion":projected.value
@@ -444,9 +444,7 @@ pub fn run(
         fixture["companion_to_fork_ratio"] = json!(companion_median / fork_median);
         report["benchmarks"].as_array_mut().unwrap().push(fixture);
         save(out, &report)?;
-        eprintln!(
-            "benchmarked {name}: native companion {companion_median:.4}s; fork {fork_median:.4}s"
-        );
+        eprintln!("benchmarked {name}: ty-extended {companion_median:.4}s; fork {fork_median:.4}s");
     }
     report["status"] = json!("passed");
     report["elapsed_seconds"] = json!(start.elapsed().as_secs_f64());

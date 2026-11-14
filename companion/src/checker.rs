@@ -20,7 +20,7 @@ use serde_json::{Value, json};
 const RESPONSE_TIMEOUT: Duration = Duration::from_secs(10);
 const MAX_FRAME: usize = 64 * 1024 * 1024;
 
-/// Tool installers expose the companion command without adding dependency
+/// Tool installers expose the ty-extended command without adding dependency
 /// executables to the user's PATH. Prefer official ty beside the real installed
 /// executable; source builds continue to use PATH when no sibling exists.
 pub(crate) fn adjacent_official_checker() -> Option<PathBuf> {
@@ -514,7 +514,7 @@ impl ProjectChecker {
             // Pull diagnostics still honor workspace membership. Register the
             // original parent so ty can check the memory overlay in place;
             // the global generated configuration retains its import roots.
-            self.server.notify("workspace/didChangeWorkspaceFolders", json!({"event":{"added":[{"uri":file_uri(parent)?,"name":"companion-external"}],"removed":[]}}))?;
+            self.server.notify("workspace/didChangeWorkspaceFolders", json!({"event":{"added":[{"uri":file_uri(parent)?,"name":"ty-extended external"}],"removed":[]}}))?;
         }
         self.external_sources.insert(path.into());
         Ok(())
@@ -1022,7 +1022,7 @@ impl ProjectChecker {
     }
 
     /// Warm a fresh native database from its ordinary disk inputs. This request
-    /// produces no companion evidence: the final check still synchronizes every
+    /// produces no ty-extended evidence: the final check still synchronizes every
     /// projection and maps its own diagnostics. Avoid preparing unchanged memory
     /// buffers or normalizing reports that the warmup must discard.
     pub fn warm_original_workspace(&mut self, first: &Path) -> Result<()> {
@@ -1317,7 +1317,7 @@ impl Server {
         let root_uri = file_uri(roots.first().context("native workspace root")?)?;
         let folders = roots
             .iter()
-            .map(|root| Ok(json!({"uri":file_uri(root)?,"name":"companion-analysis"})))
+            .map(|root| Ok(json!({"uri":file_uri(root)?,"name":"ty-extended analysis"})))
             .collect::<Result<Vec<_>>>()?;
         let mut initialization = json!({
             "processId":std::process::id(),
@@ -1579,7 +1579,7 @@ impl Server {
                 "client/registerCapability" | "client/unregisterCapability" |
                 "workspace/diagnostic/refresh" | "workspace/semanticTokens/refresh" |
                 "workspace/inlayHint/refresh" | "window/showMessageRequest" => Value::Null,
-                "workspace/applyEdit" => json!({"applied":false,"failureReason":"analysis companion never edits source files"}),
+                "workspace/applyEdit" => json!({"applied":false,"failureReason":"ty-extended never edits source files"}),
                 _ => return self.send(&json!({"jsonrpc":"2.0","id":id,
                     "error":{"code":-32601,"message":format!("unsupported client request: {method}")}})),
             };
