@@ -2095,7 +2095,7 @@ fn auth_self_and_mutation_hooks_cover_success_and_safe_fallbacks() {
         existing_signature: None,
         default_return_type: None,
         project_index,
-    decorator: false,
+        decorator: false,
     };
     assert_eq!(
         DjangoTyPlugin.adjust_call_return(&auth_request(None)),
