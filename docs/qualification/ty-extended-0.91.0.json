@@ -915,8 +915,10 @@
     "uncompressed_sha256": "3792ff1bf994be150348ee2f822d118bcff5dbdded94f892afdb730aff0b620b"
   },
   "raw_evidence": {
-    "release_asset": "tyx-0.91.0-public-compatibility-evidence.tar.gz",
-    "sha256": "49e594c348818c66759157a058c8d7ba6ce62c8419122f3aa7b278fd163d0305"
+    "sha256": "49e594c348818c66759157a058c8d7ba6ce62c8419122f3aa7b278fd163d0305",
+    "retained_local_archive": "tyx-0.91.0-public-compatibility-evidence.tar.gz",
+    "publicly_distributed": false,
+    "public_reports": "The complete per-version compatibility.json reports are committed in ty-extended-0.91.0.json.gz. Generated project archives remain local because release assets are immutable."
   },
   "build_cleanup": "Task-owned Cargo targets, generated projects and disposable environments removed after preserving and verifying evidence. Original dirty checkout preserved.",
   "scope": "Finite CLI/editor/SDK fixtures and positive/negative Django controls. All eight artifact pairs are statically verified; the complete public version sweep ran on macOS ARM64. Future Ty releases are not already qualified."
