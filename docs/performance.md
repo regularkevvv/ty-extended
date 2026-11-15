@@ -48,6 +48,8 @@ The [release-source hosted qualification](qualification/performance-ci-reference
 
 Native Ty remains a separate comparison. Its complete 3.5x gate result, every native ratio and every paired observation remain in the report, including failures. The report's `performance_policy` and `reference_performance_gate` identify the hosted regression policy; `performance_target_met` uses that policy when a reference executable is supplied. Without a reference, the harness still enforces its native-Ty ceiling. Historical receipts keep the policies and results under which they ran.
 
+The [published-package qualification](qualification/public-0.90.0.json) verifies the actual eight wheel/native payload pairs, source archive, registry SDK crates and standalone installer. One published executable passes all 378 generic gates across 21 official Ty versions, minimum-Python SDK checks, installed Django/editor checks and all five performance regression gates. Its [compressed receipt](qualification/public-0.90.0.json.gz) retains all 640 fresh-process timing observations, negative controls, native ratios and artifact provenance.
+
 ## Why the earlier run took over a minute
 
 The original path repeatedly copied and serialized a whole-project index for each model. Scoped indexes and bounded class batches removed that repeated work. Native Django field inference, retained provider declarations, shared snapshots, lazy row construction, fewer checker probes and moving owned JSON values reduced the remaining work.
