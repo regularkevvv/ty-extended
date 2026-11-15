@@ -63,7 +63,7 @@ python crates/ty_extended/scripts/django_benchmark.py \
   --output /tmp/django-benchmark \
   --fork /path/to/ty-extended-0.84.4 \
   --official /path/to/official-ty-0.0.84 \
-  --companion /path/to/release/ty-extended \
+  --companion /path/to/release/tyx \
   --python /path/to/candidate-environment \
   --python-version 3.13 \
   --acceptance-cli /tmp/acceptance-cli/acceptance.json \
@@ -98,7 +98,7 @@ three modes (`cli`, `lsp`, `push`) with the generic fixture's 0.86 checker pair:
 
 ```sh
 python crates/ty_extended/scripts/collect_evidence.py run-generic \
-  --companion /path/to/release/ty-extended \
+  --companion /path/to/release/tyx \
   --official /path/to/official-ty-0.0.86 \
   --fork /path/to/ty-extended-0.86.0 \
   --fixtures "$PWD/crates/ty_extended/tests/fixtures/generic" \
@@ -111,7 +111,7 @@ After every gate passes, `collect_evidence.py export` writes portable reports to
 ```sh
 python crates/ty_extended/scripts/collect_evidence.py export \
   --acceptance-root /tmp/django-acceptance \
-  --companion /path/to/release/ty-extended \
+  --companion /path/to/release/tyx \
   --generic-cli /tmp/final-generic-cli \
   --generic-lsp /tmp/final-generic-lsp \
   --generic-push /tmp/final-generic-push \

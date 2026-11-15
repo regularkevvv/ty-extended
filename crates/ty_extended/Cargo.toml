@@ -1,6 +1,6 @@
 [package]
 name = "ty-extended"
-version = "0.90.0"
+version = "0.91.0"
 edition = "2024"
 rust-version = "1.98"
 description = "Extend Ty type checker with plugins."
@@ -8,6 +8,15 @@ license = "MIT"
 repository = "https://github.com/regularkevvv/ty-extended"
 publish = false
 exclude = ["evidence/**"]
+default-run = "tyx"
+
+[[bin]]
+name = "tyx"
+path = "src/main.rs"
+
+[[bin]]
+name = "ty-extended"
+path = "src/legacy.rs"
 
 [dependencies]
 anyhow = "1"

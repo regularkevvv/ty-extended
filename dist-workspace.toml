@@ -1,7 +1,7 @@
 [workspace]
 members = ["cargo:./crates/ty_extended"]
 packages = ["ty-extended"]
-version = "0.90.0"
+version = "0.91.0"
 
 # Config for 'dist'
 [dist]

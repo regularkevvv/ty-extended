@@ -9,10 +9,10 @@ files.
 cargo +1.98.0 build --release --manifest-path crates/ty_extended/Cargo.toml
 
 # Use plugin and checker settings from ty.toml or [tool.ty] in pyproject.toml.
-crates/ty_extended/target/release/ty-extended check
+crates/ty_extended/target/release/tyx check
 
 # Configure the editor's language-server command to run this:
-crates/ty_extended/target/release/ty-extended server
+crates/ty_extended/target/release/tyx server
 ```
 
 The official checker is found through `TY_COMPANION_TY`, `--ty PATH`, or `ty` on

@@ -55,12 +55,15 @@ def standalone_wheel(path: Path) -> str:
         executables = [
             name
             for name in names
-            if name.endswith(
-                (".data/scripts/ty-extended", ".data/scripts/ty-extended.exe")
-            )
+            if ".data/scripts/" in name and not name.endswith("/")
         ]
-        if len(executables) != 1:
-            raise RuntimeError(f"Expected one ty-extended executable: {executables}")
+        if len(executables) != 2 or {Path(name).stem for name in executables} != {
+            "tyx",
+            "ty-extended",
+        }:
+            raise RuntimeError(
+                f"Expected tyx and its ty-extended compatibility executable: {executables}"
+            )
         if any(name.endswith((".so", ".pyd", ".dylib", ".dll")) for name in names):
             raise RuntimeError(
                 "A standalone wheel must not contain extension libraries"

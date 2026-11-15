@@ -9,9 +9,17 @@ class TyNotFound(FileNotFoundError): ...
 
 
 def find_ty_extended_bin() -> str:
-    """Return the ty-extended binary path."""
+    """Return the compatibility ty-extended executable path."""
+    return _find_bin("ty-extended")
 
-    ty_exe = "ty-extended" + sysconfig.get_config_var("EXE")
+
+def find_tyx_bin() -> str:
+    """Return the primary tyx executable path."""
+    return _find_bin("tyx")
+
+
+def _find_bin(name: str) -> str:
+    ty_exe = name + sysconfig.get_config_var("EXE")
 
     targets = [
         # The scripts directory for the current Python
@@ -54,7 +62,7 @@ def find_ty_extended_bin() -> str:
 
     locations = "\n".join(f" - {target}" for target in seen)
     raise TyNotFound(
-        f"Could not find the ty-extended binary in any of the following locations:\n{locations}\n"
+        f"Could not find the {name} binary in any of the following locations:\n{locations}\n"
     )
 
 

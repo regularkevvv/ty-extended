@@ -8,18 +8,18 @@ unchanged official ty. **ty-extended is not a fork of ty.**
 
 ```shell
 uv add --dev ty-extended
-uv run ty-extended check
+uv run tyx check
 ```
 
 For an isolated run:
 
 ```shell
-uvx ty-extended check
+uvx --from ty-extended tyx check
 ```
 
 The package depends on official `ty`. Its executable and Python package use the
-separate names `ty-extended` and `ty_extended`; `ty` continues to run Astral's checker.
-Configure your editor to start `ty-extended server` for plugin support.
+separate names `tyx` and `ty_extended`; `ty` continues to run Astral's checker.
+Configure your editor to start `tyx server` for plugin support.
 
 ## Official ty compatibility
 
@@ -43,6 +43,9 @@ The accepted optimization baseline averages **0.776 seconds** across 30 runs of
 100 type assertions, and ordinary Python and ORM error controls.
 
 The final controlled 30-run comparison averages **0.688 seconds**, versus **0.693 seconds** for the preceding executable and **0.212 seconds** for native Ty on identical inputs. Dedicated hosted matrices pass all five shapes on Linux and macOS. [The performance report](docs/performance.md) retains every observation, earlier failed timing series and a slower fallback fixture. These measurements do not establish a universal worst-case bound. Published-package acceptance is recorded separately from source and CI checks.
+
+The primary command is `tyx`. The package and repository remain `ty-extended`;
+`ty-extended` remains available as a compatibility command.
 
 ## Plugins
 

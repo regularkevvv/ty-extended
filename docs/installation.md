@@ -1,26 +1,29 @@
 # Installing ty-extended
 
-The `ty-extended` distribution installs the `ty-extended` command and depends on
+The `ty-extended` distribution installs the primary `tyx` command and a
+`ty-extended` compatibility command. It depends on
 Astral's official `ty` package. They coexist in one environment.
+`tyx` is available starting with ty-extended 0.91.0; existing `ty-extended`
+commands continue to work.
 
 ```shell
 uv add --dev ty-extended
-uv run ty-extended check
+uv run tyx check
 ```
 
-Use `uvx ty-extended check` for an isolated run, `uv tool install ty-extended` for a
+Use `uvx --from ty-extended tyx check` for an isolated run, `uv tool install ty-extended` for a
 persistent tool environment, or `pip install ty-extended` in an existing environment.
-`python -m ty_extended check` provides the same ty-extended entry point.
+`python -m ty_extended check` provides the same `tyx` entry point.
 
 ty-extended finds official ty through `--ty PATH`, `TY_COMPANION_TY`, an adjacent
 installed `ty` executable, or `PATH`. The adjacent lookup supports isolated tool
 environments without requiring a global ty installation.
 
 ```shell
-ty-extended check --ty /path/to/official/ty
+tyx check --ty /path/to/official/ty
 ```
 
-For editors, run `ty-extended server`; see [editor setup](editors.md).
+For editors, run `tyx server`; see [editor setup](editors.md).
 Enable trusted installed Monty plugins with `[plugins] auto-discover = true` in
 `ty.toml`, or `[tool.ty.plugins] auto-discover = true` in `pyproject.toml`.
 
@@ -36,7 +39,7 @@ archives and shell/PowerShell installers for eight targets:
 | Linux musl   | arm64, x86-64 | `.tar.gz` |
 | Windows MSVC | arm64, x86-64 | `.zip`    |
 
-Native archives contain `ty-extended`; install official ty separately and make it
+Native archives contain `tyx` and the `ty-extended` compatibility launcher; install official ty separately and make it
 available through one of the paths above. Archive names start with
 `ty-extended-`, and installers are named `ty-extended-installer.sh` and
 `ty-extended-installer.ps1`. Checksums accompany the release assets.
@@ -55,13 +58,13 @@ so an old installation cannot overwrite Astral's executable or module.
 uv remove --dev ty-extended
 uv add --dev ty-extended
 uv run ty --version
-uv run ty-extended --version
+uv run tyx --version
 ```
 
 With pip, use `python -m pip uninstall ty-extended`, then
 `python -m pip install --upgrade --force-reinstall ty-extended ty`.
 
-Change plugin-enabled commands and editor launchers from `ty` to `ty-extended`.
+Change plugin-enabled commands and editor launchers from `ty` to `tyx`.
 Existing checker settings and Monty registrations remain in `ty.toml` or
 `[tool.ty]`; ty-extended separates plugin settings before passing checker
 configuration to official ty. Update Python SDK imports to `ty_extended.plugin_sdk`.

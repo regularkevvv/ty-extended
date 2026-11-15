@@ -85,7 +85,7 @@ fn multiple_plugins_keep_precedence_config_and_virtual_types() -> Result<()> {
         "fork should accept every multi-plugin assertion"
     );
     for mode in ["cli", "push"] {
-        let result = Command::new(env!("CARGO_BIN_EXE_ty-extended"))
+        let result = Command::new(env!("CARGO_BIN_EXE_tyx"))
             .arg("project")
             .arg(&root)
             .arg("--ty")

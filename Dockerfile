@@ -39,7 +39,8 @@ ENV CARGO_BUILD_JOBS=2 CARGO_INCREMENTAL=0
 COPY Cargo.toml Cargo.lock ./
 COPY .cargo .cargo
 COPY crates crates
-RUN cargo zigbuild --locked --manifest-path crates/ty_extended/Cargo.toml --bin ty-extended --target $(cat rust_target.txt) --release \
+RUN cargo zigbuild --locked --manifest-path crates/ty_extended/Cargo.toml --bins --target $(cat rust_target.txt) --release \
+    && cp crates/ty_extended/target/$(cat rust_target.txt)/release/tyx /tyx \
     && cp crates/ty_extended/target/$(cat rust_target.txt)/release/ty-extended /ty-extended \
     && cargo clean --manifest-path crates/ty_extended/Cargo.toml \
     && mkdir -m 1777 /runtime-tmp
@@ -59,7 +60,8 @@ RUN case "$TARGETPLATFORM" in \
 
 FROM scratch
 COPY --from=build --chmod=1777 /runtime-tmp /tmp
+COPY --from=build /tyx /tyx
 COPY --from=build /ty-extended /ty-extended
 COPY --from=build /ty /ty
 WORKDIR /io
-ENTRYPOINT ["/ty-extended"]
+ENTRYPOINT ["/tyx"]

@@ -85,7 +85,7 @@ fn dynamic_hooks_and_python_scopes_match_the_fork() -> Result<()> {
         "all hook and Python-scope assertions must pass: {expected:#?}"
     );
     for mode in ["cli", "push"] {
-        let result = Command::new(env!("CARGO_BIN_EXE_ty-extended"))
+        let result = Command::new(env!("CARGO_BIN_EXE_tyx"))
             .arg("project")
             .arg(&root)
             .arg("--plugin")

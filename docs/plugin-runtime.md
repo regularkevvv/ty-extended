@@ -120,12 +120,12 @@ notebooks and persistent editor updates retain their existing projection paths.
 
 ## CLI and editor behavior
 
-`ty-extended check` runs plugins, asks official ty to check temporary analysis copies,
+`tyx check` runs plugins, asks official ty to check temporary analysis copies,
 and maps diagnostics back to original paths and spans. Temporary CLI files are
 removed after checking. `--fix` and `--add-ignore` apply mapped edits to original
 files; an edit that cannot be mapped safely is rejected.
 
-`ty-extended server` retains checker processes, plugin runtimes and parsed projects
+`tyx server` retains checker processes, plugin runtimes and parsed projects
 between edits. It handles unsaved text, notebooks, configuration changes and
 multiple workspaces. Positions are translated for UTF-8, UTF-16 and UTF-32 clients.
 Generated declarations are hidden from navigation and edit results.

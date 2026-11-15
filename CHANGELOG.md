@@ -9,7 +9,14 @@ Entries below 0.74.0 say "extension" where they now would say "plugin"; the term
 
 ## Unreleased
 
+## 0.91.0
+
+- Use `tyx check` and `tyx server` as the primary commands. Keep the `ty-extended` package name and native compatibility launcher.
+
+- Include both commands in Python wheels, native archives, installers and Docker images; add `find_tyx_bin()` while preserving `find_ty_extended_bin()`.
+
 - Move the application into `crates/ty_extended` and update build, package, CI and release paths.
+
 - Stop publishing Rust SDK and protocol crates. Keep them as internal workspace dependencies; Python plugins use the bundled `ty_extended.plugin_sdk`.
 
 ## 0.90.0
