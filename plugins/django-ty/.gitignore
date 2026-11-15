@@ -1,0 +1,9 @@
+/target/
+/coverage/
+/dist/
+/build/
+/*.egg-info/
+/python/*.egg-info/
+/python/django_ty/*.wasm
+__pycache__/
+*.profraw
