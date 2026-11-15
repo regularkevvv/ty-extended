@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Qualify unchanged companion binaries against explicitly identified ty releases."""
+"""Qualify unchanged tyx binaries against explicitly identified ty releases."""
 
 from __future__ import annotations
 

@@ -1,11 +1,11 @@
 # ty-extended CLI
 
-Generated from ty-extended's public `check --help`. Use `ty-extended server` for the editor server and `ty-extended --version` for the ty-extended version.
+Generated from ty-extended's public `tyx check --help`. Use `tyx server` for the editor server and `tyx --version` for the ty-extended version.
 
 ```text
 Check Python with official ty and configured plugins
 
-Usage: ty-extended check [OPTIONS] [PATH]...
+Usage: tyx check [OPTIONS] [PATH]...
 
   --fix                          Apply safe fixes to original source files
   --add-ignore                   Add ty: ignore comments to original source files

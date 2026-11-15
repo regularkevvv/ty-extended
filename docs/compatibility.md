@@ -8,6 +8,10 @@ There is no fork submodule or vendored Ruff source.
 
 ## Version policy
 
+Starting with ty-extended 0.91.0, the primary command is `tyx`. The package name
+and Python SDK namespace remain unchanged; `ty-extended` is a compatibility
+command. This naming change retains the existing official Ty dependency range.
+
 Starting with ty-extended 0.87.0, versions are independent. The package accepts a
 group of official ty versions within the declared dependency range. Updating ty
 inside that range does not require rebuilding or republishing ty-extended.

@@ -25,8 +25,8 @@ def main() -> None:
         raise RuntimeError("ty-extended CLI help declaration not found")
     help_text = json.loads(match[1])
     (ROOT / "docs/reference/cli.md").write_text(
-        "# ty-extended CLI\n\nGenerated from ty-extended's public `check --help`. "
-        "Use `ty-extended server` for the editor server and `ty-extended --version` "
+        "# ty-extended CLI\n\nGenerated from ty-extended's public `tyx check --help`. "
+        "Use `tyx server` for the editor server and `tyx --version` "
         "for the ty-extended version.\n\n```text\n" + help_text + "```\n"
     )
     references = {

@@ -87,30 +87,30 @@ jobs:
           python -m venv "$native_guard_environment"
           "$native_guard_environment/bin/python" -m pip install --disable-pip-version-check --no-cache-dir ty==0.0.104
           export TY_COMPANION_TEST_OFFICIAL="$native_guard_environment/bin/ty"
-          cargo +1.98.0 test --locked --release --manifest-path crates/ty_extended/Cargo.toml --bin ty-extended moved_response_indexes_preserve_exact_protocol_json -- --test-threads=1
-          cargo +1.98.0 test --locked --release --manifest-path crates/ty_extended/Cargo.toml --bin ty-extended prepared_member_abstentions_preserve_routing_namespaces_and_failures -- --test-threads=1
-          cargo +1.98.0 test --locked --release --manifest-path crates/ty_extended/Cargo.toml --bin ty-extended grouped_source_patterns_match_ordered_reference -- --test-threads=1
-          cargo +1.98.0 test --locked --release --manifest-path crates/ty_extended/Cargo.toml --bin ty-extended prefetched_hooks_preserve_serial_responses_keys_and_failures -- --test-threads=1
-          cargo +1.98.0 test --locked --release --manifest-path crates/ty_extended/Cargo.toml --bin ty-extended unique_import_resolution_preserves_waves_precedence_and_new_modules -- --test-threads=1
-          cargo +1.98.0 test --locked --release --manifest-path crates/ty_extended/Cargo.toml --bin ty-extended third_party_overlay_declarations_require_all_plugins_and_valid_names -- --test-threads=1
-          cargo +1.98.0 test --locked --release --manifest-path crates/ty_extended/Cargo.toml --bin ty-extended stateless_prefetched_batches_preserve_serial_keys_failures_and_revisions -- --test-threads=1
-          cargo +1.98.0 test --locked --release --manifest-path crates/ty_extended/Cargo.toml --bin ty-extended source_class_lookups_preserve_snapshots_scopes_fallbacks_and_generations -- --test-threads=1
-          cargo +1.98.0 test --locked --release --manifest-path crates/ty_extended/Cargo.toml --bin ty-extended one_shot_cli_discards_only_unused_clean_state -- --test-threads=1
-          cargo +1.98.0 test --locked --release --manifest-path crates/ty_extended/Cargo.toml --bin ty-extended native_cli_attempts_do_not_reuse_discarded_provider_patches -- --test-threads=1
-          cargo +1.98.0 test --locked --release --manifest-path crates/ty_extended/Cargo.toml --bin ty-extended early_native_reuse_requires_observed_selected_source_snapshots -- --test-threads=1
-          cargo +1.98.0 test --locked --release --manifest-path crates/ty_extended/Cargo.toml --bin ty-extended preobserved_snapshot_reads_preserve_utf8_and_reject_changed_revisions -- --test-threads=1
-          cargo +1.98.0 test --locked --release --manifest-path crates/ty_extended/Cargo.toml --bin ty-extended early_native_snapshot_rejects_changes_before_and_after_host_loading -- --test-threads=1
-          cargo +1.98.0 test --locked --release --manifest-path crates/ty_extended/Cargo.toml --bin ty-extended settings_bootstrap_loads_only_contributed_provider_sources -- --test-threads=1
-          cargo +1.98.0 test --locked --release --manifest-path crates/ty_extended/Cargo.toml --bin ty-extended native_cli_bootstrap_probe_preserves_exact_errors_and_requires_import_coverage -- --test-threads=1
-          cargo +1.98.0 test --locked --release --manifest-path crates/ty_extended/Cargo.toml --bin ty-extended native_cli_partial_provider_matches_full_projection_and_preserves_originals -- --test-threads=1
-          cargo +1.98.0 test --locked --release --manifest-path crates/ty_extended/Cargo.toml --bin ty-extended native_cli_reuse_matches_fresh_reports_and_rejects_changed_inputs -- --test-threads=1
-          cargo +1.98.0 test --locked --release --manifest-path crates/ty_extended/Cargo.toml --bin ty-extended cached_module_directory_probes_match_direct_lookup_and_refresh -- --test-threads=1
-          cargo +1.98.0 test --locked --release --manifest-path crates/ty_extended/Cargo.toml --bin ty-extended known_size_reads_preserve_utf8_growth_short_reads_and_io_errors -- --test-threads=1
-          cargo +1.98.0 test --locked --release --manifest-path crates/ty_extended/Cargo.toml --bin ty-extended native_cli_requires_native_fields_unanimous_opt_in_and_boolean_config -- --test-threads=1
-          cargo +1.98.0 build --locked --release --manifest-path crates/ty_extended/Cargo.toml --bin ty-extended
-          cp "$CARGO_TARGET_DIR/release/ty-extended" "$RUNNER_TEMP/ty-extended-native"
+          cargo +1.98.0 test --locked --release --manifest-path crates/ty_extended/Cargo.toml --bin tyx moved_response_indexes_preserve_exact_protocol_json -- --test-threads=1
+          cargo +1.98.0 test --locked --release --manifest-path crates/ty_extended/Cargo.toml --bin tyx prepared_member_abstentions_preserve_routing_namespaces_and_failures -- --test-threads=1
+          cargo +1.98.0 test --locked --release --manifest-path crates/ty_extended/Cargo.toml --bin tyx grouped_source_patterns_match_ordered_reference -- --test-threads=1
+          cargo +1.98.0 test --locked --release --manifest-path crates/ty_extended/Cargo.toml --bin tyx prefetched_hooks_preserve_serial_responses_keys_and_failures -- --test-threads=1
+          cargo +1.98.0 test --locked --release --manifest-path crates/ty_extended/Cargo.toml --bin tyx unique_import_resolution_preserves_waves_precedence_and_new_modules -- --test-threads=1
+          cargo +1.98.0 test --locked --release --manifest-path crates/ty_extended/Cargo.toml --bin tyx third_party_overlay_declarations_require_all_plugins_and_valid_names -- --test-threads=1
+          cargo +1.98.0 test --locked --release --manifest-path crates/ty_extended/Cargo.toml --bin tyx stateless_prefetched_batches_preserve_serial_keys_failures_and_revisions -- --test-threads=1
+          cargo +1.98.0 test --locked --release --manifest-path crates/ty_extended/Cargo.toml --bin tyx source_class_lookups_preserve_snapshots_scopes_fallbacks_and_generations -- --test-threads=1
+          cargo +1.98.0 test --locked --release --manifest-path crates/ty_extended/Cargo.toml --bin tyx one_shot_cli_discards_only_unused_clean_state -- --test-threads=1
+          cargo +1.98.0 test --locked --release --manifest-path crates/ty_extended/Cargo.toml --bin tyx native_cli_attempts_do_not_reuse_discarded_provider_patches -- --test-threads=1
+          cargo +1.98.0 test --locked --release --manifest-path crates/ty_extended/Cargo.toml --bin tyx early_native_reuse_requires_observed_selected_source_snapshots -- --test-threads=1
+          cargo +1.98.0 test --locked --release --manifest-path crates/ty_extended/Cargo.toml --bin tyx preobserved_snapshot_reads_preserve_utf8_and_reject_changed_revisions -- --test-threads=1
+          cargo +1.98.0 test --locked --release --manifest-path crates/ty_extended/Cargo.toml --bin tyx early_native_snapshot_rejects_changes_before_and_after_host_loading -- --test-threads=1
+          cargo +1.98.0 test --locked --release --manifest-path crates/ty_extended/Cargo.toml --bin tyx settings_bootstrap_loads_only_contributed_provider_sources -- --test-threads=1
+          cargo +1.98.0 test --locked --release --manifest-path crates/ty_extended/Cargo.toml --bin tyx native_cli_bootstrap_probe_preserves_exact_errors_and_requires_import_coverage -- --test-threads=1
+          cargo +1.98.0 test --locked --release --manifest-path crates/ty_extended/Cargo.toml --bin tyx native_cli_partial_provider_matches_full_projection_and_preserves_originals -- --test-threads=1
+          cargo +1.98.0 test --locked --release --manifest-path crates/ty_extended/Cargo.toml --bin tyx native_cli_reuse_matches_fresh_reports_and_rejects_changed_inputs -- --test-threads=1
+          cargo +1.98.0 test --locked --release --manifest-path crates/ty_extended/Cargo.toml --bin tyx cached_module_directory_probes_match_direct_lookup_and_refresh -- --test-threads=1
+          cargo +1.98.0 test --locked --release --manifest-path crates/ty_extended/Cargo.toml --bin tyx known_size_reads_preserve_utf8_growth_short_reads_and_io_errors -- --test-threads=1
+          cargo +1.98.0 test --locked --release --manifest-path crates/ty_extended/Cargo.toml --bin tyx native_cli_requires_native_fields_unanimous_opt_in_and_boolean_config -- --test-threads=1
+          cargo +1.98.0 build --locked --release --manifest-path crates/ty_extended/Cargo.toml --bin tyx
+          cp "$CARGO_TARGET_DIR/release/tyx" "$RUNNER_TEMP/tyx-native"
       - name: Compare identical workloads and focused Django contracts
-        run: python crates/ty_extended/scripts/native_django_benchmark.py --production-defaults --matrix --repeats 32 --companion "${{ runner.temp }}/ty-extended-native" --performance-reference "${{ runner.temp }}/ty-extended-reference" --output "${{ runner.temp }}/native-django-evidence"
+        run: python crates/ty_extended/scripts/native_django_benchmark.py --production-defaults --matrix --repeats 32 --companion "${{ runner.temp }}/tyx-native" --performance-reference "${{ runner.temp }}/ty-extended-reference" --output "${{ runner.temp }}/native-django-evidence"
       - name: Preserve native Django reports
         if: always()
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1

@@ -7,10 +7,10 @@ unchanged official ty performs type checking.
 
 ```shell
 uv add --dev ty-extended
-uv run ty-extended check
+uv run tyx check
 ```
 
-`ty-extended server` starts the plugin-aware editor server. `ty` remains Astral's
+`tyx server` starts the plugin-aware editor server. `ty` remains Astral's
 command. ty-extended has independent releases and supports groups of ty versions;
 see [compatibility](compatibility.md) for the tested range and upgrade policy.
 

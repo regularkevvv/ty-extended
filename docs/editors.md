@@ -1,18 +1,18 @@
 # ty-extended editor setup
 
 For Monty plugins, configure your editor's executable path or language-server command
-to run `ty-extended server`. Use an absolute path to ty-extended in the project
+to run `tyx server`. Use an absolute path to `tyx` in the project
 environment. Astral's `ty` command starts the official checker without ty-extended plugins.
 
 For Neovim 0.11 and later:
 
 ```lua
-vim.lsp.config("ty", { cmd = { "/absolute/project/.venv/bin/ty-extended", "server" } })
+vim.lsp.config("ty", { cmd = { "/absolute/project/.venv/bin/tyx", "server" } })
 vim.lsp.enable("ty")
 ```
 
 The integration descriptions below explain the upstream editor adapters. Override
-their server executable with ty-extended path when enabling Monty plugins.
+their server executable with the `tyx` path when enabling Monty plugins.
 
 ## Upstream editor adapters
 
@@ -31,7 +31,7 @@ In a trusted workspace, select ty-extended explicitly in `settings.json`:
 
 ```json
 {
-  "ty.path": ["/absolute/project/.venv/bin/ty-extended"]
+  "ty.path": ["/absolute/project/.venv/bin/tyx"]
 }
 ```
 
@@ -69,7 +69,7 @@ you can add the following snippet to your config file:
 ```lua
 -- Optional: Only required if you need to update the language server settings
 vim.lsp.config('ty', {
-  cmd = { '/absolute/project/.venv/bin/ty-extended', 'server' },
+  cmd = { '/absolute/project/.venv/bin/tyx', 'server' },
   settings = {
     ty = {
       -- ty language server settings go here
@@ -86,7 +86,7 @@ to install an older version of nvim-lspconfig](https://github.com/neovim/nvim-ls
 
 ```lua
 require('lspconfig').ty.setup({
-  cmd = { '/absolute/project/.venv/bin/ty-extended', 'server' },
+  cmd = { '/absolute/project/.venv/bin/tyx', 'server' },
   settings = {
     ty = {
       -- ty language server settings go here
@@ -124,7 +124,7 @@ You can override the `ty` executable Zed uses by setting `lsp.ty.binary`:
   "lsp": {
     "ty": {
       "binary": {
-        "path": "/home/user/.local/bin/ty-extended",
+        "path": "/home/user/.local/bin/tyx",
         "arguments": ["server"]
       }
     }
@@ -176,7 +176,7 @@ protocol](https://microsoft.github.io/language-server-protocol/).
 To start the language server, use the `server` subcommand:
 
 ```shell
-ty-extended server
+tyx server
 ```
 
 Refer to your editor's documentation to learn how to connect to an LSP server.

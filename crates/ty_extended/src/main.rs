@@ -341,7 +341,7 @@ fn main() -> std::process::ExitCode {
         .first()
         .is_some_and(|arg| arg == "--version" || arg == "-V")
     {
-        println!("ty-extended {}", env!("CARGO_PKG_VERSION"));
+        println!("tyx {}", env!("CARGO_PKG_VERSION"));
         return std::process::ExitCode::SUCCESS;
     }
     if arguments.first().is_some_and(|arg| arg == "check")
@@ -412,7 +412,7 @@ fn main() -> std::process::ExitCode {
         ) || arguments.len() < 2
         {
             bail!(
-                "Usage: ty-extended check SOURCE --plugin FILE --manifest FILE --ty BINARY --out DIRECTORY [--module NAME] | project ROOT --plugin FILE --manifest FILE --stubs DIRECTORY --ty BINARY --out DIRECTORY | suite FIXTURES OUTPUT_DIR MODE OFFICIAL_TY REFERENCE_TY"
+                "Usage: tyx check SOURCE --plugin FILE --manifest FILE --ty BINARY --out DIRECTORY [--module NAME] | project ROOT --plugin FILE --manifest FILE --stubs DIRECTORY --ty BINARY --out DIRECTORY | suite FIXTURES OUTPUT_DIR MODE OFFICIAL_TY REFERENCE_TY"
             );
         }
         let mut options = BTreeMap::new();

@@ -47,10 +47,10 @@ By default, ty ignores files listed in an `.ignore` or `.gitignore` file. To dis
 You may explicitly pass the paths that ty should check, e.g.:
 
 ```shell
-ty-extended check src scripts/benchmark.py
+tyx check src scripts/benchmark.py
 ```
 
-Paths that are passed as positional arguments to `ty-extended check` are included even if they would otherwise be ignored through `exclude` filters or an ignore-file.
+Paths that are passed as positional arguments to `tyx check` are included even if they would otherwise be ignored through `exclude` filters or an ignore-file.
 
 ## Include and exclude syntax
 

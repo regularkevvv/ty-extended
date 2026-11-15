@@ -23,7 +23,7 @@ You can configure the level for each rule on the command line using the `--warn`
 
 ```shell
 
-ty-extended check \
+tyx check \
   --warn unused-ignore-comment \        # Make `unused-ignore-comment` a warning
   --ignore redundant-cast \             # Disable `redundant-cast`
   --error possibly-missing-attribute \  # Error on `possibly-missing-attribute`
@@ -63,7 +63,7 @@ On the command line you can use `--error all`, `--warn all`, or `--ignore all`. 
 
 ```shell
 
-ty-extended check --error all
+tyx check --error all
 ```
 
 You can also configure this setting in the [`rules`](https://docs.astral.sh/ty/reference/configuration/#rules) section of a

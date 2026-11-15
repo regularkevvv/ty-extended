@@ -44,6 +44,8 @@ jobs:
           architecture: x64
       - name: Test PyPI README transformation
         run: python scripts/test_transform_readme.py
+      - name: Test installed command discovery
+        run: python scripts/test_find_binaries.py
       - name: Build wheels
         uses: PyO3/maturin-action@e83996d129638aa358a18fbd1dfb82f0b0fb5d3b
         with:
@@ -60,6 +62,7 @@ jobs:
         run: |
           pip install dist/*.whl --force-reinstall
           ty --version
+          tyx --version
           ty-extended --version
           python -m ty_extended --help
           python scripts/test_plugin_wheel.py

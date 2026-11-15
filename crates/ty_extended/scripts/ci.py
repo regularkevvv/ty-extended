@@ -409,7 +409,7 @@ def main() -> int:
                 "--manifest-path",
                 str(manifest),
                 "--bin",
-                "ty-extended",
+                "tyx",
                 "--",
                 "--ignored",
             ],
@@ -467,9 +467,7 @@ def main() -> int:
         )
         target = Path(env.get("CARGO_TARGET_DIR", "crates/ty_extended/target"))
         binary = (
-            target
-            / "release"
-            / ("ty-extended.exe" if os.name == "nt" else "ty-extended")
+            target / "release" / ("tyx.exe" if os.name == "nt" else "tyx")
         ).resolve()
         gates.evidence.update(
             {

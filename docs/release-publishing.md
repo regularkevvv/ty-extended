@@ -1,8 +1,9 @@
 # Publishing ty-extended
 
-The `ty-extended` PyPI distribution packages the Rust executable and the
+The `ty-extended` PyPI distribution packages the native `tyx` executable, its
+small `ty-extended` compatibility launcher, and the
 `ty_extended` Python SDK. It depends on Astral's official `ty` distribution.
-Native archives contain the `ty-extended` executable. Neither artifact installs
+Native archives contain both commands. Neither artifact installs
 or replaces Astral's `ty` executable or Python module.
 
 ## Versioning and source

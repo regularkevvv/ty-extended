@@ -12,7 +12,7 @@ import tempfile
 from pathlib import Path
 
 from ty import find_ty_bin
-from ty_extended import find_ty_extended_bin, plugin_sdk
+from ty_extended import find_ty_extended_bin, find_tyx_bin, plugin_sdk
 
 ROOT = Path(__file__).resolve().parent.parent
 
@@ -21,13 +21,19 @@ def main() -> None:
     sys.path.insert(0, str(ROOT / "crates/ty_extended/scripts"))
     from lsp_acceptance import Client
 
-    binary = Path(find_ty_extended_bin()).resolve()
+    binary = Path(find_tyx_bin()).resolve()
+    compatibility = Path(find_ty_extended_bin()).resolve()
     official = Path(find_ty_bin()).resolve()
     assert binary != official, (binary, official)
+    assert len({binary, compatibility, official}) == 3
     version = importlib.metadata.version("ty-extended")
     assert plugin_sdk.PROTOCOL_VERSION == {"major": 0, "minor": 9}
     assert (
         subprocess.check_output([str(binary), "--version"], text=True).strip()
+        == f"tyx {version}"
+    )
+    assert (
+        subprocess.check_output([str(compatibility), "--version"], text=True).strip()
         == f"ty-extended {version}"
     )
     assert subprocess.check_output([str(official), "--version"], text=True).startswith(
@@ -57,6 +63,19 @@ def main() -> None:
         )
         output = result.stdout + result.stderr
         assert result.returncode == 0 and "Token" in output, output
+        legacy = subprocess.run(
+            [str(compatibility), *command[1:]],
+            cwd=project,
+            env=env,
+            capture_output=True,
+            text=True,
+            timeout=60,
+        )
+        assert (legacy.returncode, legacy.stdout, legacy.stderr) == (
+            result.returncode,
+            result.stdout,
+            result.stderr,
+        )
         assert not receipt.exists(), "Embedded Monty attempted to execute a worker"
         source = project / "app.py"
         original = source.read_text()
@@ -66,6 +85,19 @@ def main() -> None:
         )
         output = result.stdout + result.stderr
         assert result.returncode == 1 and "invalid-assignment" in output, output
+        legacy = subprocess.run(
+            [str(compatibility), *command[1:]],
+            cwd=project,
+            env=env,
+            capture_output=True,
+            text=True,
+            timeout=60,
+        )
+        assert (legacy.returncode, legacy.stdout, legacy.stderr) == (
+            result.returncode,
+            result.stdout,
+            result.stderr,
+        )
         assert source.read_text() == original + "\nbad: int = token\n"
         source.write_text(original)
         client = Client(
@@ -118,8 +150,20 @@ def main() -> None:
             assert "Token" in json.dumps(hover), hover
         finally:
             client.close()
+        client = Client(
+            [str(compatibility), "server", str(project)],
+            project,
+            root / "legacy-server.stderr",
+        )
+        try:
+            client.request(
+                "initialize", {"rootUri": project.as_uri(), "capabilities": {}}
+            )
+            client.notify("initialized")
+        finally:
+            client.close()
     print(
-        "Installed ty-extended: SDK, official ty coexistence, CLI controls, embedded Monty, and LSP passed"
+        "Installed tyx and ty-extended alias: SDK, official ty coexistence, CLI controls, embedded Monty, and LSP passed"
     )
 
 

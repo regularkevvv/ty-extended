@@ -48,9 +48,11 @@ class BinaryWheelTests(unittest.TestCase):
             path = Path(directory) / "ty_extended-0.87.0-cp313-cp313-linux_x86_64.whl"
             info = "ty_extended-0.87.0.dist-info"
             binary = "ty_extended-0.87.0.data/scripts/ty-extended"
+            primary = "ty_extended-0.87.0.data/scripts/tyx"
             payload = b"standalone executable bytes\x00\xff"
             with WheelFile(path, "w") as archive:
                 archive.writestr(binary, payload)
+                archive.writestr(primary, b"primary executable bytes")
                 archive.writestr(
                     "ty_extended/plugin_sdk.py",
                     "PROTOCOL_VERSION = {'major': 0, 'minor': 7}\n",
@@ -68,6 +70,7 @@ class BinaryWheelTests(unittest.TestCase):
             self.assertFalse(path.exists())
             with zipfile.ZipFile(path.parent / filename) as archive:
                 self.assertEqual(archive.read(binary), payload)
+                self.assertEqual(archive.read(primary), b"primary executable bytes")
                 self.assertIn(
                     b"Tag: py3-none-linux_x86_64", archive.read(info + "/WHEEL")
                 )
@@ -90,9 +93,21 @@ class BinaryWheelTests(unittest.TestCase):
             path = Path(directory) / "unsafe.whl"
             with zipfile.ZipFile(path, "w") as archive:
                 archive.writestr("unsafe.data/scripts/ty-extended", b"binary")
+                archive.writestr("unsafe.data/scripts/tyx", b"binary")
                 archive.writestr("ty_extended/extension.so", b"CPython extension")
             with self.assertRaises(RuntimeError):
                 backend.standalone_wheel(path)
+
+    def test_both_commands_are_required_and_official_ty_is_never_packaged(self):
+        for names in (("tyx",), ("ty-extended",), ("tyx", "ty-extended", "ty")):
+            with self.subTest(names=names), tempfile.TemporaryDirectory() as directory:
+                path = Path(directory) / "incomplete.whl"
+                with zipfile.ZipFile(path, "w") as archive:
+                    for name in names:
+                        archive.writestr(f"incomplete.data/scripts/{name}", b"binary")
+                    archive.writestr("ty_extended/plugin_sdk.py", "")
+                with self.assertRaises(RuntimeError):
+                    backend.standalone_wheel(path)
 
 
 if __name__ == "__main__":

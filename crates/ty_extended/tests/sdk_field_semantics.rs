@@ -12,7 +12,7 @@ fn field_access_matches_historical_sdk_in_both_transports() -> Result<()> {
     let historical = std::env::var("TY_COMPANION_TEST_FORK").context("historical checker")?;
     let official = std::env::var("TY_COMPANION_TEST_OFFICIAL").context("official checker")?;
     let candidate = std::env::var("TY_COMPANION_TEST_CANDIDATE")
-        .unwrap_or_else(|_| env!("CARGO_BIN_EXE_ty-extended").to_owned());
+        .unwrap_or_else(|_| env!("CARGO_BIN_EXE_tyx").to_owned());
     let fixture = Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures/sdk_fields");
     let output = std::env::temp_dir()
         .canonicalize()?

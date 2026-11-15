@@ -72,7 +72,7 @@ The harness installs separate candidate, native and MyPy environments and pins t
 
 ```shell
 python3 crates/ty_extended/scripts/compare_checkers.py \
-  --companion /path/to/candidate/bin/ty-extended \
+  --companion /path/to/candidate/bin/tyx \
   --official /path/to/candidate/bin/ty \
   --official-python /path/to/native/bin/python \
   --python /path/to/candidate/bin/python \

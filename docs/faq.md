@@ -38,4 +38,4 @@ as a process sandbox.
 Report ty-extended, SDK, plugin loading and packaging problems in the
 [ty-extended tracker](https://github.com/regularkevvv/ty-extended/issues). Report a
 plugin's library behavior in that plugin's repository. Include both `ty --version`
-and `ty-extended --version`, the configuration and a small reproduction.
+and `tyx --version`, the configuration and a small reproduction.
