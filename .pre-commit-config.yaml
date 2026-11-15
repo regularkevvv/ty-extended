@@ -33,6 +33,8 @@ repos:
     hooks:
       - id: mdformat
         language: python # means renovate will also update `additional_dependencies`
+        # Vendored plugins under `plugins/` keep their own docs formatting.
+        exclude: (?x)^plugins/django-ty/
         additional_dependencies:
           - mdformat-mkdocs==5.3.0
           - mdformat-footnote==0.1.3
@@ -42,6 +44,8 @@ repos:
     rev: d43b6c087ac471e2ea7b8af622ff15f05c0c365b # frozen: v1.50.1
     hooks:
       - id: typos
+        # Vendored plugin declarations mirror upstream Django names.
+        exclude: (?x)^plugins/django-ty/
         priority: 0
 
   # Prettier
@@ -50,6 +54,7 @@ repos:
     hooks:
       - id: prettier
         types: [yaml]
+        exclude: (?x)^plugins/django-ty/
         priority: 0
 
   # zizmor detects security vulnerabilities in GitHub Actions workflows.
@@ -63,6 +68,8 @@ repos:
     rev: 745eface02aef23e168a8afb6b5737818efbea95 # frozen: v0.11.0.1
     hooks:
       - id: shellcheck
+        # Vendored plugins under `plugins/` lint their own scripts in their own CI.
+        exclude: (?x)^plugins/django-ty/
         priority: 0
 
   - repo: https://github.com/python-jsonschema/check-jsonschema
@@ -102,7 +109,8 @@ repos:
         # `scripts/autogenerate_files.sh`) and must not gain linter-driven imports.
         # Plugin artifacts under `.ty/` are Monty sandbox code, not project source.
         # Differential fixtures include negative syntax and fixed source coordinates.
-        exclude: (?x)^(python/ty_extended/plugin_sdk\.py)|(crates/ty_plugin_host/python/ty_plugin_sdk\.py)|(\.ty/)|(crates/ty_extended/tests/fixtures/)
+        # `plugins/django-ty` is vendored and linted by its own pinned ruff in its own CI.
+        exclude: (?x)^(python/ty_extended/plugin_sdk\.py)|(crates/ty_plugin_host/python/ty_plugin_sdk\.py)|(\.ty/)|(crates/ty_extended/tests/fixtures/)|(plugins/django-ty/)
         priority: 1
 
   # Priority 2: Second-pass fixers run after both formatters.
@@ -116,7 +124,8 @@ repos:
         # `scripts/autogenerate_files.sh`) and must not gain linter-driven imports.
         # Plugin artifacts under `.ty/` use ambient sandbox-prelude names.
         # Differential fixtures include negative syntax and fixed source coordinates.
-        exclude: (?x)^(python/ty_extended/plugin_sdk\.py)|(crates/ty_plugin_host/python/ty_plugin_sdk\.py)|(\.ty/)|(crates/ty_extended/tests/fixtures/)
+        # `plugins/django-ty` is vendored and linted by its own pinned ruff in its own CI.
+        exclude: (?x)^(python/ty_extended/plugin_sdk\.py)|(crates/ty_plugin_host/python/ty_plugin_sdk\.py)|(\.ty/)|(crates/ty_extended/tests/fixtures/)|(plugins/django-ty/)
         require_serial: true
         priority: 2
 
@@ -124,6 +133,8 @@ repos:
     rev: 5b5dddc4fb0f83c3ea1fc5616fa63e115dce83e0 # frozen: v0.49.1
     hooks:
       - id: markdownlint-fix
+        # Vendored plugins under `plugins/` keep their own docs style.
+        exclude: (?x)^plugins/django-ty/
         priority: 2
 
   # Priority 3: Clean up whitespace after all other hooks.
@@ -131,4 +142,6 @@ repos:
     rev: 3e8a8703264a2f4a69428a0aa4dcb512790b2c8c # frozen: v6.0.0
     hooks:
       - id: trailing-whitespace
+        # Do not rewrite vendored plugin sources under `plugins/`.
+        exclude: (?x)^plugins/django-ty/
         priority: 3

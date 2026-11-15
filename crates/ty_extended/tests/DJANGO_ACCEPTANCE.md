@@ -148,7 +148,7 @@ tests require `-- --ignored --nocapture`; use fresh output directories.
 | Selection                      | Required environment                                                                                                                                                      |
 | ------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `--bin ty-extended`            | `TY_COMPANION_TEST_OFFICIAL` = official ty executable                                                                                                                     |
-| `--test django_monty_parity`   | `DJANGO_TY_SOURCE` = plugin checkout; `DJANGO_TY_ORACLE` = decompressed `evidence/protocol-inputs/oracle.jsonl.gz`                                                        |
+| `--test django_monty_parity`   | `DJANGO_TY_SOURCE` = pinned plugin revision materialized from git history (see `scripts/ci.py checkout_pinned`); `DJANGO_TY_ORACLE` = decompressed `evidence/protocol-inputs/oracle.jsonl.gz`           |
 | `--test django_frontend_edges` | `DJANGO_TY_SOURCE`, `TY_COMPANION_TEST_OFFICIAL`, `TY_COMPANION_TEST_FORK`, `TY_COMPANION_TEST_PYTHON` = Django environment, `TY_COMPANION_EDGE_OUTPUT` = fresh directory |
 | `--test sdk_virtual_semantics` | `TY_COMPANION_TEST_OFFICIAL`, `TY_COMPANION_TEST_FORK`, `TY_COMPANION_SDK_OUTPUT` = fresh directory                                                                       |
 

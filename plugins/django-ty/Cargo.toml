@@ -5,7 +5,7 @@ edition = "2024"
 rust-version = "1.96"
 description = "Native regression oracle for Django Monty semantics"
 license = "MIT"
-repository = "https://github.com/regularkevvv/django-ty"
+repository = "https://github.com/regularkevvv/ty-extended"
 authors = ["Kevin Castro <hola@kev.pe>"]
 readme = "README.md"
 keywords = ["django", "ty", "typing", "plugins"]
@@ -16,4 +16,4 @@ publish = false
 crate-type = ["rlib"]
 
 [dependencies]
-ty_plugin_sdk = "0.0.8"
+ty_plugin_sdk = { path = "../../crates/ty_plugin_sdk" }

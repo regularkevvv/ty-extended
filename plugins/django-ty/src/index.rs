@@ -185,6 +185,7 @@ pub fn build_index_response(request: &BuildProjectIndexRequest) -> ProjectIndexR
             "settings": settings,
             "auth_user_model": auth_user_model,
         }),
+        class_indexes: BTreeMap::new(),
         contributions,
         virtual_types,
         dependencies: request

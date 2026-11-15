@@ -59,6 +59,36 @@ Keep build artifacts bounded: disable incremental builds, limit local compiler
 jobs, preserve required binaries and reports outside `target`, and run
 `cargo clean --manifest-path crates/ty_extended/Cargo.toml` after each build/test phase.
 
+## Publishing the django-ty plugin
+
+The `django-ty` PyPI distribution packages the Monty plugin under
+`plugins/django-ty/`. It versions independently of `tyx`: `v*` tags belong to
+ty-extended releases, while plugin releases use `django-ty-v*` tags.
+
+To release a plugin version:
+
+1. Bump `version` in `plugins/django-ty/pyproject.toml`, then regenerate the
+    packaged manifest with `python plugins/django-ty/scripts/build-monty.py`.
+    The script rewrites `python/django_ty/ty-plugin.json`,
+    `python/django_ty/ty-plugin-monty.json`, and the manifest embedded in
+    `python/django_ty/monty.py` from `ty-plugin.json`. Its `--check` mode —
+    run by `scripts/build-wheel.sh` inside the publish workflow — fails unless
+    the manifest `version` matches the `pyproject.toml` version and all three
+    generated outputs are current.
+1. Merge the reviewed change and wait for the `.github/workflows/django-ty.yml`
+    push run on the merged main commit to succeed.
+1. Dispatch `.github/workflows/publish-django-ty.yml` with the `version`
+    input set to the new version. The workflow refuses to publish when the
+    input does not equal the `pyproject.toml` version or when main CI has not
+    passed for the exact commit, then builds, smoke-tests, attests, and
+    publishes the wheel and sdist before pushing the `django-ty-v<version>`
+    tag and a `django-ty <version>` GitHub release.
+
+The `django-ty` PyPI project needs its own trusted publisher: repository
+`regularkevvv/ty-extended`, workflow `publish-django-ty.yml`, environment
+`release`. Like the `ty-extended` publisher, it uses OIDC without a
+long-lived package token.
+
 ## Historical distributions
 
 Versions through 0.86.x used checker-based version numbers and shipped a modified

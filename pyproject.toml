@@ -74,7 +74,11 @@ docs = {requires-python = ">=3.12"}
 docker = {requires-python = ">=3.12"}
 
 [tool.ruff]
-extend-exclude = ["python/ty_extended/plugin_sdk.py", "crates/ty_plugin_host/python/ty_plugin_sdk.py"]
+extend-exclude = [
+    "python/ty_extended/plugin_sdk.py",
+    "crates/ty_plugin_host/python/ty_plugin_sdk.py",
+    "plugins/django-ty/**",
+]
 per-file-target-version = { "scripts/**" = "py313" }
 
 [tool.ruff.lint]

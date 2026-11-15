@@ -115,9 +115,7 @@ dependencies = [
 
 [[package]]
 name = "ty_plugin_protocol"
-version = "0.0.8"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "bd92f817050d35b5bb6fd91d597da7ba32db2f50f438e76840a8cc643c05ffba"
+version = "0.0.12"
 dependencies = [
  "serde",
  "serde_json",
@@ -125,9 +123,7 @@ dependencies = [
 
 [[package]]
 name = "ty_plugin_sdk"
-version = "0.0.8"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "9f19dc3cb1508c1ba0668a0da961db6d3fd90439be0eb079acfd9ada934dce5a"
+version = "0.0.12"
 dependencies = [
  "serde_json",
  "thiserror",

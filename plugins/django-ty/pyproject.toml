@@ -25,8 +25,8 @@ classifiers = [
 ]
 
 [project.urls]
-Repository = "https://github.com/regularkevvv/django-ty"
-Releases = "https://github.com/regularkevvv/django-ty/releases"
+Repository = "https://github.com/regularkevvv/ty-extended/tree/main/plugins/django-ty"
+Releases = "https://github.com/regularkevvv/ty-extended/releases"
 
 [build-system]
 requires = ["hatchling>=1.31,<2"]

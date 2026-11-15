@@ -9,6 +9,10 @@ Entries below 0.74.0 say "extension" where they now would say "plugin"; the term
 
 ## Unreleased
 
+- Merge the `django-ty` plugin repository into `plugins/django-ty/` with full history; the plugin keeps its own build, test and lint configuration and is published to PyPI as `django-ty` under `django-ty-v*` tags via `publish-django-ty.yml`.
+
+- Run plugin CI in `django-ty.yml` and materialize pinned plugin revisions for parity gates from merged git history instead of cloning the separate repository.
+
 ## 0.91.0
 
 - Use `tyx check` and `tyx server` as the primary commands. Keep the `ty-extended` package name and native compatibility launcher.
