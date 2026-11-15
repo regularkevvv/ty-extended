@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Run unchanged SDK/host tests with the companion's selected Monty runtime."""
+"""Run unchanged SDK/host tests with ty-extended's selected Monty runtime."""
 
 from __future__ import annotations
 
@@ -21,7 +21,7 @@ def main() -> None:
     args = parser.parse_args()
     output = args.output.resolve()
     output.mkdir(parents=True, exist_ok=False)
-    root = Path(__file__).resolve().parents[2]
+    root = Path(__file__).resolve().parents[3]
     source = root
     packages = (
         "ty_plugin_protocol",
@@ -51,9 +51,7 @@ def main() -> None:
         )
         if count != 1:
             raise RuntimeError(f"Expected one {package} workspace dependency")
-    manifest = manifest.replace(
-        'members = ["companion", "crates/*"]', 'members = ["crates/*"]'
-    ).replace('default-members = ["companion"]\n', "")
+    manifest = re.sub(r"(?m)^default-members = .*\n", "", manifest)
     manifest += '\n[profile.runtime-tests]\ninherits = "dev"\ndebug = 0\n'
     (workspace / "Cargo.toml").write_text(manifest)
     shutil.copy2(root / "Cargo.lock", workspace / "Cargo.lock")

@@ -560,10 +560,10 @@ def main():
     for name in ("companion", "official", "fork", "output"):
         setattr(args, name, getattr(args, name).resolve())
     args.output.mkdir(parents=True)
-    repo = Path(__file__).resolve().parents[2]
-    original = repo / "companion/tests/fixtures/sdk_contracts.json"
+    repo = Path(__file__).resolve().parents[3]
+    original = repo / "crates/ty_extended/tests/fixtures/sdk_contracts.json"
     rust_plugin = repo / "crates/ty_plugin_examples/src/minidjango.rs"
-    adapter = repo / "companion/tests/fixtures/sdk_minidjango/plugin.py"
+    adapter = repo / "crates/ty_extended/tests/fixtures/sdk_minidjango/plugin.py"
     catalog = json.loads(original.read_text(encoding="utf-8"))["cases"]
     source150 = catalog["minidjango"]["150"]
     source151 = catalog["minidjango"]["151"]

@@ -96,7 +96,7 @@ matrix and separate Python 3.15 controls pass against the published ty-extended.
 
 ### Previous releases
 
-The [0.88.0 CI-wheel ledger](https://github.com/regularkevvv/ty-extended/blob/main/companion/evidence/compatibility-2026-11-07.json)
+The [0.88.0 CI-wheel ledger](https://github.com/regularkevvv/ty-extended/blob/main/crates/ty_extended/evidence/compatibility-2026-11-07.json)
 records 288 passing generic gates over the same 16 official versions, together
 with Django CLI and editor coverage. Its Linux, macOS and Windows CI gates pass.
 
@@ -131,7 +131,7 @@ Django/Python combinations in Django's version matrix and Django 6.1.3 on
 Python 3.12, 3.13 and 3.14. Each combination runs both checker modes.
 
 The CI-built wheel independently passes the same 288-gate version sweep.
-Additional [filesystem revision probes](https://github.com/regularkevvv/ty-extended/blob/main/companion/evidence/overlay-directory-revisions-2026-11-06.json)
+Additional [filesystem revision probes](https://github.com/regularkevvv/ty-extended/blob/main/crates/ty_extended/evidence/overlay-directory-revisions-2026-11-06.json)
 verify partial-overlay deletion and restoration under forced directory timestamp
 collisions on macOS and Windows, using both endpoints of the qualified range.
 
@@ -166,7 +166,7 @@ compatibility tests.
 
 WASM and worker runtimes are outside ty-extended. The historical SDK ledger
 includes explicit private/runtime boundaries, rather than claiming every old
-checker integration test executes unchanged. Consult [the evidence](https://github.com/regularkevvv/ty-extended/blob/main/companion/STATUS.md)
+checker integration test executes unchanged. Consult [the evidence](https://github.com/regularkevvv/ty-extended/blob/main/crates/ty_extended/STATUS.md)
 for tested contracts, rejection controls and known limitations.
 
 ## Reproduction
@@ -174,7 +174,7 @@ for tested contracts, rejection controls and known limitations.
 Install each official release in its own environment, then run:
 
 ```shell
-python3 companion/scripts/checker_compatibility.py \
+python3 crates/ty_extended/scripts/checker_compatibility.py \
   --companion /path/to/ty-extended --fork /path/to/reference/ty \
   --official 0.0.86=/path/to/official086/ty \
   --official 0.0.99=/path/to/official099/ty \

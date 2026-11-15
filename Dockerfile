@@ -28,22 +28,20 @@ RUN case "$TARGETPLATFORM" in \
     *) exit 1 ;; \
     esac
 # Update rustup whenever we bump the rust version
-COPY companion/rust-toolchain.toml rust-toolchain.toml
+COPY crates/ty_extended/rust-toolchain.toml rust-toolchain.toml
 RUN curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --target $(cat rust_target.txt) --profile minimal --default-toolchain none
 ENV PATH="$HOME/.cargo/bin:$PATH"
 # Installs the correct toolchain version from rust-toolchain.toml and then the musl target
 RUN rustup target add $(cat rust_target.txt)
 
-# Build only the companion. Keep path-dependency workspace manifests intact.
+# Build ty-extended. Keep path-dependency workspace manifests intact.
 ENV CARGO_BUILD_JOBS=2 CARGO_INCREMENTAL=0
 COPY Cargo.toml Cargo.lock ./
 COPY .cargo .cargo
 COPY crates crates
-COPY companion/Cargo.toml companion/
-COPY companion/src companion/src
-RUN cargo zigbuild --locked --manifest-path companion/Cargo.toml --bin ty-extended --target $(cat rust_target.txt) --release \
-    && cp companion/target/$(cat rust_target.txt)/release/ty-extended /ty-extended \
-    && cargo clean --manifest-path companion/Cargo.toml \
+RUN cargo zigbuild --locked --manifest-path crates/ty_extended/Cargo.toml --bin ty-extended --target $(cat rust_target.txt) --release \
+    && cp crates/ty_extended/target/$(cat rust_target.txt)/release/ty-extended /ty-extended \
+    && cargo clean --manifest-path crates/ty_extended/Cargo.toml \
     && mkdir -m 1777 /runtime-tmp
 
 # Bundle an unchanged official checker. Its version is independent of ty-extended.

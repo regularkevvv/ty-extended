@@ -1,6 +1,6 @@
 [workspace]
-members = ["companion", "crates/*"]
-default-members = ["companion"]
+members = ["crates/*"]
+default-members = ["crates/ty_extended"]
 resolver = "3"
 
 [workspace.package]
@@ -14,8 +14,8 @@ license = "MIT"
 
 [workspace.dependencies]
 ty_plugin_host = { path = "crates/ty_plugin_host", default-features = false }
-ty_plugin_protocol = { version = "0.0.12", path = "crates/ty_plugin_protocol" }
-ty_plugin_sdk = { version = "0.0.12", path = "crates/ty_plugin_sdk" }
+ty_plugin_protocol = { path = "crates/ty_plugin_protocol" }
+ty_plugin_sdk = { path = "crates/ty_plugin_sdk" }
 ty_plugin_examples = { path = "crates/ty_plugin_examples" }
 monty = { version = "=1.6.0", default-features = false }
 monty-types = { version = "=1.6.0", default-features = false }

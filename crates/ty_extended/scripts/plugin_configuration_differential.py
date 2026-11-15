@@ -94,7 +94,7 @@ def current_host_message(value):
         )
         # The pinned 0.86 reference prepends 1096 SDK lines. Preserve the
         # plugin's exact relative traceback line when the current SDK grows.
-        sdk = Path(__file__).resolve().parents[2] / "python/ty_extended/plugin_sdk.py"
+        sdk = Path(__file__).resolve().parents[3] / "python/ty_extended/plugin_sdk.py"
         offset = len(sdk.read_text().splitlines()) - 1096
         return re.sub(
             r'(File "research\.invalid\.py", line )(\d+)',

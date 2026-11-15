@@ -1,20 +1,17 @@
 # `ty_plugin_sdk`
 
-[![crates.io](https://img.shields.io/crates/v/ty_plugin_sdk.svg)](https://crates.io/crates/ty_plugin_sdk)
-[![docs.rs](https://docs.rs/ty_plugin_sdk/badge.svg)](https://docs.rs/ty_plugin_sdk)
+Internal typed protocol helpers and native regression implementations for
+[ty-extended](https://github.com/regularkevvv/ty-extended). This crate is a
+private workspace dependency and is no longer published to crates.io.
 
-Typed protocol helpers and native regression tests for
-[ty-extended](https://github.com/regularkevvv/ty-extended) semantic plugins.
+Plugin authors use the bundled Python `ty_extended.plugin_sdk`. Supported
+plugins are Python source executed by Monty; ty-extended does not load Rust
+libraries or WASM modules.
 
-Current ty-extended releases extend unchanged official Ty with Python plugins.
-Their plugins are Python source using `ty_extended.plugin_sdk`; the Rust SDK
-provides typed protocol tooling and independent native test implementations.
-ty-extended does not load Rust libraries or WASM modules.
-
-Use this crate to declare what a plugin owns, implement typed semantic hooks and return
-declarative patches. It re-exports all wire
-types from `ty_plugin_protocol` as `ty_plugin_sdk::protocol`, so a plugin normally has only one
-ty dependency.
+Rust regression tests use this crate to declare claims, implement typed
+hooks and return declarative patches. It re-exports internal wire types
+from `ty_plugin_protocol` as `ty_plugin_sdk::protocol`. Previously published
+versions remain available for historical consumers.
 
 ## Architecture Boundary
 
@@ -28,21 +25,13 @@ ty-extended -> typed protocol request -> Monty hook -> declarative patch -> ty-e
 
 A native `Plugin` implementation can act as a regression oracle for the corresponding Monty hooks.
 
-## Quick Start
+## Internal regression implementations
 
-Create a native regression library:
+Workspace test crates depend on the SDK by path through the shared workspace:
 
 ```toml
-[package]
-name = "my-ty-plugin"
-version = "0.1.0"
-edition = "2024"
-
-[lib]
-crate-type = ["rlib"]
-
 [dependencies]
-ty_plugin_sdk = "0.0.12"
+ty_plugin_sdk = { workspace = true }
 ```
 
 Implement `Plugin` and claim the matching hook in the corresponding Monty manifest:
@@ -81,7 +70,7 @@ uses.
 
 `export_plugin!` and the WASM wire types remain available for hosts that implement
 that runtime and negotiate the declared protocol version. They are outside the
-current ty-extended ty-extended. Older WASM examples and releases are documented in
+current ty-extended runtime. Older WASM examples and releases are documented in
 [the historical guide](https://github.com/regularkevvv/ty-extended/blob/main/docs/history/0.86/plugin-authoring.md).
 
 ## Manifests and Claims

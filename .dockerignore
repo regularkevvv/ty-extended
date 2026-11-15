@@ -2,5 +2,5 @@
 .venv
 **/target
 **/__pycache__
-companion/evidence
+crates/ty_extended/evidence
 ruff/.git

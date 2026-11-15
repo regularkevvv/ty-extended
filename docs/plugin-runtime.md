@@ -11,7 +11,7 @@ dependencies do not pin the separately installed checker.
 
 | Component                                 | Responsibility                                               |
 | ----------------------------------------- | ------------------------------------------------------------ |
-| `companion/`                              | CLI, persistent editor sessions, projections and source maps |
+| `crates/ty_extended/`                     | CLI, persistent editor sessions, projections and source maps |
 | Official `ty`                             | Type queries, final checking and language services           |
 | Embedded Monty                            | Restricted Python plugin execution                           |
 | `ty_extended.plugin_sdk`                  | Author-facing Python SDK and type declarations               |
@@ -48,7 +48,7 @@ They have no filesystem, environment or network access. Source is summarized
 statically; ty-extended does not import or execute a project's Python code.
 Protocol validation and runtime limits still apply. In-process memory isolation
 is not a process sandbox; see the resource-limit implementation and validation
-boundaries in [ty-extended status](https://github.com/regularkevvv/ty-extended/blob/main/companion/STATUS.md).
+boundaries in [ty-extended status](https://github.com/regularkevvv/ty-extended/blob/main/crates/ty_extended/STATUS.md).
 
 ## ty-extended execution profiles
 

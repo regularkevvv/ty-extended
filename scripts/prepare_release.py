@@ -15,7 +15,11 @@ def main() -> None:
     if not re.fullmatch(r"\d+\.\d+\.\d+", version):
         parser.error("version must be MAJOR.MINOR.PATCH")
     root = Path(__file__).resolve().parent.parent
-    for filename in ("pyproject.toml", "companion/Cargo.toml", "dist-workspace.toml"):
+    for filename in (
+        "pyproject.toml",
+        "crates/ty_extended/Cargo.toml",
+        "dist-workspace.toml",
+    ):
         path = root / filename
         text, count = re.subn(
             r'^version = "[^"]+"$',
@@ -34,7 +38,7 @@ def main() -> None:
             "--format-version",
             "1",
             "--manifest-path",
-            str(root / "companion/Cargo.toml"),
+            str(root / "crates/ty_extended/Cargo.toml"),
         ],
         check=True,
         stdout=subprocess.DEVNULL,

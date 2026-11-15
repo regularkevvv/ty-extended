@@ -21,7 +21,7 @@ def audit_binary_graph() -> None:
             "cargo",
             "tree",
             "--manifest-path",
-            str(ROOT / "companion" / "Cargo.toml"),
+            str(ROOT / "crates/ty_extended" / "Cargo.toml"),
             "--locked",
             "--target",
             "all",

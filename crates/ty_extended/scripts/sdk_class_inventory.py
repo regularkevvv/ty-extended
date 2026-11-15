@@ -412,7 +412,7 @@ def main():
                 # Rust schema, so descriptor/setter comparisons cannot be
                 # explained by an authoring-helper adaptation.
                 sdk = (
-                    Path(__file__).resolve().parents[2]
+                    Path(__file__).resolve().parents[3]
                     / "crates/ty_plugin_host/python/ty_plugin_sdk.py"
                 )
                 namespace = {}

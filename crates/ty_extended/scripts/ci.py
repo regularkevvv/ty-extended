@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Run companion regression gates with separately installed reference checkers."""
+"""Run ty-extended regression gates with separately installed reference checkers."""
 
 from __future__ import annotations
 
@@ -140,7 +140,9 @@ def django_gate(output: Path, binary: Path, env: dict[str, str], gates: Gates) -
     )
     run(["git", "-C", str(source), "checkout", "--detach", "FETCH_HEAD"], env=env)
     oracle = output / "django-oracle.jsonl"
-    with gzip.open("companion/evidence/protocol-inputs/oracle.jsonl.gz", "rb") as data:
+    with gzip.open(
+        "crates/ty_extended/evidence/protocol-inputs/oracle.jsonl.gz", "rb"
+    ) as data:
         oracle.write_bytes(data.read())
     protocol = [
         "cargo",
@@ -149,7 +151,7 @@ def django_gate(output: Path, binary: Path, env: dict[str, str], gates: Gates) -
         "--locked",
         "--release",
         "--manifest-path",
-        "companion/Cargo.toml",
+        "crates/ty_extended/Cargo.toml",
         "--test",
         "django_monty_parity",
     ]
@@ -194,7 +196,7 @@ def django_gate(output: Path, binary: Path, env: dict[str, str], gates: Gates) -
             f"django-{mode}",
             [
                 sys.executable,
-                "companion/scripts/django_acceptance.py",
+                "crates/ty_extended/scripts/django_acceptance.py",
                 "compare",
                 "--django",
                 str(source),
@@ -219,7 +221,7 @@ def django_gate(output: Path, binary: Path, env: dict[str, str], gates: Gates) -
         "django-editor",
         [
             sys.executable,
-            "companion/scripts/lsp_django.py",
+            "crates/ty_extended/scripts/lsp_django.py",
             "--django",
             str(source),
             "--acceptance",
@@ -241,7 +243,7 @@ def django_gate(output: Path, binary: Path, env: dict[str, str], gates: Gates) -
         "django-scalability",
         [
             sys.executable,
-            "companion/scripts/django_scalability.py",
+            "crates/ty_extended/scripts/django_scalability.py",
             "--companion",
             str(binary),
             "--official",
@@ -279,7 +281,7 @@ def scoped_django_gate(
     run(["git", "-C", str(source), "checkout", "--detach", "FETCH_HEAD"], env=env)
     oracle = output / "django-scoped-oracle.jsonl"
     with gzip.open(
-        "companion/evidence/protocol-inputs/django-0.7-oracle.jsonl.gz", "rb"
+        "crates/ty_extended/evidence/protocol-inputs/django-0.7-oracle.jsonl.gz", "rb"
     ) as data:
         oracle.write_bytes(data.read())
     scoped = output / "django-scoped-requests.jsonl"
@@ -287,7 +289,7 @@ def scoped_django_gate(
         "django-scope-equivalence",
         [
             sys.executable,
-            "companion/scripts/django_scoped_oracle.py",
+            "crates/ty_extended/scripts/django_scoped_oracle.py",
             "--django",
             str(source),
             "--oracle",
@@ -307,7 +309,7 @@ def scoped_django_gate(
                 "--locked",
                 "--release",
                 "--manifest-path",
-                "companion/Cargo.toml",
+                "crates/ty_extended/Cargo.toml",
                 "--test",
                 name,
                 "--",
@@ -349,13 +351,13 @@ def main() -> int:
                 "unittest",
                 "discover",
                 "-s",
-                "companion/tests",
+                "crates/ty_extended/tests",
                 "-p",
                 "test_*.py",
             ],
             env=env,
         )
-        manifest = Path("companion/Cargo.toml").resolve()
+        manifest = Path("crates/ty_extended/Cargo.toml").resolve()
         cargo = ["cargo", "+1.98.0"]
         run([*cargo, "fmt", "--manifest-path", str(manifest), "--check"], env=env)
         run(
@@ -417,7 +419,7 @@ def main() -> int:
             "original-sdk-monty",
             [
                 sys.executable,
-                "companion/scripts/embedded_runtime_tests.py",
+                "crates/ty_extended/scripts/embedded_runtime_tests.py",
                 "--output",
                 str(output / "embedded-runtime"),
             ],
@@ -463,7 +465,7 @@ def main() -> int:
             ],
             env=env,
         )
-        target = Path(env.get("CARGO_TARGET_DIR", "companion/target"))
+        target = Path(env.get("CARGO_TARGET_DIR", "crates/ty_extended/target"))
         binary = (
             target
             / "release"
@@ -482,7 +484,7 @@ def main() -> int:
                 [
                     str(binary),
                     "suite",
-                    str(Path("companion/tests/fixtures/generic").resolve()),
+                    str(Path("crates/ty_extended/tests/fixtures/generic").resolve()),
                     str(output / f"generic-{mode}"),
                     mode,
                     str(official),
@@ -499,7 +501,7 @@ def main() -> int:
         ):
             command = [
                 sys.executable,
-                f"companion/scripts/{script}.py",
+                f"crates/ty_extended/scripts/{script}.py",
                 "--companion",
                 str(binary),
                 "--official",
@@ -527,7 +529,7 @@ def main() -> int:
                 script,
                 [
                     sys.executable,
-                    f"companion/scripts/{script}.py",
+                    f"crates/ty_extended/scripts/{script}.py",
                     "--companion",
                     str(binary),
                     "--official",
@@ -542,7 +544,7 @@ def main() -> int:
         for script in ("lsp_configuration", "sdk_cli_inventory"):
             command = [
                 sys.executable,
-                f"companion/scripts/{script}.py",
+                f"crates/ty_extended/scripts/{script}.py",
                 "--companion",
                 str(binary),
                 "--official",

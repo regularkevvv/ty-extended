@@ -1,8 +1,13 @@
-# Current compatibility qualification
+# Historical development qualification
+
+This ledger predates the released architecture. See the current
+[compatibility guide](../../docs/compatibility.md),
+[performance guide](../../docs/performance.md), and
+[public release qualification](../../docs/qualification/public-0.90.0.json).
 
 ## Unreleased development candidate
 
-The [factory follow-up](../docs/qualification/factory-specialization.json), source
+The [factory follow-up](../../docs/qualification/factory-specialization.json), source
 `86c3a21`, passes 222 unit tests, the 166-assertion Django corpus with six error
 controls, and 31 field assertions with five controls on all 16 official ty
 versions from 0.0.84 through 0.0.99. It also passes the 19 broader suites, nine
@@ -13,7 +18,7 @@ unmet. Hosted CI and publication are separate gates.
 
 ### Field-access qualification
 
-The [field-access follow-up](../docs/qualification/field-access-projection.json),
+The [field-access follow-up](../../docs/qualification/field-access-projection.json),
 source `f7db633`, passes all 221 unit tests, the 166-assertion Django corpus
 with six negative controls, and 31 field assertions with five diagnostic controls
 on every official ty release from 0.0.84 through 0.0.99. Both field projection
@@ -22,7 +27,7 @@ modification times. All 19 broader CLI/editor/SDK suites, nine integration
 binaries, Rust formatting and lint checks pass. The unchanged Python harness
 passes all 50 tests with native process-monitoring access.
 
-The six original [field-audit differences](../docs/qualification/field-class-access-audit.json)
+The six original [field-audit differences](../../docs/qualification/field-class-access-audit.json)
 are corrected. The receipt retains the regressions found during implementation,
 including inherited descriptor and decorated-base cases, and describes remaining
 conservative projection limits. These finite tests do not establish universal
@@ -35,14 +40,14 @@ Django declarations, versus 4.806 seconds for the preceding index/cache candidat
 for bare ty. Bare ty fails the Django assertions. The one-second target remains
 unmet, and no new merge or release acceptance is claimed.
 
-The preceding [index/cache follow-up](../docs/qualification/performance-cache-admission.json)
+The preceding [index/cache follow-up](../../docs/qualification/performance-cache-admission.json)
 passed all 220 unit tests and the Django corpus on all 16 checker versions. Hosted
 CI at `ccb5dfb` passed all 20 checks, including 52 Linux, 34 macOS and 34 Windows
 compatibility gates. Those hosted results describe that earlier source revision.
 
 ### Earlier sparse-projection candidate
 
-The [sparse projection candidate](../docs/qualification/sparse-projection-validation.json)
+The [sparse projection candidate](../../docs/qualification/sparse-projection-validation.json)
 passes all 217 ty-extended unit tests on macOS with each of the 16 official ty
 releases from 0.0.84 through 0.0.99. On every version, its Django run matches the published
 ty-extended's complete diagnostic output for 166 contract assertions over 38
@@ -52,14 +57,14 @@ binaries, 50 Python harness tests and Rust/Python lint checks. These local check
 do not replace hosted CI, cross-platform qualification or installed-artifact acceptance.
 
 The installed candidate Django wheel also passes all
-[21 Django/Python pairs](../docs/qualification/django-sparse-projection.json):
+[21 Django/Python pairs](../../docs/qualification/django-sparse-projection.json):
 166 contract assertions in both projection modes, exact published ty-extended
 diagnostics, 83 framework runtime contracts and nine QueryDict cases per pair.
 That matrix used an earlier ty-extended candidate, identified in its receipt;
 the Django source is unchanged. It does not repeat the historical MyPy matrix
 or qualify a published artifact.
 
-The [local performance receipt](../docs/qualification/performance-sparse-projection.json)
+The [local performance receipt](../../docs/qualification/performance-sparse-projection.json)
 records 5.029 seconds versus the published stack's 6.375 seconds and MyPy's
 6.794 seconds on the 7,082-file case. All 100 ORM assertions and both error
 controls pass. The one-second target remains unmet; sparse memory projection
@@ -72,7 +77,7 @@ field-access gap above. Release acceptance remains pending.
 ## Version 0.89.0
 
 ty-extended 0.89.0 adds opt-in bounded class batching and avoids rescanning all
-diagnostics for every file. Its [performance receipt](../docs/qualification/performance-0.89.0.json)
+diagnostics for every file. Its [performance receipt](../../docs/qualification/performance-0.89.0.json)
 records five local workloads below the MyPy median ceiling. The corrected local
 candidate checks the largest project in 6.551 seconds versus MyPy's 6.685 seconds,
 with exact ORM assertions, both negative controls and source preservation. The
@@ -107,7 +112,7 @@ wheel. Additional qualification covers all 21 Django/Python pairs; its earlier
 ty-extended identity remains in the ledger and the matrix is repeated against the
 public ty-extended before the Django release. The current CI wheel also passes
 Python 3.15's contracts, nine QueryDict cases and an installed editor session. See the
-[compatibility ledger](../docs/compatibility.md) for executable identities,
+[compatibility ledger](../../docs/compatibility.md) for executable identities,
 the generic version sweep, editor checks, hosted CI and public-package acceptance.
 Those checks are recorded separately from local candidate measurements.
 
@@ -138,7 +143,7 @@ This is 11.6× faster than the previous pair and effectively at MyPy parity.
 The four initial workloads meet the MyPy median ceiling on both macOS and Linux CI.
 An additional Mac workload spreads all 2,501 models across 250 modules and passes
 at 6.315 seconds versus MyPy's 6.966 seconds. CI now covers all five shapes.
-See [methodology and limits](../docs/performance.md). Published-artifact acceptance
+See [methodology and limits](../../docs/performance.md). Published-artifact acceptance
 is a separate release check; these measurements identify the tested CI binary.
 
 ## Previous 0.87.0 qualification

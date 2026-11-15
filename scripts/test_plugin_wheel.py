@@ -1,4 +1,4 @@
-"""Exercise the installed companion, SDK, adjacent official ty, and editor server."""
+"""Exercise the installed ty-extended executable, SDK, adjacent official ty, and editor server."""
 
 from __future__ import annotations
 
@@ -18,7 +18,7 @@ ROOT = Path(__file__).resolve().parent.parent
 
 
 def main() -> None:
-    sys.path.insert(0, str(ROOT / "companion/scripts"))
+    sys.path.insert(0, str(ROOT / "crates/ty_extended/scripts"))
     from lsp_acceptance import Client
 
     binary = Path(find_ty_extended_bin()).resolve()
@@ -37,7 +37,7 @@ def main() -> None:
         [sys.executable, "-m", "ty_extended", "--help"], check=True, capture_output=True
     )
 
-    with tempfile.TemporaryDirectory(prefix="companion-wheel-") as directory:
+    with tempfile.TemporaryDirectory(prefix="ty-extended-wheel-") as directory:
         root = Path(directory)
         project = root / "project"
         shutil.copytree(ROOT / "examples/monty", project)
@@ -119,7 +119,7 @@ def main() -> None:
         finally:
             client.close()
     print(
-        "Installed companion: SDK, official ty coexistence, CLI controls, embedded Monty, and LSP passed"
+        "Installed ty-extended: SDK, official ty coexistence, CLI controls, embedded Monty, and LSP passed"
     )
 
 

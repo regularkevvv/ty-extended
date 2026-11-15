@@ -62,7 +62,7 @@ exclude-newer = "P7D"
 cache-keys = [
     { file = "pyproject.toml" },
     { file = "dist-workspace.toml" },
-    { file = "companion/Cargo.toml" },
+    { file = "crates/ty_extended/Cargo.toml" },
     { file = "Cargo.toml" },
     { file = "Cargo.lock" },
     { file = "**/*.rs" },
@@ -107,7 +107,7 @@ required-imports = ["from __future__ import annotations"]
 
 [tool.maturin]
 bindings = "bin"
-manifest-path = "companion/Cargo.toml"
+manifest-path = "crates/ty_extended/Cargo.toml"
 module-name = "ty_extended"
 python-source = "python"
 strip = true
@@ -118,7 +118,7 @@ include = [
     { path = "crates/**", format = "sdist" },
     { path = ".cargo/config.toml", format = "sdist" },
     { path = "rust-toolchain.toml", format = "sdist" },
-    { path = "companion/rust-toolchain.toml", format = "sdist" },
+    { path = "crates/ty_extended/rust-toolchain.toml", format = "sdist" },
     { path = "dist-workspace.toml", format = [
         "sdist",
     ] },

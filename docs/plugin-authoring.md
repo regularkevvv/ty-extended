@@ -14,7 +14,9 @@ is retained for format compatibility; it does not select the official checker.
 Python plugins run inside the embedded [Monty](https://github.com/pydantic/monty) interpreter, a
 restricted Python subset. The `ty_extended.plugin_sdk` module — shipped inside the `ty-extended` wheel — is
 prepended to the plugin source by the runner, so its decorators, builders, and manifest helpers
-are ambient names in the plugin file. A complete Monty plugin is a single `.py` file:
+are ambient names in the plugin file. This is the public plugin SDK. The Rust SDK
+and protocol crates are internal workspace dependencies and are not published.
+A complete Monty plugin is a single `.py` file:
 
 ```python
 from __future__ import annotations
@@ -56,7 +58,7 @@ def adjust_issue_token(request: Request) -> Response:
     return None  # declines; another handler or `no-change` answers
 ```
 
-The ambient API mirrors the Rust SDK surface:
+The Python SDK provides:
 
 - hook decorators: `on_class_transform`, `on_class_batch`, `on_class_member`, `on_instance_member`,
     `on_call_signature`, `on_call_return`, `on_call_state`, `on_project_index`, `on_dependencies`, `on_mutation`,
@@ -224,8 +226,7 @@ cache, so editor invalidation follows the same index and source revisions.
 
 Plugins that opt in require protocol minor version 9 or newer and must also
 enable class transforms. The Python SDK provides `on_class_batch` and
-`class_batch`; the Rust SDK provides `Plugin::analyze_classes` and
-`ManifestBuilder::class_batches`.
+`class_batch`.
 
 ## Test and publish
 
@@ -236,4 +237,5 @@ and any stub overlays together; no WASM build is needed.
 
 Declare ty-extended requirements in package dependencies and the protocol version
 in the manifest. New protocol features require a compatible host. The protocol
-and SDK remain pre-1.0 and independently versioned.
+version is separate from the package version; the Python SDK ships and is
+versioned with ty-extended.

@@ -108,7 +108,7 @@ def customize(workflow, custom):
     jobs["host"]["permissions"] = {"contents": "write"}
     jobs["host"]["environment"] = {"name": "release"}
     jobs["host"]["if"] = custom["host-condition"]
-    for name in ("custom-publish-pypi", "custom-publish-sdk-crates"):
+    for name in ("custom-publish-pypi",):
         jobs[name]["needs"].append("release-gate")
         jobs[name]["permissions"] = {"contents": "read", "id-token": "write"}
     jobs["announce"]["needs"].append("release-gate")

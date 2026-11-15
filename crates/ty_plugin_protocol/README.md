@@ -1,8 +1,5 @@
 # `ty_plugin_protocol`
 
-[![crates.io](https://img.shields.io/crates/v/ty_plugin_protocol.svg)](https://crates.io/crates/ty_plugin_protocol)
-[![docs.rs](https://docs.rs/ty_plugin_protocol/badge.svg)](https://docs.rs/ty_plugin_protocol)
-
 The stable serialized contract between
 [ty-extended](https://github.com/regularkevvv/ty-extended) and semantic plugins.
 
@@ -10,22 +7,14 @@ This crate intentionally contains data types only. It does not depend on checker
 AST ids, the plugin host, or a WASM engine. Manifests, requests, responses, claims, patches,
 diagnostics, and type expressions can therefore be serialized independently of ty's implementation.
 
-Rust protocol tooling and native regression implementations can depend on
-[`ty_plugin_sdk`](https://crates.io/crates/ty_plugin_sdk), which re-exports this crate as
-`ty_plugin_sdk::protocol` and adds the `Plugin` trait, `ManifestBuilder`, typed patch helpers,
-dispatch, and legacy WASM exports. Current plugins use the bundled
-Python `ty_extended.plugin_sdk` and execute in Monty. ty-extended delegates
-checking to unchanged official ty; it is not a checker fork.
+This crate is an internal workspace dependency and is no longer published
+to crates.io. The host uses it to validate manifests and exchange serialized
+requests and responses. Native regression tests use
+[`ty_plugin_sdk`](../ty_plugin_sdk/README.md) for typed test implementations.
 
-Depend on `ty_plugin_protocol` directly when implementing a host, validating manifests, inspecting
-wire messages, or building protocol tooling.
-
-## Add the Dependency
-
-```toml
-[dependencies]
-ty_plugin_protocol = "0.0.12"
-```
+Plugin authors use the bundled Python `ty_extended.plugin_sdk` and write
+Python plugins executed by Monty. Previously published Rust crate versions
+remain available for historical consumers.
 
 ## Protocol Model
 
@@ -93,8 +82,8 @@ capability flags aligned. Python ty-extended plugins use the bundled
 
 See the [plugin authoring
 guide](https://github.com/regularkevvv/ty-extended/blob/main/docs/plugin-authoring.md) to build a
-complete Monty plugin and the [`ty_plugin_sdk` API documentation](https://docs.rs/ty_plugin_sdk)
-for the author-facing interface.
+complete Python plugin. Rust helpers are documented in the internal
+[`ty_plugin_sdk` guide](../ty_plugin_sdk/README.md).
 
 ## Call state (protocol 0.6)
 
