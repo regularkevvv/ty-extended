@@ -96,7 +96,7 @@ jobs:
         run: |
           docker run --rm "$SMOKE_IMAGE" --version
           docker run --rm --entrypoint /ty "$SMOKE_IMAGE" --version
-          project="$RUNNER_TEMP/companion-docker-smoke"
+          project="$RUNNER_TEMP/ty-extended-docker-smoke"
           mkdir -p "$project"
           cp -R examples/monty/. "$project/"
           docker run --rm -v "$project:/io:ro" "$SMOKE_IMAGE" check --python-version 3.13 > "$RUNNER_TEMP/docker-positive.log"

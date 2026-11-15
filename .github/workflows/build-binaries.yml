@@ -224,7 +224,7 @@ jobs:
           architecture: ${{ matrix.platform.arch }}
       - name: Install LLVM inspection tools
         id: pgo-toolchain
-        working-directory: companion
+        working-directory: crates/ty_extended
         shell: bash
         run: |
           rustup component add llvm-tools-preview
@@ -247,7 +247,7 @@ jobs:
           python -m pip install "wheel>=0.46,<0.47"
           python build_backend.py dist
       - name: Verify static Windows runtime
-        working-directory: companion
+        working-directory: crates/ty_extended
         shell: bash
         run: |
           RUST_HOST="$(rustc -vV | sed -n 's/^host: //p')"
