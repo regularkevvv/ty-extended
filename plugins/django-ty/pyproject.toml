@@ -44,3 +44,7 @@ packages = ["python/django_ty"]
 [tool.hatch.build.targets.wheel.force-include]
 "python/django_ty/ty-plugin.json" = "django_ty/ty-plugin.json"
 "THIRD_PARTY_NOTICES.md" = "django_ty/THIRD_PARTY_NOTICES.md"
+
+# This plugin pins freshly released ty-extended builds in CI; do not inherit
+# the workspace's exclude-newer cutoff.
+[tool.uv]
