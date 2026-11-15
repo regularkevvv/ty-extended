@@ -24,10 +24,11 @@ Configure your editor to start `tyx server` for plugin support.
 ## Official ty compatibility
 
 ty-extended versions are independent of official Ty starting with 0.87.0. The
-[0.90.0 qualification](docs/qualification/compatibility-0.90.0.json) records one
-unchanged optimized executable against **every Ty release from 0.0.84 through
+[0.91.0 public-release qualification](docs/qualification/ty-extended-0.91.0.json)
+records one unchanged published executable against **every Ty release from 0.0.84 through
 0.0.104**: **378 passing CLI, editor, notebook and SDK gates**. Platform CI also
-passes on Linux, macOS and Windows.
+passes on Linux, macOS and Windows. Both `tyx` and the `ty-extended` compatibility
+command pass installed plugin, editor and minimum Python 3.8 checks.
 
 Updating official Ty within a compatible group does not require a ty-extended
 release. The dependency range is `ty>=0.0.84,<0.1`; future releases within it need
@@ -42,10 +43,7 @@ The accepted optimization baseline averages **0.776 seconds** across 30 runs of
 **7.451 seconds** for MyPy. The comparison uses the same official Ty executable,
 100 type assertions, and ordinary Python and ORM error controls.
 
-The final controlled 30-run comparison averages **0.688 seconds**, versus **0.693 seconds** for the preceding executable and **0.212 seconds** for native Ty on identical inputs. Dedicated hosted matrices pass all five shapes on Linux and macOS. [The performance report](docs/performance.md) retains every observation, earlier failed timing series and a slower fallback fixture. These measurements do not establish a universal worst-case bound. Published-package acceptance is recorded separately from source and CI checks.
-
-The primary command is `tyx`. The package and repository remain `ty-extended`;
-`ty-extended` remains available as a compatibility command.
+The accepted implementation's controlled 30-run comparison averages **0.688 seconds**, versus **0.693 seconds** for the preceding executable and **0.212 seconds** for native Ty on identical inputs. Dedicated hosted matrices pass all five shapes on Linux and macOS. [The performance report](docs/performance.md) retains every observation, earlier failed timing series and a slower fallback fixture. These measurements do not establish a universal worst-case bound. Published-package acceptance is recorded separately from source and CI checks.
 
 ## Plugins
 

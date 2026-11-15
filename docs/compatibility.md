@@ -31,6 +31,36 @@ features, rather than every upstream version number.
 
 ## Qualified versions
 
+The [published 0.91.0 receipt](qualification/ty-extended-0.91.0.json) verifies
+all eight wheel/native archive pairs, source payloads and signed provenance.
+The actual published macOS ARM64 `tyx` executable independently passes all
+**378 checks across 21 official Ty releases, 0.0.84–0.0.104**. Its hash differs
+from the CI wheel, so the full sweep was repeated instead of assuming byte
+identity. The [compressed public reports](qualification/ty-extended-0.91.0.json.gz)
+retain every per-version gate record.
+
+Both command names pass fresh installed SDK, CLI and editor checks, minimum
+Python 3.8 controls, standalone installation and isolated `uv tool`/`uvx` checks.
+Django-ty 0.8.0 passes the 7,082-file, 2,501-model positive/negative controls
+through both entry points, including ordinary assignment and plugin-owned ORM
+error detection. These are functional timeout/memory controls; their observations
+were collected during concurrent qualification and are not controlled performance
+benchmarks. All 16 release jobs passed after both merged-main CI workflows passed.
+
+### 0.91.0 source qualification
+
+The [0.91.0 ledger](qualification/compatibility-0.91.0.json) qualifies one unchanged
+optimized `tyx` CI-wheel executable against all **21 official Ty versions from
+0.0.84 through 0.0.104**: all 18 CLI, editor, notebook, plugin and SDK checks pass
+on every version (**378 checks**). Both command names pass installed plugin and
+editor checks, upgrade tests, minimum Python 3.8 checks and the large Django
+positive/negative controls. All 23 pull-request checks passed, including both
+performance matrices. The [compressed reports](qualification/compatibility-0.91.0.json.gz)
+retain the full per-version gate records. Public-package acceptance is recorded
+separately from this CI-artifact qualification.
+
+### 0.90.0 release qualification
+
 The [0.90.0 ledger](qualification/compatibility-0.90.0.json) records one unchanged
 optimized wheel executable against **all 21 official Ty releases from 0.0.84
 through 0.0.104**. Every release passes all 18 CLI, editor, notebook, plugin and SDK
