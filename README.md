@@ -88,8 +88,8 @@ historical releases; current plugins run in process.
 
 ## Contributing and license
 
-The implementation lives in [`companion/`](companion/README.md). See
-[contributing](CONTRIBUTING.md), [validation evidence](companion/STATUS.md), and
+The implementation lives in [`crates/ty_extended/`](crates/ty_extended/README.md). See
+[contributing](CONTRIBUTING.md), [validation evidence](docs/compatibility.md), and
 [the changelog](CHANGELOG.md). Report ty-extended or plugin issues in this repository.
 
 MIT ([LICENSE](LICENSE)). Astral's checker is developed and released by Astral.

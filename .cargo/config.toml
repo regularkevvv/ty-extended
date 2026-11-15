@@ -1,2 +1,2 @@
 [build]
-target-dir = "companion/target"
+target-dir = "crates/ty_extended/target"

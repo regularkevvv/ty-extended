@@ -1,10 +1,11 @@
 [package]
 name = "ty_plugin_protocol"
 version = "0.0.12"
+publish = false
 edition.workspace = true
 rust-version = "1.96"
 homepage = "https://github.com/regularkevvv/ty-extended"
-documentation = "https://docs.rs/ty_plugin_protocol"
+documentation.workspace = true
 repository = "https://github.com/regularkevvv/ty-extended"
 authors = ["Kevin Castro <hola@kev.pe>"]
 license.workspace = true

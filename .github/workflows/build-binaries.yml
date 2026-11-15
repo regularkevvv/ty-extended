@@ -11,7 +11,7 @@ name: Build binaries
       - dist-workspace.toml
       - rust-toolchain.toml
       - .github/workflows/build-binaries.yml
-      - companion/**
+      - crates/ty_extended/**
       - python/**
       - crates/**
       - Cargo.toml
@@ -61,7 +61,7 @@ jobs:
         with:
           image: python:3.13-bookworm@sha256:933b46a028fd786c9c3d426ebabc237e29a15912231ea8de576e95f0e4f41a4c
           artifacts: dist
-          rust-toolchain: companion/rust-toolchain.toml
+          rust-toolchain: crates/ty_extended/rust-toolchain.toml
           run: |
             # pip builds outside /test, where the toolchain file no longer applies.
             rustup default "$(rustup show active-toolchain | cut -d ' ' -f1)"
@@ -82,7 +82,7 @@ jobs:
       - name: Clean build artifacts
         if: always()
         shell: bash
-        run: if [ -d companion/target ]; then cargo clean --manifest-path companion/Cargo.toml; fi
+        run: if [ -d crates/ty_extended/target ]; then cargo clean --manifest-path crates/ty_extended/Cargo.toml; fi
   macos-x86_64:
     if: ${{ !contains(github.event.pull_request.labels.*.name, 'no-build') }}
     runs-on: ${{ github.repository == 'astral-sh/ty' && 'namespace-profile-macos-15' || 'macos-15' }}
@@ -103,7 +103,7 @@ jobs:
           sccache: false
           maturin-version: v1.16.0
           target: x86_64
-          args: --release --locked --target-dir companion/target --out dist --compatibility pypi
+          args: --release --locked --target-dir crates/ty_extended/target --out dist --compatibility pypi
           rust-toolchain: 1.98.0
         env:
           RUSTFLAGS: -C linker=rust-lld -C linker-flavor=ld64.lld -C link-arg=--icf=safe
@@ -124,7 +124,7 @@ jobs:
           ARCHIVE_FILE=$ARCHIVE_NAME.tar.gz
 
           mkdir -p $ARCHIVE_NAME
-          cp companion/target/$TARGET/release/ty-extended $ARCHIVE_NAME/ty-extended
+          cp crates/ty_extended/target/$TARGET/release/ty-extended $ARCHIVE_NAME/ty-extended
           tar czvf $ARCHIVE_FILE $ARCHIVE_NAME
           shasum -a 256 $ARCHIVE_FILE > $ARCHIVE_FILE.sha256
       - name: Upload binary
@@ -137,7 +137,7 @@ jobs:
       - name: Clean build artifacts
         if: always()
         shell: bash
-        run: if [ -d companion/target ]; then cargo clean --manifest-path companion/Cargo.toml; fi
+        run: if [ -d crates/ty_extended/target ]; then cargo clean --manifest-path crates/ty_extended/Cargo.toml; fi
   macos-aarch64:
     if: ${{ !contains(github.event.pull_request.labels.*.name, 'no-build') }}
     runs-on: ${{ github.repository == 'astral-sh/ty' && 'namespace-profile-macos-15' || 'macos-15' }}
@@ -161,7 +161,7 @@ jobs:
           maturin-version: v1.16.0
           target: aarch64
           rust-toolchain: 1.98.0
-          args: --release --locked --target-dir companion/target --out dist --compatibility pypi
+          args: --release --locked --target-dir crates/ty_extended/target --out dist --compatibility pypi
         env:
           CFLAGS: -fno-profile-generate -fno-profile-use
           CXXFLAGS: -fno-profile-generate -fno-profile-use
@@ -187,7 +187,7 @@ jobs:
           ARCHIVE_FILE=$ARCHIVE_NAME.tar.gz
 
           mkdir -p $ARCHIVE_NAME
-          cp companion/target/$TARGET/release/ty-extended $ARCHIVE_NAME/ty-extended
+          cp crates/ty_extended/target/$TARGET/release/ty-extended $ARCHIVE_NAME/ty-extended
           tar czvf $ARCHIVE_FILE $ARCHIVE_NAME
           shasum -a 256 $ARCHIVE_FILE > $ARCHIVE_FILE.sha256
       - name: Upload binary
@@ -200,7 +200,7 @@ jobs:
       - name: Clean build artifacts
         if: always()
         shell: bash
-        run: if [ -d companion/target ]; then cargo clean --manifest-path companion/Cargo.toml; fi
+        run: if [ -d crates/ty_extended/target ]; then cargo clean --manifest-path crates/ty_extended/Cargo.toml; fi
   windows:
     if: ${{ !contains(github.event.pull_request.labels.*.name, 'no-build') }}
     runs-on:
@@ -238,7 +238,7 @@ jobs:
           maturin-version: v1.16.0
           target: ${{ matrix.platform.target }}
           rust-toolchain: 1.98.0
-          args: --release --locked --target-dir companion/target --out dist --compatibility pypi
+          args: --release --locked --target-dir crates/ty_extended/target --out dist --compatibility pypi
         env:
           XWIN_VERSION: 16
       - name: Audit standalone binary wheel tags
@@ -276,7 +276,7 @@ jobs:
         shell: bash
         run: |
           ARCHIVE_FILE=ty-extended-${{ matrix.platform.target }}.zip
-          cp ./companion/target/${{ matrix.platform.target }}/release/ty-extended.exe ./ty-extended.exe
+          cp ./crates/ty_extended/target/${{ matrix.platform.target }}/release/ty-extended.exe ./ty-extended.exe
           7z a "$ARCHIVE_FILE" ./ty-extended.exe
           sha256sum "$ARCHIVE_FILE" > "$ARCHIVE_FILE.sha256"
       - name: Upload binary
@@ -289,7 +289,7 @@ jobs:
       - name: Clean build artifacts
         if: always()
         shell: bash
-        run: if [ -d companion/target ]; then cargo clean --manifest-path companion/Cargo.toml; fi
+        run: if [ -d crates/ty_extended/target ]; then cargo clean --manifest-path crates/ty_extended/Cargo.toml; fi
     env:
       RUSTFLAGS: -C target-feature=+crt-static
   linux:
@@ -318,7 +318,7 @@ jobs:
           target: ${{ matrix.target }}
           rust-toolchain: 1.98.0
           manylinux: "2_17"
-          args: --release --locked --target-dir companion/target --out dist --compatibility pypi
+          args: --release --locked --target-dir crates/ty_extended/target --out dist --compatibility pypi
       - name: Audit standalone binary wheel tags
         shell: bash
         run: |
@@ -351,7 +351,7 @@ jobs:
           ARCHIVE_FILE=$ARCHIVE_NAME.tar.gz
 
           mkdir -p $ARCHIVE_NAME
-          cp companion/target/$TARGET/release/ty-extended $ARCHIVE_NAME/ty-extended
+          cp crates/ty_extended/target/$TARGET/release/ty-extended $ARCHIVE_NAME/ty-extended
           tar czvf $ARCHIVE_FILE $ARCHIVE_NAME
           shasum -a 256 $ARCHIVE_FILE > $ARCHIVE_FILE.sha256
       - name: Upload binary
@@ -364,7 +364,7 @@ jobs:
       - name: Clean build artifacts
         if: always()
         shell: bash
-        run: if [ -d companion/target ]; then cargo clean --manifest-path companion/Cargo.toml; fi
+        run: if [ -d crates/ty_extended/target ]; then cargo clean --manifest-path crates/ty_extended/Cargo.toml; fi
   linux-aarch64:
     if: ${{ !contains(github.event.pull_request.labels.*.name, 'no-build') }}
     runs-on: ubuntu-24.04-arm
@@ -389,7 +389,7 @@ jobs:
           rust-toolchain: 1.98.0
           manylinux: "2_17"
           docker-options: -e JEMALLOC_SYS_WITH_LG_PAGE=16
-          args: --release --locked --target-dir companion/target --out dist --compatibility pypi
+          args: --release --locked --target-dir crates/ty_extended/target --out dist --compatibility pypi
       - name: Audit standalone binary wheel tags
         shell: bash
         run: |
@@ -421,7 +421,7 @@ jobs:
           ARCHIVE_FILE=$ARCHIVE_NAME.tar.gz
 
           mkdir -p $ARCHIVE_NAME
-          cp companion/target/$TARGET/release/ty-extended $ARCHIVE_NAME/ty-extended
+          cp crates/ty_extended/target/$TARGET/release/ty-extended $ARCHIVE_NAME/ty-extended
           tar czvf $ARCHIVE_FILE $ARCHIVE_NAME
           shasum -a 256 $ARCHIVE_FILE > $ARCHIVE_FILE.sha256
       - name: Upload binary
@@ -434,7 +434,7 @@ jobs:
       - name: Clean build artifacts
         if: always()
         shell: bash
-        run: if [ -d companion/target ]; then cargo clean --manifest-path companion/Cargo.toml; fi
+        run: if [ -d crates/ty_extended/target ]; then cargo clean --manifest-path crates/ty_extended/Cargo.toml; fi
   musllinux:
     if: ${{ !contains(github.event.pull_request.labels.*.name, 'no-build') }}
     runs-on: ubuntu-latest
@@ -460,7 +460,7 @@ jobs:
           maturin-version: v1.16.0
           target: ${{ matrix.target }}
           manylinux: musllinux_1_2
-          args: --release --locked --target-dir companion/target --out dist --compatibility pypi
+          args: --release --locked --target-dir crates/ty_extended/target --out dist --compatibility pypi
           rust-toolchain: 1.98.0
       - name: Audit standalone binary wheel tags
         shell: bash
@@ -493,7 +493,7 @@ jobs:
           ARCHIVE_FILE=$ARCHIVE_NAME.tar.gz
 
           mkdir -p $ARCHIVE_NAME
-          cp companion/target/$TARGET/release/ty-extended $ARCHIVE_NAME/ty-extended
+          cp crates/ty_extended/target/$TARGET/release/ty-extended $ARCHIVE_NAME/ty-extended
           tar czvf $ARCHIVE_FILE $ARCHIVE_NAME
           shasum -a 256 $ARCHIVE_FILE > $ARCHIVE_FILE.sha256
       - name: Upload binary
@@ -506,7 +506,7 @@ jobs:
       - name: Clean build artifacts
         if: always()
         shell: bash
-        run: if [ -d companion/target ]; then cargo clean --manifest-path companion/Cargo.toml; fi
+        run: if [ -d crates/ty_extended/target ]; then cargo clean --manifest-path crates/ty_extended/Cargo.toml; fi
   musllinux-cross:
     if: ${{ !contains(github.event.pull_request.labels.*.name, 'no-build') }}
     runs-on: ubuntu-latest
@@ -533,7 +533,7 @@ jobs:
           maturin-version: v1.16.0
           target: ${{ matrix.platform.target }}
           manylinux: musllinux_1_2
-          args: --release --locked --target-dir companion/target --out dist --compatibility pypi
+          args: --release --locked --target-dir crates/ty_extended/target --out dist --compatibility pypi
           docker-options: ${{ matrix.platform.maturin_docker_options }}
           rust-toolchain: 1.98.0
       - name: Audit standalone binary wheel tags
@@ -567,7 +567,7 @@ jobs:
           ARCHIVE_FILE=$ARCHIVE_NAME.tar.gz
 
           mkdir -p $ARCHIVE_NAME
-          cp companion/target/$TARGET/release/ty-extended $ARCHIVE_NAME/ty-extended
+          cp crates/ty_extended/target/$TARGET/release/ty-extended $ARCHIVE_NAME/ty-extended
           tar czvf $ARCHIVE_FILE $ARCHIVE_NAME
           shasum -a 256 $ARCHIVE_FILE > $ARCHIVE_FILE.sha256
       - name: Upload binary
@@ -580,4 +580,4 @@ jobs:
       - name: Clean build artifacts
         if: always()
         shell: bash
-        run: if [ -d companion/target ]; then cargo clean --manifest-path companion/Cargo.toml; fi
+        run: if [ -d crates/ty_extended/target ]; then cargo clean --manifest-path crates/ty_extended/Cargo.toml; fi

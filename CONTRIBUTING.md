@@ -1,14 +1,18 @@
 # Contributing
 
-The application is developed in `companion/`; our plugin host, protocol and SDK
+The application is developed in `crates/ty_extended/`; our plugin host, protocol and SDK
 crates live in `crates/`. Official ty is developed by
 [Astral](https://github.com/astral-sh/ruff/tree/main/crates/ty); ty-extended talks
 to a separately installed checker through its public command line and LSP.
 
+All Rust crates are internal workspace dependencies and are not published to
+crates.io. Plugin authors use the bundled Python `ty_extended.plugin_sdk`;
+the Rust SDK supplies helpers for native regression tests.
+
 ```shell
 git clone https://github.com/regularkevvv/ty-extended.git
 cd ty-extended
-cargo +1.98.0 build --locked --manifest-path companion/Cargo.toml
+cargo +1.98.0 build --locked --manifest-path crates/ty_extended/Cargo.toml
 ```
 
 Ruff parser and notebook libraries are ordinary crates.io dependencies, pinned
@@ -19,17 +23,17 @@ Official ty remains a separate runtime dependency with independent versions.
 ## Validation
 
 Install reference checkers in separate environments. See
-[the acceptance guide](companion/tests/DJANGO_ACCEPTANCE.md) and
-[the compatibility runner](companion/scripts/checker_compatibility.py).
+[the acceptance guide](crates/ty_extended/tests/DJANGO_ACCEPTANCE.md) and
+[the compatibility runner](crates/ty_extended/scripts/checker_compatibility.py).
 Unit tests requiring a live checker fail when `TY_COMPANION_TEST_OFFICIAL` is missing.
 Set `TY_COMPANION_TEST_FORK` for differential integration tests.
 
 ```shell
-cargo +1.98.0 fmt --manifest-path companion/Cargo.toml --check
-cargo +1.98.0 clippy --locked --manifest-path companion/Cargo.toml --all-targets -- -D warnings
+cargo +1.98.0 fmt --manifest-path crates/ty_extended/Cargo.toml --check
+cargo +1.98.0 clippy --locked --manifest-path crates/ty_extended/Cargo.toml --all-targets -- -D warnings
 TY_COMPANION_TEST_OFFICIAL=/path/to/official/ty \
-  cargo +1.98.0 test --locked --manifest-path companion/Cargo.toml
-python3 -m unittest discover -s companion/tests -p 'test_*.py'
+  cargo +1.98.0 test --locked --manifest-path crates/ty_extended/Cargo.toml
+python3 -m unittest discover -s crates/ty_extended/tests -p 'test_*.py'
 ```
 
 Keep real checker, installed-package, editor and hosted CI results separate.

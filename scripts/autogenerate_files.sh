@@ -1,6 +1,6 @@
 #!/usr/bin/env sh
 #
-# Generate companion documentation, toolchain and SDK files.
+# Generate ty-extended documentation, toolchain and Python SDK files.
 #
 # Usage
 #
@@ -12,11 +12,11 @@ script_root="$(realpath "$(dirname "$0")")"
 project_root="$(dirname "$script_root")"
 cd "$project_root"
 
-echo "Copying the companion toolchain..."
-cp ./companion/rust-toolchain.toml ./rust-toolchain.toml
+echo "Copying the application toolchain..."
+cp ./crates/ty_extended/rust-toolchain.toml ./rust-toolchain.toml
 
 echo "Updating the Python lockfile..."
 uv lock --no-locked --default-index https://pypi.org/simple
 
-echo "Generating companion documentation and Python SDK..."
-python3 scripts/generate_companion_files.py
+echo "Generating ty-extended documentation and Python SDK..."
+python3 scripts/generate_package_files.py

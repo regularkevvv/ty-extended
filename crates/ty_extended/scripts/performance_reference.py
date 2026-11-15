@@ -39,6 +39,7 @@ def main() -> None:
     def run(command):
         subprocess.run(list(map(str, command)), env=env, check=True)
 
+    # The immutable reference predates the crates/ty_extended layout.
     manifest = source / "companion/Cargo.toml"
     try:
         run(["git", "init", source])

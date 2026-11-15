@@ -61,17 +61,17 @@ Rust alone does not remove duplicate analysis or subprocess startup. Official Ty
 Build the candidate, then run the pinned five-shape comparison:
 
 ```shell
-python3 companion/scripts/native_django_benchmark.py \
+python3 crates/ty_extended/scripts/native_django_benchmark.py \
   --companion /path/to/ty-extended --production-defaults --matrix \
   --repeats 10 --output /tmp/new-native-comparison
 ```
 
-To reproduce the hosted regression policy, first build the pinned reference with `python3 companion/scripts/performance_reference.py --output /tmp/ty-performance-reference --work-dir /tmp/new-reference-build`, then use `--repeats 32 --performance-reference /tmp/ty-performance-reference` to the comparison command. This builds and cleans a disposable checkout; it does not alter the candidate checkout.
+To reproduce the hosted regression policy, first build the pinned reference with `python3 crates/ty_extended/scripts/performance_reference.py --output /tmp/ty-performance-reference --work-dir /tmp/new-reference-build`, then use `--repeats 32 --performance-reference /tmp/ty-performance-reference` to the comparison command. This builds and cleans a disposable checkout; it does not alter the candidate checkout.
 
 The harness installs separate candidate, native and MyPy environments and pins the Django plugin source. Native Ty includes django-types. For an independently installed plugin wheel:
 
 ```shell
-python3 companion/scripts/compare_checkers.py \
+python3 crates/ty_extended/scripts/compare_checkers.py \
   --companion /path/to/candidate/bin/ty-extended \
   --official /path/to/candidate/bin/ty \
   --official-python /path/to/native/bin/python \

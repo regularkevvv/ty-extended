@@ -109,8 +109,8 @@ def main() -> int:
         parser.add_argument(f"--{name}", type=Path, required=True)
     args = parser.parse_args()
     args.output.mkdir(parents=True)
-    repo = Path(__file__).resolve().parents[2]
-    original = repo / "companion/tests/fixtures/sdk_contracts.json"
+    repo = Path(__file__).resolve().parents[3]
+    original = repo / "crates/ty_extended/tests/fixtures/sdk_contracts.json"
     sources = json.loads(original.read_text())["cases"]["functions"]
     assert set(sources) == {"marking.py", "things.py", "entries.py"}
     manifest = {

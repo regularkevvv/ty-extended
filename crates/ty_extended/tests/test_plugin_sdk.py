@@ -11,7 +11,7 @@ from pathlib import Path
 
 class PluginSdkTests(unittest.TestCase):
     def setUp(self):
-        root = Path(__file__).resolve().parents[2]
+        root = Path(__file__).resolve().parents[3]
         path = root / "python/ty_extended/plugin_sdk.py"
         spec = importlib.util.spec_from_file_location("tested_plugin_sdk", path)
         self.sdk = importlib.util.module_from_spec(spec)

@@ -22,8 +22,8 @@ notify = "8.2"
 ctrlc = "3.5"
 mimalloc = { version = "=0.1.52", default-features = false, features = ["v2"] }
 shellexpand = { version = "=3.1.2", default-features = false, features = ["base-0", "tilde"] }
-ty_plugin_host = { path = "../crates/ty_plugin_host", default-features = false, features = ["plugins-monty"] }
-ty_plugin_protocol = { path = "../crates/ty_plugin_protocol" }
+ty_plugin_host = { workspace = true, features = ["plugins-monty"] }
+ty_plugin_protocol.workspace = true
 ruff_python_parser = "=0.0.22"
 ruff_python_ast = "=0.0.22"
 ruff_text_size = "=0.0.22"

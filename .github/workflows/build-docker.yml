@@ -11,7 +11,7 @@ name: Build Docker image
       - Dockerfile
       - pyproject.toml
       - uv.lock
-      - companion/**
+      - crates/ty_extended/**
       - ruff
       - .dockerignore
 env:

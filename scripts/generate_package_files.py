@@ -1,4 +1,4 @@
-"""Generate public companion files from its pinned source dependencies."""
+"""Generate public ty-extended files from its pinned source dependencies."""
 
 from __future__ import annotations
 
@@ -19,10 +19,10 @@ def main() -> None:
         "inside the sandbox `ty` prepends", "inside the sandbox ty-extended prepends"
     )
     (ROOT / "python/ty_extended/plugin_sdk.py").write_text(sdk)
-    source = (ROOT / "companion/src/cli.rs").read_text()
+    source = (ROOT / "crates/ty_extended/src/cli.rs").read_text()
     match = re.search(r'pub const HELP: &str = ("(?:[^"\\]|\\.)*");', source)
     if match is None:
-        raise RuntimeError("companion CLI help declaration not found")
+        raise RuntimeError("ty-extended CLI help declaration not found")
     help_text = json.loads(match[1])
     (ROOT / "docs/reference/cli.md").write_text(
         "# ty-extended CLI\n\nGenerated from ty-extended's public `check --help`. "

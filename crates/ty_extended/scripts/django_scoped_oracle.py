@@ -15,7 +15,7 @@ def main():
     parser.add_argument("--oracle", required=True, type=Path)
     parser.add_argument("--output", required=True, type=Path)
     args = parser.parse_args()
-    sdk = Path(__file__).resolve().parents[2] / "python/ty_extended/plugin_sdk.py"
+    sdk = Path(__file__).resolve().parents[3] / "python/ty_extended/plugin_sdk.py"
     plugin = args.django / "python/django_ty/monty.py"
     namespace = {}
     exec(

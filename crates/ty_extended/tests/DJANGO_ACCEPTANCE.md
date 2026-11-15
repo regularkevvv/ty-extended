@@ -26,7 +26,7 @@ the report; a partial matrix cannot report complete compatibility.
 Example, with absolute paths supplied by the caller:
 
 ```sh
-python companion/scripts/django_acceptance.py compare \
+python crates/ty_extended/scripts/django_acceptance.py compare \
   --django /path/to/django-ty \
   --output /tmp/django-acceptance \
   --fork /path/to/ty-extended-0.84.4 \
@@ -58,7 +58,7 @@ projects. It requires complete green acceptance reports from the exact binary,
 source inputs, Python target, and dependency environment being measured:
 
 ```sh
-python companion/scripts/django_benchmark.py \
+python crates/ty_extended/scripts/django_benchmark.py \
   --django /path/to/django-ty \
   --output /tmp/django-benchmark \
   --fork /path/to/ty-extended-0.84.4 \
@@ -97,19 +97,19 @@ fixture and source hashes before and after the unchanged Rust suite. Run all
 three modes (`cli`, `lsp`, `push`) with the generic fixture's 0.86 checker pair:
 
 ```sh
-python companion/scripts/collect_evidence.py run-generic \
+python crates/ty_extended/scripts/collect_evidence.py run-generic \
   --companion /path/to/release/ty-extended \
   --official /path/to/official-ty-0.0.86 \
   --fork /path/to/ty-extended-0.86.0 \
-  --fixtures "$PWD/companion/tests/fixtures/generic" \
+  --fixtures "$PWD/crates/ty_extended/tests/fixtures/generic" \
   --checker-mode push --output /tmp/final-generic-push
 ```
 
 After every gate passes, `collect_evidence.py export` writes portable reports to
-`companion/evidence` (the output directory must be new or empty):
+`crates/ty_extended/evidence` (the output directory must be new or empty):
 
 ```sh
-python companion/scripts/collect_evidence.py export \
+python crates/ty_extended/scripts/collect_evidence.py export \
   --acceptance-root /tmp/django-acceptance \
   --companion /path/to/release/ty-extended \
   --generic-cli /tmp/final-generic-cli \
@@ -142,7 +142,7 @@ Temporary paths become explicit artifact labels. Unmodified originals and the
 label mapping remain under the acceptance root; build trees and generated
 projections are not copied into the branch.
 
-Additional Rust gates use `cargo +1.98.0 test --release --manifest-path companion/Cargo.toml`. Select the binary/tests and environment below. Integration
+Additional Rust gates use `cargo +1.98.0 test --release --manifest-path crates/ty_extended/Cargo.toml`. Select the binary/tests and environment below. Integration
 tests require `-- --ignored --nocapture`; use fresh output directories.
 
 | Selection                      | Required environment                                                                                                                                                      |
@@ -153,12 +153,12 @@ tests require `-- --ignored --nocapture`; use fresh output directories.
 | `--test sdk_virtual_semantics` | `TY_COMPANION_TEST_OFFICIAL`, `TY_COMPANION_TEST_FORK`, `TY_COMPANION_SDK_OUTPUT` = fresh directory                                                                       |
 
 Use the 0.84 checker pair for these gates and `TY_MAX_PARALLELISM=1`. Harness
-checks are `python3 -m unittest discover -s companion/tests -p 'test_*.py'`.
+checks are `python3 -m unittest discover -s crates/ty_extended/tests -p 'test_*.py'`.
 
 The client-settings gate uses official ty 0.0.86 and real LSP sessions:
 
 ```sh
-python3 companion/scripts/lsp_configuration.py \
+python3 crates/ty_extended/scripts/lsp_configuration.py \
   --companion /path/to/ty-extended \
   --official /path/to/official-ty-0.0.86 \
   --output /tmp/client-settings-evidence

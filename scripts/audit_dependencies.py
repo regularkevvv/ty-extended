@@ -21,6 +21,16 @@ def main() -> None:
     if found:
         raise RuntimeError(f"Unexpected build dependencies: {sorted(found)}")
     for package in packages:
+        if package["source"] is None:
+            manifest = Path(package["manifest_path"])
+            if not manifest.is_relative_to(ROOT / "crates"):
+                raise RuntimeError(
+                    f"Local Rust package must live under crates/: {manifest}"
+                )
+            if package["publish"] != []:
+                raise RuntimeError(
+                    f"Internal Rust crate must not be published: {package['name']}"
+                )
         if "ruff-extended" in (package.get("source") or ""):
             raise RuntimeError("Build still depends on ruff-extended")
         if package["name"].startswith("ruff_"):

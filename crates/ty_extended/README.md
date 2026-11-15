@@ -6,13 +6,13 @@ analysis copies and maps editor responses and diagnostics back to the original
 files.
 
 ```sh
-cargo +1.98.0 build --release --manifest-path companion/Cargo.toml
+cargo +1.98.0 build --release --manifest-path crates/ty_extended/Cargo.toml
 
 # Use plugin and checker settings from ty.toml or [tool.ty] in pyproject.toml.
-companion/target/release/ty-extended check
+crates/ty_extended/target/release/ty-extended check
 
 # Configure the editor's language-server command to run this:
-companion/target/release/ty-extended server
+crates/ty_extended/target/release/ty-extended server
 ```
 
 The official checker is found through `TY_COMPANION_TY`, `--ty PATH`, or `ty` on
@@ -45,6 +45,7 @@ Settings changes preserve unsaved buffers; unchanged settings retain the checker
 regression testing. Their `--config` flag accepts plugin JSON; the normal `check`
 command uses ty's `-c/--config KEY=VALUE` convention.
 
-[STATUS.md](STATUS.md) records the tested checker versions, compatibility evidence,
-performance measurements, and limitations. [Django test instructions](tests/DJANGO_ACCEPTANCE.md)
+The [compatibility guide](../../docs/compatibility.md) and
+[performance guide](../../docs/performance.md) record current qualification.
+[STATUS.md](STATUS.md) retains historical development measurements. [Django test instructions](tests/DJANGO_ACCEPTANCE.md)
 cover the unchanged django-ty fixtures and supported version matrix.

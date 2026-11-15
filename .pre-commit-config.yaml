@@ -102,7 +102,7 @@ repos:
         # `scripts/autogenerate_files.sh`) and must not gain linter-driven imports.
         # Plugin artifacts under `.ty/` are Monty sandbox code, not project source.
         # Differential fixtures include negative syntax and fixed source coordinates.
-        exclude: (?x)^(python/ty_extended/plugin_sdk\.py)|(crates/ty_plugin_host/python/ty_plugin_sdk\.py)|(\.ty/)|(companion/tests/fixtures/)
+        exclude: (?x)^(python/ty_extended/plugin_sdk\.py)|(crates/ty_plugin_host/python/ty_plugin_sdk\.py)|(\.ty/)|(crates/ty_extended/tests/fixtures/)
         priority: 1
 
   # Priority 2: Second-pass fixers run after both formatters.
@@ -116,7 +116,7 @@ repos:
         # `scripts/autogenerate_files.sh`) and must not gain linter-driven imports.
         # Plugin artifacts under `.ty/` use ambient sandbox-prelude names.
         # Differential fixtures include negative syntax and fixed source coordinates.
-        exclude: (?x)^(python/ty_extended/plugin_sdk\.py)|(crates/ty_plugin_host/python/ty_plugin_sdk\.py)|(\.ty/)|(companion/tests/fixtures/)
+        exclude: (?x)^(python/ty_extended/plugin_sdk\.py)|(crates/ty_plugin_host/python/ty_plugin_sdk\.py)|(\.ty/)|(crates/ty_extended/tests/fixtures/)
         require_serial: true
         priority: 2
 

@@ -9,6 +9,9 @@ Entries below 0.74.0 say "extension" where they now would say "plugin"; the term
 
 ## Unreleased
 
+- Move the application into `crates/ty_extended` and update build, package, CI and release paths.
+- Stop publishing Rust SDK and protocol crates. Keep them as internal workspace dependencies; Python plugins use the bundled `ty_extended.plugin_sdk`.
+
 ## 0.90.0
 
 - Own the plugin host, protocol, SDK and examples in this repository. Depend on five published Ruff crates and remove the fork submodule; no Ruff source is vendored.

@@ -14,8 +14,11 @@ does not require a ty-extended release.
 
 Ruff parsing and notebook libraries are pinned registry dependencies. Our host,
 protocol and SDK crates live in this workspace; no fork checkout is required.
-Rust SDK and protocol crates remain independently versioned. Publishing
-ty-extended does not require republishing unchanged SDK crates.
+All Rust workspace crates are internal and set `publish = false`. Releases
+publish the application and bundled Python SDK; they do not publish Rust SDK
+or protocol crates to crates.io. Previously published crate versions remain
+available for historical consumers. Plugin authors use `ty_extended.plugin_sdk`
+and write Python plugins executed by Monty.
 
 ## Release gates
 
@@ -36,7 +39,7 @@ reading or storing a long-lived package token.
 
 Parts of `release.yml` are cargo-dist generated. Change `dist-workspace.toml` or a
 referenced reusable workflow, regenerate with cargo-dist 0.31.0, and inspect the
-diff. Custom build jobs package the application in `companion/`.
+diff. Custom build jobs package the application in `crates/ty_extended/`.
 Reviewed release gates and download/checksum steps are stored in
 `.github/release-customizations.json`. Regenerate the workflow reproducibly with:
 
@@ -52,7 +55,7 @@ Python bindings, semantic-engine dependencies and extension libraries.
 
 Keep build artifacts bounded: disable incremental builds, limit local compiler
 jobs, preserve required binaries and reports outside `target`, and run
-`cargo clean --manifest-path companion/Cargo.toml` after each build/test phase.
+`cargo clean --manifest-path crates/ty_extended/Cargo.toml` after each build/test phase.
 
 ## Historical distributions
 

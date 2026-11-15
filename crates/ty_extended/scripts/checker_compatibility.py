@@ -109,7 +109,7 @@ def main() -> int:
     args.fork = args.fork.resolve(strict=True)
     args.output = args.output.resolve()
     args.output.mkdir(parents=True, exist_ok=False)
-    repository = Path(__file__).resolve().parents[2]
+    repository = Path(__file__).resolve().parents[3]
     os.chdir(repository)
     env = {**os.environ, "TY_UV": "0", "TY_MAX_PARALLELISM": "1"}
     selected = args.gate or GATES
@@ -150,7 +150,7 @@ def main() -> int:
                     command = [
                         str(args.companion),
                         "suite",
-                        str(repository / "companion/tests/fixtures/generic"),
+                        str(repository / "crates/ty_extended/tests/fixtures/generic"),
                         str(root / gate),
                         gate.removeprefix("generic-"),
                         str(binary),
@@ -159,7 +159,7 @@ def main() -> int:
                 else:
                     command = [
                         sys.executable,
-                        str(repository / f"companion/scripts/{gate}.py"),
+                        str(repository / f"crates/ty_extended/scripts/{gate}.py"),
                         "--companion",
                         str(args.companion),
                         "--official",
