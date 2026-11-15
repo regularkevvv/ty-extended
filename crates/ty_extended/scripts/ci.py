@@ -6,6 +6,7 @@ from __future__ import annotations
 import argparse
 import gzip
 import hashlib
+import io
 import json
 import os
 import shutil
@@ -17,6 +18,26 @@ import urllib.request
 import venv
 import zipfile
 from pathlib import Path
+
+# The django-ty plugin repository is merged into this repo; the pinned
+# revisions live in git history with their original root layout, so the
+# historical (source, oracle) pairs the parity gates require can be
+# materialized locally without cloning from GitHub.
+DJANGO_REPO = Path(__file__).resolve().parents[3]
+DJANGO_PINNED = "9996e1b3e8a0656c988fd2b8deedb726b12fe575"
+DJANGO_SCOPED_PINNED = "5476b2be828f92d556440ce4165880648a20cf84"
+
+
+def checkout_pinned(source: Path, commit: str) -> None:
+    """Extract a pinned plugin revision from the merged git history."""
+    source.mkdir(parents=True, exist_ok=True)
+    archive = subprocess.run(
+        ["git", "-C", str(DJANGO_REPO), "archive", commit],
+        check=True,
+        stdout=subprocess.PIPE,
+    )
+    with tarfile.open(fileobj=io.BytesIO(archive.stdout), mode="r:") as package:
+        package.extractall(source, filter="data")
 
 
 def run(command: list[str], *, env: dict[str, str]) -> None:
@@ -124,21 +145,7 @@ def reference_checker(output: Path, env: dict[str, str]) -> Path:
 def django_gate(output: Path, binary: Path, env: dict[str, str], gates: Gates) -> None:
     """The real Django contract on Linux; the full version matrix also runs locally."""
     source = output / "django-source"
-    run(["git", "init", str(source)], env=env)
-    run(
-        [
-            "git",
-            "-C",
-            str(source),
-            "fetch",
-            "--depth",
-            "1",
-            "https://github.com/regularkevvv/django-ty.git",
-            "9996e1b3e8a0656c988fd2b8deedb726b12fe575",
-        ],
-        env=env,
-    )
-    run(["git", "-C", str(source), "checkout", "--detach", "FETCH_HEAD"], env=env)
+    checkout_pinned(source, DJANGO_PINNED)
     oracle = output / "django-oracle.jsonl"
     with gzip.open(
         "crates/ty_extended/evidence/protocol-inputs/oracle.jsonl.gz", "rb"
@@ -264,21 +271,7 @@ def scoped_django_gate(
 ) -> None:
     """Qualify the optimized plugin independently of the historical fork corpus."""
     source = output / "django-scoped-source"
-    run(["git", "init", str(source)], env=env)
-    run(
-        [
-            "git",
-            "-C",
-            str(source),
-            "fetch",
-            "--depth",
-            "1",
-            "https://github.com/regularkevvv/django-ty.git",
-            "5476b2be828f92d556440ce4165880648a20cf84",
-        ],
-        env=env,
-    )
-    run(["git", "-C", str(source), "checkout", "--detach", "FETCH_HEAD"], env=env)
+    checkout_pinned(source, DJANGO_SCOPED_PINNED)
     oracle = output / "django-scoped-oracle.jsonl"
     with gzip.open(
         "crates/ty_extended/evidence/protocol-inputs/django-0.7-oracle.jsonl.gz", "rb"

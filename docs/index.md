@@ -21,7 +21,8 @@ see [compatibility](compatibility.md) for the tested range and upgrade policy.
 - [FAQ](faq.md)
 - [Publishing](release-publishing.md)
 
-[`django-ty`](https://github.com/regularkevvv/django-ty) supplies Django ORM semantics.
+[`django-ty`](https://github.com/regularkevvv/ty-extended/tree/main/plugins/django-ty)
+supplies Django ORM semantics.
 For Python typing features and core checker behavior, use
 [Astral's documentation](https://docs.astral.sh/ty/).
 

@@ -1,0 +1,73 @@
+# Probe matrix for the Django version compatibility table.
+#
+# Each row runs the differential conformance corpus twice: once with the
+# reviewed supported mypy comparison (including upstream-declared partial
+# Django support where explicitly identified) and once with the django-ty candidate on
+# ty-extended, which evaluates against the reviewed native ORM and modern
+# static declaration layer packaged in the wheel.
+#
+# `declared = true` means the Django version satisfies the wheel's
+# `Django>=5.0,<6.2` dependency. Rows outside the range still run: the
+# candidate wheel is installed with `--no-deps` so the probe measures what the
+# plugin actually does there instead of what the resolver allows.
+#
+# django_stubs_commit pins the upstream release tag for provenance only; the
+# probe installs the published django-stubs version, not a source checkout.
+
+[matrix]
+python = ["3.10", "3.11", "3.12", "3.13", "3.14"]
+description = "Per-version differential conformance probes for the Django compatibility table"
+
+[[matrix.probe]]
+django = "5.0.14"
+python = ["3.10", "3.11", "3.12"]
+mypy = "1.11.2"
+django_stubs = "5.0.4"
+django_stubs_commit = "d60e31ed0ac4e4115f9ef20041521c201391d592"
+declared = true
+note = "Inside the declared range (EOL upstream)."
+
+[[matrix.probe]]
+django = "5.1.15"
+python = ["3.10", "3.11", "3.12", "3.13"]
+mypy = "1.15.0"
+django_stubs = "5.1.3"
+django_stubs_commit = "7e50d7bdb16372ecb4a5d913748eba101082120b"
+declared = true
+note = "Inside the declared range (EOL upstream)."
+
+[[matrix.probe]]
+django = "5.2.19"
+python = ["3.10", "3.11", "3.12", "3.13", "3.14"]
+mypy = "2.3.1"
+django_stubs = "6.0.9"
+django_stubs_commit = "942bca5e63f897a157f5d8ee649ca90e9a69003b"
+declared = true
+note = "Inside the declared range (5.2 LTS)."
+
+[[matrix.probe]]
+django = "6.0.10"
+python = ["3.12", "3.13", "3.14"]
+mypy = "2.3.1"
+django_stubs = "6.0.9"
+django_stubs_commit = "942bca5e63f897a157f5d8ee649ca90e9a69003b"
+declared = true
+note = "Inside the declared range."
+
+[[matrix.probe]]
+django = "6.1.1"
+python = ["3.12", "3.13", "3.14"]
+mypy = "2.4.1"
+django_stubs = "6.1.2"
+django_stubs_commit = "fa03b48b8cdfe336065f5ad8eb51fbcc40c6b1d2"
+declared = true
+note = "Inside the declared range; pinned conformance baseline."
+
+[[matrix.probe]]
+django = "6.1.3"
+python = ["3.12", "3.13", "3.14"]
+mypy = "2.4.1"
+django_stubs = "6.1.2"
+django_stubs_commit = "fa03b48b8cdfe336065f5ad8eb51fbcc40c6b1d2"
+declared = true
+note = "Latest Django patch in the supported 6.1 line."

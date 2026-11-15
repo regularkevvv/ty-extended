@@ -24,8 +24,10 @@ from performance_reference import (
     REFERENCE_COMMIT,
 )
 
-DJANGO_COMMIT = "6e55703a95b48015f6fead73452b0c92cba99f32"
 SCRIPTS = Path(__file__).resolve().parent
+# The django-ty plugin repository is merged into this repo; benchmarks run
+# against the vendored HEAD, copied into the output directory before use.
+DJANGO_SOURCE = (SCRIPTS.parents[2] / "plugins" / "django-ty").resolve()
 
 
 def run(command: list[str | Path]) -> None:
@@ -165,7 +167,7 @@ def main() -> int:
     os.environ["TY_COMPANION_TRACE_PHASES"] = "1"
     report = {
         "passed": False,
-        "django_commit": DJANGO_COMMIT,
+        "django_source": str(DJANGO_SOURCE),
         "companion_sha256": hashlib.sha256(args.companion.read_bytes()).hexdigest(),
         "production_defaults": args.production_defaults,
     }
@@ -182,24 +184,7 @@ def main() -> int:
     environments = [output / name for name in ("candidate", "native", "reference")]
     try:
         source = output / "django-source"
-        run(["git", "init", source])
-        run(
-            [
-                "git",
-                "-C",
-                source,
-                "fetch",
-                "--depth",
-                "1",
-                "https://github.com/regularkevvv/django-ty.git",
-                DJANGO_COMMIT,
-            ]
-        )
-        run(["git", "-C", source, "checkout", "--detach", "FETCH_HEAD"])
-        actual = subprocess.check_output(
-            ["git", "-C", source, "rev-parse", "HEAD"], text=True
-        ).strip()
-        assert actual == DJANGO_COMMIT
+        shutil.copytree(DJANGO_SOURCE, source)
         provider = source / "python/django_ty/stubs"
         provider_before = provider_state(provider)
         report["provider_snapshot_before"] = provider_before

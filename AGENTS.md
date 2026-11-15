@@ -6,6 +6,8 @@ Use “ty-extended” and “plugin” in current human-readable descriptions. T
 
 All Rust packages live under `crates/`, including the application in `crates/ty_extended`. Do not introduce a separate top-level application directory. Rust SDK and protocol crates are internal and must remain non-publishable; the public plugin SDK is `ty_extended.plugin_sdk` for Python plugins executed by Monty.
 
+Published plugins live under `plugins/`; `plugins/django-ty` is the first, published to PyPI as `django-ty`. Plugin trees keep their own build, test and lint configuration.
+
 The primary executable is `tyx` (`tyx check`, `tyx server`). Keep `ty-extended` as a compatibility command and as the package/repository name. Prefer `tyx` in current command examples; preserve historical receipts.
 
 ## Development

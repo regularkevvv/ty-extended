@@ -70,7 +70,7 @@ flowchart LR
     extended <-->|Analysis copies and public LSP| ty[Unchanged official ty]
 ```
 
-[`django-ty`](https://github.com/regularkevvv/django-ty) provides Django ORM support.
+[`django-ty`](plugins/django-ty) provides Django ORM support.
 See [installation and migration](docs/installation.md), [compatibility](docs/compatibility.md),
 [editor setup](docs/editors.md), [plugin authoring](docs/plugin-authoring.md),
 and [runtime behavior](docs/plugin-runtime.md).
