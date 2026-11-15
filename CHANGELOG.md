@@ -17,6 +17,10 @@ Entries below 0.74.0 say "extension" where they now would say "plugin"; the term
 
 - Wire `claims.decorators` to call hooks: bare `@name` decorators synthesize a `decorator(function)` application marked `"decorator": true`, apply bottom-up, and retype the definition through the decorator's own application. Manifests without decorator claims skip the work entirely.
 
+- Attach a `generator` payload to generator-expression call arguments: each clause's iterated type and source span, `if`-filter count, `async` flags, and the yielded element's type and source span. Lets plugins inspect comprehension internals the inferred type cannot show.
+
+- Honor plugin diagnostic `location` spans: a diagnostic carrying an explicit `file-path`/`start`/`end` location attaches there instead of the hooked expression, matching upstream plugin behavior for comprehension-clause and in-argument errors.
+
 ## 0.91.0
 
 - Use `tyx check` and `tyx server` as the primary commands. Keep the `ty-extended` package name and native compatibility launcher.

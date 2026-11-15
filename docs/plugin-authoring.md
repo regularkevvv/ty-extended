@@ -279,6 +279,39 @@ expression. Manifests without `claims.decorators` incur no extra requests;
 decorators with call arguments (`@factory(...)`) already produce ordinary call
 sites and keep their `functions`/`methods` routing.
 
+### Generator-expression arguments
+
+A call argument written as a generator expression also carries a `generator`
+payload describing the comprehension so plugins can inspect clauses that are
+invisible to the inferred type:
+
+```json
+{
+  "generator": {
+    "is-async": false,
+    "clauses": [
+      {"iter-type": {"kind": "..."}, "iter-source": {"file-path": "...", "start": ..., "end": ...},
+       "conditions": 1, "is-async": false}
+    ],
+    "yield-type": {"kind": "..."},
+    "yield-source": {"file-path": "...", "start": ..., "end": ...}
+  }
+}
+```
+
+Each clause records the iterated expression's type snapshot and source span,
+the number of `if` filters, and `async for`; `yield-type`/`yield-source`
+describe the element expression. This mirrors what AST-walking plugins in other
+hosts use for `do`-notation-style APIs (`Container.do(x for x in seq)`).
+
+### Diagnostic locations
+
+`diagnostic(..., location=...)` accepts a source span of the same shape as
+`iter-source`/`yield-source` (`{"file-path", "start", "end"}`). When present,
+the emitted diagnostic attaches to that span instead of the hooked call,
+decorator or mutation expression — needed for comprehension-clause errors and
+other diagnostics that legitimately point inside an argument.
+
 ## Test and publish
 
 Run the plugin through the installed ty-extended in CLI and editor sessions. Check

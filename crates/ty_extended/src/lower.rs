@@ -985,7 +985,7 @@ fn class_patch(
     }
     types.definitions.push_str(&helper_code);
     for diagnostic in response["diagnostics"].as_array().into_iter().flatten() {
-        diagnostics.push(json!({"diagnostic":diagnostic,"source":source.location(span(class))}));
+        diagnostics.push(json!({"diagnostic":diagnostic,"source":source.diagnostic_source(diagnostic, span(class))}));
     }
     types.set_self_context(previous_self);
     let declared = field_types.keys().cloned().collect();
@@ -1301,6 +1301,20 @@ impl<'a> Visitor<'a> for Calls<'_> {
                     // reveal just to confirm that already indexed identity.
                     site.receiver_span = None;
                     site.receiver_type = None;
+                }
+                // Generator-expression arguments need their clause iter and
+                // yield types probed so flow can ship them to plugins.
+                for argument in &call.arguments.args {
+                    if let Expr::Generator(genexp) = argument {
+                        for clause in &genexp.generators {
+                            self.probes
+                                .insert(span(&clause.iter), expression_key(span(&clause.iter)));
+                        }
+                        self.probes.insert(
+                            span(genexp.elt.as_ref()),
+                            expression_key(span(genexp.elt.as_ref())),
+                        );
+                    }
                 }
                 self.calls.insert(span(call), site);
             }
@@ -1681,7 +1695,7 @@ pub fn analyze_with_oracle(
             .flatten()
             .filter(|diagnostic| diagnostic.get("runtime-error").is_some())
         {
-            diagnostics.push(json!({"diagnostic":diagnostic,"source":source.location(call.span)}));
+            diagnostics.push(json!({"diagnostic":diagnostic,"source":source.diagnostic_source(diagnostic, call.span)}));
         }
     }
     let (prelude, support_modules) = types.outlined_prelude()?;

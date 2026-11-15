@@ -522,6 +522,14 @@ impl ProjectChecker {
     pub fn sync_documents(&mut self, sources: &BTreeMap<PathBuf, String>) -> Result<()> {
         self.sync_documents_deferred(sources, &BTreeSet::new())
     }
+    /// The URI a document was opened under — memory-projection probes use a
+    /// virtual URI rather than their real path.
+    pub fn document_uri(&self, path: &Path) -> Result<String> {
+        self.documents
+            .get(path)
+            .map(|(uri, _, _)| uri.clone())
+            .with_context(|| format!("document {path:?} is not open"))
+    }
     fn imported_from_another_workspace(&self, path: &Path) -> bool {
         self.external_sources.contains(path)
             || self

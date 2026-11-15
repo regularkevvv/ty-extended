@@ -3413,6 +3413,9 @@ fn prepare_call_request(
                     value["type-expr"]["snapshot"] = snapshot.clone();
                 }
             }
+            if let Some(generator) = &arg.generator {
+                value["generator"] = generator.clone();
+            }
             value
         })
         .collect();
@@ -3487,7 +3490,7 @@ def state(request):
             span: Span { start: position, end: position + 1 },
             function: Span { start: position, end: position + 1 },
             callee: "demo.Manager.get".into(),
-            arguments: vec![crate::model::Argument { span: Span { start: position, end: position + 1 }, name: Some("key".into()), literal: json!({"kind":"int","value": if position == 0 {-1} else {position as i64}}), kind: "keyword", inferred_type: None }],
+            arguments: vec![crate::model::Argument { span: Span { start: position, end: position + 1 }, name: Some("key".into()), literal: json!({"kind":"int","value": if position == 0 {-1} else {position as i64}}), kind: "keyword", inferred_type: None, generator: None }],
             receiver_span: None,
             receiver_type: Some("demo.Manager".into()),
             flow_receiver_type: Some("demo.Manager".into()),
@@ -3605,7 +3608,7 @@ def state(request):
             span: Span { start: position, end: position + 1 },
             function: Span { start: position, end: position + 1 },
             callee: "demo.Manager.get".into(),
-            arguments: vec![crate::model::Argument { span: Span { start: position, end: position + 1 }, name: Some("key".into()), literal: json!({"kind":"int","value": if position == 0 {-1} else {position as i64}}), kind: "keyword", inferred_type: None }],
+            arguments: vec![crate::model::Argument { span: Span { start: position, end: position + 1 }, name: Some("key".into()), literal: json!({"kind":"int","value": if position == 0 {-1} else {position as i64}}), kind: "keyword", inferred_type: None, generator: None }],
             receiver_span: None,
             receiver_type: Some("demo.Manager".into()),
             flow_receiver_type: Some("demo.Manager".into()),
@@ -5281,6 +5284,7 @@ def member_hook(request):
                 literal: json!({"kind":"int","value":1}),
                 kind: "positional",
                 inferred_type: None,
+                generator: None,
             }],
             receiver_span: None,
             receiver_type: None,

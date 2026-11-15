@@ -427,6 +427,7 @@ mod tests {
         type_expr: Option<&str>,
     ) -> ArgumentSummary {
         ArgumentSummary {
+            generator: None,
             name: name.map(str::to_string),
             kind,
             type_expr: type_expr.map(TypeExpr::annotation),

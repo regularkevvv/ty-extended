@@ -718,11 +718,20 @@ impl Types {
         } else {
             format!("[{}]", declared.join(", "))
         };
+        // A snapshot parameter may itself be named `self` (curried methods);
+        // keep the instance slot collision-free.
+        let mut instance = "self".to_string();
+        while params
+            .iter()
+            .any(|entry| entry.starts_with(&format!("{instance}:")))
+        {
+            instance = format!("_{instance}");
+        }
         let members = params.join(", ");
         let signature = if members.is_empty() {
-            "self".into()
+            instance
         } else {
-            format!("self, {members}")
+            format!("{instance}, {members}")
         };
         Ok(format!(
             "def __call__{generics}({signature}) -> {returns}: ..."

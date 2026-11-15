@@ -332,6 +332,7 @@ mod tests {
                     arguments: sender
                         .into_iter()
                         .map(|value| ArgumentSummary {
+                            generator: None,
                             name: Some("sender".into()),
                             kind: ArgumentKind::Keyword,
                             value,
@@ -356,6 +357,7 @@ mod tests {
             },
             receiver: None,
             arguments: vec![ArgumentSummary {
+                generator: None,
                 name: Some("sender".into()),
                 kind: ArgumentKind::Keyword,
                 value: LiteralValue::SymbolRef(SymbolRef {

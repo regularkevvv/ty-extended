@@ -94,6 +94,20 @@ impl Source {
             ("end", self.position(s.end)),
         ])
     }
+
+    /// A plugin diagnostic may point at a different span than the hooked
+    /// expression (e.g. a comprehension clause); prefer its `location`.
+    pub fn diagnostic_source(&self, diagnostic: &Value, fallback: Span) -> Value {
+        diagnostic
+            .get("location")
+            .filter(|location| {
+                location["file-path"].is_string()
+                    && location["start"].is_object()
+                    && location["end"].is_object()
+            })
+            .cloned()
+            .unwrap_or_else(|| self.location(fallback))
+    }
     pub fn cast_name(&self) -> String {
         format!("{}cast", self.prefix)
     }
@@ -106,6 +120,9 @@ pub struct Argument {
     pub literal: Value,
     pub kind: &'static str,
     pub inferred_type: Option<Value>,
+    /// Generator-expression structure captured during flow: clause iter
+    /// types, `if` counts, async flags, and the yield type.
+    pub generator: Option<Value>,
 }
 #[derive(Clone)]
 pub struct CallSite {
@@ -243,6 +260,7 @@ pub fn call_site(call: &ruff_python_ast::ExprCall, callee: String) -> CallSite {
             name: None,
             literal: literal(a),
             inferred_type: None,
+            generator: None,
             kind: if matches!(a, ruff_python_ast::Expr::Starred(_)) {
                 "star-args"
             } else {
@@ -255,6 +273,7 @@ pub fn call_site(call: &ruff_python_ast::ExprCall, callee: String) -> CallSite {
         name: k.arg.as_ref().map(ToString::to_string),
         literal: literal(&k.value),
         inferred_type: None,
+        generator: None,
         kind: if k.arg.is_some() {
             "keyword"
         } else {
