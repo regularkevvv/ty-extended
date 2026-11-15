@@ -36,9 +36,7 @@ def checkout_pinned(source: Path, commit: str) -> None:
         check=True,
         stdout=subprocess.PIPE,
     )
-    with tarfile.open(
-        fileobj=io.BytesIO(archive.stdout), mode="r:"
-    ) as package:
+    with tarfile.open(fileobj=io.BytesIO(archive.stdout), mode="r:") as package:
         package.extractall(source, filter="data")
 
 
