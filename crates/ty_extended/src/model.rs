@@ -116,6 +116,9 @@ pub struct CallSite {
     pub receiver_span: Option<Span>,
     pub receiver_type: Option<String>,
     pub flow_receiver_type: Option<String>,
+    /// Synthesized application of a bare decorator (`@curry` as `curry(f)`):
+    /// routes through `claims.decorators` instead of `claims.functions`.
+    pub decorator: bool,
 }
 impl CallSite {
     pub fn argument_key(&self, index: usize) -> String {
@@ -269,6 +272,7 @@ pub fn call_site(call: &ruff_python_ast::ExprCall, callee: String) -> CallSite {
         },
         receiver_type: None,
         flow_receiver_type: None,
+        decorator: false,
     }
 }
 

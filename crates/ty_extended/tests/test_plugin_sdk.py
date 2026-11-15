@@ -67,6 +67,43 @@ class PluginSdkTests(unittest.TestCase):
         value["value"].append(2)
         self.assertEqual(self.sdk.project_index_value(request, ["a/b", "value"]), [1])
 
+    def test_callable_snapshot_builders_round_trip_to_expression(self):
+        self.assertEqual(self.sdk.PROTOCOL_VERSION["minor"], 10)
+        integer = self.sdk.snapshot_nominal("builtins.int")
+        string = self.sdk.snapshot_nominal("builtins.str")
+        parameters = [
+            self.sdk.snapshot_parameter("a", integer),
+            self.sdk.snapshot_parameter(
+                "key", string, kind="keyword-only", required=False
+            ),
+            self.sdk.snapshot_parameter("rest", integer, kind="kwargs"),
+        ]
+        snapshot = self.sdk.snapshot_callable(parameters, integer)
+        self.assertEqual(snapshot["kind"], "callable")
+        self.assertEqual(
+            self.sdk.snapshot_to_expression(snapshot),
+            "(a: builtins.int, key: builtins.str, **rest: builtins.int) -> builtins.int",
+        )
+        spec = self.sdk.snapshot_callable(
+            [
+                self.sdk.snapshot_parameter(
+                    type_snapshot=self.sdk.snapshot_expression("P"), kind="param-spec"
+                )
+            ],
+            integer,
+            type_params=[
+                self.sdk.snapshot_type_param("P", kind="param-spec"),
+                self.sdk.snapshot_type_param("T", bound=integer),
+            ],
+            display="def f[T](**P) -> int",
+        )
+        self.assertEqual(spec["type-params"][1]["bound"], integer)
+        self.assertEqual(self.sdk.snapshot_to_expression(spec), "def f[T](**P) -> int")
+        variadic = self.sdk.snapshot_callable(return_type=string, ellipsis=True)
+        self.assertEqual(
+            self.sdk.snapshot_to_expression(variadic), "(...) -> builtins.str"
+        )
+
 
 if __name__ == "__main__":
     unittest.main()

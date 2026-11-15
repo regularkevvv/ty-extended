@@ -15,7 +15,8 @@ use serde_json::{Value, json};
 
 use crate::mapping::Edits;
 use crate::model::{
-    Analysis, Oracle, ReturnPatches, Source, Span, call_site, expression_key, literal, span, typ,
+    Analysis, CallSite, Oracle, ReturnPatches, Source, Span, call_site, expression_key, literal,
+    span, typ,
 };
 use crate::runtime::{Runtime, call_request};
 use crate::type_render::Types;
@@ -456,6 +457,94 @@ impl Project<'_> {
         self.body(&mut sub, &function.body)
     }
 
+    /// Fire claimed decorator applications (`@name` as `name(f)`) so plugins
+    /// can replace the decorated definition's type. Bare-name decorators are
+    /// the only applications the checker does not already model as call sites;
+    /// `@factory(arg)` dispatches its inner call through the ordinary path.
+    fn decorator_applications(
+        &mut self,
+        scope: &mut Scope,
+        function: &ruff_python_ast::StmtFunctionDef,
+    ) -> Result<()> {
+        if function.decorator_list.is_empty() || !self.runtime.has_decorator_claims() {
+            return Ok(());
+        }
+        // The undecorated signature seeds the chain; each applied patch feeds
+        // the next decorator in bottom-up application order.
+        let owner = scope
+            .class_owner
+            .as_ref()
+            .map_or(self.source.module.as_str(), String::as_str);
+        let parameters = self.source.slice(span(function.parameters.as_ref()));
+        let parameters = parameters
+            .strip_prefix('(')
+            .and_then(|text| text.strip_suffix(')'))
+            .unwrap_or(parameters);
+        let returns = function
+            .returns
+            .as_ref()
+            .map(|returns| self.source.slice(span(returns.as_ref())))
+            .unwrap_or("Unknown");
+        let signature = format!("def {owner}.{}({parameters}) -> {returns}", function.name);
+        let mut decorated = self.runtime.type_expr(self.source, &signature);
+        for decorator in function.decorator_list.iter().rev() {
+            let expression = &decorator.expression;
+            if !matches!(expression, Expr::Name(_) | Expr::Attribute(_)) {
+                continue;
+            }
+            let callee = self
+                .runtime
+                .canonical_name(self.source, self.source.slice(span(expression)));
+            let call = CallSite {
+                span: span(expression),
+                function: span(expression),
+                callee,
+                arguments: vec![crate::model::Argument {
+                    span: span(&function.name),
+                    name: None,
+                    literal: json!({"kind":"unknown"}),
+                    kind: "positional",
+                    inferred_type: Some(decorated.clone()),
+                }],
+                receiver_span: None,
+                receiver_type: None,
+                flow_receiver_type: None,
+                decorator: true,
+            };
+            let response = crate::runtime::call_request(
+                self.runtime,
+                self.source,
+                "adjust-call-return",
+                &call,
+                self.oracle,
+                None,
+            )?;
+            for diagnostic in response["diagnostics"].as_array().into_iter().flatten() {
+                self.result.diagnostics.push(json!({
+                    "diagnostic":diagnostic,
+                    "source":self.source.location(span(expression)),
+                }));
+            }
+            if response["kind"] == "call-return-patch" {
+                let rendered = self.types.render(&response["return-type"])?;
+                let input = self.types.render(&decorated)?;
+                let typing = self.types.typing_alias();
+                // `cast` retypes the decorator itself, so the checker's own
+                // application yields the patched type for the definition —
+                // a post-definition rebind would fight the declared binding.
+                self.result.edits.replace(
+                    span(expression),
+                    format!(
+                        "{typing}.cast({typing}.Callable[[{input}], {rendered}], {})",
+                        self.source.slice(span(expression))
+                    ),
+                );
+                decorated = response["return-type"].clone();
+            }
+        }
+        Ok(())
+    }
+
     fn stmt(&mut self, scope: &mut Scope, stmt: &Stmt) -> Result<()> {
         match stmt {
             Stmt::ClassDef(class) => {
@@ -492,6 +581,7 @@ impl Project<'_> {
                 for decorator in &function.decorator_list {
                     self.expr(scope, &decorator.expression)?;
                 }
+                self.decorator_applications(scope, function)?;
                 for parameter in function.parameters.iter_non_variadic_params() {
                     if let Some(default) = &parameter.default {
                         self.expr(scope, default)?;
@@ -2269,6 +2359,66 @@ mod tests {
         fn drop(&mut self) {
             let _ = std::fs::remove_dir_all(&self.directory);
         }
+    }
+
+    #[test]
+    fn claimed_decorators_apply_as_synthesized_calls_and_retype_the_definition() {
+        let manifest = json!({
+            "id":"native.decorator","name":"Decorator","version":"0.0.0",
+            "protocol-version":{"major":0,"minor":10},
+            "ty-compatibility":{"requirement":">=0.87.0"},
+            "runtime":{"kind":"monty","artifact":"plugin.py"},
+            "capabilities":{"call-return":true},
+            "claims":{"decorators":[{"qualified-name":"demo.wrap"}]}
+        });
+        let plugin = "@on_call_return\ndef result(request):\n    assert request['decorator'] == True\n    arg = request['arguments'][0]['type-expr']\n    assert arg['snapshot']['kind'] == 'callable', arg\n    snapshot = arg['snapshot']\n    result = snapshot['return-type']\n    for parameter in reversed(snapshot['parameters']):\n        result = snapshot_callable([snapshot_parameter(type_snapshot=parameter.get('type-snapshot'), kind='positional-only')], result)\n    return call_return_patch(type_expr_from_snapshot(result))\n";
+        let text =
+            "def wrap(fn): return fn\n@wrap\ndef add(a: int, b: int) -> int:\n    return a + b\n";
+        let mut fixture = Fixture::from_parts(text.into(), manifest, plugin);
+        let flow = project(
+            &fixture.source,
+            &fixture.suite,
+            &mut fixture.analysis,
+            &mut fixture.runtime,
+        )
+        .unwrap();
+        let projected = crate::mapping::render(&fixture.source, &flow.edits).unwrap();
+        assert!(
+            projected.text.contains(".cast("),
+            "decorator expression retypes through cast: {}",
+            projected.text
+        );
+        assert!(
+            projected.text.contains("@"),
+            "decorator line preserved: {}",
+            projected.text
+        );
+        assert!(fixture.runtime.executions >= 1);
+    }
+
+    #[test]
+    fn unclaimed_decorators_skip_synthesis_entirely() {
+        let manifest = json!({
+            "id":"native.no-decorator","name":"No decorator claims","version":"0.0.0",
+            "protocol-version":{"major":0,"minor":10},
+            "ty-compatibility":{"requirement":">=0.87.0"},
+            "runtime":{"kind":"monty","artifact":"plugin.py"},
+            "capabilities":{"call-return":true},
+            "claims":{"functions":[{"qualified-name":"demo.other"}]}
+        });
+        let plugin = "@on_call_return\ndef result(request):\n    return call_return_patch(type_annotation('int'))\n";
+        let text = "def wrap(fn): return fn\n@wrap\ndef add(a: int) -> int:\n    return a\n";
+        let mut fixture = Fixture::from_parts(text.into(), manifest, plugin);
+        let flow = project(
+            &fixture.source,
+            &fixture.suite,
+            &mut fixture.analysis,
+            &mut fixture.runtime,
+        )
+        .unwrap();
+        let projected = crate::mapping::render(&fixture.source, &flow.edits).unwrap();
+        assert_eq!(projected.text, fixture.source.text);
+        assert_eq!(fixture.runtime.executions, 0);
     }
 
     #[test]

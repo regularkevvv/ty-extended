@@ -41,6 +41,7 @@ fn call_request() -> PluginRequest {
         }],
         existing_signature: None,
         default_return_type: None,
+        decorator: false,
         project_index: None,
     })
 }
@@ -459,6 +460,7 @@ fn unclaimed_hooks_get_no_change() {
         arguments: Vec::new(),
         existing_signature: None,
         default_return_type: None,
+        decorator: false,
         project_index: None,
     });
     let response = host
@@ -525,6 +527,7 @@ def index(request):
                 arguments: Vec::new(),
                 existing_signature: None,
                 default_return_type: None,
+                decorator: false,
                 project_index: None,
             }),
         )
@@ -689,6 +692,7 @@ def index(request):
         arguments: Vec::new(),
         existing_signature: None,
         default_return_type: None,
+        decorator: false,
         project_index: None,
     });
     let response = host

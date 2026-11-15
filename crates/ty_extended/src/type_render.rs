@@ -524,6 +524,155 @@ impl Types {
             // The pinned checker deliberately lowers snapshot Annotated to its
             // base. Result metadata travels through the separate SDK field.
             "annotated" => return self.snapshot(&value["base"]),
+            "callable" => {
+                let returns = self.snapshot_or_unknown(&value["return-type"])?;
+                let parameters = value["parameters"]
+                    .as_array()
+                    .map(Vec::as_slice)
+                    .unwrap_or(&[]);
+                let type_params = value["type-params"]
+                    .as_array()
+                    .map(Vec::as_slice)
+                    .unwrap_or(&[]);
+                let typing = self.typing_alias();
+                if value["ellipsis"] == true {
+                    format!("{typing}.Callable[..., {returns}]")
+                } else if type_params.is_empty()
+                    && parameters.iter().all(|parameter| {
+                        parameter["name"].is_null()
+                            && matches!(
+                                parameter["kind"].as_str(),
+                                Some("positional-only" | "positional-or-keyword")
+                            )
+                    })
+                {
+                    // `Callable[[A, B], R]` expresses unnamed positional
+                    // signatures; richer shapes need the Protocol helper.
+                    let types = parameters
+                        .iter()
+                        .map(|parameter| match parameter.get("type-snapshot") {
+                            Some(snapshot) => self.snapshot_or_unknown(snapshot),
+                            None => Ok(self.unknown()),
+                        })
+                        .collect::<Result<Vec<_>>>()?;
+                    format!("{typing}.Callable[[{}], {returns}]", types.join(", "))
+                } else {
+                    let key = serde_json::to_string(value)?;
+                    if let Some(alias) = self.snapshots.get(&key) {
+                        return Ok(Some(alias.clone()));
+                    }
+                    let alias = format!("{}snapshot_{}", self.prefix, self.snapshots.len());
+                    self.snapshots.insert(key, alias.clone());
+                    let mut declared: Vec<String> = type_params
+                        .iter()
+                        .map(|param| {
+                            let name = param["name"].as_str().unwrap_or("T");
+                            let prefix = match param["kind"].as_str() {
+                                Some("param-spec") => "**",
+                                Some("type-var-tuple") => "*",
+                                _ => "",
+                            };
+                            let bound = param
+                                .get("bound")
+                                .map(|bound| {
+                                    self.snapshot_or_unknown(bound)
+                                        .map(|bound| format!(": {bound}"))
+                                })
+                                .transpose()?
+                                .unwrap_or_default();
+                            let constraints = param["constraints"]
+                                .as_array()
+                                .into_iter()
+                                .flatten()
+                                .map(|constraint| self.snapshot_or_unknown(constraint))
+                                .collect::<Result<Vec<_>>>()?;
+                            let constraint = if constraints.is_empty() {
+                                bound
+                            } else {
+                                format!(": ({})", constraints.join(", "))
+                            };
+                            let default = param
+                                .get("default")
+                                .map(|default| {
+                                    self.snapshot_or_unknown(default)
+                                        .map(|default| format!(" = {default}"))
+                                })
+                                .transpose()?
+                                .unwrap_or_default();
+                            Ok(format!("{prefix}{name}{constraint}{default}"))
+                        })
+                        .collect::<Result<Vec<_>>>()?;
+                    let mut starred = false;
+                    let mut params = Vec::new();
+                    for (index, parameter) in parameters.iter().enumerate() {
+                        let kind = parameter["kind"]
+                            .as_str()
+                            .unwrap_or("positional-or-keyword");
+                        if kind == "param-spec" {
+                            let spec = parameter["name"]
+                                .as_str()
+                                .or_else(|| parameter["type-snapshot"]["expression"].as_str())
+                                .unwrap_or("P")
+                                .to_owned();
+                            if !declared.iter().any(|entry| entry.contains(&spec)) {
+                                declared.push(format!("**{spec}"));
+                            }
+                            params.push(format!("*args: {spec}.args"));
+                            params.push(format!("**kwargs: {spec}.kwargs"));
+                            continue;
+                        }
+                        let name = parameter["name"]
+                            .as_str()
+                            .map(str::to_owned)
+                            .unwrap_or_else(|| format!("arg{index}"));
+                        let ty = match parameter.get("type-snapshot") {
+                            Some(snapshot) => self.snapshot_or_unknown(snapshot)?,
+                            None => format!("{}.object", self.builtins_alias()),
+                        };
+                        match kind {
+                            "var-args" => {
+                                starred = true;
+                                params.push(format!("*{name}: {ty}"));
+                            }
+                            "kwargs" => params.push(format!("**{name}: {ty}")),
+                            _ => {
+                                if kind == "keyword-only" && !starred {
+                                    params.push("*".into());
+                                    starred = true;
+                                }
+                                let default = if parameter["required"].as_bool() == Some(false) {
+                                    format!(" = {}", self.placeholder())
+                                } else {
+                                    String::new()
+                                };
+                                params.push(format!("{name}: {ty}{default}"));
+                                if kind == "positional-only"
+                                    && parameters
+                                        .get(index + 1)
+                                        .is_none_or(|next| next["kind"] != "positional-only")
+                                {
+                                    params.push("/".into());
+                                }
+                            }
+                        }
+                    }
+                    let generics = if declared.is_empty() {
+                        String::new()
+                    } else {
+                        format!("[{}]", declared.join(", "))
+                    };
+                    let members = params.join(", ");
+                    let signature = if members.is_empty() {
+                        "self".into()
+                    } else {
+                        format!("self, {members}")
+                    };
+                    self.definitions.push_str(&format!(
+                        "class {alias}({typing}.Protocol):\n    def __call__{generics}({signature}) -> {returns}: ...\n"
+                    ));
+                    alias
+                }
+            }
             kind => bail!("unsupported type snapshot {kind}"),
         };
         Ok(Some(result))
@@ -1592,5 +1741,61 @@ mod tests {
             definition["shape"]["members"][0]["access"]["type-expr"]["expression"],
             "ty_extensions._internal.Unknown"
         );
+    }
+
+    #[test]
+    fn callable_snapshots_render_simple_callables_and_protocol_helpers() -> Result<()> {
+        let int =
+            serde_json::json!({"kind":"nominal","qualified-name":"builtins.int","arguments":[]});
+        let string =
+            serde_json::json!({"kind":"nominal","qualified-name":"builtins.str","arguments":[]});
+        let mut types = Types::new("_generated_", "models");
+        let simple = serde_json::json!({"kind":"callable","parameters":[
+            {"name":null,"kind":"positional-only","type-snapshot":int,"required":true},
+            {"name":null,"kind":"positional-or-keyword","type-snapshot":string,"required":true}],
+            "return-type":int});
+        let rendered = types.snapshot(&simple)?.expect("callable snapshot renders");
+        assert_eq!(
+            rendered,
+            format!(
+                "{0}.Callable[[{1}.int, {1}.str], {1}.int]",
+                types.typing_alias(),
+                types.builtins_alias()
+            )
+        );
+
+        let mut types = Types::new("_generated_", "models");
+        let rich = serde_json::json!({"kind":"callable","type-params":[{"name":"T","kind":"type-var"}],"parameters":[
+            {"name":"value","kind":"positional-or-keyword","type-snapshot":{"kind":"expression","expression":"T","mode":"annotation"},"required":true},
+            {"name":"key","kind":"keyword-only","type-snapshot":string,"required":false},
+            {"name":"rest","kind":"kwargs","type-snapshot":int,"required":true}],
+            "return-type":{"kind":"expression","expression":"T","mode":"annotation"}});
+        let alias = types
+            .snapshot(&rich)?
+            .expect("rich callable snapshot renders");
+        assert!(alias.starts_with("_generated_snapshot"));
+        assert!(types.definitions.contains(&format!("class {alias}(")));
+        assert!(types.definitions.contains("def __call__[T]("));
+        assert!(types.definitions.contains("value: T"));
+        let builtins = types.builtins_alias();
+        assert!(types.definitions.contains(&format!("key: {builtins}.str")));
+        assert!(
+            types
+                .definitions
+                .contains(&format!("**rest: {builtins}.int"))
+        );
+
+        let ellipsis = serde_json::json!({"kind":"callable","ellipsis":true,"return-type":int});
+        assert_eq!(
+            types
+                .snapshot(&ellipsis)?
+                .expect("ellipsis callable renders"),
+            format!(
+                "{}.Callable[..., {}.int]",
+                types.typing_alias(),
+                types.builtins_alias()
+            )
+        );
+        Ok(())
     }
 }
