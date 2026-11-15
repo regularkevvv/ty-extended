@@ -44,7 +44,7 @@ pub fn decoded_annotation(value: &Value) -> Value {
                 }
                 Some(value)
             }
-            "nominal" | "tuple" | "union" | "typed-dict" => {
+            "nominal" | "tuple" | "union" | "typed-dict" | "overloaded" => {
                 let mut value = snapshot.clone();
                 fn children(value: &mut Value) {
                     match value {
@@ -342,7 +342,24 @@ pub fn callable_display_text(snapshot: &Value) -> String {
 pub fn downgrade_callable_snapshots(value: &mut Value) {
     match value {
         Value::Object(object) => {
-            if object.get("kind").and_then(Value::as_str) == Some("callable") {
+            let kind = object.get("kind").and_then(Value::as_str);
+            if kind == Some("overloaded") {
+                // Only emitted by plugins back to the host; if it ever reaches
+                // an old-protocol request, degrade to the first callable.
+                for element in object
+                    .get_mut("elements")
+                    .and_then(Value::as_array_mut)
+                    .into_iter()
+                    .flatten()
+                {
+                    downgrade_callable_snapshots(element);
+                }
+                if let Some(first) = object["elements"].as_array().and_then(|e| e.first()) {
+                    *value = first.clone();
+                }
+                return;
+            }
+            if kind == Some("callable") {
                 let display = object["display"]
                     .as_str()
                     .filter(|display| !display.is_empty())
@@ -597,6 +614,11 @@ pub fn qualified_expression(snapshot: &Value, fallback: &str, module: Option<&st
                 .map(ordinary)
                 .collect::<Vec<_>>()
                 .join(" | "),
+            "overloaded" => snapshot["elements"]
+                .as_array()
+                .and_then(|elements| elements.first())
+                .map(ordinary)
+                .unwrap_or_else(|| "Unknown".to_owned()),
             "expression" => snapshot["expression"]
                 .as_str()
                 .unwrap_or("Unknown")

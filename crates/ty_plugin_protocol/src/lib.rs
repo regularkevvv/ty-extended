@@ -1281,6 +1281,13 @@ pub enum TypeSnapshot {
     Union {
         elements: Vec<TypeSnapshot>,
     },
+    /// An overloaded callable: each element must be a `callable` snapshot.
+    /// Plugins emit it for multi-signature results such as curried functions;
+    /// hosts render it as a `Protocol` with overloaded `__call__` methods.
+    /// It never appears in requests (protocol 0.10+).
+    Overloaded {
+        elements: Vec<TypeSnapshot>,
+    },
     /// A callable type: parameters, an optional PEP 695 type-parameter list and
     /// a return type. `display` preserves the checker's original display text so
     /// hosts can downgrade the snapshot for plugins built before protocol 0.10.
