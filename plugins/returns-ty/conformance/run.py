@@ -54,7 +54,7 @@ def load_cases() -> list[tuple[str, str, str]]:
     for path in sorted(CASES.glob("*.yml")):
         for document in yaml.safe_load_all(path.read_text()):
             for case in document or []:
-                if isinstance(case, dict) and case.get("main"):
+                if isinstance(case, dict) and case.get("main") and not case.get("skip"):
                     cases.append((path.name, case.get("case", "unnamed"), case["main"]))
     return cases
 
@@ -128,6 +128,12 @@ def main() -> int:
         "--check", action="store_true", help="fail on regressions vs expected.json"
     )
     parser.add_argument("--update", action="store_true", help="rewrite expected.json")
+    parser.add_argument(
+        "--filter", default="", help="only run cases matching this substring"
+    )
+    parser.add_argument(
+        "--verbose", action="store_true", help="print tyx output per case"
+    )
     args = parser.parse_args()
 
     tyx = tyx_binary()
@@ -145,12 +151,22 @@ def main() -> int:
     regressions: list[str] = []
     for filename, name, main_source in cases:
         key = f"{filename}::{name}"
+        if args.filter and args.filter not in key:
+            continue
         directory = workdir / re.sub(r"[^A-Za-z0-9_]+", "_", key)
         directory.mkdir(parents=True, exist_ok=True)
         try:
-            verdict = classify(main_source, run_case(tyx, venv, directory, main_source))
+            result = run_case(tyx, venv, directory, main_source)
+            verdict = classify(main_source, result)
         except Exception:
             verdict = "error"
+            result = None
+        if args.verbose and result is not None:
+            print(result["output"])
+        if args.verbose and result is None:
+            import traceback
+
+            traceback.print_exc()
         results[key] = verdict
         if args.check and verdict != expected.get(key, "divergence"):
             if verdict == "error" or expected.get(key) == "parity":

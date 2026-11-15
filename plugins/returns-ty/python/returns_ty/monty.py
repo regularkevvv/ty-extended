@@ -30,7 +30,8 @@ if typing.TYPE_CHECKING:
     )
 
 _POSITIONAL = ("positional-only", "positional-or-keyword")
-_VARIADIC = ("var-args", "kwargs")
+_PARAM_VARIADIC = ("var-args", "kwargs")
+_ARG_VARIADIC = ("star-args", "star-kwargs")
 
 
 def _snapshot(argument):
@@ -121,7 +122,7 @@ def _curry(request):
     if not params:
         return None
     for parameter in params:
-        if parameter.get("kind") in _VARIADIC:
+        if parameter.get("kind") in _PARAM_VARIADIC:
             # Upstream refuses to curry *args/**kwargs and returns Any.
             return None
     returns = snapshot.get("return-type") or {
@@ -161,7 +162,7 @@ def _partial(request):
     params = snapshot.get("parameters") or []
     applied = arguments[1:]
     for argument in applied:
-        if argument.get("kind") in _VARIADIC:
+        if argument.get("kind") in _ARG_VARIADIC:
             return None  # Literal *args/**kwargs partials are unknowable.
     positional = 0
     names = []
@@ -192,7 +193,7 @@ def _partial(request):
         kind = parameter.get("kind")
         if kind == "var-args" and index > hole_at:
             continue
-        if kind in _VARIADIC:
+        if kind in _PARAM_VARIADIC:
             remaining.append(parameter)
             continue
         applied_here = index < positional or parameter.get("name") in names
@@ -278,6 +279,16 @@ def _pipe(request):
     diagnostics, _unused = _chain_diagnostics(
         steps[0].get("return-type") or first, steps[1:]
     )
+    # The piped callable must redeclare the type parameters it references —
+    # otherwise the rendered `__call__` mentions unbound type variables.
+    type_params = []
+    seen = set()
+    for step in steps:
+        for type_param in step.get("type-params") or []:
+            name = type_param.get("name")
+            if name not in seen:
+                seen.add(name)
+                type_params.append(type_param)
     result = _callable(
         [
             snapshot_parameter(
@@ -285,6 +296,7 @@ def _pipe(request):
             )
         ],
         last,
+        type_params=type_params or None,
     )
     return call_return_patch(
         type_expr_from_snapshot(result), diagnostics=diagnostics or None
@@ -318,72 +330,154 @@ _DO_FAMILIES = {
     "returns.future.FutureResult": (
         "returns.future.FutureResult",
         "returns.future.FutureResultE",
+        "returns.future.FutureSuccess",
+        "returns.future.FutureFailure",
     ),
 }
 
+# Owners with two type parameters: ``Owner[T, E]`` lets ``do`` infer the error
+# union; single-parameter owners only re-yield the value type.
+_DO_ARITY = {
+    "returns.result.Result": 2,
+    "returns.maybe.Maybe": 1,
+    "returns.io.IO": 1,
+    "returns.io.IOResult": 2,
+    "returns.future.Future": 1,
+    "returns.future.FutureResult": 2,
+}
 
-def _generator_yield(snapshot):
-    """`Generator[X, ...]`/`Iterator[X]`/callable returning them → `X`."""
+# Constructors whose parameters hold the VALUE only (`Success[T]`, `Some[T]`,
+# `IOSuccess[T]`, `FutureSuccess[T]`, `_Nothing`) carry no extractable error.
+# Everything else with one argument (`Failure[E]`, `ResultE[E]`, `IOFailure[E]`,
+# `IOResultE[E]`, `FutureFailure[E]`, `FutureResultE[E]`) holds the error at
+# position 0; two-argument containers hold it at position 1.
+_DO_VALUE_ONLY = {
+    "returns.result.Success",
+    "returns.maybe.Some",
+    "returns.maybe._Nothing",
+    "returns.io.IOSuccess",
+    "returns.future.FutureSuccess",
+}
+
+
+def _dedupe(snapshots):
+    seen = set()
+    unique = []
+    for snapshot in snapshots:
+        key = snapshot_to_expression(snapshot)
+        if key not in seen:
+            seen.add(key)
+            unique.append(snapshot)
+    return unique
+
+
+def _do_in_family(snapshot, family):
+    """Structural `is_subtype(seq, Owner)` approximation for `do` clauses."""
     kind = snapshot.get("kind")
+    if kind == "union":
+        return all(
+            _do_in_family(element, family) for element in snapshot.get("elements") or []
+        )
     if kind == "nominal":
-        tail = (snapshot.get("qualified-name") or "").rsplit(".", 1)[-1]
-        if tail in ("Generator", "Iterator", "Iterable"):
-            arguments = snapshot.get("arguments") or []
-            if arguments:
-                return arguments[0]
-    if kind == "callable":
-        return _generator_yield(snapshot.get("return-type") or {})
-    return None
+        return (snapshot.get("qualified-name") or "") in family
+    # Expression/unknown snapshots are inconclusive — like `Any`, they pass.
+    return True
+
+
+def _do_error_type(snapshot):
+    """Upstream `_extract_error_type`: the error param of a family member."""
+    if snapshot.get("kind") == "union":
+        parts = []
+        for element in snapshot.get("elements") or []:
+            error = _do_error_type(element)
+            if error is not None:
+                parts.append(error)
+        if not parts:
+            return None
+        unique = _dedupe(parts)
+        if len(unique) == 1:
+            return unique[0]
+        return {"kind": "union", "elements": unique}
+    name = snapshot.get("qualified-name") or ""
+    if name in _DO_VALUE_ONLY or snapshot.get("kind") != "nominal":
+        return None
+    args = snapshot.get("arguments") or []
+    if not args:
+        return None
+    return args[1] if len(args) >= 2 else args[0]
 
 
 def _do(request):
-    receiver = (request.get("receiver") or {}).get("nominal-class") or ""
-    owner = receiver.split("[")[0]
+    callee = ((request.get("callee") or {}).get("expression")) or ""
+    if not callee.endswith(".do"):
+        return None
+    owner = callee[: -len(".do")]
     family = _DO_FAMILIES.get(owner)
     if family is None:
         return None
     arguments = request.get("arguments") or []
     if not arguments:
         return None
-    yielded = _generator_yield(_snapshot(arguments[0]))
-    if yielded is None:
-        return None  # Unannotated generators give the host nothing to check.
+    generator = arguments[0].get("generator")
+    if generator is None:
+        return _default_patch(
+            request,
+            diagnostics=[
+                diagnostic(
+                    "returns.do",
+                    "Literal generator expression is required, not a variable or function call",
+                    severity="error",
+                    location=arguments[0].get("source"),
+                )
+            ],
+        )
     diagnostics = []
     errors = []
-    if yielded.get("kind") == "union":
-        items = yielded.get("elements") or []
-    else:
-        items = [yielded]
-    for item in items:
-        if item.get("kind") != "nominal":
-            continue
-        name = item.get("qualified-name") or ""
-        if name not in family:
+    for clause in generator.get("clauses") or []:
+        iterated = ((clause.get("iter-type") or {}).get("snapshot")) or {}
+        if not _do_in_family(iterated, family):
+            arity = _DO_ARITY.get(owner) or 1
             diagnostics.append(
                 diagnostic(
                     "returns.do",
-                    'Invalid type supplied in do-notation: expected "{0}", got "{1}"'.format(
-                        owner, name
+                    'Invalid type supplied in do-notation: expected "{0}[{1}]", got "{2}"'.format(
+                        owner,
+                        ", ".join(["Any"] * arity),
+                        snapshot_to_expression(iterated) or "Unknown",
                     ),
                     severity="error",
+                    location=clause.get("iter-source"),
                 )
             )
             continue
-        args = item.get("arguments") or []
-        if len(args) >= 2:
-            errors.append(args[1])
+        error = _do_error_type(iterated)
+        if error is not None:
+            errors.append(error)
+        if clause.get("conditions"):
+            diagnostics.append(
+                diagnostic(
+                    "returns.do",
+                    'Using "if" conditions inside a generator is not allowed',
+                    severity="error",
+                    location=generator.get("yield-source"),
+                )
+            )
     if diagnostics:
         return _default_patch(request, diagnostics=diagnostics)
     result = (_default_return(request) or {}).get("snapshot")
-    if errors and (result or {}).get("kind") == "nominal":
-        args = list(result.get("arguments") or [])
-        if len(args) >= 2:
-            args[1] = (
-                errors[0] if len(errors) == 1 else {"kind": "union", "elements": errors}
-            )
-            patched = _nominal(result.get("qualified-name"), args)
-            return call_return_patch(type_expr_from_snapshot(patched))
-    return None
+    if (result or {}).get("kind") != "nominal":
+        return None
+    errors = _dedupe(errors)
+    args = list(result.get("arguments") or [])
+    if len(args) < 2:
+        return None
+    if not errors:
+        # Upstream leaves the unsolved error variable to mypy, which reports
+        # `Never`; ty reports `Unknown`. Normalize to `Never`.
+        errors = [{"kind": "union", "elements": []}]
+    args[1] = errors[0] if len(errors) == 1 else {"kind": "union", "elements": errors}
+    patched = _nominal(result.get("qualified-name"), args)
+    return call_return_patch(type_expr_from_snapshot(patched))
 
 
 # ---------------------------------------------------------------------------
