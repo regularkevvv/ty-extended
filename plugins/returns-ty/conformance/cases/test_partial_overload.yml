@@ -1,0 +1,171 @@
+- case: partial_wrong_overload1
+  disable_cache: false
+  main: |
+    from typing import overload
+    from returns.curry import partial
+
+    @overload
+    def two_args(a: int, b: int) -> int:
+        ...
+
+    @overload
+    def two_args(a: str, b: str) -> str:
+        ...
+
+    def two_args(a, b):
+        ...
+
+    reveal_type(partial(two_args, None))
+  out: |
+    main:15: error: No overload variant of "two_args" matches argument type "None"  [call-overload]
+    main:15: note: Possible overload variants:
+    main:15: note:     def two_args(a, a: int) -> int
+    main:15: note:     def two_args(a, a: str) -> str
+    main:15: note: Revealed type is "def (*Any, **Any) -> int"
+
+
+- case: partial_wrong_overload2
+  disable_cache: false
+  main: |
+    from typing import overload
+    from returns.curry import partial
+
+    @overload
+    def two_args(a: int, b: int) -> int:
+        ...
+
+    @overload
+    def two_args(a: int, b: str) -> str:
+        ...
+
+    def two_args(a, b):
+        ...
+
+    reveal_type(partial(two_args, 1)(None))
+  out: |
+    main:15: error: No overload variant of "two_args" matches argument type "None"  [call-overload]
+    main:15: note: Possible overload variants:
+    main:15: note:     def two_args(a, b: int) -> int
+    main:15: note:     def two_args(a, b: str) -> str
+    main:15: note: Revealed type is "Any"
+
+
+- case: partial_regular_overload
+  disable_cache: false
+  main: |
+    from typing import overload
+    from returns.curry import partial
+
+    @overload
+    def two_args(a: int, b: int) -> int:
+        ...
+
+    @overload
+    def two_args(a: int, b: str) -> str:
+        ...
+
+    @overload
+    def two_args(a: str, b: str) -> str:
+        ...
+
+    def two_args(a, b):
+        ...
+
+    reveal_type(partial(two_args))
+    reveal_type(partial(two_args, 1))
+    reveal_type(partial(two_args, 1, 1))
+    reveal_type(partial(two_args, 1, 'a'))
+    reveal_type(partial(two_args, 'a'))
+  out: |
+    main:19: note: Revealed type is "Overload(def (a: int, b: int) -> int, def (a: int, b: str) -> str, def (a: str, b: str) -> str)"
+    main:20: note: Revealed type is "Overload(def (b: int) -> int, def (b: str) -> str)"
+    main:21: note: Revealed type is "def () -> int"
+    main:22: note: Revealed type is "def () -> str"
+    main:23: note: Revealed type is "def (b: str) -> str"
+
+
+- case: partial_generic_overload_kind1
+  disable_cache: false
+  main: |
+    from typing import overload, TypeVar, List, Set
+    from returns.curry import partial
+
+    T = TypeVar('T')
+
+    @overload
+    def two_args(a: int, b: list[T]) -> T:
+        ...
+
+    @overload
+    def two_args(a: int, b: set[T]) -> T:
+        ...
+
+    @overload
+    def two_args(a: list[T], b: set[T]) -> T:
+        ...
+
+    def two_args(a, b):
+        ...
+
+    x: list[float]
+    y: set[float]
+
+    reveal_type(partial(two_args))
+    reveal_type(partial(two_args, 1))
+    reveal_type(partial(two_args, 1, x))
+    reveal_type(partial(two_args, 1, y))
+    reveal_type(partial(two_args, x))
+    reveal_type(partial(two_args, x, y))
+  out: |
+    main:24: note: Revealed type is "Overload(def [T] (a: int, b: list[T]) -> T, def [T] (a: int, b: set[T]) -> T, def [T] (a: list[T], b: set[T]) -> T)"
+    main:25: note: Revealed type is "Overload(def [T] (b: list[T]) -> T, def [T] (b: set[T]) -> T)"
+    main:26: note: Revealed type is "def () -> float"
+    main:27: note: Revealed type is "def () -> float"
+    main:28: note: Revealed type is "def (b: set[float]) -> float"
+    main:29: note: Revealed type is "def () -> float"
+
+
+- case: partial_generic_overload_kind2
+  disable_cache: false
+  main: |
+    from typing import overload, TypeVar, List, Union
+    from returns.curry import partial
+
+    A = TypeVar('A')
+    B = TypeVar('B')
+
+    @overload
+    def two_args(a: int, b: list[A]) -> A:
+        ...
+
+    @overload
+    def two_args(a: int, b: list[B]) -> B:
+        ...
+
+    @overload
+    def two_args(a: list[A], b: list[B]) -> A | B:
+        ...
+
+    def two_args(a, b):
+        ...
+
+    a: list[float]
+    b: list[str]
+
+    reveal_type(partial(two_args))
+    reveal_type(partial(two_args, 1))
+    reveal_type(partial(two_args, 1, a))
+    reveal_type(partial(two_args, 1, b))
+    reveal_type(partial(two_args, a))
+    reveal_type(partial(two_args, b))
+    reveal_type(partial(two_args, a, b))
+    reveal_type(partial(two_args, b, a))
+  out: |
+    main:25: note: Revealed type is "Overload(def [A] (a: int, b: list[A]) -> A, def [B] (a: int, b: list[B]) -> B, def [A, B] (a: list[A], b: list[B]) -> A | B)"
+    main:26: note: Revealed type is "Overload(def [A] (b: list[A]) -> A, def [B] (b: list[B]) -> B)"
+    main:27: note: Revealed type is "Overload(def () -> float, def () -> float)"
+    main:28: note: Revealed type is "Overload(def () -> str, def () -> str)"
+    main:29: note: Revealed type is "def [B] (b: list[B]) -> float | B"
+    main:30: note: Revealed type is "def [B] (b: list[B]) -> str | B"
+    main:31: note: Revealed type is "def () -> float | str"
+    main:32: note: Revealed type is "def () -> str | float"

@@ -1,0 +1,105 @@
+{
+  "id": "returns-ty",
+  "name": "returns ty plugin",
+  "version": "0.1.0",
+  "protocol-version": {
+    "major": 0,
+    "minor": 10
+  },
+  "ty-compatibility": {
+    "requirement": ">=0.92.0,<1.0"
+  },
+  "runtime": {
+    "kind": "monty",
+    "artifact": "monty.py"
+  },
+  "capabilities": {
+    "call-signature": true,
+    "call-return": true,
+    "instance-member": true
+  },
+  "claims": {
+    "decorators": [
+      {
+        "qualified-name": "returns.curry.curry"
+      }
+    ],
+    "functions": [
+      {
+        "qualified-name": "returns.curry.curry"
+      },
+      {
+        "qualified-name": "returns.curry.partial"
+      },
+      {
+        "qualified-name": "returns._internal.pipeline.flow.flow"
+      },
+      {
+        "qualified-name": "returns._internal.pipeline.pipe.pipe"
+      },
+      {
+        "qualified-name": "returns.primitives.hkt.dekind"
+      },
+      {
+        "qualified-name": "returns.pipeline.flow"
+      },
+      {
+        "qualified-name": "returns.pipeline.pipe"
+      }
+    ],
+    "methods": [
+      {
+        "kind": "exact",
+        "class-qualified-name": "returns._internal.pipeline.pipe._Pipe",
+        "method-name": "__call__"
+      },
+      {
+        "kind": "exact",
+        "class-qualified-name": "returns.primitives.hkt.Kinded",
+        "method-name": "__call__"
+      },
+      {
+        "kind": "exact",
+        "class-qualified-name": "returns.primitives.hkt.Kinded",
+        "method-name": "__get__"
+      },
+      {
+        "kind": "exact",
+        "class-qualified-name": "returns.io.IO",
+        "method-name": "do"
+      },
+      {
+        "kind": "exact",
+        "class-qualified-name": "returns.maybe.Maybe",
+        "method-name": "do"
+      },
+      {
+        "kind": "exact",
+        "class-qualified-name": "returns.future.Future",
+        "method-name": "do"
+      },
+      {
+        "kind": "exact",
+        "class-qualified-name": "returns.result.Result",
+        "method-name": "do"
+      },
+      {
+        "kind": "exact",
+        "class-qualified-name": "returns.io.IOResult",
+        "method-name": "do"
+      },
+      {
+        "kind": "exact",
+        "class-qualified-name": "returns.future.FutureResult",
+        "method-name": "do"
+      }
+    ],
+    "attributes": [
+      {
+        "kind": "on-subclass-of",
+        "owner-base-qualified-name": "returns.primitives.hkt.KindN",
+        "scope": "instance"
+      }
+    ]
+  }
+}

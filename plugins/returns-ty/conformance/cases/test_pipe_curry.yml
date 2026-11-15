@@ -1,0 +1,12 @@
+- case: pipe_function_with_curried
+  disable_cache: false
+  main: |
+    from returns.pipeline import pipe
+    from returns.curry import curry
+    from returns.functions import identity
+
+    @curry
+    def curried(a: int, b: int) -> float:
+        ...
+
+    reveal_type(pipe(curried, identity)(1)(2))  # N: Revealed type is "float"

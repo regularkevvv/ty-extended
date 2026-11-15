@@ -1,0 +1,47 @@
+[project]
+name = "returns-ty"
+version = "0.1.0"
+requires-python = ">=3.10"
+dependencies = [
+    "returns>=0.23,<1.0",
+    "ty-extended>=0.92.0,<1.0",
+    "ty>=0.0.101,<0.1",
+    "typing-extensions>=4.11.0",
+]
+description = "typed-functional-programming (returns) support for ty-extended."
+readme = "README.md"
+authors = [{ name = "Kevin Castro", email = "hola@kev.pe" }]
+license = "MIT"
+keywords = ["returns", "ty", "typing", "plugins", "functional"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Environment :: Console",
+    "Intended Audience :: Developers",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3 :: Only",
+    "Topic :: Software Development :: Quality Assurance",
+]
+
+[project.urls]
+Repository = "https://github.com/regularkevvv/ty-extended/tree/main/plugins/returns-ty"
+Releases = "https://github.com/regularkevvv/ty-extended/releases"
+
+[build-system]
+requires = ["hatchling>=1.31,<2"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build]
+exclude = ["*.wasm", "**/__pycache__/**", "*.pyc"]
+
+[tool.hatch.build.targets.sdist]
+include = ["/python", "/pyproject.toml", "/README.md", "/LICENSE"]
+
+[tool.hatch.build.targets.wheel]
+packages = ["python/returns_ty"]
+
+[tool.hatch.build.targets.wheel.force-include]
+"python/returns_ty/ty-plugin.json" = "returns_ty/ty-plugin.json"
+
+# This plugin pins freshly released ty-extended builds in CI; do not inherit
+# the workspace's exclude-newer cutoff.
+[tool.uv]

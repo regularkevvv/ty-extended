@@ -1,0 +1,79 @@
+name: returns-ty
+
+on:
+  pull_request:
+    paths:
+      - plugins/returns-ty/**
+      - .github/workflows/returns-ty.yml
+  push:
+    branches: [main]
+    paths:
+      - plugins/returns-ty/**
+      - .github/workflows/returns-ty.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  CARGO_INCREMENTAL: 0
+  CARGO_BUILD_JOBS: 2
+  UV_NO_CACHE: 1
+  UV_HTTP_RETRIES: 10
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: plugins/returns-ty
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: "3.13"
+      - uses: astral-sh/setup-uv@c18668ad3cf93ea998bef934396af7bb5c839dc7 # v10.2.0
+        with:
+          version: "0.12.23"
+          enable-cache: false
+      - name: Check Python formatting and imports
+        run: |
+          uv run --no-project --with ruff==0.16.10 ruff check --no-cache --isolated --select E4,E7,E9,F,I python/returns_ty/monty.py python/returns_ty/__init__.py python/returns_ty/__main__.py python/returns_ty/runtime.py conformance/run.py tests/test_monty.py
+          uv run --no-project --with ruff==0.16.10 ruff format --no-cache --isolated --check python/returns_ty/monty.py python/returns_ty/__init__.py python/returns_ty/__main__.py python/returns_ty/runtime.py conformance/run.py tests/test_monty.py
+      - name: Build the wheel
+        run: uv build --out-dir dist
+      - name: Run unit tests against the Monty plugin source
+        run: uv run --no-project python -m unittest discover -s tests
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: returns-ty-dist
+          path: plugins/returns-ty/dist/*
+          retention-days: 5
+
+  conformance:
+    name: Upstream pytest-mypy-plugins conformance corpus
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: plugins/returns-ty
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: astral-sh/setup-uv@c18668ad3cf93ea998bef934396af7bb5c839dc7 # v10.2.0
+        with:
+          version: "0.12.23"
+          enable-cache: false
+      - uses: Swatinem/rust-cache@cf7e1f8a8dac6c4f5d2a5e35e7a0d91baf17c5cf # v2.8.2
+        with:
+          workspaces: "crates/ty_extended"
+          shared-key: returns-ty
+      - name: Build tyx
+        run: cargo build --locked -p ty-extended --bin tyx
+        working-directory: .
+      - name: Run the conformance corpus
+        env:
+          TYX: ${{ github.workspace }}/crates/ty_extended/target/debug/tyx
+        run: uv run --no-project --with pyyaml python conformance/run.py --check

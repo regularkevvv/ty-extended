@@ -1,0 +1,143 @@
+- case: partial_wrong_generic
+  disable_cache: false
+  main: |
+    from returns.curry import partial
+    from typing import List, TypeVar
+
+    T = TypeVar('T')
+
+    def multiple(
+        a: list[T],
+        b: list[T],
+    ) -> T:
+        ...
+
+    x: list[int]
+    y: list[str]
+
+    reveal_type(partial(multiple, x)(y))
+  out: |
+    main:15: note: Revealed type is "int"
+    main:15: error: Argument 1 to "multiple" has incompatible type "list[str]"; expected "list[int]"  [arg-type]
+
+
+- case: partial_correct_generic
+  disable_cache: false
+  main: |
+    from returns.curry import partial
+    from typing import List, TypeVar
+
+    T = TypeVar('T')
+
+    def multiple(
+        a: list[T],
+        b: list[T],
+    ) -> T:
+        ...
+
+    x: list[int]
+    y: list[int]
+
+    reveal_type(partial(multiple, x)(y))
+  out: |
+    main:15: note: Revealed type is "int"
+
+
+- case: partial_single_generic
+  disable_cache: false
+  main: |
+    from returns.curry import partial
+    from typing import List, TypeVar
+
+    T = TypeVar('T')
+
+    def multiple(
+        a: int,
+        b: list[T],
+        c: bool = False,
+    ) -> T:
+        ...
+
+    x: list[int]
+
+    reveal_type(partial(multiple))
+    reveal_type(partial(multiple, 1))
+    reveal_type(partial(multiple, 1)(x, True))
+    reveal_type(partial(multiple, 1)(x))
+    reveal_type(partial(multiple, 1)(x, c=True))
+    reveal_type(partial(multiple, 2, x))
+    reveal_type(partial(multiple, 2, x, True))
+    reveal_type(partial(multiple, 2, x)())
+  out: |
+    main:15: note: Revealed type is "def [T] (a: int, b: list[T], c: bool =) -> T"
+    main:16: note: Revealed type is "def [T] (b: list[T], c: bool =) -> T"
+    main:17: note: Revealed type is "int"
+    main:18: note: Revealed type is "int"
+    main:19: note: Revealed type is "int"
+    main:20: note: Revealed type is "def (c: bool =) -> int"
+    main:21: note: Revealed type is "def () -> int"
+    main:22: note: Revealed type is "int"
+
+
+- case: partial_double_generic_complex38
+  disable_cache: false
+  main: |
+    from returns.curry import partial
+    from typing import List, TypeVar, Union
+
+    A = TypeVar('A')
+    B = TypeVar('B')
+
+    def multiple(
+        a: int,
+        *,
+        b: list[B],
+        c: list[A],
+    ) -> A | B:
+        ...
+
+    x: list[int]
+    y: list[str]
+
+    reveal_type(partial(multiple))
+    reveal_type(partial(multiple, 1))
+    reveal_type(partial(multiple, 1, b=x))
+    reveal_type(partial(multiple, 1, c=x))
+    reveal_type(partial(multiple, 1, b=y))
+    reveal_type(partial(multiple, 1, c=y))
+  out: |
+    main:18: note: Revealed type is "def [B, A] (a: int, *, b: list[B], c: list[A]) -> A | B"
+    main:19: note: Revealed type is "def [B, A] (*, b: list[B], c: list[A]) -> A | B"
+    main:20: note: Revealed type is "def [A] (*, c: list[A]) -> A | int"
+    main:21: note: Revealed type is "def [B] (*, b: list[B]) -> int | B"
+    main:22: note: Revealed type is "def [A] (*, c: list[A]) -> A | str"
+    main:23: note: Revealed type is "def [B] (*, b: list[B]) -> str | B"
+
+
+- case: partial_double_generic
+  disable_cache: false
+  main: |
+    from returns.curry import partial
+    from typing import List, TypeVar, Union
+
+    A = TypeVar('A')
+    B = TypeVar('B')
+
+    def multiple(
+        a: int,
+        *,
+        b: list[B],
+        c: list[A],
+    ) -> A | B:
+        ...
+
+    x: list[int]
+    y: list[str]
+    reveal_type(partial(multiple, 1, c=y, b=x))
+
+    reveal_type(partial(multiple, 1, b=x)(c=y))
+    reveal_type(partial(multiple, 1, c=x)(b=y))
+  out: |
+    main:17: note: Revealed type is "def () -> str | int"
+    main:19: note: Revealed type is "str | int"
+    main:20: note: Revealed type is "int | str"

@@ -1,0 +1,78 @@
+- case: curry_single_generic_arg
+  disable_cache: false
+  main: |
+    from returns.curry import curry
+    from typing import List, TypeVar
+
+    T = TypeVar('T')
+
+    @curry
+    def zero(arg: list[T]) -> T:
+        ...
+
+    x: list[int]
+
+    reveal_type(zero)  # N: Revealed type is "def [T] (arg: list[T]) -> T"
+    reveal_type(zero(x))  # N: Revealed type is "int"
+
+
+- case: curry_two_generic_args1
+  disable_cache: false
+  main: |
+    from returns.curry import curry
+    from typing import List, TypeVar
+
+    T = TypeVar('T')
+
+    @curry
+    def zero(arg: list[T], other: int) -> T:
+        ...
+
+    x: list[int]
+
+    reveal_type(zero)  # N: Revealed type is "Overload(def [T] (arg: list[T]) -> def (other: int) -> T, def [T] (arg: list[T], other: int) -> T)"
+    reveal_type(zero(x))  # N: Revealed type is "def (other: int) -> int"
+    reveal_type(zero(x)(1))  # N: Revealed type is "int"
+    reveal_type(zero(x, 1))  # N: Revealed type is "int"
+
+
+- case: curry_two_generic_args2
+  disable_cache: false
+  main: |
+    from returns.curry import curry
+    from typing import List, TypeVar
+
+    T = TypeVar('T')
+
+    @curry
+    def zero(arg: int, other: list[T]) -> T:
+        ...
+
+    x: list[int]
+    y: list[str]
+
+    reveal_type(zero(1)(x))  # N: Revealed type is "int"
+    reveal_type(zero(1, x))  # N: Revealed type is "int"
+    reveal_type(zero(1)(y))  # N: Revealed type is "str"
+    reveal_type(zero(1, y))  # N: Revealed type is "str"
+
+
+- case: curry_two_generic_args3
+  disable_cache: false
+  skip: true
+  main: |
+    from returns.curry import curry
+    from typing import List, TypeVar
+
+    T = TypeVar('T')
+
+    @curry
+    def zero(arg: T, other: list[T]) -> T:
+        ...
+
+    x: list[int]
+
+    reveal_type(zero)  # N: Revealed type is "Overload(def [T] (arg: T) -> def [T] (other: list[T]) -> T, def [T] (arg: T, other: list[T]) -> T)"
+    reveal_type(zero(1))  # N: Revealed type is "def [T] (other: list[T]) -> T"
+    reveal_type(zero(1)(x))  # N: Revealed type is "int"
+    reveal_type(zero(1, x))  # N: Revealed type is "int"

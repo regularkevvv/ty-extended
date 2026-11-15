@@ -1,0 +1,39 @@
+- case: supports_kind_getattr_existing
+  disable_cache: false
+  main: |
+    from returns.primitives.hkt import SupportsKind1
+    from typing import List
+
+    container: SupportsKind1[List, int]
+    container.pop  # E: "SupportsKindN[list[Any], int, Never, Never]" has no attribute "pop"  [attr-defined]
+
+
+- case: supports_kind_getattr_missing
+  disable_cache: false
+  main: |
+    from returns.primitives.hkt import SupportsKindN
+
+    container: SupportsKindN[object, int, str, bool]
+    container.missing
+  out: |
+    main:4: error: "SupportsKindN[object, int, str, bool]" has no attribute "missing"  [attr-defined]
+
+
+- case: supports_kind_getattr_subclass
+  disable_cache: false
+  main: |
+    from returns.primitives.hkt import SupportsKind1
+    from typing import TypeVar
+
+    T = TypeVar('T')
+
+    class Custom(SupportsKind1['Custom', T]):
+        existing: T
+
+    container: Custom[int]
+    reveal_type(container.existing)
+    reveal_type(container.missing)
+  out: |
+    main:10: note: Revealed type is "int"
+    main:11: error: "Custom[int]" has no attribute "missing"  [attr-defined]
+    main:11: note: Revealed type is "Any"

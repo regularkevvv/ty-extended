@@ -1,0 +1,116 @@
+- case: curry_zero_args
+  disable_cache: false
+  main: |
+    from returns.curry import curry
+
+    @curry
+    def zero() -> str:
+        ...
+
+    reveal_type(zero)  # N: Revealed type is "def () -> str"
+    reveal_type(zero())  # N: Revealed type is "str"
+
+
+- case: curry_single_arg
+  disable_cache: false
+  main: |
+    from returns.curry import curry
+
+    @curry
+    def zero(arg: int) -> str:
+        ...
+
+    reveal_type(zero)  # N: Revealed type is "def (arg: int) -> str"
+    reveal_type(zero(1))  # N: Revealed type is "str"
+
+
+- case: curry_two_args1
+  disable_cache: false
+  main: |
+    from returns.curry import curry
+
+    @curry
+    def zero(arg: int, other: float) -> str:
+        ...
+
+    reveal_type(zero)  # N: Revealed type is "Overload(def (arg: int) -> def (other: float) -> str, def (arg: int, other: float) -> str)"
+    reveal_type(zero(1))  # N: Revealed type is "def (other: float) -> str"
+    reveal_type(zero(1, 2.0))  # N: Revealed type is "str"
+    reveal_type(zero(1)(2.0))  # N: Revealed type is "str"
+
+
+- case: curry_two_args2
+  disable_cache: false
+  main: |
+    from returns.curry import curry
+
+    def zero(arg: int, other: float) -> str:
+        ...
+
+    reveal_type(curry(zero))  # N: Revealed type is "Overload(def (arg: int) -> def (other: float) -> str, def (arg: int, other: float) -> str)"
+    reveal_type(curry(zero)(1))  # N: Revealed type is "def (other: float) -> str"
+    reveal_type(curry(zero)(1, 2.0))  # N: Revealed type is "str"
+    reveal_type(curry(zero)(1)(2.0))  # N: Revealed type is "str"
+
+
+- case: curry_two_args3
+  disable_cache: false
+  main: |
+    from returns.curry import curry
+
+    @curry
+    def zero(arg: int, other: float) -> str:
+        ...
+
+    reveal_type(zero('a'))
+    reveal_type(zero(1.0, 1))
+    reveal_type(zero(1, 2.0, 2.0))
+  out: |
+    main:7: error: No overload variant of "zero" matches argument type "str"  [call-overload]
+    main:7: note: Possible overload variants:
+    main:7: note:     def zero(arg: int) -> Callable[..., str]
+    main:7: note:     def zero(arg: int, other: float) -> str
+    main:7: note: Revealed type is "Any"
+    main:8: error: No overload variant of "zero" matches argument types "float", "int"  [call-overload]
+    main:8: note: Possible overload variants:
+    main:8: note:     def zero(arg: int) -> Callable[..., str]
+    main:8: note:     def zero(arg: int, other: float) -> str
+    main:8: note: Revealed type is "Any"
+    main:9: error: No overload variant of "zero" matches argument types "int", "float", "float"  [call-overload]
+    main:9: note: Possible overload variants:
+    main:9: note:     def zero(arg: int) -> Callable[..., str]
+    main:9: note:     def zero(arg: int, other: float) -> str
+    main:9: note: Revealed type is "Any"
+
+
+- case: curry_two_args_one_default
+  disable_cache: false
+  main: |
+    from returns.curry import curry
+
+    @curry
+    def zero(arg: int, other: float = 1.0) -> str:
+        ...
+
+    reveal_type(zero)  # N: Revealed type is "Overload(def (arg: int) -> def (other: float =) -> str, def (arg: int, other: float =) -> str)"
+    reveal_type(zero(1))  # N: Revealed type is "def (other: float =) -> str"
+    reveal_type(zero(1, 2.0))  # N: Revealed type is "str"
+    reveal_type(zero(1)(2.0))  # N: Revealed type is "str"
+
+
+- case: curry_three_args
+  disable_cache: false
+  main: |
+    from returns.curry import curry
+
+    @curry
+    def zero(arg: int, other: float, *, kw: bool) -> str:
+        ...
+
+    reveal_type(zero)  # N: Revealed type is "Overload(def (arg: int) -> Overload(def (other: float, *, kw: bool) -> str, def (other: float) -> def (*, kw: bool) -> str), def (arg: int, other: float) -> def (*, kw: bool) -> str, def (arg: int, other: float, *, kw: bool) -> str)"
+    reveal_type(zero(1))  # N: Revealed type is "Overload(def (other: float, *, kw: bool) -> str, def (other: float) -> def (*, kw: bool) -> str)"
+    reveal_type(zero(1, 2.0))  # N: Revealed type is "def (*, kw: bool) -> str"
+    reveal_type(zero(1)(2.0))  # N: Revealed type is "def (*, kw: bool) -> str"
+    reveal_type(zero(1, 2.0)(kw=True))  # N: Revealed type is "str"
+    reveal_type(zero(1)(2.0)(kw=True))  # N: Revealed type is "str"
+    reveal_type(zero(1, 2.0, kw=True))  # N: Revealed type is "str"
