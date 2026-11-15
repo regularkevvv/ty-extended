@@ -1,0 +1,923 @@
+{
+  "passed": true,
+  "version": "0.91.0",
+  "qualification": "Actual public PyPI wheels, native archives and installer",
+  "source_commit": "4c5b550f5851d5e6d16ae0f0eb47531f87177f1d",
+  "release": {
+    "url": "https://github.com/regularkevvv/ty-extended/releases/tag/v0.91.0",
+    "run": 43684566081,
+    "conclusion": "success",
+    "jobs": [
+      {
+        "name": "release-gate",
+        "conclusion": "success",
+        "url": "https://github.com/regularkevvv/ty-extended/actions/runs/43684566081/job/132722222609"
+      },
+      {
+        "name": "plan",
+        "conclusion": "success",
+        "url": "https://github.com/regularkevvv/ty-extended/actions/runs/43684566081/job/132722222831"
+      },
+      {
+        "name": "custom-build-binaries / macos-x86_64",
+        "conclusion": "success",
+        "url": "https://github.com/regularkevvv/ty-extended/actions/runs/43684566081/job/132722320909"
+      },
+      {
+        "name": "custom-build-binaries / macos-aarch64",
+        "conclusion": "success",
+        "url": "https://github.com/regularkevvv/ty-extended/actions/runs/43684566081/job/132722320919"
+      },
+      {
+        "name": "custom-build-binaries / linux (x86_64-unknown-linux-gnu)",
+        "conclusion": "success",
+        "url": "https://github.com/regularkevvv/ty-extended/actions/runs/43684566081/job/132722320920"
+      },
+      {
+        "name": "custom-build-binaries / sdist",
+        "conclusion": "success",
+        "url": "https://github.com/regularkevvv/ty-extended/actions/runs/43684566081/job/132722320924"
+      },
+      {
+        "name": "custom-build-binaries / windows (aarch64-pc-windows-msvc, x64)",
+        "conclusion": "success",
+        "url": "https://github.com/regularkevvv/ty-extended/actions/runs/43684566081/job/132722320926"
+      },
+      {
+        "name": "custom-build-binaries / linux-aarch64",
+        "conclusion": "success",
+        "url": "https://github.com/regularkevvv/ty-extended/actions/runs/43684566081/job/132722320930"
+      },
+      {
+        "name": "custom-build-binaries / musllinux-cross (aarch64-unknown-linux-musl, linux/arm64, -e JEMALLOC_SYS_WITH_LG_PAGE=16)",
+        "conclusion": "success",
+        "url": "https://github.com/regularkevvv/ty-extended/actions/runs/43684566081/job/132722320942"
+      },
+      {
+        "name": "custom-build-binaries / musllinux (x86_64-unknown-linux-musl)",
+        "conclusion": "success",
+        "url": "https://github.com/regularkevvv/ty-extended/actions/runs/43684566081/job/132722320958"
+      },
+      {
+        "name": "custom-build-binaries / windows (x86_64-pc-windows-msvc, x64)",
+        "conclusion": "success",
+        "url": "https://github.com/regularkevvv/ty-extended/actions/runs/43684566081/job/132722320977"
+      },
+      {
+        "name": "generate-checksum-manifest",
+        "conclusion": "success",
+        "url": "https://github.com/regularkevvv/ty-extended/actions/runs/43684566081/job/132724547709"
+      },
+      {
+        "name": "build-global-artifacts",
+        "conclusion": "success",
+        "url": "https://github.com/regularkevvv/ty-extended/actions/runs/43684566081/job/132724658192"
+      },
+      {
+        "name": "host",
+        "conclusion": "success",
+        "url": "https://github.com/regularkevvv/ty-extended/actions/runs/43684566081/job/132724760318"
+      },
+      {
+        "name": "custom-publish-pypi / Upload to PyPI",
+        "conclusion": "success",
+        "url": "https://github.com/regularkevvv/ty-extended/actions/runs/43684566081/job/132724841533"
+      },
+      {
+        "name": "announce",
+        "conclusion": "success",
+        "url": "https://github.com/regularkevvv/ty-extended/actions/runs/43684566081/job/132724997611"
+      }
+    ]
+  },
+  "main_ci_before_release": [
+    {
+      "id": 43681984193,
+      "name": "CI",
+      "status": "completed",
+      "conclusion": "success",
+      "html_url": "https://github.com/regularkevvv/ty-extended/actions/runs/43681984193",
+      "head_sha": "4c5b550f5851d5e6d16ae0f0eb47531f87177f1d"
+    },
+    {
+      "id": 43681984227,
+      "name": "ty-extended",
+      "status": "completed",
+      "conclusion": "success",
+      "html_url": "https://github.com/regularkevvv/ty-extended/actions/runs/43681984227",
+      "head_sha": "4c5b550f5851d5e6d16ae0f0eb47531f87177f1d"
+    }
+  ],
+  "entry_points": {
+    "primary": "tyx",
+    "compatibility": "ty-extended",
+    "python": "python -m ty_extended"
+  },
+  "artifacts": {
+    "passed": true,
+    "version": "0.91.0",
+    "artifacts": [
+      {
+        "target": "x86_64-apple-darwin",
+        "wheel": "ty_extended-0.91.0-py3-none-macosx_10_12_x86_64.whl",
+        "wheel_sha256": "aa708c5fb84a4b9b3eeae647323df3472b175346542a08b7b1805139450575bc",
+        "archive_sha256": "160c88bb738b9b2ff983f175f3aa85de5e48302b501b3a72a161ba00cea721bf",
+        "binaries": {
+          "ty-extended": "64926b0070b00a3d73ba7ae79693234039a5ad68a6246a32c7df36b6e034bf3b",
+          "tyx": "c0ba5c709b7bd4760a1b014a3894fb3340f5bffb6d1ebee60eeb70d68ec19158"
+        },
+        "records_verified": true,
+        "native_payloads_match": true,
+        "sdk_matches": true,
+        "provenance_verified": true
+      },
+      {
+        "target": "aarch64-apple-darwin",
+        "wheel": "ty_extended-0.91.0-py3-none-macosx_11_0_arm64.whl",
+        "wheel_sha256": "0720dcd7ef85152cfa4f2e1cf767f623bcc34bff122b6d2427500e92ebb6692c",
+        "archive_sha256": "ee14cd978d08c5d71a909b262431d2150332cba0f6b2a52b9dbe2d533888e7b1",
+        "binaries": {
+          "ty-extended": "21cee374e1d55a67fe5aeb337d17e1ff78b7fde02b687302b975f32c4f8bc78f",
+          "tyx": "c3ec877a2d29d5e67cf3c3decf7edafd32b25cd9a98c89b2a33c4a785d38f192"
+        },
+        "records_verified": true,
+        "native_payloads_match": true,
+        "sdk_matches": true,
+        "provenance_verified": true,
+        "matches_ci_qualified_binary": false
+      },
+      {
+        "target": "aarch64-unknown-linux-gnu",
+        "wheel": "ty_extended-0.91.0-py3-none-manylinux2014_aarch64.manylinux_2_17_aarch64.whl",
+        "wheel_sha256": "eccc723a50992a676ad15cadb0ef1eefa9408fc79164730f366b6dc5f35cc42b",
+        "archive_sha256": "f7c4474e5fc141448ab7efd0d2aa0675a6108bd5d9127c892aa6640f0d446fa9",
+        "binaries": {
+          "ty-extended": "61aea2e102e66b0109b34ba7f08738b63d55a6969e09015c5930c0b310865ed8",
+          "tyx": "d2199c1aa27543392b3fe614cc3e68bb1dff629e622660a6f5e70124ef17cb74"
+        },
+        "records_verified": true,
+        "native_payloads_match": true,
+        "sdk_matches": true,
+        "provenance_verified": true
+      },
+      {
+        "target": "x86_64-unknown-linux-gnu",
+        "wheel": "ty_extended-0.91.0-py3-none-manylinux2014_x86_64.manylinux_2_17_x86_64.whl",
+        "wheel_sha256": "df4058dbfed36b21212283fa6acea3c1db4559a69115ea33c4302678e3c4a123",
+        "archive_sha256": "80d965247b37f458e9a956a8c71abaa3fab90a409a78ce932a3c84af2a821d35",
+        "binaries": {
+          "ty-extended": "bb29d4a8fb6dee925bb75bbbed9a1f314ee9e17bfa3306a509b88e04a9df8b51",
+          "tyx": "ec574ef6756c9df41ed58fa31772e891929e1eda2f4e8dd6f377ce1b44ed9584"
+        },
+        "records_verified": true,
+        "native_payloads_match": true,
+        "sdk_matches": true,
+        "provenance_verified": true
+      },
+      {
+        "target": "aarch64-unknown-linux-musl",
+        "wheel": "ty_extended-0.91.0-py3-none-musllinux_1_2_aarch64.whl",
+        "wheel_sha256": "2831b624dfdf35d44174bc5193050f4829341f748d3b22c08ea4ec89d8d9a059",
+        "archive_sha256": "e682952f4a0dcbc983ab72024fd5aea403bc67ada5b349e831b5619b566f1a5f",
+        "binaries": {
+          "ty-extended": "98d2af1d3278c533d58a89aeaa3d63297a5241dce68e00354821a21f6e7ecfac",
+          "tyx": "c419a9c1536daa32823972404553df34509f20b5164cb01b18691f6390cce567"
+        },
+        "records_verified": true,
+        "native_payloads_match": true,
+        "sdk_matches": true,
+        "provenance_verified": true
+      },
+      {
+        "target": "x86_64-unknown-linux-musl",
+        "wheel": "ty_extended-0.91.0-py3-none-musllinux_1_2_x86_64.whl",
+        "wheel_sha256": "647603046127ee6b82fb668854ca711532aa8cb733dd46d5550b91f99f639163",
+        "archive_sha256": "5e82b8d18c9a2537043a67bfa592055a5adfa6782773d8dab01fce16084ac468",
+        "binaries": {
+          "ty-extended": "869ae507639e642812ab2261fd66f66554bf625471f6c973c8ed4cbda1771e55",
+          "tyx": "a5a56d9e02d5e3d0bfc6c9aba978338f518710c336aeaecadb378dbb03e76948"
+        },
+        "records_verified": true,
+        "native_payloads_match": true,
+        "sdk_matches": true,
+        "provenance_verified": true
+      },
+      {
+        "target": "x86_64-pc-windows-msvc",
+        "wheel": "ty_extended-0.91.0-py3-none-win_amd64.whl",
+        "wheel_sha256": "de23dd36f61bd4d346dab80266960d18b03abe26e34d81fbf77419859133f61a",
+        "archive_sha256": "c32bb311046371f055fcdeddb0226c6f1e83021e70dae5a27d4ddbaab4aa5a0d",
+        "binaries": {
+          "ty-extended": "a1f9be742d331054b23690aa553f1fe964d3ab556bd9b2c8af95fa15be3fb545",
+          "tyx": "f45d0745cf1fb168c305b9518c0520fea7a6458f230a5727cf0f5f2dba3a3e76"
+        },
+        "records_verified": true,
+        "native_payloads_match": true,
+        "sdk_matches": true,
+        "provenance_verified": true
+      },
+      {
+        "target": "aarch64-pc-windows-msvc",
+        "wheel": "ty_extended-0.91.0-py3-none-win_arm64.whl",
+        "wheel_sha256": "f062b81014c9e25f0a94424896ebf6e1ae4e6d0b067d6597ba82470e47c05071",
+        "archive_sha256": "3a4144393d828137dbd0e52a6cd361d491215ac37ee795f387a7dd6b8e2c86bc",
+        "binaries": {
+          "ty-extended": "017d2f35e0537c5df23459913fad50dac1efe73734667b723e14a6b2d388b73e",
+          "tyx": "04d973c82c76354964ca67f8e6b4cb700fd290e9f6a9606fece4358105b1f6cb"
+        },
+        "records_verified": true,
+        "native_payloads_match": true,
+        "sdk_matches": true,
+        "provenance_verified": true
+      }
+    ],
+    "rust_sdk_published": false,
+    "source_commit": "4c5b550f5851d5e6d16ae0f0eb47531f87177f1d",
+    "pypi_dependencies": [
+      "ty<0.1,>=0.0.84"
+    ],
+    "source": {
+      "sha256": "3f6f5b196646a714fe414e8bb05dd556c74205df1bda314d815f587302e323a1",
+      "verified_files": 56,
+      "no_vendored_checker_or_build_artifacts": true,
+      "rust_crates_nonpublishable": true
+    }
+  },
+  "official_ty": {
+    "passed": true,
+    "complete": true,
+    "version": "0.91.0",
+    "source_commit": "4c5b550f5851d5e6d16ae0f0eb47531f87177f1d",
+    "release_run": 43684566081,
+    "binary_sha256": "c3ec877a2d29d5e67cf3c3decf7edafd32b25cd9a98c89b2a33c4a785d38f192",
+    "versions": [
+      {
+        "version": "0.0.85",
+        "passed": true,
+        "gates": 18,
+        "seconds": 119.47994204121642,
+        "failed_gates": [],
+        "official": {
+          "name": "ty",
+          "version": "0.0.85",
+          "url": "https://files.pythonhosted.org/packages/e7/7a/dd1e2e1c54551d61451c18eeb918db833fdbc0a48022fd2bffc93c755735/ty-0.0.85-py3-none-macosx_11_0_arm64.whl",
+          "wheel_sha256": "90e1bb090348cb560c7ba6109f2c898735b0520fd3114cd316d8bd80439aabb7",
+          "binary_sha256": "0f26313e84003213a1dccfbee2acd7adb32a36b40aa67fb5f93cd8f155b61789"
+        },
+        "archive_sha256": "87ae2fdfe1eabbdd7e3e783dcfd8121a2b9f4af7ccaba55b10a361763bc2dba9",
+        "archived_files": 2866
+      },
+      {
+        "version": "0.0.84",
+        "passed": true,
+        "gates": 18,
+        "seconds": 121.27584579214454,
+        "failed_gates": [],
+        "official": {
+          "name": "ty",
+          "version": "0.0.84",
+          "url": "https://files.pythonhosted.org/packages/fc/b6/b12dd130e7f30141f0645614f454c925991cd389b1cc6c8284fd6bf32326/ty-0.0.84-py3-none-macosx_11_0_arm64.whl",
+          "wheel_sha256": "8f78c2915567f2ee62ce0c24d86091bc76f81577677755e242d09951db588b9a",
+          "binary_sha256": "d1243725b609983ce07e2ec407f12a4d3234a215bc302fad54febd1129a7b62e"
+        },
+        "archive_sha256": "ae9d9df38f81c57dcf5a053399c32fe7fc894fc41f872f7221cc3d6a615a4fdf",
+        "archived_files": 2866
+      },
+      {
+        "version": "0.0.104",
+        "passed": true,
+        "gates": 18,
+        "seconds": 114.86890808306634,
+        "failed_gates": [],
+        "official": {
+          "name": "ty",
+          "version": "0.0.104",
+          "url": "https://files.pythonhosted.org/packages/20/df/7b3865d367b83cce6411857f8769e05bd625034adc16d8dabf3f22ee58ad/ty-0.0.104-py3-none-macosx_11_0_arm64.whl",
+          "wheel_sha256": "bab34539aedf4fb5dfcc9724874bce05fc79cb85cb783b1084e8615d4e6d6755",
+          "binary_sha256": "045516afd1c9b1433069cea524363d54e38bca064474e9a5921c0870026595ed"
+        },
+        "archive_sha256": "d8c6959ccfbc85f017792b9e67ed52f1366385fa4fae8bb54788bae0641f7c9a",
+        "archived_files": 2866
+      },
+      {
+        "version": "0.0.86",
+        "passed": true,
+        "gates": 18,
+        "seconds": 123.64583383291028,
+        "failed_gates": [],
+        "official": {
+          "name": "ty",
+          "version": "0.0.86",
+          "url": "https://files.pythonhosted.org/packages/bc/62/dfde84ffab702545f866350675b16f8df6555d3c41123c25e7a509fe857e/ty-0.0.86-py3-none-macosx_11_0_arm64.whl",
+          "wheel_sha256": "40e5fc602af41b0ea89dd1d19fe8da7e75322e6e0db95ea23340a858b409ac2b",
+          "binary_sha256": "d6cd23ef6b3bdcb91dc2c67da0bc120c25668102c231ac7a9c405342a06558ef"
+        },
+        "archive_sha256": "904ef4ee7124312c91126170d6f9fd7a8c7ce3e5e16547ef62df28dba7eace0c",
+        "archived_files": 2866
+      },
+      {
+        "version": "0.0.87",
+        "passed": true,
+        "gates": 18,
+        "seconds": 89.50040408293717,
+        "failed_gates": [],
+        "official": {
+          "name": "ty",
+          "version": "0.0.87",
+          "url": "https://files.pythonhosted.org/packages/f1/03/7cc79acc2a01b3e7146ae8c3df2445c7fe4930e54c3d8b9c052bfa27f389/ty-0.0.87-py3-none-macosx_11_0_arm64.whl",
+          "wheel_sha256": "d38ebf4da3fb234676236b38e03d24014aa3522af8533c6f0f5eccd4a9de147e",
+          "binary_sha256": "753712234c90c6f5617c67802bb9703908ba791975acf8c4e5ab42cf58b2471b"
+        },
+        "archive_sha256": "5ce2fff5322f63c7bf2f23bd5c73b53c72d73d75ef67ce5ba9737b0d8ce5134e",
+        "archived_files": 2866
+      },
+      {
+        "version": "0.0.89",
+        "passed": true,
+        "gates": 18,
+        "seconds": 107.65095687494613,
+        "failed_gates": [],
+        "official": {
+          "name": "ty",
+          "version": "0.0.89",
+          "url": "https://files.pythonhosted.org/packages/7e/f9/88648f0ba9400dfd642c1e8dc0aeecb87945b121f3ff51f3902883c016d6/ty-0.0.89-py3-none-macosx_11_0_arm64.whl",
+          "wheel_sha256": "b0631291af5c850a15007c0ffb906d813966466e4ec12173c44977c0c5a2d51d",
+          "binary_sha256": "b0e68d52e71079c94ba118248d16ee681606e4338a2b5543a12b3b730c16071b"
+        },
+        "archive_sha256": "0b28b91a5d8dc7f0babd894dccd2fc41e8f609b0ff4c66fee93893a10c83efab",
+        "archived_files": 2866
+      },
+      {
+        "version": "0.0.90",
+        "passed": true,
+        "gates": 18,
+        "seconds": 109.42408554116264,
+        "failed_gates": [],
+        "official": {
+          "name": "ty",
+          "version": "0.0.90",
+          "url": "https://files.pythonhosted.org/packages/79/08/0d2f37bb4f766ab9630f01b07f4d11f1f7a6a6188f920d5ca9fa8a4676b1/ty-0.0.90-py3-none-macosx_11_0_arm64.whl",
+          "wheel_sha256": "c0b7e4d9ae0939294f0a18652de9ad7d81da2d7f567cf93f1edda1263008c124",
+          "binary_sha256": "961e4405e9ae96dad6222cae8968a315080841f317e8b193f276da9066ac88ae"
+        },
+        "archive_sha256": "957592a582b7cdcfc51f486c79f18633b5cd34365fda402623457939ab6a01f1",
+        "archived_files": 2866
+      },
+      {
+        "version": "0.0.88",
+        "passed": true,
+        "gates": 18,
+        "seconds": 105.13218058296479,
+        "failed_gates": [],
+        "official": {
+          "name": "ty",
+          "version": "0.0.88",
+          "url": "https://files.pythonhosted.org/packages/8c/a6/91d2aa967a69535845445660d3a9412f7f4f746597c650e5d3a799c9e286/ty-0.0.88-py3-none-macosx_11_0_arm64.whl",
+          "wheel_sha256": "021bd4a6d01d4a39e48a87e308161e7adea851b8cab9f4c71452dde6e365aa15",
+          "binary_sha256": "25f30e5a627915a42cb7d6794bdc373de48988e8b7665f9c0b4270f388c33aff"
+        },
+        "archive_sha256": "761ce6e476726cb6e6dfb2492369f02b9b7843d728c70b344f00893bb13a6f2e",
+        "archived_files": 2866
+      },
+      {
+        "version": "0.0.91",
+        "passed": true,
+        "gates": 18,
+        "seconds": 92.9170726670418,
+        "failed_gates": [],
+        "official": {
+          "name": "ty",
+          "version": "0.0.91",
+          "url": "https://files.pythonhosted.org/packages/13/33/be8f62444c7840d1b0928c6d174540c0fe6b1b193ae9324c8249e8ed52b9/ty-0.0.91-py3-none-macosx_11_0_arm64.whl",
+          "wheel_sha256": "78e3e66e88a9ae903afe0981ff9bd225d452ade2aeb070715842510dfcbf6de4",
+          "binary_sha256": "39ab93d3aefb55f00338770e33509291569040c20111f52a2bc43abb77850459"
+        },
+        "archive_sha256": "ff3680f8e866d1da23ba6a884df8b52dd227166157caf5de5069f1e081458b23",
+        "archived_files": 2866
+      },
+      {
+        "version": "0.0.92",
+        "passed": true,
+        "gates": 18,
+        "seconds": 83.45374333299696,
+        "failed_gates": [],
+        "official": {
+          "name": "ty",
+          "version": "0.0.92",
+          "url": "https://files.pythonhosted.org/packages/18/6c/01c6680ea6d02e3b0a6a444dafbf549419fe4971cf7e139ea9c3f087a3c1/ty-0.0.92-py3-none-macosx_11_0_arm64.whl",
+          "wheel_sha256": "b1753fdfa241af570c1dbd3fbfae9ff600d2c479ba60efe528bbb47ca15860b0",
+          "binary_sha256": "0e51cb95b17b52821e786c3407ab4b474077391d5f7e91942d3635f8346debd5"
+        },
+        "archive_sha256": "8fb437bac954d9fbf66ba0903b15f4103ea2f0107af272588fcfb14614c9ec3f",
+        "archived_files": 2866
+      },
+      {
+        "version": "0.0.93",
+        "passed": true,
+        "gates": 18,
+        "seconds": 83.34404549980536,
+        "failed_gates": [],
+        "official": {
+          "name": "ty",
+          "version": "0.0.93",
+          "url": "https://files.pythonhosted.org/packages/ce/3c/00e4195634b61a6ec1f53a2c70777df644a3ee79f6579b48c4e2f6e884d0/ty-0.0.93-py3-none-macosx_11_0_arm64.whl",
+          "wheel_sha256": "47d6be14343a997c6f828d812513f940929c906f6cf83ca4cdd74db6e16ef261",
+          "binary_sha256": "7843c73943d521e66a537f55d51fc9f350dc142e88038acd516878c08857bd03"
+        },
+        "archive_sha256": "884ad6fd6ac33adbf036b41e3f8ea7ecf5cefdef269b64cb4b7049a108a1d864",
+        "archived_files": 2866
+      },
+      {
+        "version": "0.0.94",
+        "passed": true,
+        "gates": 18,
+        "seconds": 83.37365312501788,
+        "failed_gates": [],
+        "official": {
+          "name": "ty",
+          "version": "0.0.94",
+          "url": "https://files.pythonhosted.org/packages/3d/e0/3a458362ea33ca9756cd6b914f905b3dec007d329b21d83e859ecee65a63/ty-0.0.94-py3-none-macosx_11_0_arm64.whl",
+          "wheel_sha256": "74ddc6eeecd3251cf8980c9abb960d7eeab649dac5cdb7504910d99c479f84ab",
+          "binary_sha256": "d331912b50c453620364533b9e74bfed71fd521aeafd0fa9e75d80bae69fc877"
+        },
+        "archive_sha256": "d888f6adf6b46c5f5d832de5e3d37de3fd69d0a38fd829172a325e711ef181c3",
+        "archived_files": 2866
+      },
+      {
+        "version": "0.0.95",
+        "passed": true,
+        "gates": 18,
+        "seconds": 84.2736851668451,
+        "failed_gates": [],
+        "official": {
+          "name": "ty",
+          "version": "0.0.95",
+          "url": "https://files.pythonhosted.org/packages/dc/6b/2a084a72c8069f8496fcc0f576ec053f648b1baeed07532b3eb84c4982e4/ty-0.0.95-py3-none-macosx_11_0_arm64.whl",
+          "wheel_sha256": "3e7902477410e897a60d2cf29ca89c28ef2a2abdb81698d8ae4be2e33b934d4b",
+          "binary_sha256": "f24d522636715a348c67ac8c571cce58185ac453c9a3773529918473f4bb347c"
+        },
+        "archive_sha256": "e0b3b1db1dc69fddd4929913da517d5623157da7bf57db263b3ffb306e44b878",
+        "archived_files": 2866
+      },
+      {
+        "version": "0.0.96",
+        "passed": true,
+        "gates": 18,
+        "seconds": 82.19291829201393,
+        "failed_gates": [],
+        "official": {
+          "name": "ty",
+          "version": "0.0.96",
+          "url": "https://files.pythonhosted.org/packages/83/41/21373c2051ff5240eb312ef9523ce40d1f50e35eb951a72bb0fe04a4e57c/ty-0.0.96-py3-none-macosx_11_0_arm64.whl",
+          "wheel_sha256": "d8ed64f17ea16d3b6fd884398dae2d24b7982f6563219b5b30a3e25bec1ab364",
+          "binary_sha256": "8095e81a2528ff007b6ae2eeb1376fb5524142bfa06eb588936643b4c7295822"
+        },
+        "archive_sha256": "7254e54912058d9d8965c8cacd4c6b60a5b3ee7d3dad707edf9edec9cc09e22c",
+        "archived_files": 2866
+      },
+      {
+        "version": "0.0.97",
+        "passed": true,
+        "gates": 18,
+        "seconds": 82.28981641703285,
+        "failed_gates": [],
+        "official": {
+          "name": "ty",
+          "version": "0.0.97",
+          "url": "https://files.pythonhosted.org/packages/18/57/8c0d346fe872ee2813b3afa34b93d5e5e8a2f9c39db9f8be32351d2d08c5/ty-0.0.97-py3-none-macosx_11_0_arm64.whl",
+          "wheel_sha256": "6a5c9414303fe3bb461c174c59a70881c48934c1983a36e109aa2b18b5f3bea5",
+          "binary_sha256": "87c4d1a2e504774f823af983a1ff5a57b8288fae9e7f7dc50b2ef99dc76e8029"
+        },
+        "archive_sha256": "23e3781f92fc1ae4e885d14d196fe66cbe5e92e173a992014e7b5c8fc5986b38",
+        "archived_files": 2866
+      },
+      {
+        "version": "0.0.98",
+        "passed": true,
+        "gates": 18,
+        "seconds": 82.06095787510276,
+        "failed_gates": [],
+        "official": {
+          "name": "ty",
+          "version": "0.0.98",
+          "url": "https://files.pythonhosted.org/packages/77/5d/dd82abd70653d48b0e7a5f05582c38149a585e49dfde7f473b0a52064c54/ty-0.0.98-py3-none-macosx_11_0_arm64.whl",
+          "wheel_sha256": "f1f411590d81edcc75013d220ee522ee083b07f9eb2f085c1eb63767b22d3022",
+          "binary_sha256": "9ccabed16da4fca4ebb0284ca07af41131a9007563080c7537f15ebf66c18cb8"
+        },
+        "archive_sha256": "730abdffeb2155d7e242016b869a2417b4536150ebcad2306cd4bc9970f831ae",
+        "archived_files": 2866
+      },
+      {
+        "version": "0.0.99",
+        "passed": true,
+        "gates": 18,
+        "seconds": 77.93041454115883,
+        "failed_gates": [],
+        "official": {
+          "name": "ty",
+          "version": "0.0.99",
+          "url": "https://files.pythonhosted.org/packages/e7/5f/856ecab2d9a6f59512cf6c2f8c55a69aace0fa79f91e035431faff88cbb2/ty-0.0.99-py3-none-macosx_11_0_arm64.whl",
+          "wheel_sha256": "7cb88d3e7513dbf9d68c1e212999b7deb867fa3ac90efa8647c626e987f4cc26",
+          "binary_sha256": "34688103a83c3123d9eb0f4d85cdaa15f06ff16ce422d8a42616e6b1c885200e"
+        },
+        "archive_sha256": "2e3e707c566a790cb1afc923c40a73a187ba39154bbf9e90ed92c8b7a3ae1e23",
+        "archived_files": 2866
+      },
+      {
+        "version": "0.0.100",
+        "passed": true,
+        "gates": 18,
+        "seconds": 98.12577649997547,
+        "failed_gates": [],
+        "official": {
+          "name": "ty",
+          "version": "0.0.100",
+          "url": "https://files.pythonhosted.org/packages/57/3f/7a6790546398fdf4d2dcd2c496a9f229c018f9a72f8e95120432ee85609c/ty-0.0.100-py3-none-macosx_11_0_arm64.whl",
+          "wheel_sha256": "c45a02b8d11675f009124ee082b070204e5c57721acb3b44b0567721db3710d5",
+          "binary_sha256": "43c2a856896a4072cefe711555ed27e3b314d68efb0fe108e6eb513f007be725"
+        },
+        "archive_sha256": "e6148e50a130de2e7ae378d82d44d8cca612db362694d7aefefad2c473e9c6e4",
+        "archived_files": 2866
+      },
+      {
+        "version": "0.0.101",
+        "passed": true,
+        "gates": 18,
+        "seconds": 97.4136533329729,
+        "failed_gates": [],
+        "official": {
+          "name": "ty",
+          "version": "0.0.101",
+          "url": "https://files.pythonhosted.org/packages/78/17/6e7f23c486ff6c0d4bb6f4823e878b42faa1bd4e09462c75e4479cdd94ce/ty-0.0.101-py3-none-macosx_11_0_arm64.whl",
+          "wheel_sha256": "e185325fbd4dd9cabdc504c685f04f59b24f37dec96b2d9e8a8afab5731e1ea1",
+          "binary_sha256": "da235b70057edcd504b03e6378b44c4a7173dfdc3021bf58c605540bd62022dd"
+        },
+        "archive_sha256": "d19f724ce32a75a9e885a3ba2d84085f3d530f1a450b2b3e742180bc8204982f",
+        "archived_files": 2866
+      },
+      {
+        "version": "0.0.102",
+        "passed": true,
+        "gates": 18,
+        "seconds": 98.38178466702811,
+        "failed_gates": [],
+        "official": {
+          "name": "ty",
+          "version": "0.0.102",
+          "url": "https://files.pythonhosted.org/packages/74/53/11e41ea80aadc78eaab9f445f1fa5568b43baa24cd8ad213680b178287eb/ty-0.0.102-py3-none-macosx_11_0_arm64.whl",
+          "wheel_sha256": "2c4a192eff3d714f928df64e41d053d71876bbbeeb41c73917b488deea94df45",
+          "binary_sha256": "eff8c8ba4af5bb769472ca2ec304aa78283db6fa15ad6a91bbdd1a764df5a099"
+        },
+        "archive_sha256": "cc5c564853961ba34fed0425f8594e517de5ef6a79d161ca0f39c1ea14a259e7",
+        "archived_files": 2866
+      },
+      {
+        "version": "0.0.103",
+        "passed": true,
+        "gates": 18,
+        "seconds": 94.13431537500583,
+        "failed_gates": [],
+        "official": {
+          "name": "ty",
+          "version": "0.0.103",
+          "url": "https://files.pythonhosted.org/packages/af/91/196f0661e8e7f485b07b10987f11cb6b173d8b96cd8944d63546fab69019/ty-0.0.103-py3-none-macosx_11_0_arm64.whl",
+          "wheel_sha256": "aa8c466e67807ca5a068f48bc96f23b45b8c730ea7c7e3e0ed46aa6fd15c40cd",
+          "binary_sha256": "d914e74919bf404324918f58dc5255dd414364afb1e16f42838f4e725ff86641"
+        },
+        "archive_sha256": "d646d8994b9a46a14c806e9e793baebca2bd1b26555ab4dc4c92bc054fae95e5",
+        "archived_files": 2866
+      }
+    ],
+    "passing_gates": 378
+  },
+  "ci_binary_identity": "The published macOS executable has a different hash from the CI wheel. Its entire 21-version suite was run again independently; CI byte identity is not asserted.",
+  "installed_sdk_cli_editor": {
+    "passed": true,
+    "python": "3.13.0",
+    "both_commands": true,
+    "official_ty": "0.0.104",
+    "embedded_monty": true,
+    "lsp": true,
+    "log_sha256": "7e54aa5829c949e238d3e50e3f8f93d29504d54449b5490c010fc538b53ffb53"
+  },
+  "minimum_python": {
+    "passed": true,
+    "python": "3.8.20 (default, Oct  2 2024, 16:12:59) \n[Clang 18.1.8 ]",
+    "version": "0.91.0",
+    "both_commands": true,
+    "module_entrypoint": true,
+    "sdk": true,
+    "positive_negative_plugin_controls": true,
+    "empty_path_official_discovery": true
+  },
+  "native_installer": {
+    "passed": true,
+    "source_commit": "4c5b550f5851d5e6d16ae0f0eb47531f87177f1d",
+    "steps": [
+      {
+        "step": "installer-provenance",
+        "exit": 0
+      },
+      {
+        "step": "install",
+        "exit": 0
+      },
+      {
+        "step": "tyx-positive",
+        "exit": 0
+      },
+      {
+        "step": "ty-extended-positive",
+        "exit": 0
+      },
+      {
+        "step": "tyx-negative",
+        "exit": 1
+      },
+      {
+        "step": "ty-extended-negative",
+        "exit": 1
+      },
+      {
+        "step": "cli-editor-sdk",
+        "exit": 0
+      }
+    ],
+    "both_installed_commands_match_wheels": true,
+    "empty_path_sdk_without_python_root_package": true,
+    "gates": 18
+  },
+  "isolated_uv_tool_and_uvx": {
+    "passed": true,
+    "version": "0.91.0",
+    "isolated_tool_and_bin_dirs": true,
+    "both_commands_exposed": true,
+    "installed_bytes_match_verified_wheels": true,
+    "dependency_ty_not_exposed": true,
+    "adjacent_official_ty_found_with_only_tool_bin_on_path": true,
+    "positive_negative_plugin_controls": true,
+    "uvx_both_commands": true,
+    "uvx_commands": [
+      {
+        "command": [
+          "uvx",
+          "--no-config",
+          "--refresh",
+          "--from",
+          "ty-extended==0.91.0",
+          "tyx",
+          "--version"
+        ],
+        "exit": 0,
+        "seconds_including_package_resolution": 0.39912137505598366
+      },
+      {
+        "command": [
+          "uvx",
+          "--no-config",
+          "--from",
+          "ty-extended==0.91.0",
+          "ty-extended",
+          "--version"
+        ],
+        "exit": 0,
+        "seconds_including_package_resolution": 0.04122808389365673
+      }
+    ],
+    "initial_uvx_timeout": {
+      "seconds": 180,
+      "retained_log": "tyx-public-uv.log",
+      "retry": "A verbose no-cache retry downloaded Ty and ty-extended from PyPI and printed tyx 0.91.0 with exit zero. The successful retry spent 61 seconds acquiring packages before launch."
+    }
+  },
+  "django": {
+    "public-django-tyx": {
+      "report": {
+        "passed": true,
+        "complete": true,
+        "files": 7082,
+        "models": 2501,
+        "checker": {
+          "version": "tyx 0.91.0",
+          "sha256": "c3ec877a2d29d5e67cf3c3decf7edafd32b25cd9a98c89b2a33c4a785d38f192"
+        },
+        "installation": {
+          "package": "/private/tmp/tyx-verification/public-installed/lib/python3.13/site-packages/django_ty",
+          "python_version": "3.13",
+          "versions": {
+            "django-ty": "0.8.0",
+            "ty-extended": "0.91.0",
+            "Django": "6.1.3"
+          }
+        },
+        "timeout_seconds": 30,
+        "max_memory_mib": 1024,
+        "semantic_controls": [
+          "ordinary-assignment",
+          "django-unknown-lookup"
+        ],
+        "runs": [
+          {
+            "command": [
+              "/private/tmp/tyx-verification/public-installed/bin/tyx",
+              "check",
+              "--color",
+              "never",
+              "--no-progress",
+              "--output-format",
+              "gitlab",
+              "/private/tmp/tyx-verification/public-django-tyx/project"
+            ],
+            "exit": 0,
+            "seconds": 3.9199297081213444,
+            "peak_process_tree_rss_kib": 492208,
+            "peak_processes_pid_ppid_rss_kib": [
+              [
+                65717,
+                65616,
+                232624
+              ],
+              [
+                65756,
+                65717,
+                259584
+              ]
+            ],
+            "stopped": null,
+            "source_sha256": "66b2a4f9baf2c8c031211a7162ac4659e43ef86ea8c42dc4b30547a9f0513411",
+            "source_preserved": true,
+            "stdout": "/private/tmp/tyx-verification/public-django-tyx/positive/stdout.json",
+            "stderr": "/private/tmp/tyx-verification/public-django-tyx/positive/stderr.log",
+            "negative": false,
+            "diagnostic_codes": [],
+            "passed": true
+          },
+          {
+            "command": [
+              "/private/tmp/tyx-verification/public-installed/bin/tyx",
+              "check",
+              "--color",
+              "never",
+              "--no-progress",
+              "--output-format",
+              "gitlab",
+              "/private/tmp/tyx-verification/public-django-tyx/project"
+            ],
+            "exit": 1,
+            "seconds": 3.5992770839948207,
+            "peak_process_tree_rss_kib": 498624,
+            "peak_processes_pid_ppid_rss_kib": [
+              [
+                66016,
+                65616,
+                232096
+              ],
+              [
+                66068,
+                66016,
+                266528
+              ]
+            ],
+            "stopped": null,
+            "source_sha256": "1082a1cde0766c4dcdc12f4a7654b3f7599af88941ad9f8b7f5b5bb3fc9855df",
+            "source_preserved": true,
+            "stdout": "/private/tmp/tyx-verification/public-django-tyx/negative/stdout.json",
+            "stderr": "/private/tmp/tyx-verification/public-django-tyx/negative/stderr.log",
+            "negative": true,
+            "diagnostic_codes": [
+              "invalid-assignment",
+              "plugin-configuration"
+            ],
+            "passed": true
+          }
+        ],
+        "workload_python_sha256": "4d9f005f39dbd742fbd25619c1f5aa71129ba4e5f343d709326d02f60ca825ae"
+      },
+      "project_archive": {
+        "files": 7083,
+        "sha256": "c4e72df81cd0fe16963f05d8dadf07b017d743ec244e496e94d0bdb606ba9a78",
+        "all_file_hashes_verified": true
+      }
+    },
+    "public-django-legacy": {
+      "report": {
+        "passed": true,
+        "complete": true,
+        "files": 7082,
+        "models": 2501,
+        "checker": {
+          "version": "ty-extended 0.91.0",
+          "sha256": "21cee374e1d55a67fe5aeb337d17e1ff78b7fde02b687302b975f32c4f8bc78f"
+        },
+        "installation": {
+          "package": "/private/tmp/tyx-verification/public-installed/lib/python3.13/site-packages/django_ty",
+          "python_version": "3.13",
+          "versions": {
+            "django-ty": "0.8.0",
+            "ty-extended": "0.91.0",
+            "Django": "6.1.3"
+          }
+        },
+        "timeout_seconds": 30,
+        "max_memory_mib": 1024,
+        "semantic_controls": [
+          "ordinary-assignment",
+          "django-unknown-lookup"
+        ],
+        "runs": [
+          {
+            "command": [
+              "/private/tmp/tyx-verification/public-installed/bin/ty-extended",
+              "check",
+              "--color",
+              "never",
+              "--no-progress",
+              "--output-format",
+              "gitlab",
+              "/private/tmp/tyx-verification/public-django-legacy/project"
+            ],
+            "exit": 0,
+            "seconds": 2.653232457814738,
+            "peak_process_tree_rss_kib": 507088,
+            "peak_processes_pid_ppid_rss_kib": [
+              [
+                78087,
+                77927,
+                232176
+              ],
+              [
+                78206,
+                78087,
+                274912
+              ]
+            ],
+            "stopped": null,
+            "source_sha256": "66b2a4f9baf2c8c031211a7162ac4659e43ef86ea8c42dc4b30547a9f0513411",
+            "source_preserved": true,
+            "stdout": "/private/tmp/tyx-verification/public-django-legacy/positive/stdout.json",
+            "stderr": "/private/tmp/tyx-verification/public-django-legacy/positive/stderr.log",
+            "negative": false,
+            "diagnostic_codes": [],
+            "passed": true
+          },
+          {
+            "command": [
+              "/private/tmp/tyx-verification/public-installed/bin/ty-extended",
+              "check",
+              "--color",
+              "never",
+              "--no-progress",
+              "--output-format",
+              "gitlab",
+              "/private/tmp/tyx-verification/public-django-legacy/project"
+            ],
+            "exit": 1,
+            "seconds": 3.057772582862526,
+            "peak_process_tree_rss_kib": 528208,
+            "peak_processes_pid_ppid_rss_kib": [
+              [
+                78676,
+                77927,
+                232576
+              ],
+              [
+                78799,
+                78676,
+                295632
+              ]
+            ],
+            "stopped": null,
+            "source_sha256": "1082a1cde0766c4dcdc12f4a7654b3f7599af88941ad9f8b7f5b5bb3fc9855df",
+            "source_preserved": true,
+            "stdout": "/private/tmp/tyx-verification/public-django-legacy/negative/stdout.json",
+            "stderr": "/private/tmp/tyx-verification/public-django-legacy/negative/stderr.log",
+            "negative": true,
+            "diagnostic_codes": [
+              "invalid-assignment",
+              "plugin-configuration"
+            ],
+            "passed": true
+          }
+        ],
+        "workload_python_sha256": "4d9f005f39dbd742fbd25619c1f5aa71129ba4e5f343d709326d02f60ca825ae"
+      },
+      "project_archive": {
+        "files": 7083,
+        "sha256": "c0c9c56741dece575d690a23ee83e0c2cf7a5575654f96d203e029aa55425d94",
+        "all_file_hashes_verified": true
+      }
+    }
+  },
+  "timing_scope": "Django scalability observations were collected during concurrent qualification. They are functional timeout/memory controls, not controlled release performance benchmarks. The source PR and merged-main Linux/macOS performance matrices passed separately.",
+  "full_compatibility_reports": {
+    "path": "ty-extended-0.91.0.json.gz",
+    "sha256": "5f37e5f4931dd680ce803d157fb8f8c563e04cc62765d1af5dd3aacc4e44ab5c",
+    "uncompressed_sha256": "3792ff1bf994be150348ee2f822d118bcff5dbdded94f892afdb730aff0b620b"
+  },
+  "raw_evidence": {
+    "release_asset": "tyx-0.91.0-public-compatibility-evidence.tar.gz",
+    "sha256": "49e594c348818c66759157a058c8d7ba6ce62c8419122f3aa7b278fd163d0305"
+  },
+  "build_cleanup": "Task-owned Cargo targets, generated projects and disposable environments removed after preserving and verifying evidence. Original dirty checkout preserved.",
+  "scope": "Finite CLI/editor/SDK fixtures and positive/negative Django controls. All eight artifact pairs are statically verified; the complete public version sweep ran on macOS ARM64. Future Ty releases are not already qualified."
+}

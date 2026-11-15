@@ -28,7 +28,8 @@ and write Python plugins executed by Monty.
 1. Build wheels and the source distribution; install them into clean environments
     alongside official ty and verify plugin discovery, CLI and editor behavior.
 1. Require green Linux, macOS and Windows CI for the exact commit being merged.
-1. Merge the reviewed change and dispatch `release.yml` with its version tag.
+1. Merge the reviewed change, wait for CI on the merged main commit to pass, then
+    dispatch `release.yml` with its version tag.
 1. Monitor every release job, then install the published PyPI artifacts and repeat
     end-to-end smoke checks. GitHub release creation alone is not package acceptance.
 
