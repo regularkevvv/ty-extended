@@ -7,7 +7,9 @@ modified checker; their published notes remain unchanged.
 Entries below 0.74.0 say "extension" where they now would say "plugin"; the term was settled on
 "plugin" in 0.74.0 and released notes are left as they were published.
 
-## Unreleased
+## 0.92.0
+
+- Add the `returns-ty` plugin under `plugins/returns-ty/` for `dry-python/returns`, covering currying, partial application, `flow`/`pipe`, `do` notation, higher-kinded `KindN` and callable overloads; published to PyPI as `returns-ty` via `publish-returns-ty.yml` and validated at full parity against the upstream mypy corpus.
 
 - Merge the `django-ty` plugin repository into `plugins/django-ty/` with full history; the plugin keeps its own build, test and lint configuration and is published to PyPI as `django-ty` under `django-ty-v*` tags via `publish-django-ty.yml`.
 
