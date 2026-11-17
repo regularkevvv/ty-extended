@@ -3198,9 +3198,14 @@ pub fn generic_parts(expression: &str) -> (&str, Vec<&str>) {
 }
 
 fn strip_diagnostic_locations(response: &mut Value) {
-    for diagnostic in response["diagnostics"].as_array_mut().into_iter().flatten() {
-        if let Some(object) = diagnostic.as_object_mut() {
-            object.remove("location");
+    if let Some(diagnostics) = response
+        .get_mut("diagnostics")
+        .and_then(Value::as_array_mut)
+    {
+        for diagnostic in diagnostics {
+            if let Some(object) = diagnostic.as_object_mut() {
+                object.remove("location");
+            }
         }
     }
 }
