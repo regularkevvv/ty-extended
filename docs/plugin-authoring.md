@@ -310,7 +310,9 @@ hosts use for `do`-notation-style APIs (`Container.do(x for x in seq)`).
 `iter-source`/`yield-source` (`{"file-path", "start", "end"}`). When present,
 the emitted diagnostic attaches to that span instead of the hooked call,
 decorator or mutation expression — needed for comprehension-clause errors and
-other diagnostics that legitimately point inside an argument.
+other diagnostics that legitimately point inside an argument. Explicit
+locations are protocol 0.10; a manifest declaring an older minor keeps every
+diagnostic at the hooked expression.
 
 ## Test and publish
 

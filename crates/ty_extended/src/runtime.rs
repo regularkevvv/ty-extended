@@ -2843,6 +2843,17 @@ impl Runtime {
                 return Ok(json!({"kind":"no-change"}));
             }
             let mut response = self.dispatch_semantic(index, request)?;
+            // Protocol 0.10 lets a plugin diagnostic carry an explicit
+            // `location`; plugins built against an older minor only ever
+            // described the hooked span, so the host keeps wrapping their
+            // diagnostics there instead of honoring the field.
+            if self.plugins[index].manifest["protocol-version"]["minor"]
+                .as_u64()
+                .unwrap_or(0)
+                < 10
+            {
+                strip_diagnostic_locations(&mut response);
+            }
             rewrite_protocol_names(&mut response, &self.plugins[index].virtual_names);
             if source.protocol_module.is_some() {
                 rewrite_notebook_request(&mut response, source, |name| {
@@ -3184,6 +3195,14 @@ pub fn generic_parts(expression: &str) -> (&str, Vec<&str>) {
         args.push(body[from..].trim());
     }
     (owner, args)
+}
+
+fn strip_diagnostic_locations(response: &mut Value) {
+    for diagnostic in response["diagnostics"].as_array_mut().into_iter().flatten() {
+        if let Some(object) = diagnostic.as_object_mut() {
+            object.remove("location");
+        }
+    }
 }
 
 pub fn call_request(

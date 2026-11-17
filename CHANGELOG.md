@@ -19,7 +19,7 @@ Entries below 0.74.0 say "extension" where they now would say "plugin"; the term
 
 - Attach a `generator` payload to generator-expression call arguments: each clause's iterated type and source span, `if`-filter count, `async` flags, and the yielded element's type and source span. Lets plugins inspect comprehension internals the inferred type cannot show.
 
-- Honor plugin diagnostic `location` spans: a diagnostic carrying an explicit `file-path`/`start`/`end` location attaches there instead of the hooked expression, matching upstream plugin behavior for comprehension-clause and in-argument errors.
+- Honor plugin diagnostic `location` spans: a diagnostic carrying an explicit `file-path`/`start`/`end` location attaches there instead of the hooked expression, matching upstream plugin behavior for comprehension-clause and in-argument errors. The field is protocol 0.10; diagnostics from plugins declaring 0.9 or older keep wrapping at the hooked expression.
 
 ## 0.91.0
 
