@@ -7,7 +7,6 @@
     container: SupportsKind1[List, int]
     container.pop  # E: "SupportsKindN[list[Any], int, Never, Never]" has no attribute "pop"  [attr-defined]
 
-
 - case: supports_kind_getattr_missing
   disable_cache: false
   main: |
@@ -17,7 +16,6 @@
     container.missing
   out: |
     main:4: error: "SupportsKindN[object, int, str, bool]" has no attribute "missing"  [attr-defined]
-
 
 - case: supports_kind_getattr_subclass
   disable_cache: false

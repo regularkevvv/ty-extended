@@ -20,7 +20,6 @@
     main:15: note: Revealed type is "int"
     main:15: error: Argument 1 to "multiple" has incompatible type "list[str]"; expected "list[int]"  [arg-type]
 
-
 - case: partial_correct_generic
   disable_cache: false
   main: |
@@ -41,7 +40,6 @@
     reveal_type(partial(multiple, x)(y))
   out: |
     main:15: note: Revealed type is "int"
-
 
 - case: partial_single_generic
   disable_cache: false
@@ -78,7 +76,6 @@
     main:21: note: Revealed type is "def () -> int"
     main:22: note: Revealed type is "int"
 
-
 - case: partial_double_generic_complex38
   disable_cache: false
   main: |
@@ -112,7 +109,6 @@
     main:21: note: Revealed type is "def [B] (*, b: list[B]) -> int | B"
     main:22: note: Revealed type is "def [A] (*, c: list[A]) -> A | str"
     main:23: note: Revealed type is "def [B] (*, b: list[B]) -> str | B"
-
 
 - case: partial_double_generic
   disable_cache: false

@@ -23,7 +23,6 @@
     main:15: note:     def two_args(a, a: str) -> str
     main:15: note: Revealed type is "def (*Any, **Any) -> int"
 
-
 - case: partial_wrong_overload2
   disable_cache: false
   main: |
@@ -48,7 +47,6 @@
     main:15: note:     def two_args(a, b: int) -> int
     main:15: note:     def two_args(a, b: str) -> str
     main:15: note: Revealed type is "Any"
-
 
 - case: partial_regular_overload
   disable_cache: false
@@ -82,7 +80,6 @@
     main:21: note: Revealed type is "def () -> int"
     main:22: note: Revealed type is "def () -> str"
     main:23: note: Revealed type is "def (b: str) -> str"
-
 
 - case: partial_generic_overload_kind1
   disable_cache: false
@@ -123,7 +120,6 @@
     main:27: note: Revealed type is "def () -> float"
     main:28: note: Revealed type is "def (b: set[float]) -> float"
     main:29: note: Revealed type is "def () -> float"
-
 
 - case: partial_generic_overload_kind2
   disable_cache: false

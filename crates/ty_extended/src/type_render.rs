@@ -1881,6 +1881,7 @@ mod tests {
         let alias = types
             .snapshot(&overloaded)?
             .expect("overloaded snapshot renders");
+        assert!(!alias.is_empty());
         let typing = types.typing_alias();
         assert_eq!(types.definitions.matches("@").count(), 2);
         assert!(types.definitions.contains(&format!(

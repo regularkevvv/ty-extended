@@ -226,11 +226,7 @@ def _chain_diagnostics(leading, steps):
             diagnostics.append(
                 diagnostic(
                     "returns.pipeline-step",
-                    "Pipeline step {0} expects {1}, got {2}".format(
-                        index + 1,
-                        snapshot_to_expression(expected),
-                        snapshot_to_expression(previous),
-                    ),
+                    f"Pipeline step {index + 1} expects {snapshot_to_expression(expected)}, got {snapshot_to_expression(previous)}",
                     severity="error",
                 )
             )
@@ -440,7 +436,7 @@ def _do(request):
             diagnostics.append(
                 diagnostic(
                     "returns.do",
-                    'Invalid type supplied in do-notation: expected "{0}[{1}]", got "{2}"'.format(
+                    'Invalid type supplied in do-notation: expected "{}[{}]", got "{}"'.format(
                         owner,
                         ", ".join(["Any"] * arity),
                         snapshot_to_expression(iterated) or "Unknown",

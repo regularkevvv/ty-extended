@@ -9,7 +9,6 @@
 
     reveal_type(zero)  # N: Revealed type is "Any"
 
-
 - case: curry_kwargs
   disable_cache: false
   main: |
@@ -20,7 +19,6 @@
         ...
 
     reveal_type(zero)  # N: Revealed type is "Any"
-
 
 - case: curry_args_kwargs
   disable_cache: false

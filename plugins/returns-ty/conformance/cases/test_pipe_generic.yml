@@ -12,7 +12,6 @@
         reveal_type(x)  # N: Revealed type is "_NewValueType"
         return x
 
-
 - case: pipe_generic_argument
   disable_cache: false
   main: |

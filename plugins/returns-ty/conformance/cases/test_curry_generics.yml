@@ -15,7 +15,6 @@
     reveal_type(zero)  # N: Revealed type is "def [T] (arg: list[T]) -> T"
     reveal_type(zero(x))  # N: Revealed type is "int"
 
-
 - case: curry_two_generic_args1
   disable_cache: false
   main: |
@@ -34,7 +33,6 @@
     reveal_type(zero(x))  # N: Revealed type is "def (other: int) -> int"
     reveal_type(zero(x)(1))  # N: Revealed type is "int"
     reveal_type(zero(x, 1))  # N: Revealed type is "int"
-
 
 - case: curry_two_generic_args2
   disable_cache: false
@@ -55,7 +53,6 @@
     reveal_type(zero(1, x))  # N: Revealed type is "int"
     reveal_type(zero(1)(y))  # N: Revealed type is "str"
     reveal_type(zero(1, y))  # N: Revealed type is "str"
-
 
 - case: curry_two_generic_args3
   disable_cache: false

@@ -10,7 +10,6 @@
     reveal_type(zero)  # N: Revealed type is "def () -> str"
     reveal_type(zero())  # N: Revealed type is "str"
 
-
 - case: curry_single_arg
   disable_cache: false
   main: |
@@ -22,7 +21,6 @@
 
     reveal_type(zero)  # N: Revealed type is "def (arg: int) -> str"
     reveal_type(zero(1))  # N: Revealed type is "str"
-
 
 - case: curry_two_args1
   disable_cache: false
@@ -38,7 +36,6 @@
     reveal_type(zero(1, 2.0))  # N: Revealed type is "str"
     reveal_type(zero(1)(2.0))  # N: Revealed type is "str"
 
-
 - case: curry_two_args2
   disable_cache: false
   main: |
@@ -51,7 +48,6 @@
     reveal_type(curry(zero)(1))  # N: Revealed type is "def (other: float) -> str"
     reveal_type(curry(zero)(1, 2.0))  # N: Revealed type is "str"
     reveal_type(curry(zero)(1)(2.0))  # N: Revealed type is "str"
-
 
 - case: curry_two_args3
   disable_cache: false
@@ -82,7 +78,6 @@
     main:9: note:     def zero(arg: int, other: float) -> str
     main:9: note: Revealed type is "Any"
 
-
 - case: curry_two_args_one_default
   disable_cache: false
   main: |
@@ -96,7 +91,6 @@
     reveal_type(zero(1))  # N: Revealed type is "def (other: float =) -> str"
     reveal_type(zero(1, 2.0))  # N: Revealed type is "str"
     reveal_type(zero(1)(2.0))  # N: Revealed type is "str"
-
 
 - case: curry_three_args
   disable_cache: false

@@ -66,7 +66,7 @@ jobs:
         with:
           version: "0.12.23"
           enable-cache: false
-      - uses: Swatinem/rust-cache@cf7e1f8a8dac6c4f5d2a5e35e7a0d91baf17c5cf # v2.8.2
+      - uses: Swatinem/rust-cache@779680da715d629ac1d338a641029a2f4372abb5 # v2.8.2
         with:
           workspaces: "crates/ty_extended"
           shared-key: returns-ty

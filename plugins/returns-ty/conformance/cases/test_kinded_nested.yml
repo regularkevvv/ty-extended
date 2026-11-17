@@ -15,7 +15,6 @@
     x: ReaderIOResult[int, str, bool]
     reveal_type(test(x))  # N: Revealed type is "typing.Sequence[returns.context.requires_context_ioresult.RequiresContextIOResult[int, str, bool]]"
 
-
 - case: kinded_with_nested_kind_instance
   disable_cache: false
   main: |
@@ -28,7 +27,6 @@
         ...
 
     reveal_type(test())  # N: Revealed type is "typing.Sequence[returns.context.requires_context_ioresult.RequiresContextIOResult[int, str, bool]]"
-
 
 - case: kinded_with_nested_kind_callable
   disable_cache: false
@@ -48,7 +46,6 @@
 
     reveal_type(test())  # N: Revealed type is "typing.Sequence[def (returns.context.requires_context_ioresult.RequiresContextIOResult[int, str, bool]) -> returns.context.requires_context_ioresult.RequiresContextIOResult[int, str, bool]]"
 
-
 - case: kinded_with_nested_kind_tuple
   disable_cache: false
   main: |
@@ -65,7 +62,6 @@
 
     reveal_type(test())  # N: Revealed type is "tuple[returns.context.requires_context_ioresult.RequiresContextIOResult[int, str, bool], returns.context.requires_context_ioresult.RequiresContextIOResult[float, bytes, object]]"
 
-
 - case: kinded_with_nested_kind_union
   disable_cache: false
   main: |
@@ -81,7 +77,6 @@
         ...
 
     reveal_type(test())  # N: Revealed type is "returns.context.requires_context_ioresult.RequiresContextIOResult[int, str, bool] | returns.context.requires_context_ioresult.RequiresContextIOResult[float, bytes, object]"
-
 
 - case: kinded_with_nested_kind_type
   disable_cache: false

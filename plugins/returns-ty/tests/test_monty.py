@@ -4,6 +4,8 @@ monty.py executes under Monty with the ty plugin SDK injected into its
 globals; the tests stub the handful of SDK names the module calls.
 """
 
+from __future__ import annotations
+
 import importlib.util
 import unittest
 from pathlib import Path

@@ -12,7 +12,6 @@
     main:5: error: "FutureResult[int, Any]" has no attribute "__iter__"; maybe "__aiter__"? (not iterable)  [attr-defined]
     main:5: note: Maybe you forgot to use "await"?
 
-
 - case: do_all_errors
   disable_cache: false
   main: |
@@ -24,7 +23,6 @@
         async for second in FutureFailure('a')
     ))
 
-
 - case: do_no_errors
   disable_cache: false
   main: |
@@ -35,7 +33,6 @@
         async for x in FutureSuccess(1)
         async for y in FutureSuccess(2.5)
     ))
-
 
 - case: do_with_errors
   disable_cache: false
@@ -51,7 +48,6 @@
         async for y in b
     ))
 
-
 - case: do_types_mismatch
   disable_cache: false
   main: |
@@ -62,7 +58,6 @@
         async for x in Future.from_value(1)  # E: Invalid type supplied in do-notation: expected "returns.future.FutureResult[Any, Any]", got "returns.future.Future[int]"  [misc]
         async for y in FutureSuccess(2.5)
     )
-
 
 - case: do_types_converted
   disable_cache: false
@@ -78,7 +73,6 @@
         async for y in FutureSuccess(2.5)
     ))
 
-
 - case: do_with_if
   disable_cache: false
   main: |
@@ -90,7 +84,6 @@
         async for y in FutureSuccess(2.5)
         if y > 5
     )
-
 
 - case: do_with_var
   disable_cache: false

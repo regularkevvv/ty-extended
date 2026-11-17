@@ -7,7 +7,6 @@
     container: Kind1[IO, int]
     reveal_type(dekind(container))  # N: Revealed type is "returns.io.IO[int]"
 
-
 - case: dekind_bindable
   disable_cache: false
   main: |
@@ -26,7 +25,6 @@
         reveal_type(x)  # N: Revealed type is "returns.interfaces.bindable.BindableN[N, Never, Never]"
         return x
 
-
 - case: dekind_correct_two_type_args
   disable_cache: false
   main: |
@@ -35,7 +33,6 @@
 
     container: Kind2[IOResult, int, str]
     reveal_type(dekind(container))  # N: Revealed type is "returns.io.IOResult[int, str]"
-
 
 - case: dekind_correct_typevar
   disable_cache: false
@@ -55,7 +52,6 @@
         ):
             reveal_type(dekind(container))  # N: Revealed type is "main.IO[def (_ValueType) -> _NewValueType]"
 
-
 - case: dekind_wrong_non_instance
   disable_cache: false
   main: |
@@ -71,7 +67,6 @@
     main:8: error: dekind must be used with Instance as the first type argument  [misc]
     main:8: note: Revealed type is "Any"
 
-
 - case: dekind_wrong_non_kind_argument
   disable_cache: false
   main: |
@@ -81,7 +76,6 @@
   out: |
     main:3: note: Revealed type is "Never"
     main:3: error: Argument 1 to "dekind" has incompatible type "int"; expected "KindN[Never, Never, Never, Never]"  [arg-type]
-
 
 - case: dekind_wrong_typevar_argument
   disable_cache: false

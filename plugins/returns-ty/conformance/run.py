@@ -12,6 +12,8 @@ the returns-ty plugin, then `tyx check` output is classified:
 Results are compared against expected.json; --check fails on regressions.
 """
 
+from __future__ import annotations
+
 import argparse
 import json
 import os
@@ -49,7 +51,9 @@ def load_cases() -> list[tuple[str, str, str]]:
     try:
         import yaml
     except ImportError:
-        raise SystemExit("run with `uv run --with pyyaml` so PyYAML is available")
+        raise SystemExit(
+            "run with `uv run --with pyyaml` so PyYAML is available"
+        ) from None
     cases = []
     for path in sorted(CASES.glob("*.yml")):
         for document in yaml.safe_load_all(path.read_text()):
@@ -168,9 +172,12 @@ def main() -> int:
 
             traceback.print_exc()
         results[key] = verdict
-        if args.check and verdict != expected.get(key, "divergence"):
-            if verdict == "error" or expected.get(key) == "parity":
-                regressions.append(key)
+        if (
+            args.check
+            and verdict != expected.get(key, "divergence")
+            and (verdict == "error" or expected.get(key) == "parity")
+        ):
+            regressions.append(key)
         print(f"{verdict:>10}  {key}")
 
     if args.update or not EXPECTED.exists():

@@ -38,6 +38,7 @@ fn call_request() -> PluginRequest {
                 value: "token".to_string(),
             },
             source: None,
+            generator: None,
         }],
         existing_signature: None,
         default_return_type: None,

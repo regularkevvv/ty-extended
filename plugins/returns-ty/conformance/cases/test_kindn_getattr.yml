@@ -7,7 +7,6 @@
     container: Kind1[List, int]
     reveal_type(container.pop)  # N: Revealed type is "def (typing.SupportsIndex =) -> int"
 
-
 - case: kind_missing_getattr
   disable_cache: false
   main: |
@@ -16,7 +15,6 @@
 
     container: Kind1[List, int]
     container.missing  # E: "list[Any]" has no attribute "missing"  [attr-defined]
-
 
 - case: kind_any_getattr
   disable_cache: false

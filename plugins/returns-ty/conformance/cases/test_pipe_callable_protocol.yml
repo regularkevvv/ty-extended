@@ -13,7 +13,6 @@
     predefined = pipe(convert, int, bool)
     reveal_type(callback(predefined))  # N: Revealed type is "bool"
 
-
 - case: pipe_generic_callable1
   disable_cache: false
   main: |
@@ -34,7 +33,6 @@
 
     predefined = pipe(first, second)
     reveal_type(callback(predefined, 1))  # N: Revealed type is "str"
-
 
 - case: pipe_generic_callable2
   disable_cache: false
