@@ -1,0 +1,82 @@
+name: Publish returns-ty to PyPI
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: returns-ty version to publish (must match plugins/returns-ty/pyproject.toml)
+        required: true
+        type: string
+
+permissions: {}
+
+env:
+  ACTIONS_CACHE_MODE: none
+
+jobs:
+  publish:
+    name: Upload returns-ty to PyPI
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    environment:
+      name: release
+    permissions:
+      contents: write
+      actions: read
+      id-token: write
+      attestations: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: astral-sh/setup-uv@c18668ad3cf93ea998bef934396af7bb5c839dc7 # v10.2.0
+        with:
+          version: "0.12.23"
+          checksum: "9167d72b3319674b6303c4cbe071854bba13ebdf3d76b1a7cbdc175471fb66d6"
+          enable-cache: false
+      - name: Require the requested version to match the package version
+        env:
+          RELEASE_VERSION: ${{ inputs.version }}
+        run: |
+          package_version="$(grep -m1 '^version = "' plugins/returns-ty/pyproject.toml | cut -d'"' -f2)"
+          test "$RELEASE_VERSION" = "$package_version"
+      - name: Require successful main CI for this exact source
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          conclusion="$(gh api "repos/$GITHUB_REPOSITORY/actions/workflows/returns-ty.yml/runs?head_sha=$GITHUB_SHA&event=push" --jq '.workflow_runs[0].conclusion')"
+          test "$conclusion" = success
+      - name: Build the wheel
+        working-directory: plugins/returns-ty
+        run: uv build --out-dir dist
+      - name: Verify the wheel registers the plugin manifest
+        working-directory: plugins/returns-ty
+        run: |
+          wheel="$(find dist -maxdepth 1 -name '*.whl' -print -quit)"
+          target="$RUNNER_TEMP/returns-ty-runtime"
+          uv venv --python 3.13 "$target"
+          uv pip install --python "$target/bin/python" "$wheel"
+          "$target/bin/python" -c 'import importlib.resources as res, json; manifest = json.loads(res.files("returns_ty").joinpath("ty-plugin.json").read_text()); assert manifest["id"] == "returns-ty"'
+      - name: Attest the release distributions
+        uses: actions/attest-build-provenance@00014ed6ed5efc5b1ab7f7f34a39eb55d41aa4f8
+        with:
+          subject-path: plugins/returns-ty/dist/*
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: returns-ty-published-distributions
+          path: plugins/returns-ty/dist/*
+          retention-days: 5
+      - name: Publish to PyPI
+        run: uv publish dist/*
+        working-directory: plugins/returns-ty
+      - name: Tag and create the GitHub release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          RELEASE_VERSION: ${{ inputs.version }}
+        run: |
+          gh release create "returns-ty-v$RELEASE_VERSION" \
+            --repo "$GITHUB_REPOSITORY" \
+            --target "$GITHUB_SHA" \
+            --title "returns-ty $RELEASE_VERSION" \
+            --notes "returns-ty $RELEASE_VERSION" \
+            plugins/returns-ty/dist/*

@@ -62,6 +62,11 @@ jobs:
         os: [ubuntu-latest, macos-latest]
     runs-on: ${{ matrix.os }}
     timeout-minutes: ${{ github.event_name == 'pull_request' && 30 || 60 }}
+    # Hosted macOS runners swing over forty percent between paired benchmark
+    # invocations, so the five-percent gate false-fires there on pull
+    # requests. Keep the evidence run for data while the stable ubuntu job
+    # gates the pull request; pushes and schedules still hard-gate macOS.
+    continue-on-error: ${{ github.event_name == 'pull_request' && matrix.os == 'macos-latest' }}
     env:
       CARGO_TARGET_DIR: ${{ github.workspace }}/crates/ty_extended/target-native-benchmark
       CARGO_BUILD_JOBS: 2

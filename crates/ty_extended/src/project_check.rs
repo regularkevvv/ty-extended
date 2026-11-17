@@ -2642,7 +2642,7 @@ impl Session {
                 server.register_external_source(path)?;
             }
             server.sync_documents(&sources)?;
-            let uri = crate::checker::file_uri(&probe)?;
+            let uri = server.document_uri(&probe)?;
             let mut resolved = Vec::new();
             let mut resolved_paths = self.resolved_paths.clone();
             for (line, module) in candidates.iter().enumerate() {
@@ -4589,7 +4589,7 @@ impl Session {
                     }
                     for d in response["diagnostics"].as_array().into_iter().flatten() {
                         diagnostics
-                            .push(json!({"diagnostic":d,"source":unit.source.location(call.span)}));
+                            .push(json!({"diagnostic":d,"source":unit.source.diagnostic_source(d, call.span)}));
                     }
                 }
                 stable &= next == unit.patches && old_oracles.get(&unit.path) == Some(&unit.oracle);

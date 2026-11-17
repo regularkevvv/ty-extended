@@ -88,6 +88,7 @@ mod tests {
 
     fn argument(name: Option<&str>, value: LiteralValue) -> ArgumentSummary {
         ArgumentSummary {
+            generator: None,
             name: name.map(str::to_string),
             kind: if name.is_some() {
                 ArgumentKind::Keyword

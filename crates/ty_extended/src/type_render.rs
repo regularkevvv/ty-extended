@@ -359,7 +359,13 @@ impl Types {
     }
     fn snapshot(&mut self, value: &Value) -> Result<Option<String>> {
         let result = match value["kind"].as_str().context("type snapshot kind")? {
-            "expression" => self.render(value)?,
+            "expression" => {
+                if value["expression"].as_str().map(str::trim) == Some("Unknown") {
+                    self.unknown()
+                } else {
+                    self.render(value)?
+                }
+            }
             "nominal" => {
                 let name = value["qualified-name"]
                     .as_str()
@@ -563,113 +569,37 @@ impl Types {
                     }
                     let alias = format!("{}snapshot_{}", self.prefix, self.snapshots.len());
                     self.snapshots.insert(key, alias.clone());
-                    let mut declared: Vec<String> = type_params
-                        .iter()
-                        .map(|param| {
-                            let name = param["name"].as_str().unwrap_or("T");
-                            let prefix = match param["kind"].as_str() {
-                                Some("param-spec") => "**",
-                                Some("type-var-tuple") => "*",
-                                _ => "",
-                            };
-                            let bound = param
-                                .get("bound")
-                                .map(|bound| {
-                                    self.snapshot_or_unknown(bound)
-                                        .map(|bound| format!(": {bound}"))
-                                })
-                                .transpose()?
-                                .unwrap_or_default();
-                            let constraints = param["constraints"]
-                                .as_array()
-                                .into_iter()
-                                .flatten()
-                                .map(|constraint| self.snapshot_or_unknown(constraint))
-                                .collect::<Result<Vec<_>>>()?;
-                            let constraint = if constraints.is_empty() {
-                                bound
-                            } else {
-                                format!(": ({})", constraints.join(", "))
-                            };
-                            let default = param
-                                .get("default")
-                                .map(|default| {
-                                    self.snapshot_or_unknown(default)
-                                        .map(|default| format!(" = {default}"))
-                                })
-                                .transpose()?
-                                .unwrap_or_default();
-                            Ok(format!("{prefix}{name}{constraint}{default}"))
-                        })
-                        .collect::<Result<Vec<_>>>()?;
-                    let mut starred = false;
-                    let mut params = Vec::new();
-                    for (index, parameter) in parameters.iter().enumerate() {
-                        let kind = parameter["kind"]
-                            .as_str()
-                            .unwrap_or("positional-or-keyword");
-                        if kind == "param-spec" {
-                            let spec = parameter["name"]
-                                .as_str()
-                                .or_else(|| parameter["type-snapshot"]["expression"].as_str())
-                                .unwrap_or("P")
-                                .to_owned();
-                            if !declared.iter().any(|entry| entry.contains(&spec)) {
-                                declared.push(format!("**{spec}"));
-                            }
-                            params.push(format!("*args: {spec}.args"));
-                            params.push(format!("**kwargs: {spec}.kwargs"));
-                            continue;
-                        }
-                        let name = parameter["name"]
-                            .as_str()
-                            .map(str::to_owned)
-                            .unwrap_or_else(|| format!("arg{index}"));
-                        let ty = match parameter.get("type-snapshot") {
-                            Some(snapshot) => self.snapshot_or_unknown(snapshot)?,
-                            None => format!("{}.object", self.builtins_alias()),
-                        };
-                        match kind {
-                            "var-args" => {
-                                starred = true;
-                                params.push(format!("*{name}: {ty}"));
-                            }
-                            "kwargs" => params.push(format!("**{name}: {ty}")),
-                            _ => {
-                                if kind == "keyword-only" && !starred {
-                                    params.push("*".into());
-                                    starred = true;
-                                }
-                                let default = if parameter["required"].as_bool() == Some(false) {
-                                    format!(" = {}", self.placeholder())
-                                } else {
-                                    String::new()
-                                };
-                                params.push(format!("{name}: {ty}{default}"));
-                                if kind == "positional-only"
-                                    && parameters
-                                        .get(index + 1)
-                                        .is_none_or(|next| next["kind"] != "positional-only")
-                                {
-                                    params.push("/".into());
-                                }
-                            }
-                        }
-                    }
-                    let generics = if declared.is_empty() {
-                        String::new()
-                    } else {
-                        format!("[{}]", declared.join(", "))
-                    };
-                    let members = params.join(", ");
-                    let signature = if members.is_empty() {
-                        "self".into()
-                    } else {
-                        format!("self, {members}")
-                    };
+                    let member = self.callable_protocol_member(value)?;
                     self.definitions.push_str(&format!(
-                        "class {alias}({typing}.Protocol):\n    def __call__{generics}({signature}) -> {returns}: ...\n"
+                        "class {alias}({typing}.Protocol):\n    {member}\n"
                     ));
+                    alias
+                }
+            }
+            "overloaded" => {
+                let elements = value["elements"].as_array().cloned().unwrap_or_default();
+                if elements.is_empty() || !elements.iter().all(|e| e["kind"] == "callable") {
+                    // Best-effort fallback for malformed input: union render.
+                    elements
+                        .iter()
+                        .map(|element| self.snapshot_or_unknown(element))
+                        .collect::<Result<Vec<_>>>()?
+                        .join(" | ")
+                } else {
+                    let key = serde_json::to_string(value)?;
+                    if let Some(alias) = self.snapshots.get(&key) {
+                        return Ok(Some(alias.clone()));
+                    }
+                    let alias = format!("{}snapshot_{}", self.prefix, self.snapshots.len());
+                    self.snapshots.insert(key, alias.clone());
+                    let typing = self.typing_alias();
+                    let mut members = String::new();
+                    for element in &elements {
+                        let member = self.callable_protocol_member(element)?;
+                        members.push_str(&format!("    @{typing}.overload\n    {member}\n"));
+                    }
+                    self.definitions
+                        .push_str(&format!("class {alias}({typing}.Protocol):\n{members}"));
                     alias
                 }
             }
@@ -677,6 +607,137 @@ impl Types {
         };
         Ok(Some(result))
     }
+    /// Render one `callable` snapshot element as a `def __call__` member line
+    /// for a generated `Protocol` — shared by the plain `callable` arm and the
+    /// `overloaded` arm (one `@overload`-decorated member per element).
+    fn callable_protocol_member(&mut self, value: &Value) -> Result<String> {
+        let returns = self.snapshot_or_unknown(&value["return-type"])?;
+        let parameters = value["parameters"]
+            .as_array()
+            .map(Vec::as_slice)
+            .unwrap_or(&[]);
+        let type_params = value["type-params"]
+            .as_array()
+            .map(Vec::as_slice)
+            .unwrap_or(&[]);
+        let mut declared: Vec<String> = type_params
+            .iter()
+            .map(|param| {
+                let name = param["name"].as_str().unwrap_or("T");
+                let prefix = match param["kind"].as_str() {
+                    Some("param-spec") => "**",
+                    Some("type-var-tuple") => "*",
+                    _ => "",
+                };
+                let bound = param
+                    .get("bound")
+                    .map(|bound| {
+                        self.snapshot_or_unknown(bound)
+                            .map(|bound| format!(": {bound}"))
+                    })
+                    .transpose()?
+                    .unwrap_or_default();
+                let constraints = param["constraints"]
+                    .as_array()
+                    .into_iter()
+                    .flatten()
+                    .map(|constraint| self.snapshot_or_unknown(constraint))
+                    .collect::<Result<Vec<_>>>()?;
+                let constraint = if constraints.is_empty() {
+                    bound
+                } else {
+                    format!(": ({})", constraints.join(", "))
+                };
+                let default = param
+                    .get("default")
+                    .map(|default| {
+                        self.snapshot_or_unknown(default)
+                            .map(|default| format!(" = {default}"))
+                    })
+                    .transpose()?
+                    .unwrap_or_default();
+                Ok(format!("{prefix}{name}{constraint}{default}"))
+            })
+            .collect::<Result<Vec<_>>>()?;
+        let mut starred = false;
+        let mut params = Vec::new();
+        for (index, parameter) in parameters.iter().enumerate() {
+            let kind = parameter["kind"]
+                .as_str()
+                .unwrap_or("positional-or-keyword");
+            if kind == "param-spec" {
+                let spec = parameter["name"]
+                    .as_str()
+                    .or_else(|| parameter["type-snapshot"]["expression"].as_str())
+                    .unwrap_or("P")
+                    .to_owned();
+                if !declared.iter().any(|entry| entry.contains(&spec)) {
+                    declared.push(format!("**{spec}"));
+                }
+                params.push(format!("*args: {spec}.args"));
+                params.push(format!("**kwargs: {spec}.kwargs"));
+                continue;
+            }
+            let name = parameter["name"]
+                .as_str()
+                .map(str::to_owned)
+                .unwrap_or_else(|| format!("arg{index}"));
+            let ty = match parameter.get("type-snapshot") {
+                Some(snapshot) => self.snapshot_or_unknown(snapshot)?,
+                None => format!("{}.object", self.builtins_alias()),
+            };
+            match kind {
+                "var-args" => {
+                    starred = true;
+                    params.push(format!("*{name}: {ty}"));
+                }
+                "kwargs" => params.push(format!("**{name}: {ty}")),
+                _ => {
+                    if kind == "keyword-only" && !starred {
+                        params.push("*".into());
+                        starred = true;
+                    }
+                    let default = if parameter["required"].as_bool() == Some(false) {
+                        format!(" = {}", self.placeholder())
+                    } else {
+                        String::new()
+                    };
+                    params.push(format!("{name}: {ty}{default}"));
+                    if kind == "positional-only"
+                        && parameters
+                            .get(index + 1)
+                            .is_none_or(|next| next["kind"] != "positional-only")
+                    {
+                        params.push("/".into());
+                    }
+                }
+            }
+        }
+        let generics = if declared.is_empty() {
+            String::new()
+        } else {
+            format!("[{}]", declared.join(", "))
+        };
+        // A snapshot parameter may itself be named `self` (curried methods);
+        // keep the instance slot collision-free.
+        let mut instance = "self".to_string();
+        while params
+            .iter()
+            .any(|entry| entry.starts_with(&format!("{instance}:")))
+        {
+            instance = format!("_{instance}");
+        }
+        let members = params.join(", ");
+        let signature = if members.is_empty() {
+            instance
+        } else {
+            format!("{instance}, {members}")
+        };
+        Ok(format!(
+            "def __call__{generics}({signature}) -> {returns}: ..."
+        ))
+    }
+
     pub fn text(&mut self, text: &str) -> Result<String> {
         // Native decoding falls back to Unknown when a display spelling is not
         // a valid annotation expression (structural display strings included).
@@ -1796,6 +1857,45 @@ mod tests {
                 types.builtins_alias()
             )
         );
+        Ok(())
+    }
+
+    #[test]
+    fn overloaded_snapshots_render_protocol_with_overloaded_call_members() -> Result<()> {
+        let int =
+            serde_json::json!({"kind":"nominal","qualified-name":"builtins.int","arguments":[]});
+        let string =
+            serde_json::json!({"kind":"nominal","qualified-name":"builtins.str","arguments":[]});
+        let first = serde_json::json!({"kind":"callable","parameters":[
+            {"name":"a","kind":"positional-or-keyword","type-snapshot":int,"required":true},
+            {"name":"b","kind":"positional-or-keyword","type-snapshot":int,"required":true}],
+            "return-type":int});
+        let second = serde_json::json!({"kind":"callable","parameters":[
+            {"name":"a","kind":"positional-or-keyword","type-snapshot":int,"required":true}],
+            "return-type":{"kind":"callable","parameters":[
+                {"name":null,"kind":"positional-only","type-snapshot":int,"required":true}],
+                "return-type":int}});
+        let overloaded =
+            serde_json::json!({"kind":"overloaded","elements":[first, second.clone()]});
+        let mut types = Types::new("_generated_", "models");
+        let alias = types
+            .snapshot(&overloaded)?
+            .expect("overloaded snapshot renders");
+        assert!(!alias.is_empty());
+        let typing = types.typing_alias();
+        assert_eq!(types.definitions.matches("@").count(), 2);
+        assert!(types.definitions.contains(&format!(
+            "    @{typing}.overload\n    def __call__(self, a: "
+        )));
+        assert!(types.definitions.contains("def __call__(self, a: "));
+        // The curried element's nested callable return renders as Callable.
+        assert!(types.definitions.contains(".Callable[["));
+
+        // Non-callable elements degrade to a union render instead of failing.
+        let mut types = Types::new("_generated_", "models");
+        let mixed = serde_json::json!({"kind":"overloaded","elements":[second, string]});
+        let rendered = types.snapshot(&mixed)?.expect("mixed overloaded renders");
+        assert!(rendered.contains(" | "), "{rendered}");
         Ok(())
     }
 }

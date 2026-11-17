@@ -600,6 +600,7 @@ fn validate_defaults_argument(
                 return None;
             };
             let nested = ArgumentSummary {
+                generator: None,
                 name: Some(field_name.clone()),
                 kind: ArgumentKind::Keyword,
                 type_expr: value_type.clone().map(TypeExpr::annotation),
@@ -777,6 +778,7 @@ fn validate_field_name_argument_for_method(
         }
     }
     let candidate = ArgumentSummary {
+        generator: None,
         value: LiteralValue::Str {
             value: value.to_string(),
         },
@@ -811,6 +813,7 @@ fn validate_field_name_collection(
         .iter()
         .filter_map(|item| {
             let candidate = ArgumentSummary {
+                generator: None,
                 name: None,
                 kind: ArgumentKind::Positional,
                 type_expr: None,
@@ -1169,6 +1172,7 @@ mod tests {
         type_expr: Option<&str>,
     ) -> ArgumentSummary {
         ArgumentSummary {
+            generator: None,
             name: name.map(str::to_string),
             kind,
             type_expr: type_expr.map(TypeExpr::annotation),

@@ -7,7 +7,9 @@ modified checker; their published notes remain unchanged.
 Entries below 0.74.0 say "extension" where they now would say "plugin"; the term was settled on
 "plugin" in 0.74.0 and released notes are left as they were published.
 
-## Unreleased
+## 0.92.0
+
+- Add the `returns-ty` plugin under `plugins/returns-ty/` for `dry-python/returns`, covering currying, partial application, `flow`/`pipe`, `do` notation, higher-kinded `KindN` and callable overloads; published to PyPI as `returns-ty` via `publish-returns-ty.yml` and validated at full parity against the upstream mypy corpus.
 
 - Merge the `django-ty` plugin repository into `plugins/django-ty/` with full history; the plugin keeps its own build, test and lint configuration and is published to PyPI as `django-ty` under `django-ty-v*` tags via `publish-django-ty.yml`.
 
@@ -16,6 +18,10 @@ Entries below 0.74.0 say "extension" where they now would say "plugin"; the term
 - Add protocol 0.10 `callable` type snapshots: function-typed arguments and return types arrive with structured parameters, PEP 695 type parameters and a return type instead of an opaque expression string. Returned `callable` snapshots lower to `Callable[...]` or a generated `Protocol` `__call__`. Plugins declaring protocol 0.9 or older receive the original `expression` spelling on the wire.
 
 - Wire `claims.decorators` to call hooks: bare `@name` decorators synthesize a `decorator(function)` application marked `"decorator": true`, apply bottom-up, and retype the definition through the decorator's own application. Manifests without decorator claims skip the work entirely.
+
+- Attach a `generator` payload to generator-expression call arguments: each clause's iterated type and source span, `if`-filter count, `async` flags, and the yielded element's type and source span. Lets plugins inspect comprehension internals the inferred type cannot show.
+
+- Honor plugin diagnostic `location` spans: a diagnostic carrying an explicit `file-path`/`start`/`end` location attaches there instead of the hooked expression, matching upstream plugin behavior for comprehension-clause and in-argument errors. The field is protocol 0.10; diagnostics from plugins declaring 0.9 or older keep wrapping at the hooked expression.
 
 ## 0.91.0
 

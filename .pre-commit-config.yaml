@@ -110,7 +110,9 @@ repos:
         # Plugin artifacts under `.ty/` are Monty sandbox code, not project source.
         # Differential fixtures include negative syntax and fixed source coordinates.
         # `plugins/django-ty` is vendored and linted by its own pinned ruff in its own CI.
-        exclude: (?x)^(python/ty_extended/plugin_sdk\.py)|(crates/ty_plugin_host/python/ty_plugin_sdk\.py)|(\.ty/)|(crates/ty_extended/tests/fixtures/)|(plugins/django-ty/)
+        # `plugins/returns-ty/.../monty.py` is concatenated after the Monty prelude, so
+        # it cannot carry `from __future__ import annotations`.
+        exclude: (?x)^(python/ty_extended/plugin_sdk\.py)|(crates/ty_plugin_host/python/ty_plugin_sdk\.py)|(\.ty/)|(crates/ty_extended/tests/fixtures/)|(plugins/django-ty/)|(plugins/returns-ty/python/returns_ty/monty\.py)
         priority: 1
 
   # Priority 2: Second-pass fixers run after both formatters.
@@ -125,7 +127,9 @@ repos:
         # Plugin artifacts under `.ty/` use ambient sandbox-prelude names.
         # Differential fixtures include negative syntax and fixed source coordinates.
         # `plugins/django-ty` is vendored and linted by its own pinned ruff in its own CI.
-        exclude: (?x)^(python/ty_extended/plugin_sdk\.py)|(crates/ty_plugin_host/python/ty_plugin_sdk\.py)|(\.ty/)|(crates/ty_extended/tests/fixtures/)|(plugins/django-ty/)
+        # `plugins/returns-ty/.../monty.py` is concatenated after the Monty prelude, so
+        # it cannot carry `from __future__ import annotations`.
+        exclude: (?x)^(python/ty_extended/plugin_sdk\.py)|(crates/ty_plugin_host/python/ty_plugin_sdk\.py)|(\.ty/)|(crates/ty_extended/tests/fixtures/)|(plugins/django-ty/)|(plugins/returns-ty/python/returns_ty/monty\.py)
         require_serial: true
         priority: 2
 

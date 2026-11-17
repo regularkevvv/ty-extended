@@ -228,6 +228,10 @@ struct Project<'a> {
     raw_returns: &'a BTreeMap<Span, Value>,
     types: Types,
     required_probes: BTreeSet<Span>,
+    /// Typed structure of generator expressions, keyed by the genexp's span.
+    /// Filled by `comprehension` while the comprehension scope is alive and
+    /// drained by `call` into the owning `Argument`.
+    generator_payloads: BTreeMap<Span, Value>,
 }
 
 pub fn project(
@@ -324,6 +328,7 @@ pub fn project_with_return_types(
         raw_returns,
         types,
         required_probes,
+        generator_payloads: BTreeMap::new(),
     };
     let mut scope = Scope {
         module: true,
@@ -505,6 +510,7 @@ impl Project<'_> {
                     literal: json!({"kind":"unknown"}),
                     kind: "positional",
                     inferred_type: Some(decorated.clone()),
+                    generator: None,
                 }],
                 receiver_span: None,
                 receiver_type: None,
@@ -522,7 +528,7 @@ impl Project<'_> {
             for diagnostic in response["diagnostics"].as_array().into_iter().flatten() {
                 self.result.diagnostics.push(json!({
                     "diagnostic":diagnostic,
-                    "source":self.source.location(span(expression)),
+                    "source":self.source.diagnostic_source(diagnostic, span(expression)),
                 }));
             }
             if response["kind"] == "call-return-patch" {
@@ -923,7 +929,7 @@ impl Project<'_> {
             for diagnostic in patch["diagnostics"].as_array().into_iter().flatten() {
                 self.result.diagnostics.push(json!({
                     "diagnostic":diagnostic,
-                    "source":self.source.location(span(target)),
+                    "source":self.source.diagnostic_source(diagnostic, span(target)),
                 }));
             }
         }
@@ -1517,10 +1523,16 @@ impl Project<'_> {
             None
         };
         let mut argument_types = BTreeMap::new();
+        let mut generator_payloads = BTreeMap::new();
         for argument in &call.arguments.args {
             self.expr(scope, argument)?;
             if let Some(value) = scope.protocol_type(argument) {
                 argument_types.insert(span(argument), value.clone());
+            }
+            if matches!(argument, Expr::Generator(_))
+                && let Some(payload) = self.generator_payloads.remove(&span(argument))
+            {
+                generator_payloads.insert(span(argument), payload);
             }
         }
         for keyword in &call.arguments.keywords {
@@ -1554,6 +1566,7 @@ impl Project<'_> {
         if let Some(site) = self.analysis.calls.get_mut(&span(call)) {
             for argument in &mut site.arguments {
                 argument.inferred_type = argument_types.get(&argument.span).cloned();
+                argument.generator = generator_payloads.get(&argument.span).cloned();
             }
         }
 
@@ -1639,7 +1652,7 @@ impl Project<'_> {
         for diagnostic in patch["diagnostics"].as_array().into_iter().flatten() {
             self.result.diagnostics.push(json!({
                 "diagnostic":diagnostic,
-                "source":self.source.location(span(call)),
+                "source":self.source.diagnostic_source(diagnostic, span(call)),
             }));
         }
         let receiver_name_still_bound = match (receiver, call.func.as_ref()) {
@@ -2120,10 +2133,10 @@ impl Project<'_> {
                 self.assignment(scope, &named.target, Some(&named.value), identity)?;
             }
             Expr::ListComp(comp) if self.runtime.project.is_some() => {
-                self.comprehension(scope, &comp.generators, &[&comp.elt])?;
+                self.comprehension(scope, &comp.generators, &[&comp.elt], None)?;
             }
             Expr::SetComp(comp) if self.runtime.project.is_some() => {
-                self.comprehension(scope, &comp.generators, &[&comp.elt])?;
+                self.comprehension(scope, &comp.generators, &[&comp.elt], None)?;
             }
             Expr::DictComp(comp) if self.runtime.project.is_some() => {
                 let mut elements = Vec::new();
@@ -2131,10 +2144,10 @@ impl Project<'_> {
                     elements.push(key.as_ref());
                 }
                 elements.push(comp.value.as_ref());
-                self.comprehension(scope, &comp.generators, &elements)?;
+                self.comprehension(scope, &comp.generators, &elements, None)?;
             }
             Expr::Generator(comp) if self.runtime.project.is_some() => {
-                self.comprehension(scope, &comp.generators, &[&comp.elt])?;
+                self.comprehension(scope, &comp.generators, &[&comp.elt], Some(span(comp)))?;
             }
             Expr::Yield(yield_) if self.runtime.project.is_some() => {
                 if let Some(value) = &yield_.value {
@@ -2222,16 +2235,36 @@ impl Project<'_> {
             )
     }
 
+    /// The oracle-resolved type-expr for a probed expression, or `Null` when
+    /// the first pass has no oracle to consult yet.
+    fn probed_type(&mut self, expression: &Expr) -> Value {
+        self.required_probes.insert(span(expression));
+        self.oracle
+            .and_then(|oracle| oracle.get(&crate::model::expression_key(span(expression))))
+            .map(|inferred| self.runtime.type_expr(self.source, inferred))
+            .unwrap_or(Value::Null)
+    }
+
     fn comprehension(
         &mut self,
         scope: &mut Scope,
         generators: &[ruff_python_ast::Comprehension],
         elements: &[&Expr],
+        record: Option<Span>,
     ) -> Result<()> {
         let Some((first, rest)) = generators.split_first() else {
             return Ok(());
         };
         self.expr(scope, &first.iter)?;
+        let mut clauses = record.is_some().then(Vec::new);
+        if let Some(list) = clauses.as_mut() {
+            list.push(json!({
+                "iter-type": self.probed_type(&first.iter),
+                "iter-source": self.source.location(span(&first.iter)),
+                "conditions": first.ifs.len(),
+                "is-async": first.is_async,
+            }));
+        }
         // Like functions and class bodies, the checker models a comprehension
         // in its own object-state scope. Target bindings never rebind an outer
         // variable with the same spelling, even when Python inlines the scope.
@@ -2254,9 +2287,35 @@ impl Project<'_> {
             for condition in &generator.ifs {
                 self.expr(&mut inner, condition)?;
             }
+            if let Some(list) = clauses.as_mut() {
+                list.push(json!({
+                    "iter-type": self.probed_type(&generator.iter),
+                    "iter-source": self.source.location(span(&generator.iter)),
+                    "conditions": generator.ifs.len(),
+                    "is-async": generator.is_async,
+                }));
+            }
         }
         for element in elements {
             self.expr(&mut inner, element)?;
+        }
+        if let (Some(key), Some(list)) = (record, clauses) {
+            let yield_type = elements
+                .first()
+                .map(|element| self.probed_type(element))
+                .unwrap_or(Value::Null);
+            let yield_source = elements
+                .first()
+                .map(|element| self.source.location(span(*element)));
+            self.generator_payloads.insert(
+                key,
+                json!({
+                    "is-async": generators.iter().any(|generator| generator.is_async),
+                    "clauses": list,
+                    "yield-type": yield_type,
+                    "yield-source": yield_source,
+                }),
+            );
         }
         Ok(())
     }

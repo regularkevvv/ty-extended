@@ -696,6 +696,14 @@ def snapshot_callable(
     return snap
 
 
+def snapshot_overloaded(elements: list[JsonObject]) -> JsonObject:
+    """An overloaded callable snapshot: every element must be a `callable`
+    snapshot. Hosts render it as a `Protocol` with overloaded `__call__`
+    members — the shape curried and multi-signature functions need
+    (protocol 0.10+)."""
+    return {"kind": "overloaded", "elements": elements}
+
+
 def snapshot_metadata(
     qualified_name: str, arguments: Optional[list[JsonObject]] = None
 ) -> JsonObject:
@@ -758,6 +766,11 @@ def snapshot_to_expression(snapshot: JsonObject) -> str:
         return name
     if kind == "union":
         return " | ".join(snapshot_to_expression(el) for el in snapshot.get("elements") or [])
+    if kind == "overloaded":
+        elements = snapshot.get("elements") or []
+        if not elements:
+            raise ValueError("overloaded snapshots need at least one element")
+        return snapshot_to_expression(elements[0])
     if kind == "tuple":
         parts = []
         for item in snapshot.get("prefix") or []:

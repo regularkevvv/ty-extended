@@ -120,6 +120,7 @@ fn literal_assignment_field(name: &str) -> FieldSummary {
 
 fn positional_str(value: &str) -> ArgumentSummary {
     ArgumentSummary {
+        generator: None,
         name: None,
         kind: ArgumentKind::Positional,
         type_expr: Some(TypeExpr::annotation("str")),
@@ -132,6 +133,7 @@ fn positional_str(value: &str) -> ArgumentSummary {
 
 fn positional_class(value: &str) -> ArgumentSummary {
     ArgumentSummary {
+        generator: None,
         name: None,
         kind: ArgumentKind::Positional,
         type_expr: Some(TypeExpr::annotation(value)),
@@ -144,6 +146,7 @@ fn positional_class(value: &str) -> ArgumentSummary {
 
 fn positional_setting(value: &str) -> ArgumentSummary {
     ArgumentSummary {
+        generator: None,
         name: None,
         kind: ArgumentKind::Positional,
         type_expr: None,
@@ -156,6 +159,7 @@ fn positional_setting(value: &str) -> ArgumentSummary {
 
 fn keyword_bool(name: &str, value: bool) -> ArgumentSummary {
     ArgumentSummary {
+        generator: None,
         name: Some(name.to_string()),
         kind: ArgumentKind::Keyword,
         type_expr: Some(TypeExpr::annotation("bool")),
@@ -166,6 +170,7 @@ fn keyword_bool(name: &str, value: bool) -> ArgumentSummary {
 
 fn keyword_str(name: &str, value: &str) -> ArgumentSummary {
     ArgumentSummary {
+        generator: None,
         name: Some(name.to_string()),
         kind: ArgumentKind::Keyword,
         type_expr: Some(TypeExpr::annotation("str")),
@@ -178,6 +183,7 @@ fn keyword_str(name: &str, value: &str) -> ArgumentSummary {
 
 fn keyword_int(name: &str, value: i64) -> ArgumentSummary {
     ArgumentSummary {
+        generator: None,
         name: Some(name.to_string()),
         kind: ArgumentKind::Keyword,
         type_expr: Some(TypeExpr::annotation("int")),
@@ -188,6 +194,7 @@ fn keyword_int(name: &str, value: i64) -> ArgumentSummary {
 
 fn keyword_value(name: &str, value: LiteralValue) -> ArgumentSummary {
     ArgumentSummary {
+        generator: None,
         name: Some(name.to_string()),
         kind: ArgumentKind::Keyword,
         type_expr: None,
@@ -202,6 +209,7 @@ fn keyword_list(name: &str, items: Vec<LiteralValue>) -> ArgumentSummary {
 
 fn positional_list(items: Vec<LiteralValue>) -> ArgumentSummary {
     ArgumentSummary {
+        generator: None,
         name: None,
         kind: ArgumentKind::Positional,
         type_expr: None,
@@ -1158,6 +1166,7 @@ fn prefetch_create_bulk_save_and_metadata_hooks_are_specialized_and_validated() 
         "prefetch_related",
         manager_receiver(BOOK),
         vec![ArgumentSummary {
+            generator: None,
             name: None,
             kind: ArgumentKind::Positional,
             type_expr: Some(TypeExpr::annotation(
@@ -1194,6 +1203,7 @@ fn prefetch_create_bulk_save_and_metadata_hooks_are_specialized_and_validated() 
         "update_or_create",
         manager_receiver(BOOK),
         vec![ArgumentSummary {
+            generator: None,
             name: Some("defaults".to_string()),
             kind: ArgumentKind::Keyword,
             type_expr: Some(TypeExpr::annotation("dict[str, str]")),
@@ -1505,6 +1515,7 @@ fn values_reports_unknown_field_names_and_invalid_flat_named_combo_no_changes() 
         "values",
         manager_receiver(BOOK),
         vec![ArgumentSummary {
+            generator: None,
             name: None,
             kind: ArgumentKind::Positional,
             type_expr: Some(TypeExpr::annotation("int")),
@@ -1654,6 +1665,7 @@ fn relation_targets_support_to_keyword_self_and_unresolved_enum_fallbacks() {
                 "django.db.models.ForeignKey",
                 vec![
                     ArgumentSummary {
+                        generator: None,
                         name: Some("to".to_string()),
                         kind: ArgumentKind::Keyword,
                         type_expr: Some(TypeExpr::annotation("tree.models.Node")),
@@ -1670,6 +1682,7 @@ fn relation_targets_support_to_keyword_self_and_unresolved_enum_fallbacks() {
                 "django.db.models.ForeignKey",
                 vec![
                     ArgumentSummary {
+                        generator: None,
                         name: None,
                         kind: ArgumentKind::Positional,
                         type_expr: Some(TypeExpr::annotation("external.models.Raw")),
@@ -2276,6 +2289,7 @@ fn callable_defaults_validate_named_results_and_heterogeneous_values() {
         ),
     ] {
         let argument = ArgumentSummary {
+            generator: None,
             name: Some("defaults".into()),
             kind: ArgumentKind::Keyword,
             type_expr: Some(TypeExpr::annotation(expression)),
@@ -2785,6 +2799,7 @@ fn database_defaults_have_sentinel_types_until_an_auto_key_is_set() {
     );
     for argument in [
         ArgumentSummary {
+            generator: None,
             name: None,
             kind: ArgumentKind::StarKwargs,
             value: LiteralValue::Unknown,

@@ -877,6 +877,46 @@ pub struct ArgumentSummary {
     pub value: LiteralValue,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub source: Option<SymbolSource>,
+    /// Structure of a generator-expression argument: each `for` clause's
+    /// iterated type plus the yield type. Present only for `Expr::Generator`
+    /// arguments so plugins can inspect comprehension internals.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub generator: Option<GeneratorSummary>,
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "kebab-case")]
+pub struct GeneratorSummary {
+    /// Whether any clause uses `async for`.
+    pub is_async: bool,
+    /// One entry per `for ... in ...` clause.
+    #[serde(default)]
+    pub clauses: Vec<GeneratorClause>,
+    /// The yielded element expression's inferred type, when the checker
+    /// resolved one.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub yield_type: Option<TypeExpr>,
+    /// Source span of the yielded element expression, for diagnostics that
+    /// upstream plugins attach to the yield (e.g. `do` notation `if` errors).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub yield_source: Option<SymbolSource>,
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "kebab-case")]
+pub struct GeneratorClause {
+    /// The iterated expression's inferred type.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub iter_type: Option<TypeExpr>,
+    /// Source span of the iterated expression, for clause-level diagnostics.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub iter_source: Option<SymbolSource>,
+    /// Number of `if` filters on this clause.
+    #[serde(default)]
+    pub conditions: usize,
+    /// `async for` vs `for`.
+    #[serde(default)]
+    pub is_async: bool,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
@@ -1279,6 +1319,13 @@ pub enum TypeSnapshot {
         closed: bool,
     },
     Union {
+        elements: Vec<TypeSnapshot>,
+    },
+    /// An overloaded callable: each element must be a `callable` snapshot.
+    /// Plugins emit it for multi-signature results such as curried functions;
+    /// hosts render it as a `Protocol` with overloaded `__call__` methods.
+    /// It never appears in requests (protocol 0.10+).
+    Overloaded {
         elements: Vec<TypeSnapshot>,
     },
     /// A callable type: parameters, an optional PEP 695 type-parameter list and

@@ -44,7 +44,7 @@ pub fn decoded_annotation(value: &Value) -> Value {
                 }
                 Some(value)
             }
-            "nominal" | "tuple" | "union" | "typed-dict" => {
+            "nominal" | "tuple" | "union" | "typed-dict" | "overloaded" => {
                 let mut value = snapshot.clone();
                 fn children(value: &mut Value) {
                     match value {
@@ -179,7 +179,53 @@ fn callable_display(text: &str, lookup: &impl Fn(&str) -> Option<Value>) -> Opti
             "return-type": from_annotation(returns, lookup),
         }));
     }
-    let definition = format!("def _tyx_{suffix}: ...");
+    // The checker can emit a bare `*` separator after a `*args` parameter
+    // (`*args: int, *, flag: bool`) — valid in its own grammar but not in
+    // Python source. Drop the redundant separator so the synthesized def
+    // parses.
+    let parameters_text = &suffix[open + 1..close];
+    let normalized = if parameters_text.contains("*") {
+        let mut depth = 0usize;
+        let mut star_arg = false;
+        let mut kept: Vec<String> = Vec::new();
+        let mut segment = String::new();
+        for ch in parameters_text.chars() {
+            match ch {
+                '(' | '[' | '{' => depth += 1,
+                ')' | ']' | '}' => depth = depth.saturating_sub(1),
+                ',' if depth == 0 => {
+                    let trimmed = segment.trim();
+                    if trimmed == "*" {
+                        if !star_arg {
+                            kept.push(segment.clone());
+                        }
+                    } else {
+                        if trimmed.starts_with('*') && !trimmed.starts_with("**") {
+                            star_arg = true;
+                        }
+                        kept.push(segment.clone());
+                    }
+                    segment.clear();
+                    continue;
+                }
+                _ => {}
+            }
+            segment.push(ch);
+        }
+        let trimmed = segment.trim();
+        if !(trimmed == "*" && star_arg) {
+            kept.push(segment.clone());
+        }
+        kept.join(",")
+    } else {
+        parameters_text.to_string()
+    };
+    let definition = format!(
+        "def _tyx_{}({}){}: ...",
+        &suffix[..open],
+        normalized,
+        &suffix[close + 1..]
+    );
     let Ok(parsed) = ruff_python_parser::parse_module(&definition) else {
         return None;
     };
@@ -342,7 +388,24 @@ pub fn callable_display_text(snapshot: &Value) -> String {
 pub fn downgrade_callable_snapshots(value: &mut Value) {
     match value {
         Value::Object(object) => {
-            if object.get("kind").and_then(Value::as_str) == Some("callable") {
+            let kind = object.get("kind").and_then(Value::as_str);
+            if kind == Some("overloaded") {
+                // Only emitted by plugins back to the host; if it ever reaches
+                // an old-protocol request, degrade to the first callable.
+                for element in object
+                    .get_mut("elements")
+                    .and_then(Value::as_array_mut)
+                    .into_iter()
+                    .flatten()
+                {
+                    downgrade_callable_snapshots(element);
+                }
+                if let Some(first) = object["elements"].as_array().and_then(|e| e.first()) {
+                    *value = first.clone();
+                }
+                return;
+            }
+            if kind == Some("callable") {
                 let display = object["display"]
                     .as_str()
                     .filter(|display| !display.is_empty())
@@ -597,6 +660,11 @@ pub fn qualified_expression(snapshot: &Value, fallback: &str, module: Option<&st
                 .map(ordinary)
                 .collect::<Vec<_>>()
                 .join(" | "),
+            "overloaded" => snapshot["elements"]
+                .as_array()
+                .and_then(|elements| elements.first())
+                .map(ordinary)
+                .unwrap_or_else(|| "Unknown".to_owned()),
             "expression" => snapshot["expression"]
                 .as_str()
                 .unwrap_or("Unknown")
@@ -1033,6 +1101,26 @@ mod tests {
         assert_eq!(type_params[1]["kind"], "type-var-tuple");
         assert_eq!(type_params[2]["kind"], "param-spec");
         assert_eq!(snapshot["parameters"][1]["kind"], "var-args");
+        serde_json::from_value::<ty_plugin_protocol::TypeSnapshot>(snapshot).unwrap();
+    }
+
+    #[test]
+    fn callable_display_drops_redundant_star_separator_after_varargs() {
+        // The checker emits `*args: int, *, flag: bool` — a bare `*` separator
+        // after an existing `*args`, which is not valid Python source.
+        let snapshot = from_annotation(
+            "def f(first: int, *args: int, *, flag: bool = ...) -> str",
+            &|_| None,
+        );
+        assert_eq!(snapshot["kind"], "callable");
+        let kinds: Vec<_> = snapshot["parameters"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .map(|parameter| parameter["kind"].as_str().unwrap())
+            .collect();
+        assert_eq!(kinds, ["positional-or-keyword", "keyword-only", "var-args"]);
+        assert_eq!(snapshot["parameters"][1]["name"], "flag");
         serde_json::from_value::<ty_plugin_protocol::TypeSnapshot>(snapshot).unwrap();
     }
 

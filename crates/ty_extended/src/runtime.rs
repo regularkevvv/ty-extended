@@ -2843,6 +2843,17 @@ impl Runtime {
                 return Ok(json!({"kind":"no-change"}));
             }
             let mut response = self.dispatch_semantic(index, request)?;
+            // Protocol 0.10 lets a plugin diagnostic carry an explicit
+            // `location`; plugins built against an older minor only ever
+            // described the hooked span, so the host keeps wrapping their
+            // diagnostics there instead of honoring the field.
+            if self.plugins[index].manifest["protocol-version"]["minor"]
+                .as_u64()
+                .unwrap_or(0)
+                < 10
+            {
+                strip_diagnostic_locations(&mut response);
+            }
             rewrite_protocol_names(&mut response, &self.plugins[index].virtual_names);
             if source.protocol_module.is_some() {
                 rewrite_notebook_request(&mut response, source, |name| {
@@ -3186,6 +3197,19 @@ pub fn generic_parts(expression: &str) -> (&str, Vec<&str>) {
     (owner, args)
 }
 
+fn strip_diagnostic_locations(response: &mut Value) {
+    if let Some(diagnostics) = response
+        .get_mut("diagnostics")
+        .and_then(Value::as_array_mut)
+    {
+        for diagnostic in diagnostics {
+            if let Some(object) = diagnostic.as_object_mut() {
+                object.remove("location");
+            }
+        }
+    }
+}
+
 pub fn call_request(
     runtime: &mut Runtime,
     source: &Source,
@@ -3413,6 +3437,9 @@ fn prepare_call_request(
                     value["type-expr"]["snapshot"] = snapshot.clone();
                 }
             }
+            if let Some(generator) = &arg.generator {
+                value["generator"] = generator.clone();
+            }
             value
         })
         .collect();
@@ -3487,7 +3514,7 @@ def state(request):
             span: Span { start: position, end: position + 1 },
             function: Span { start: position, end: position + 1 },
             callee: "demo.Manager.get".into(),
-            arguments: vec![crate::model::Argument { span: Span { start: position, end: position + 1 }, name: Some("key".into()), literal: json!({"kind":"int","value": if position == 0 {-1} else {position as i64}}), kind: "keyword", inferred_type: None }],
+            arguments: vec![crate::model::Argument { span: Span { start: position, end: position + 1 }, name: Some("key".into()), literal: json!({"kind":"int","value": if position == 0 {-1} else {position as i64}}), kind: "keyword", inferred_type: None, generator: None }],
             receiver_span: None,
             receiver_type: Some("demo.Manager".into()),
             flow_receiver_type: Some("demo.Manager".into()),
@@ -3605,7 +3632,7 @@ def state(request):
             span: Span { start: position, end: position + 1 },
             function: Span { start: position, end: position + 1 },
             callee: "demo.Manager.get".into(),
-            arguments: vec![crate::model::Argument { span: Span { start: position, end: position + 1 }, name: Some("key".into()), literal: json!({"kind":"int","value": if position == 0 {-1} else {position as i64}}), kind: "keyword", inferred_type: None }],
+            arguments: vec![crate::model::Argument { span: Span { start: position, end: position + 1 }, name: Some("key".into()), literal: json!({"kind":"int","value": if position == 0 {-1} else {position as i64}}), kind: "keyword", inferred_type: None, generator: None }],
             receiver_span: None,
             receiver_type: Some("demo.Manager".into()),
             flow_receiver_type: Some("demo.Manager".into()),
@@ -5281,6 +5308,7 @@ def member_hook(request):
                 literal: json!({"kind":"int","value":1}),
                 kind: "positional",
                 inferred_type: None,
+                generator: None,
             }],
             receiver_span: None,
             receiver_type: None,

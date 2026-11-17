@@ -258,8 +258,9 @@ fn check(input: &Path, options: &BTreeMap<String, String>) -> Result<Value> {
                 None,
             )?;
             for diagnostic in patch["diagnostics"].as_array().into_iter().flatten() {
-                return_diagnostics
-                    .push(json!({"diagnostic":diagnostic,"source":source.location(call.span)}));
+                return_diagnostics.push(
+                    json!({"diagnostic":diagnostic,"source":source.diagnostic_source(diagnostic, call.span)}),
+                );
             }
             if patch["kind"] == "call-return-patch" {
                 let expression = patch["return-type"]["expression"]
