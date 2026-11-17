@@ -61,11 +61,15 @@ jobs:
       matrix:
         os: [ubuntu-latest, macos-latest]
     runs-on: ${{ matrix.os }}
-    timeout-minutes: 60
+    timeout-minutes: ${{ github.event_name == 'pull_request' && 30 || 60 }}
     env:
       CARGO_TARGET_DIR: ${{ github.workspace }}/crates/ty_extended/target-native-benchmark
       CARGO_BUILD_JOBS: 2
       CARGO_INCREMENTAL: 0
+      # Pull requests run two full balanced rounds (multiple of four) so the
+      # check stays under thirty minutes; pushes and schedules keep the deep
+      # thirty-two-sample distribution.
+      BENCHMARK_REPEATS: ${{ github.event_name == 'pull_request' && '8' || '32' }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -75,14 +79,32 @@ jobs:
           python-version: "3.13"
       - name: Install pinned Rust toolchain
         run: rustup toolchain install 1.98.0 --profile minimal
+      - name: Cache benchmark build artifacts
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v4
+        with:
+          path: |
+            crates/ty_extended/target-native-benchmark
+            ~/.cargo/registry
+            ~/.cargo/git
+          key: native-perf-build-${{ runner.os }}-${{ hashFiles('Cargo.lock') }}
+          restore-keys: |
+            native-perf-build-${{ runner.os }}-
+      - name: Cache accepted performance reference
+        id: reference
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v4
+        with:
+          path: |
+            ${{ runner.temp }}/ty-extended-reference
+            ${{ runner.temp }}/ty-extended-reference.provenance.json
+          key: native-perf-reference-${{ runner.os }}-${{ hashFiles('crates/ty_extended/scripts/performance_reference.py') }}
       - name: Build and clean accepted performance reference
+        if: steps.reference.outputs.cache-hit != 'true'
         run: python crates/ty_extended/scripts/performance_reference.py --output "${{ runner.temp }}/ty-extended-reference" --work-dir "${{ runner.temp }}/accepted-performance-build"
       - name: Build and clean the benchmark candidate
         shell: bash
         run: |
           native_guard_environment="$RUNNER_TEMP/native-guard-environment"
           cleanup() {
-            cargo clean --manifest-path crates/ty_extended/Cargo.toml
             rm -rf "$native_guard_environment"
           }
           trap cleanup EXIT
@@ -112,7 +134,7 @@ jobs:
           cargo +1.98.0 build --locked --release --manifest-path crates/ty_extended/Cargo.toml --bin tyx
           cp "$CARGO_TARGET_DIR/release/tyx" "$RUNNER_TEMP/tyx-native"
       - name: Compare identical workloads and focused Django contracts
-        run: python crates/ty_extended/scripts/native_django_benchmark.py --production-defaults --matrix --repeats 32 --companion "${{ runner.temp }}/tyx-native" --performance-reference "${{ runner.temp }}/ty-extended-reference" --output "${{ runner.temp }}/native-django-evidence"
+        run: python crates/ty_extended/scripts/native_django_benchmark.py --production-defaults --matrix --repeats "$BENCHMARK_REPEATS" --companion "${{ runner.temp }}/tyx-native" --performance-reference "${{ runner.temp }}/ty-extended-reference" --output "${{ runner.temp }}/native-django-evidence"
       - name: Preserve native Django reports
         if: always()
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
