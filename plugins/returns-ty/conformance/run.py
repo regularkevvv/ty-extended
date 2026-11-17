@@ -80,6 +80,7 @@ def run_case(tyx: str, venv: Path, directory: Path, main: str) -> dict:
         capture_output=True,
         text=True,
         timeout=120,
+        env={**os.environ, "TY_COMPANION_TY": str(venv / "bin" / "ty")},
     )
     output = completed.stdout + completed.stderr
     reveal_lines: set[int] = set()
@@ -146,7 +147,15 @@ def main() -> int:
     venv = workdir / ".venv"
     subprocess.run(["uv", "venv", "--python", "3.13", str(venv)], check=True)
     subprocess.run(
-        ["uv", "pip", "install", "--python", str(venv / "bin/python"), "returns"],
+        [
+            "uv",
+            "pip",
+            "install",
+            "--python",
+            str(venv / "bin/python"),
+            "returns",
+            "ty>=0.0.101,<0.1",
+        ],
         check=True,
     )
 
