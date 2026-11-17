@@ -100,6 +100,7 @@ fn call_field(name: &str, callee: &str, arguments: Vec<ArgumentSummary>) -> Fiel
 
 fn keyword_bool(name: &str, value: bool) -> ArgumentSummary {
     ArgumentSummary {
+        generator: None,
         name: Some(name.to_string()),
         kind: ArgumentKind::Keyword,
         type_expr: Some(TypeExpr::annotation("bool")),
@@ -110,6 +111,7 @@ fn keyword_bool(name: &str, value: bool) -> ArgumentSummary {
 
 fn keyword_int(name: &str, value: i64) -> ArgumentSummary {
     ArgumentSummary {
+        generator: None,
         name: Some(name.to_string()),
         kind: ArgumentKind::Keyword,
         type_expr: Some(TypeExpr::annotation("int")),
@@ -120,6 +122,7 @@ fn keyword_int(name: &str, value: i64) -> ArgumentSummary {
 
 fn keyword_tuple(name: &str, items: Vec<LiteralValue>) -> ArgumentSummary {
     ArgumentSummary {
+        generator: None,
         name: Some(name.to_string()),
         kind: ArgumentKind::Keyword,
         type_expr: None,
@@ -130,6 +133,7 @@ fn keyword_tuple(name: &str, items: Vec<LiteralValue>) -> ArgumentSummary {
 
 fn keyword_list(name: &str, items: Vec<LiteralValue>) -> ArgumentSummary {
     ArgumentSummary {
+        generator: None,
         name: Some(name.to_string()),
         kind: ArgumentKind::Keyword,
         type_expr: None,
@@ -140,6 +144,7 @@ fn keyword_list(name: &str, items: Vec<LiteralValue>) -> ArgumentSummary {
 
 fn keyword_value(name: &str, value: LiteralValue) -> ArgumentSummary {
     ArgumentSummary {
+        generator: None,
         name: Some(name.to_string()),
         kind: ArgumentKind::Keyword,
         type_expr: None,
@@ -150,6 +155,7 @@ fn keyword_value(name: &str, value: LiteralValue) -> ArgumentSummary {
 
 fn class_arg(qualified_name: &str) -> ArgumentSummary {
     ArgumentSummary {
+        generator: None,
         name: None,
         kind: ArgumentKind::Positional,
         type_expr: Some(TypeExpr::annotation(qualified_name)),
@@ -162,6 +168,7 @@ fn class_arg(qualified_name: &str) -> ArgumentSummary {
 
 fn positional_str(value: &str) -> ArgumentSummary {
     ArgumentSummary {
+        generator: None,
         name: None,
         kind: ArgumentKind::Positional,
         type_expr: Some(TypeExpr::annotation("str")),
@@ -174,6 +181,7 @@ fn positional_str(value: &str) -> ArgumentSummary {
 
 fn positional_int(value: i64) -> ArgumentSummary {
     ArgumentSummary {
+        generator: None,
         name: None,
         kind: ArgumentKind::Positional,
         type_expr: Some(TypeExpr::annotation("int")),
@@ -184,6 +192,7 @@ fn positional_int(value: i64) -> ArgumentSummary {
 
 fn setting_ref(qualified_name: &str) -> ArgumentSummary {
     ArgumentSummary {
+        generator: None,
         name: None,
         kind: ArgumentKind::Positional,
         type_expr: None,
@@ -215,6 +224,7 @@ fn with_field_source(mut field: FieldSummary) -> FieldSummary {
 
 fn keyword_str(name: &str, value: &str) -> ArgumentSummary {
     ArgumentSummary {
+        generator: None,
         name: Some(name.to_string()),
         kind: ArgumentKind::Keyword,
         type_expr: Some(TypeExpr::annotation("str")),
@@ -361,6 +371,7 @@ fn minidjango_synthesizes_model_fields_ids_and_manager() {
             "title",
             "minidjango.CharField",
             vec![ArgumentSummary {
+                generator: None,
                 name: Some("max_length".to_string()),
                 kind: ArgumentKind::Keyword,
                 type_expr: Some(TypeExpr::annotation("int")),
@@ -890,6 +901,7 @@ fn minidjango_handles_defensive_request_shapes() {
             "minidjango.ForeignKey",
             vec![
                 ArgumentSummary {
+                    generator: None,
                     name: None,
                     kind: ArgumentKind::Positional,
                     type_expr: Some(TypeExpr::annotation("app.Author")),
@@ -922,6 +934,7 @@ fn minidjango_handles_defensive_request_shapes() {
             "minidjango.ForeignKey",
             vec![
                 ArgumentSummary {
+                    generator: None,
                     name: None,
                     kind: ArgumentKind::Positional,
                     type_expr: Some(TypeExpr::annotation("app.Author")),

@@ -199,6 +199,7 @@ fn serializes_class_transform_request() {
                     },
                     receiver: None,
                     arguments: vec![ArgumentSummary {
+                        generator: None,
                         name: Some("max_length".to_string()),
                         kind: ArgumentKind::Keyword,
                         type_expr: Some(TypeExpr::annotation("int")),
@@ -401,6 +402,7 @@ fn serializes_project_index_request_and_response() {
                     },
                     receiver: None,
                     arguments: vec![ArgumentSummary {
+                        generator: None,
                         name: None,
                         kind: ArgumentKind::Positional,
                         type_expr: Some(TypeExpr::annotation("type[app.Author]")),
@@ -437,6 +439,7 @@ fn serializes_project_index_request_and_response() {
                 receiver: None,
                 arguments: vec![
                     ArgumentSummary {
+                        generator: None,
                         name: None,
                         kind: ArgumentKind::Positional,
                         type_expr: None,
@@ -446,6 +449,7 @@ fn serializes_project_index_request_and_response() {
                         source: None,
                     },
                     ArgumentSummary {
+                        generator: None,
                         name: None,
                         kind: ArgumentKind::Positional,
                         type_expr: None,
@@ -584,6 +588,7 @@ fn serializes_receiver_aware_call_request() {
             plugin_metadata: serde_json::json!({ "model": "app.Book" }),
         }),
         arguments: vec![ArgumentSummary {
+            generator: None,
             name: Some("title".to_string()),
             kind: ArgumentKind::Keyword,
             type_expr: Some(TypeExpr::annotation("str")),
@@ -771,6 +776,7 @@ fn mutation_request_and_response_round_trip() {
         operation: MutationOperation::ItemSet,
         receiver: TypeExpr::annotation("django.http.request.QueryDict"),
         key: Some(ArgumentSummary {
+            generator: None,
             name: None,
             kind: ArgumentKind::Positional,
             type_expr: Some(TypeExpr::annotation("str")),
@@ -780,6 +786,7 @@ fn mutation_request_and_response_round_trip() {
             source: None,
         }),
         value: Some(ArgumentSummary {
+            generator: None,
             name: None,
             kind: ArgumentKind::Positional,
             type_expr: Some(TypeExpr::annotation("str")),
