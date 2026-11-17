@@ -1185,6 +1185,7 @@ mod tests {
             arguments,
             existing_signature: None,
             default_return_type: None,
+            decorator: false,
             project_index: Some(json!({
                 "models": {
                     MODEL: {

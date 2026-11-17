@@ -357,6 +357,7 @@ fn call(
         arguments,
         existing_signature: None,
         default_return_type: None,
+        decorator: false,
         project_index: Some(index),
     })
 }
@@ -510,6 +511,7 @@ fn from_queryset_signature_accepts_custom_querysets_and_preserves_the_manager_cl
         arguments: Vec::new(),
         existing_signature: None,
         default_return_type: None,
+        decorator: false,
         project_index: None,
     }));
 
@@ -534,6 +536,7 @@ fn from_queryset_signature_accepts_custom_querysets_and_preserves_the_manager_cl
             arguments: Vec::new(),
             existing_signature: None,
             default_return_type: None,
+            decorator: false,
             project_index: None,
         }),
         PluginResponse::NoChange
@@ -837,6 +840,7 @@ fn non_models_and_non_manager_calls_do_not_change() {
             arguments: Vec::new(),
             existing_signature: None,
             default_return_type: None,
+            decorator: false,
             project_index: None,
         }),
         PluginResponse::NoChange
@@ -1249,6 +1253,7 @@ fn prefetch_create_bulk_save_and_metadata_hooks_are_specialized_and_validated() 
         )],
         existing_signature: None,
         default_return_type: Some(TypeExpr::annotation("None")),
+        decorator: false,
         project_index: Some(index.clone()),
     }));
     assert_eq!(save.return_type.expression, "None");
@@ -1268,6 +1273,7 @@ fn prefetch_create_bulk_save_and_metadata_hooks_are_specialized_and_validated() 
             arguments: vec![positional_str(name)],
             existing_signature: None,
             default_return_type: None,
+            decorator: false,
             project_index: Some(index.clone()),
         })
     };
@@ -1290,6 +1296,7 @@ fn lazy_strings_custom_managers_and_queryset_subclasses_take_their_specific_path
         arguments: vec![positional_str("hello")],
         existing_signature: None,
         default_return_type: None,
+        decorator: false,
         project_index: None,
     }));
     assert_eq!(lazy.return_type.expression, "str");
@@ -1566,6 +1573,7 @@ fn sdk_json_dispatch_round_trips_manifest_and_project_index() {
         arguments: Vec::new(),
         existing_signature: None,
         default_return_type: None,
+        decorator: false,
         project_index: Some(project_index(vec![
             book_model(),
             author_model(),
@@ -1755,6 +1763,7 @@ fn manager_receiver_variants_and_missing_project_index_take_safe_paths() {
         arguments: vec![keyword_int("missing", 1)],
         existing_signature: None,
         default_return_type: None,
+        decorator: false,
         project_index: None,
     }));
     assert!(no_index.diagnostics.is_empty());
@@ -1771,6 +1780,7 @@ fn manager_receiver_variants_and_missing_project_index_take_safe_paths() {
         arguments: Vec::new(),
         existing_signature: None,
         default_return_type: None,
+        decorator: false,
         project_index: None,
     });
     assert_eq!(not_manager, PluginResponse::NoChange);
@@ -1782,6 +1792,7 @@ fn manager_receiver_variants_and_missing_project_index_take_safe_paths() {
         arguments: Vec::new(),
         existing_signature: None,
         default_return_type: None,
+        decorator: false,
         project_index: Some(json!({ "models": {} })),
     });
     assert_eq!(unknown_method, PluginResponse::NoChange);
@@ -2084,6 +2095,7 @@ fn auth_self_and_mutation_hooks_cover_success_and_safe_fallbacks() {
         existing_signature: None,
         default_return_type: None,
         project_index,
+        decorator: false,
     };
     assert_eq!(
         DjangoTyPlugin.adjust_call_return(&auth_request(None)),
@@ -2111,6 +2123,7 @@ fn auth_self_and_mutation_hooks_cover_success_and_safe_fallbacks() {
         arguments: Vec::new(),
         existing_signature: None,
         default_return_type: None,
+        decorator: false,
         project_index: Some(json!({ "models": { BOOK: { "fields": {} } } })),
     }));
     assert!(matches!(
@@ -2166,6 +2179,7 @@ fn fresh_request_constructor_preserves_subclass_identity() {
             arguments: Vec::new(),
             existing_signature: None,
             default_return_type: None,
+            decorator: false,
             project_index: None,
         };
         let response = DjangoTyPlugin.adjust_call_return(&request);
@@ -2298,6 +2312,7 @@ fn state_request(
         arguments,
         existing_signature: None,
         default_return_type: None,
+        decorator: false,
         project_index: Some(
             json!({"models": {BOOK: {"auto_primary_key": "id", "custom_loading": false}}}),
         ),

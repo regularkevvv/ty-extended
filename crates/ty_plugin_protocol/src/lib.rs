@@ -4,7 +4,10 @@ use std::collections::BTreeMap;
 
 use serde::{Deserialize, Serialize};
 
-pub const CURRENT_PROTOCOL_VERSION: ProtocolVersion = ProtocolVersion { major: 0, minor: 9 };
+pub const CURRENT_PROTOCOL_VERSION: ProtocolVersion = ProtocolVersion {
+    major: 0,
+    minor: 10,
+};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
 #[serde(rename_all = "kebab-case")]
@@ -582,6 +585,10 @@ pub struct CallRequest {
     pub existing_signature: Option<CallableSignature>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub default_return_type: Option<TypeExpr>,
+    /// Synthesized `decorator(function)` applications route through decorator
+    /// claims instead of ordinary function claims.
+    #[serde(default, skip_serializing_if = "std::ops::Not::not")]
+    pub decorator: bool,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub project_index: Option<serde_json::Value>,
 }
@@ -1184,6 +1191,9 @@ pub enum ParameterKind {
     VarArgs,
     KeywordOnly,
     Kwargs,
+    /// A `ParamSpec` reference inside `Callable[P, R]`/`Concatenate` — only
+    /// produced inside `TypeSnapshot::Callable` parameters (protocol 0.10+).
+    ParamSpec,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -1271,6 +1281,21 @@ pub enum TypeSnapshot {
     Union {
         elements: Vec<TypeSnapshot>,
     },
+    /// A callable type: parameters, an optional PEP 695 type-parameter list and
+    /// a return type. `display` preserves the checker's original display text so
+    /// hosts can downgrade the snapshot for plugins built before protocol 0.10.
+    Callable {
+        #[serde(default, skip_serializing_if = "String::is_empty")]
+        display: String,
+        #[serde(default, skip_serializing_if = "Vec::is_empty")]
+        type_params: Vec<SnapshotTypeParam>,
+        #[serde(default, skip_serializing_if = "Vec::is_empty")]
+        parameters: Vec<SnapshotParameter>,
+        /// `Callable[..., T]` / `(...) -> T`: every parameter shape is accepted.
+        #[serde(default, skip_serializing_if = "std::ops::Not::not")]
+        ellipsis: bool,
+        return_type: Box<TypeSnapshot>,
+    },
     PluginClass {
         identity: String,
     },
@@ -1315,6 +1340,44 @@ impl TypeSnapshotExpression {
             snapshot: None,
         }
     }
+}
+
+/// A parameter inside a [`TypeSnapshot::Callable`]. `name` is absent for
+/// `Callable[[A, B], R]` positional arguments; `type_snapshot` is absent for
+/// untyped parameters. `required` false marks a parameter with a default.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "kebab-case")]
+pub struct SnapshotParameter {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub name: Option<String>,
+    pub kind: ParameterKind,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub type_snapshot: Option<Box<TypeSnapshot>>,
+    #[serde(default)]
+    pub required: bool,
+}
+
+/// A PEP 695 type parameter as declared on `def f[T](...)`/`class C[T]`, or a
+/// `ParamSpec`/`TypeVarTuple` referenced inside `Callable[Concatenate[..], R]`.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "kebab-case")]
+pub struct SnapshotTypeParam {
+    pub name: String,
+    pub kind: TypeParamKind,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub bound: Option<Box<TypeSnapshot>>,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub constraints: Vec<TypeSnapshot>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub default: Option<Box<TypeSnapshot>>,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "kebab-case")]
+pub enum TypeParamKind {
+    TypeVar,
+    ParamSpec,
+    TypeVarTuple,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]

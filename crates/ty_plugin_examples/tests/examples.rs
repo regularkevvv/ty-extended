@@ -996,6 +996,7 @@ fn minidjango_handles_defensive_request_shapes() {
         arguments,
         existing_signature: None,
         default_return_type: None,
+        decorator: false,
         project_index,
     };
     let indexed = json!({
@@ -1183,6 +1184,7 @@ fn call_return_overrides_field_return_type() {
         arguments: Vec::new(),
         existing_signature: None,
         default_return_type: None,
+        decorator: false,
         project_index: None,
     };
 
@@ -1223,6 +1225,7 @@ fn minidjango_manager_return_hooks_use_receiver_and_arguments() {
         arguments,
         existing_signature: None,
         default_return_type: None,
+        decorator: false,
         project_index: None,
     };
     let indexed_request = |base: &str, method: &str, arguments: Vec<ArgumentSummary>| {

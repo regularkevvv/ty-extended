@@ -2,7 +2,7 @@
 //! generated-declaration provenance. Never interpret a diagnostic display as a
 //! record schema: generated records use their registered field definitions.
 use crate::model::span;
-use ruff_python_ast::{Expr, Operator};
+use ruff_python_ast::{Expr, Operator, Stmt};
 use serde_json::{Value, json};
 
 pub fn expression(text: &str) -> Value {
@@ -20,6 +20,30 @@ pub fn decoded_annotation(value: &Value) -> Value {
             "annotated" => decoded(&snapshot["base"]),
             "self-type" => snapshot.get("bound").and_then(decoded),
             "plugin-class" => None,
+            // Parameter and type-param objects carry their own `kind` tags;
+            // only the nested snapshot fields decode, never the list items.
+            "callable" => {
+                let mut value = snapshot.clone();
+                if let Some(returns) = value.get_mut("return-type") {
+                    *returns = decoded(returns).unwrap_or_else(|| expression("Unknown"));
+                }
+                for parameter in value["parameters"].as_array_mut().into_iter().flatten() {
+                    if let Some(ty) = parameter.get_mut("type-snapshot") {
+                        *ty = decoded(ty).unwrap_or_else(|| expression("Unknown"));
+                    }
+                }
+                for param in value["type-params"].as_array_mut().into_iter().flatten() {
+                    for key in ["bound", "default"] {
+                        if let Some(bound) = param.get_mut(key) {
+                            *bound = decoded(bound).unwrap_or_else(|| expression("Unknown"));
+                        }
+                    }
+                    for constraint in param["constraints"].as_array_mut().into_iter().flatten() {
+                        *constraint = decoded(constraint).unwrap_or_else(|| expression("Unknown"));
+                    }
+                }
+                Some(value)
+            }
             "nominal" | "tuple" | "union" | "typed-dict" => {
                 let mut value = snapshot.clone();
                 fn children(value: &mut Value) {
@@ -88,9 +112,257 @@ pub fn decoded_annotation(value: &Value) -> Value {
     }
 }
 
+/// Structural snapshot for the checker's callable display forms:
+/// `def name[...](params) -> ret`, `(params) -> ret` and `(...) -> ret`.
+/// `def` displays are re-parsed through a synthesized definition so parameter
+/// kinds, defaults and PEP 695 type parameters come from the grammar rather
+/// than from ad-hoc string scanning.
+fn callable_display(text: &str, lookup: &impl Fn(&str) -> Option<Value>) -> Option<Value> {
+    fn bracket_end(text: &str, open_index: usize) -> Option<usize> {
+        let mut depth = 0usize;
+        for (offset, ch) in text[open_index..].char_indices() {
+            match ch {
+                '(' | '[' | '{' => depth += 1,
+                ')' | ']' | '}' => {
+                    depth = depth.checked_sub(1)?;
+                    if depth == 0 {
+                        return Some(open_index + offset);
+                    }
+                }
+                _ => {}
+            }
+        }
+        None
+    }
+    let text = text.trim();
+    // Locate the suffix that starts a signature: `[` or `(` after an optional
+    // `def qualified.name` / `async def qualified.name` prefix.
+    let suffix = if let Some(rest) = text
+        .strip_prefix("def ")
+        .or_else(|| text.strip_prefix("async def "))
+    {
+        let name_len = rest
+            .find(|ch: char| !(ch.is_alphanumeric() || matches!(ch, '_' | '.')))
+            .unwrap_or(rest.len());
+        let rest = &rest[name_len..];
+        if rest.starts_with('(') || rest.starts_with('[') {
+            rest
+        } else {
+            return None;
+        }
+    } else if text.starts_with('(') {
+        text
+    } else {
+        return None;
+    };
+    if !suffix.contains("->") {
+        return None;
+    }
+    // The parameter list opens at `(` — after the closing `]` of a PEP 695
+    // type-parameter list, whose own bounds may legitimately contain parens.
+    let open = if suffix.starts_with('[') {
+        let end = bracket_end(suffix, 0)?;
+        if !suffix[end + 1..].starts_with('(') {
+            return None;
+        }
+        end + 1
+    } else {
+        0
+    };
+    let close = bracket_end(suffix, open)?;
+    // `(...) -> ret` is the checker spelling of Callable[..., ret]; the
+    // synthesized definition cannot express it, so mark the ellipsis first.
+    if suffix[open + 1..close].trim() == "..." {
+        let returns = suffix[close + 1..].trim_start().strip_prefix("->")?.trim();
+        return Some(json!({
+            "kind": "callable", "display": text, "ellipsis": true,
+            "return-type": from_annotation(returns, lookup),
+        }));
+    }
+    let definition = format!("def _tyx_{suffix}: ...");
+    let Ok(parsed) = ruff_python_parser::parse_module(&definition) else {
+        return None;
+    };
+    let Stmt::FunctionDef(function) = parsed.suite().first()? else {
+        return None;
+    };
+    let parameters = &function.parameters;
+    let annotation = |parameter: &ruff_python_ast::Parameter| {
+        parameter.annotation.as_ref().map(|annotation| {
+            from_annotation(
+                &definition[span(annotation.as_ref()).start..span(annotation.as_ref()).end],
+                lookup,
+            )
+        })
+    };
+    let mut items = Vec::new();
+    let mut ordinary = |kind: &str, list: &[ruff_python_ast::ParameterWithDefault]| {
+        for parameter in list {
+            let mut item = json!({
+                "name": parameter.parameter.name.as_str(),
+                "kind": kind,
+                "required": parameter.default.is_none(),
+            });
+            if let Some(snapshot) = annotation(&parameter.parameter) {
+                item["type-snapshot"] = snapshot;
+            }
+            items.push(item);
+        }
+    };
+    ordinary("positional-only", &parameters.posonlyargs);
+    ordinary("positional-or-keyword", &parameters.args);
+    ordinary("keyword-only", &parameters.kwonlyargs);
+    for (kind, parameter) in [
+        ("var-args", parameters.vararg.as_deref()),
+        ("kwargs", parameters.kwarg.as_deref()),
+    ] {
+        if let Some(parameter) = parameter {
+            let mut item = json!({"name": parameter.name.as_str(), "kind": kind});
+            if let Some(snapshot) = annotation(parameter) {
+                item["type-snapshot"] = snapshot;
+            }
+            items.push(item);
+        }
+    }
+    let type_params: Vec<Value> = function
+        .type_params
+        .iter()
+        .flat_map(|parameters| parameters.iter())
+        .map(|parameter| {
+            let (name, kind, bound, default) = match parameter {
+                ruff_python_ast::TypeParam::TypeVar(parameter) => (
+                    parameter.name.as_str(),
+                    "type-var",
+                    parameter.bound.as_deref(),
+                    parameter.default.as_deref(),
+                ),
+                ruff_python_ast::TypeParam::ParamSpec(parameter) => (
+                    parameter.name.as_str(),
+                    "param-spec",
+                    None,
+                    parameter.default.as_deref(),
+                ),
+                ruff_python_ast::TypeParam::TypeVarTuple(parameter) => (
+                    parameter.name.as_str(),
+                    "type-var-tuple",
+                    None,
+                    parameter.default.as_deref(),
+                ),
+            };
+            let mut item = json!({"name": name, "kind": kind});
+            if let Some(bound) = bound {
+                let snapshot =
+                    from_annotation(&definition[span(bound).start..span(bound).end], lookup);
+                // `T: (A, B)` declares constraints rather than a bound.
+                if snapshot["kind"] == "tuple" {
+                    item["constraints"] = json!(snapshot["prefix"]);
+                } else {
+                    item["bound"] = snapshot;
+                }
+            }
+            if let Some(default) = default {
+                item["default"] =
+                    from_annotation(&definition[span(default).start..span(default).end], lookup);
+            }
+            item
+        })
+        .collect();
+    let returns = function
+        .returns
+        .as_ref()
+        .map(|returns| {
+            from_annotation(
+                &definition[span(returns.as_ref()).start..span(returns.as_ref()).end],
+                lookup,
+            )
+        })
+        .unwrap_or_else(|| expression("Unknown"));
+    let mut snapshot = json!({"kind": "callable", "display": text, "return-type": returns});
+    if !type_params.is_empty() {
+        snapshot["type-params"] = json!(type_params);
+    }
+    if !items.is_empty() {
+        snapshot["parameters"] = json!(items);
+    }
+    Some(snapshot)
+}
+
+/// Render a callable snapshot's canonical `(...) -> ret` display when the
+/// checker's own spelling is unavailable (plugin-authored snapshots).
+pub fn callable_display_text(snapshot: &Value) -> String {
+    fn render(snapshot: &Value) -> String {
+        match snapshot["kind"].as_str() {
+            Some("callable") => {
+                if let Some(display) = snapshot["display"].as_str()
+                    && !display.is_empty()
+                {
+                    return display.to_owned();
+                }
+            }
+            Some("expression") => {
+                return snapshot["expression"]
+                    .as_str()
+                    .unwrap_or("Unknown")
+                    .to_owned();
+            }
+            _ => {}
+        }
+        qualified_expression(snapshot, "Unknown", None)
+    }
+    let parameters = snapshot["parameters"]
+        .as_array()
+        .into_iter()
+        .flatten()
+        .map(|parameter| {
+            let ty = parameter
+                .get("type-snapshot")
+                .map(render)
+                .unwrap_or_else(|| "Unknown".into());
+            let name = parameter["name"].as_str().unwrap_or("");
+            match parameter["kind"].as_str().unwrap_or("") {
+                "var-args" => format!("*{name}: {ty}"),
+                "kwargs" => format!("**{name}: {ty}"),
+                "param-spec" => ty,
+                _ if name.is_empty() => ty,
+                _ => format!("{name}: {ty}"),
+            }
+        })
+        .collect::<Vec<_>>();
+    let inner = if snapshot["ellipsis"] == true {
+        "...".into()
+    } else {
+        parameters.join(", ")
+    };
+    format!("({}) -> {}", inner, render(&snapshot["return-type"]))
+}
+
+/// Rewrite `callable` snapshots to the protocol-1 `expression` fallback for
+/// plugins declaring a minor version before 0.10. `display` preserves the
+/// checker's exact spelling so older plugins observe identical payloads.
+pub fn downgrade_callable_snapshots(value: &mut Value) {
+    match value {
+        Value::Object(object) => {
+            if object.get("kind").and_then(Value::as_str) == Some("callable") {
+                let display = object["display"]
+                    .as_str()
+                    .filter(|display| !display.is_empty())
+                    .map(str::to_owned)
+                    .unwrap_or_else(|| callable_display_text(&json!(object.clone())));
+                *value = json!({"kind":"expression","expression":display,"mode":"annotation"});
+                return;
+            }
+            for value in object.values_mut() {
+                downgrade_callable_snapshots(value);
+            }
+        }
+        Value::Array(values) => values.iter_mut().for_each(downgrade_callable_snapshots),
+        _ => {}
+    }
+}
+
 pub fn from_annotation(text: &str, lookup: &impl Fn(&str) -> Option<Value>) -> Value {
     let Ok(parsed) = ruff_python_parser::parse_expression(text) else {
-        return expression(text);
+        return callable_display(text, lookup).unwrap_or_else(|| expression(text));
     };
     fn node(text: &str, value: &Expr, lookup: &impl Fn(&str) -> Option<Value>) -> Value {
         let raw = &text[span(value).start..span(value).end];
@@ -179,6 +451,62 @@ pub fn from_annotation(text: &str, lookup: &impl Fn(&str) -> Option<Value>) -> V
                             json!({"qualified-name":name,"arguments":arguments.into_iter().map(|arg| from_annotation(arg,lookup)).collect::<Vec<_>>()})
                         }).collect::<Vec<_>>();
                         json!({"kind":"annotated","base":child(args[0]),"metadata":metadata})
+                    }
+                    "Callable" | "typing.Callable" | "collections.abc.Callable"
+                        if !args.is_empty() =>
+                    {
+                        let returns = args
+                            .last()
+                            .map(|returns| child(returns))
+                            .unwrap_or_else(|| expression("Unknown"));
+                        let positional = |parameter: &&Expr| json!({"kind":"positional-only","type-snapshot":child(parameter),"required":true});
+                        let mut parameters = Vec::new();
+                        let mut ellipsis = false;
+                        match args[0] {
+                            Expr::EllipsisLiteral(_) => ellipsis = true,
+                            Expr::List(list) => {
+                                parameters.extend(
+                                    list.elts.iter().collect::<Vec<_>>().iter().map(positional),
+                                );
+                            }
+                            Expr::Subscript(concatenate)
+                                if matches!(
+                                    &text[span(concatenate.value.as_ref()).start
+                                        ..span(concatenate.value.as_ref()).end],
+                                    "Concatenate"
+                                        | "typing.Concatenate"
+                                        | "typing_extensions.Concatenate"
+                                ) =>
+                            {
+                                let mut items = match concatenate.slice.as_ref() {
+                                    Expr::Tuple(tuple) => tuple.elts.iter().collect::<Vec<_>>(),
+                                    value => vec![value],
+                                };
+                                if let Some(spec) = items.pop() {
+                                    for parameter in &items {
+                                        parameters.push(positional(parameter));
+                                    }
+                                    parameters.push(
+                                        json!({"kind":"param-spec","type-snapshot":child(spec)}),
+                                    );
+                                }
+                            }
+                            Expr::Name(_) => {
+                                parameters.push(
+                                    json!({"kind":"param-spec","type-snapshot":child(args[0])}),
+                                );
+                            }
+                            _ => ellipsis = true,
+                        }
+                        let mut snapshot =
+                            json!({"kind":"callable","display":raw,"return-type":returns});
+                        if !parameters.is_empty() {
+                            snapshot["parameters"] = json!(parameters);
+                        }
+                        if ellipsis {
+                            snapshot["ellipsis"] = json!(true);
+                        }
+                        snapshot
                     }
                     _ => nominal(origin, args.into_iter().map(child).collect())
                         .unwrap_or_else(|| expression(raw)),
@@ -349,6 +677,14 @@ pub fn qualified_expression(snapshot: &Value, fallback: &str, module: Option<&st
             )
         }
         "union" => ordinary(snapshot),
+        "callable" => {
+            let display = snapshot["display"].as_str().unwrap_or("");
+            if display.is_empty() {
+                callable_display_text(snapshot)
+            } else {
+                display.to_owned()
+            }
+        }
         "annotated" => qualified_expression(&snapshot["base"], fallback, module),
         "plugin-class" => {
             let identity = snapshot["identity"].as_str().unwrap_or(fallback);
@@ -641,6 +977,133 @@ mod tests {
             "builtins.int"
         );
         serde_json::from_value::<ty_plugin_protocol::TypeSnapshot>(snapshot).unwrap();
+    }
+
+    #[test]
+    fn callable_displays_preserve_parameter_kinds_defaults_and_type_params() {
+        let snapshot = from_annotation(
+            "def module.add_three(a: int, b: int, c: int) -> int",
+            &|_| None,
+        );
+        assert_eq!(snapshot["kind"], "callable");
+        assert_eq!(
+            snapshot["display"],
+            "def module.add_three(a: int, b: int, c: int) -> int"
+        );
+        let parameters = snapshot["parameters"].as_array().unwrap();
+        assert_eq!(parameters.len(), 3);
+        assert_eq!(parameters[0]["name"], "a");
+        assert_eq!(parameters[0]["kind"], "positional-or-keyword");
+        assert_eq!(parameters[0]["required"], true);
+        assert_eq!(
+            parameters[0]["type-snapshot"]["qualified-name"],
+            "builtins.int"
+        );
+        assert_eq!(snapshot["return-type"]["qualified-name"], "builtins.int");
+
+        let snapshot = from_annotation(
+            "def f(x: int, /, y: str, *, z: bool = ..., **rest: bytes) -> None",
+            &|_| None,
+        );
+        let kinds: Vec<_> = snapshot["parameters"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .map(|parameter| parameter["kind"].as_str().unwrap())
+            .collect();
+        assert_eq!(
+            kinds,
+            [
+                "positional-only",
+                "positional-or-keyword",
+                "keyword-only",
+                "kwargs"
+            ]
+        );
+        assert_eq!(snapshot["parameters"][2]["required"], false);
+
+        let snapshot = from_annotation(
+            "def f[T: Base, *Ts, **P](x: T, *args: *Ts, **kwargs: P) -> T",
+            &|_| None,
+        );
+        let type_params = snapshot["type-params"].as_array().unwrap();
+        assert_eq!(type_params[0]["name"], "T");
+        assert_eq!(type_params[0]["kind"], "type-var");
+        assert_eq!(type_params[0]["bound"]["expression"], "Base");
+        assert_eq!(type_params[1]["kind"], "type-var-tuple");
+        assert_eq!(type_params[2]["kind"], "param-spec");
+        assert_eq!(snapshot["parameters"][1]["kind"], "var-args");
+        serde_json::from_value::<ty_plugin_protocol::TypeSnapshot>(snapshot).unwrap();
+    }
+
+    #[test]
+    fn callable_arrow_and_callable_forms_produce_structural_snapshots() {
+        let snapshot = from_annotation("(x: int) -> str", &|_| None);
+        assert_eq!(snapshot["kind"], "callable");
+        assert_eq!(snapshot["parameters"][0]["name"], "x");
+        assert_eq!(snapshot["return-type"]["qualified-name"], "builtins.str");
+
+        let snapshot = from_annotation("(...) -> int", &|_| None);
+        assert_eq!(snapshot["kind"], "callable");
+        assert_eq!(snapshot["ellipsis"], true);
+
+        let snapshot = from_annotation("typing.Callable[[int, str], bool]", &|_| None);
+        assert_eq!(snapshot["kind"], "callable");
+        let parameters = snapshot["parameters"].as_array().unwrap();
+        assert_eq!(parameters.len(), 2);
+        assert_eq!(parameters[0]["kind"], "positional-only");
+        assert_eq!(
+            parameters[0]["type-snapshot"]["qualified-name"],
+            "builtins.int"
+        );
+        assert_eq!(snapshot["return-type"]["qualified-name"], "builtins.bool");
+
+        let snapshot = from_annotation("Callable[..., int]", &|_| None);
+        assert_eq!(snapshot["ellipsis"], true);
+
+        let snapshot = from_annotation("Callable[P, int]", &|_| None);
+        assert_eq!(snapshot["parameters"][0]["kind"], "param-spec");
+        assert_eq!(
+            snapshot["parameters"][0]["type-snapshot"]["expression"],
+            "P"
+        );
+
+        let snapshot =
+            from_annotation("typing.Callable[typing.Concatenate[int, P], bool]", &|_| {
+                None
+            });
+        let parameters = snapshot["parameters"].as_array().unwrap();
+        assert_eq!(parameters[0]["kind"], "positional-only");
+        assert_eq!(parameters[1]["kind"], "param-spec");
+        serde_json::from_value::<ty_plugin_protocol::TypeSnapshot>(snapshot).unwrap();
+    }
+
+    #[test]
+    fn callable_downgrade_restores_the_checker_display_spelling() {
+        let snapshot = from_annotation("def f(a: int) -> str", &|_| None);
+        assert_eq!(snapshot["kind"], "callable");
+        let mut value = json!({"nested": [snapshot.clone()], "type-expr": {"expression": "def f(a: int) -> str", "snapshot": snapshot}});
+        downgrade_callable_snapshots(&mut value);
+        assert_eq!(value["nested"][0]["kind"], "expression");
+        assert_eq!(value["nested"][0]["expression"], "def f(a: int) -> str");
+        assert_eq!(value["type-expr"]["snapshot"]["kind"], "expression");
+    }
+
+    #[test]
+    fn callable_display_renders_plugin_authored_snapshots() {
+        let snapshot = json!({"kind":"callable","parameters":[{"name":"a","kind":"positional-or-keyword","type-snapshot":{"kind":"nominal","qualified-name":"builtins.int"},"required":true},{"kind":"param-spec","type-snapshot":{"kind":"expression","expression":"P","mode":"annotation"}}],"return-type":{"kind":"nominal","qualified-name":"builtins.str"}});
+        assert_eq!(
+            callable_display_text(&snapshot),
+            "(a: builtins.int, P) -> builtins.str"
+        );
+        assert_eq!(
+            qualified_expression(
+                &from_annotation("def f(a: int) -> str", &|_| None),
+                "",
+                None
+            ),
+            "def f(a: int) -> str"
+        );
     }
 
     #[test]

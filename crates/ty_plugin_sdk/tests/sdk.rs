@@ -90,6 +90,7 @@ fn call_request() -> CallRequest {
         arguments: Vec::new(),
         existing_signature: None,
         default_return_type: None,
+        decorator: false,
         project_index: None,
     }
 }

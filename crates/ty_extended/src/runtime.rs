@@ -2112,6 +2112,16 @@ impl Runtime {
             || self.load_failures.contains_key(&plugin.id))
     }
 
+    /// Any plugin claims at least one decorator. The flow pass skips
+    /// synthesized decorator applications entirely when nothing claims them.
+    pub fn has_decorator_claims(&self) -> bool {
+        self.plugins.iter().any(|plugin| {
+            plugin.manifest["claims"]["decorators"]
+                .as_array()
+                .is_some_and(|claims| !claims.is_empty())
+        })
+    }
+
     fn allowed(&self, source: &Source, kind: &str, payload: &Value, manifest: &Value) -> bool {
         let capability = match kind {
             "build-project-index" => "project-index",
@@ -2149,6 +2159,13 @@ impl Runtime {
                 }),
             "adjust-call-signature" | "adjust-call-return" | "adjust-call-state" => {
                 let callee = payload["callee"]["expression"].as_str().unwrap_or("");
+                // Synthesized decorator applications (`@name` as `name(def)`)
+                // route through decorator claims, not ordinary function claims.
+                if payload["decorator"].as_bool() == Some(true) {
+                    return list("decorators").iter().any(|claim| {
+                        claim["qualified-name"] == self.protocol_name(source, callee)
+                    });
+                }
                 if list("functions")
                     .iter()
                     .any(|claim| claim["qualified-name"] == self.protocol_name(source, callee))
@@ -2358,6 +2375,14 @@ impl Runtime {
             && !self.allowed(source, kind, &request, &plugin.manifest)
         {
             return Ok(None);
+        }
+        // Protocol 0.10 adds `callable` type snapshots; plugins built against an
+        // older minor receive the lossless `expression` spelling instead.
+        let declared_minor = plugin.manifest["protocol-version"]["minor"]
+            .as_u64()
+            .unwrap_or(0);
+        if declared_minor < 10 {
+            crate::type_snapshot::downgrade_callable_snapshots(&mut request);
         }
         let object = request
             .as_object_mut()
@@ -3331,6 +3356,9 @@ fn prepare_call_request(
     // observe. Use the same namespace translation and claim implementation as
     // execute(), including notebooks and inherited state-hook restrictions.
     let mut routing = json!({"callee":{"expression":callee,"mode":"expression"}});
+    if call.decorator {
+        routing["decorator"] = json!(true);
+    }
     if let Some(summary) = &summary {
         routing["receiver"] = json!({"nominal-class":summary["nominal-class"]});
     }
@@ -3390,6 +3418,9 @@ fn prepare_call_request(
         .collect();
     let mut value =
         json!({"callee":{"expression":callee,"mode":"expression"},"arguments":arguments});
+    if call.decorator {
+        value["decorator"] = json!(true);
+    }
     if let Some(expression) = oracle.and_then(|o| o.get(&call.return_key())) {
         value["default-return-type"] = runtime.type_expr(source, expression);
     }
@@ -3460,6 +3491,7 @@ def state(request):
             receiver_span: None,
             receiver_type: Some("demo.Manager".into()),
             flow_receiver_type: Some("demo.Manager".into()),
+            decorator: false,
         }).collect();
         for annotation in ["str", "bytes"] {
             for runtime in [&mut serial, &mut parallel] {
@@ -3577,6 +3609,7 @@ def state(request):
             receiver_span: None,
             receiver_type: Some("demo.Manager".into()),
             flow_receiver_type: Some("demo.Manager".into()),
+            decorator: false,
         }).collect();
         calls.last_mut().unwrap().arguments[0].literal =
             json!({"kind":"str", "value":"café😀\n\"quoted\""});
@@ -5252,6 +5285,7 @@ def member_hook(request):
             receiver_span: None,
             receiver_type: None,
             flow_receiver_type: None,
+            decorator: false,
         };
         let oracle = BTreeMap::from([
             (call.argument_key(0), "Literal[1]".into()),
@@ -6116,5 +6150,56 @@ def member_hook(request):
             Some("demo.Selection[int]")
         );
         assert_eq!(value["expression"], "Self");
+    }
+
+    #[test]
+    fn callable_snapshots_downgrade_for_plugins_declaring_protocol_before_0_10() -> Result<()> {
+        let callable = json!({
+            "kind": "callable",
+            "display": "def demo.f(a: int) -> str",
+            "parameters": [{"name": "a", "kind": "positional-or-keyword",
+                "type-snapshot": {"kind": "nominal", "qualified-name": "builtins.int", "arguments": []},
+                "required": true}],
+            "return-type": {"kind": "nominal", "qualified-name": "builtins.str", "arguments": []}
+        });
+        let payload = || {
+            json!({"callee": {"expression": "demo.load", "mode": "expression"},
+                "arguments": [{"type-expr": {"expression": "def demo.f(a: int) -> str",
+                    "mode": "annotation", "snapshot": callable.clone()}}]})
+        };
+        for (minor, expected_kind) in [(9, "expression"), (10, "callable")] {
+            let directory = std::env::temp_dir()
+                .join(format!("callable-downgrade-{minor}-{}", std::process::id()));
+            std::fs::create_dir_all(&directory)?;
+            let manifest = directory.join("plugin.json");
+            let plugin = directory.join("plugin.py");
+            std::fs::write(
+                &manifest,
+                serde_json::to_vec(&json!({
+                    "id":"snap","name":"Snapshot","version":"0.0.0",
+                    "protocol-version":{"major":0,"minor":minor},
+                    "ty-compatibility":{"requirement":">=0.87.0"},
+                    "runtime":{"kind":"monty","artifact":"plugin.py"},
+                    "capabilities":{"call-return":true},
+                    "claims":{"functions":[{"qualified-name":"demo.load"}]}}))?,
+            )?;
+            std::fs::write(&plugin, "@on_call_return\ndef f(request): pass\n")?;
+            let runtime = Runtime::new(&manifest, &plugin)?;
+            let source = Source::new("load()".into(), "demo.py".into(), "demo".into());
+            let request = runtime
+                .semantic_request(0, &source, "adjust-call-return", &payload())?
+                .expect("claimed function produces a request");
+            let snapshot = &request["arguments"][0]["type-expr"]["snapshot"];
+            assert_eq!(
+                snapshot["kind"].as_str().unwrap(),
+                expected_kind,
+                "protocol minor {minor}"
+            );
+            if minor < 10 {
+                assert_eq!(snapshot["expression"], "def demo.f(a: int) -> str");
+            }
+            std::fs::remove_dir_all(directory)?;
+        }
+        Ok(())
     }
 }

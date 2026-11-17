@@ -26,7 +26,7 @@ else:
     Response = dict
 
 # The wire protocol this SDK was built against. Bumped with the host's protocol version.
-PROTOCOL_VERSION: dict[str, int] = {"major": 0, "minor": 9}
+PROTOCOL_VERSION: dict[str, int] = {"major": 0, "minor": 10}
 
 
 def project_index_value(request: Request, path: list[str], default: Any = None) -> Any:
@@ -626,6 +626,76 @@ def snapshot_self(bound: Optional[JsonObject] = None) -> JsonObject:
     return snap
 
 
+def snapshot_parameter(
+    name: Optional[str] = None,
+    type_snapshot: Optional[JsonObject] = None,
+    kind: Literal[
+        "positional-only",
+        "positional-or-keyword",
+        "var-args",
+        "keyword-only",
+        "kwargs",
+        "param-spec",
+    ] = "positional-or-keyword",
+    required: bool = True,
+) -> JsonObject:
+    """A parameter inside a `callable` snapshot (protocol 0.10+).
+
+    `name` stays absent for `Callable[[A, B], R]` positional arguments and
+    `type_snapshot` for untyped parameters. `required=False` marks a default.
+    """
+    param = {"kind": kind, "required": required}
+    if name is not None:
+        param["name"] = name
+    if type_snapshot is not None:
+        param["type-snapshot"] = type_snapshot
+    return param
+
+
+def snapshot_type_param(
+    name: str,
+    kind: Literal["type-var", "param-spec", "type-var-tuple"] = "type-var",
+    bound: Optional[JsonObject] = None,
+    constraints: Optional[list[JsonObject]] = None,
+    default: Optional[JsonObject] = None,
+) -> JsonObject:
+    """A PEP 695 type parameter: `def f[T](...)`, `*Ts`, `**P` (protocol 0.10+)."""
+    param = {"name": name, "kind": kind}
+    if bound is not None:
+        param["bound"] = bound
+    if constraints:
+        param["constraints"] = constraints
+    if default is not None:
+        param["default"] = default
+    return param
+
+
+def snapshot_callable(
+    parameters: Optional[list[JsonObject]] = None,
+    return_type: Optional[JsonObject] = None,
+    type_params: Optional[list[JsonObject]] = None,
+    display: Optional[str] = None,
+    ellipsis: bool = False,
+) -> JsonObject:
+    """A callable type snapshot: parameters, optional PEP 695 type parameters
+    and a return type (protocol 0.10+).
+
+    `display` preserves the checker's original spelling when the snapshot
+    modifies an incoming type; older-protocol hosts render it verbatim.
+    `ellipsis=True` is `Callable[..., R]` / `(...) -> R`.
+    """
+    snap = {"kind": "callable", "return-type": return_type or snapshot_expression("Unknown")}
+    if display:
+        snap["display"] = display
+    if type_params:
+        snap["type-params"] = type_params
+    if parameters:
+        snap["parameters"] = parameters
+    if ellipsis:
+        snap["ellipsis"] = ellipsis
+    return snap
+
+
 def snapshot_metadata(
     qualified_name: str, arguments: Optional[list[JsonObject]] = None
 ) -> JsonObject:
@@ -658,6 +728,23 @@ def snapshot_name(snapshot: JsonObject) -> Optional[str]:
     return None
 
 
+def _snapshot_param_text(parameter: JsonObject) -> str:
+    ty = (
+        snapshot_to_expression(parameter["type-snapshot"])
+        if parameter.get("type-snapshot")
+        else "Unknown"
+    )
+    name = parameter.get("name") or ""
+    kind = parameter.get("kind")
+    if kind == "var-args":
+        return f"*{name}: {ty}"
+    if kind == "kwargs":
+        return f"**{name}: {ty}"
+    if kind == "param-spec":
+        return ty
+    return f"{name}: {ty}" if name else ty
+
+
 def snapshot_to_expression(snapshot: JsonObject) -> str:
     """Render a snapshot as a display expression. `typed-dict` has no expression form and raises."""
     kind = (snapshot or {}).get("kind")
@@ -688,6 +775,21 @@ def snapshot_to_expression(snapshot: JsonObject) -> str:
         return snapshot_to_expression(bound) if bound else "Self"
     if kind == "annotated":
         return snapshot_to_expression(snapshot.get("base") or {})
+    if kind == "callable":
+        display = snapshot.get("display")
+        if display:
+            return display
+        inner = (
+            "..."
+            if snapshot.get("ellipsis")
+            else ", ".join(
+                _snapshot_param_text(param)
+                for param in snapshot.get("parameters") or []
+            )
+        )
+        return "({}) -> {}".format(
+            inner, snapshot_to_expression(snapshot.get("return-type") or {})
+        )
     if kind == "typed-dict":
         raise ValueError("typed-dict snapshots have no expression form")
     raise ValueError("unknown snapshot kind: " + str(kind))

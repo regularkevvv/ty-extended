@@ -91,6 +91,7 @@ The Python SDK provides:
 - `TypeSnapshot` builders and helpers for transforming host-supplied types:
     `snapshot_expression`, `snapshot_nominal`, `snapshot_tuple`, `snapshot_typed_dict`,
     `snapshot_union`, `snapshot_plugin_class`, `snapshot_self`, `snapshot_annotated`,
+    `snapshot_callable`, `snapshot_parameter`, `snapshot_type_param`,
     `snapshot_field`, `snapshot_metadata`, `snapshot_name`, `snapshot_to_expression`,
     `type_expr_from_snapshot`, `type_expr_expression`, `type_expr_snapshot`;
 - response builders: `call_signature_patch`, `call_return_patch`, `call_state_patch`, `project_index`,
@@ -227,6 +228,56 @@ cache, so editor invalidation follows the same index and source revisions.
 Plugins that opt in require protocol minor version 9 or newer and must also
 enable class transforms. The Python SDK provides `on_class_batch` and
 `class_batch`.
+
+### Callable type snapshots
+
+Protocol 0.10 gives function-typed arguments and return types a structured
+`"kind": "callable"` snapshot instead of an opaque `expression` string:
+
+```json
+{
+  "kind": "callable",
+  "display": "def app.add(a: int, b: int) -> int",
+  "type-params": [{"name": "T", "kind": "type-var", "bound": {"kind": "..."}}],
+  "parameters": [
+    {"name": "a", "kind": "positional-or-keyword",
+     "type-snapshot": {"kind": "nominal", "qualified-name": "builtins.int"},
+     "required": true}
+  ],
+  "return-type": {"kind": "nominal", "qualified-name": "builtins.int"}
+}
+```
+
+`parameters` preserves names, kinds (`positional-only`, `positional-or-keyword`,
+`keyword-only`, `var-args`, `kwargs`, `param-spec`) and defaults
+(`required: false`); `type-params` preserves PEP 695 `def f[T](...)`, `*Ts` and
+`**P` declarations with bounds, constraints and defaults. `ellipsis: true` is
+`Callable[..., R]` / `(...) -> R`. `display` keeps the checker's original
+spelling for messages.
+
+Build them with `snapshot_callable`, `snapshot_parameter` and
+`snapshot_type_param`, and render them back with `snapshot_to_expression`.
+Returning a `callable` snapshot in a patch lowers to `Callable[...]` for plain
+positional signatures and to a generated `Protocol` `__call__` for named,
+keyword-only or generic signatures.
+
+Plugins declaring protocol minor version 9 or older still receive the original
+`expression` spelling on the wire, so existing plugins are unaffected.
+
+### Decorator applications
+
+Bare decorators such as `@curry` do not create an ordinary call site. When a
+plugin adds `symbol_claim`s under `claims.decorators`, the host synthesizes a
+`decorator(function)` application for each claimed name or attribute decorator:
+the decorated function's signature arrives as the sole positional argument — a
+`callable` snapshot under 0.10, an `expression` under older protocols — and the
+request carries `"decorator": true`. Decorators apply bottom-up, matching
+Python's evaluation order, and each `call-return-patch` retypes the definition
+through the decorator's own application, so `reveal_type` and later calls see
+the patched callable. Diagnostics from the hook attach to the decorator
+expression. Manifests without `claims.decorators` incur no extra requests;
+decorators with call arguments (`@factory(...)`) already produce ordinary call
+sites and keep their `functions`/`methods` routing.
 
 ## Test and publish
 

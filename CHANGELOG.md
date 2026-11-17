@@ -13,6 +13,10 @@ Entries below 0.74.0 say "extension" where they now would say "plugin"; the term
 
 - Run plugin CI in `django-ty.yml` and materialize pinned plugin revisions for parity gates from merged git history instead of cloning the separate repository.
 
+- Add protocol 0.10 `callable` type snapshots: function-typed arguments and return types arrive with structured parameters, PEP 695 type parameters and a return type instead of an opaque expression string. Returned `callable` snapshots lower to `Callable[...]` or a generated `Protocol` `__call__`. Plugins declaring protocol 0.9 or older receive the original `expression` spelling on the wire.
+
+- Wire `claims.decorators` to call hooks: bare `@name` decorators synthesize a `decorator(function)` application marked `"decorator": true`, apply bottom-up, and retype the definition through the decorator's own application. Manifests without decorator claims skip the work entirely.
+
 ## 0.91.0
 
 - Use `tyx check` and `tyx server` as the primary commands. Keep the `ty-extended` package name and native compatibility launcher.

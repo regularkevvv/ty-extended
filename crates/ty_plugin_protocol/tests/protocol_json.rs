@@ -5,8 +5,9 @@ use ty_plugin_protocol::{
     LiteralValue, MemberAccessPatch, MemberPatchMode, MutationOperation, MutationRequest,
     MutationResponse, Parameter, ParameterKind, PluginCapabilities, PluginClaims, PluginManifest,
     PluginRequest, PluginResponse, ProjectContext, ProjectIndexResponse, ProtocolVersion,
-    ReceiverSummary, RuntimeSpec, SemanticContext, SettingsModuleSummary, SymbolRef, SymbolSource,
-    TypeExpr, TypeSnapshot, TypeSnapshotField, VersionReq,
+    ReceiverSummary, RuntimeSpec, SemanticContext, SettingsModuleSummary, SnapshotParameter,
+    SnapshotTypeParam, SymbolRef, SymbolSource, TypeExpr, TypeParamKind, TypeSnapshot,
+    TypeSnapshotField, VersionReq,
 };
 
 #[test]
@@ -593,6 +594,7 @@ fn serializes_receiver_aware_call_request() {
         }],
         existing_signature: None,
         default_return_type: Some(TypeExpr::annotation("minidjango.QuerySet[app.Book]")),
+        decorator: false,
         project_index: Some(serde_json::json!({ "models": ["app.Book"] })),
     });
 
@@ -678,6 +680,88 @@ fn structural_type_snapshot_round_trips() {
     let restored: TypeExpr = serde_json::from_str(&json).expect("deserialize type snapshot");
 
     assert_eq!(restored.snapshot.as_deref(), Some(&snapshot));
+}
+
+#[test]
+fn callable_type_snapshot_round_trips_with_parameters_and_type_params() {
+    let snapshot = TypeSnapshot::Callable {
+        display: "def module.f[T](a: int, *args: *Ts, key: str = ...) -> T".to_string(),
+        type_params: vec![
+            SnapshotTypeParam {
+                name: "T".to_string(),
+                kind: TypeParamKind::TypeVar,
+                bound: Some(Box::new(TypeSnapshot::Nominal {
+                    qualified_name: "builtins.object".to_string(),
+                    arguments: vec![],
+                })),
+                constraints: vec![],
+                default: None,
+            },
+            SnapshotTypeParam {
+                name: "Ts".to_string(),
+                kind: TypeParamKind::TypeVarTuple,
+                bound: None,
+                constraints: vec![],
+                default: None,
+            },
+        ],
+        parameters: vec![
+            SnapshotParameter {
+                name: Some("a".to_string()),
+                kind: ParameterKind::PositionalOrKeyword,
+                type_snapshot: Some(Box::new(TypeSnapshot::Nominal {
+                    qualified_name: "builtins.int".to_string(),
+                    arguments: vec![],
+                })),
+                required: true,
+            },
+            SnapshotParameter {
+                name: Some("args".to_string()),
+                kind: ParameterKind::VarArgs,
+                type_snapshot: None,
+                required: true,
+            },
+            SnapshotParameter {
+                name: Some("key".to_string()),
+                kind: ParameterKind::KeywordOnly,
+                type_snapshot: Some(Box::new(TypeSnapshot::expression(&TypeExpr::annotation(
+                    "str",
+                )))),
+                required: false,
+            },
+            SnapshotParameter {
+                name: None,
+                kind: ParameterKind::ParamSpec,
+                type_snapshot: Some(Box::new(TypeSnapshot::expression(&TypeExpr::annotation(
+                    "P",
+                )))),
+                required: true,
+            },
+        ],
+        ellipsis: false,
+        return_type: Box::new(TypeSnapshot::expression(&TypeExpr::annotation("T"))),
+    };
+    let type_expr =
+        TypeExpr::annotation("def module.f(a: int) -> T").with_snapshot(snapshot.clone());
+
+    let json = serde_json::to_string(&type_expr).expect("serialize callable snapshot");
+    let restored: TypeExpr = serde_json::from_str(&json).expect("deserialize callable snapshot");
+    assert_eq!(restored.snapshot.as_deref(), Some(&snapshot));
+
+    // `Callable[..., T]` collapses to the ellipsis form without parameters.
+    let ellipsis = TypeSnapshot::Callable {
+        display: String::new(),
+        type_params: vec![],
+        parameters: vec![],
+        ellipsis: true,
+        return_type: Box::new(TypeSnapshot::expression(&TypeExpr::annotation("int"))),
+    };
+    let json = serde_json::to_value(&ellipsis).expect("serialize ellipsis callable");
+    assert_eq!(json["kind"], "callable");
+    assert_eq!(json["ellipsis"], true);
+    let restored: TypeSnapshot =
+        serde_json::from_value(json).expect("deserialize ellipsis callable");
+    assert_eq!(restored, ellipsis);
 }
 
 #[test]
